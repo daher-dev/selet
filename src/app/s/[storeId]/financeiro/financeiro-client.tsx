@@ -68,7 +68,7 @@ export function FinanceiroClient({
           <p className="text-[11px] font-bold uppercase tracking-wide text-leaf">
             Saldo
           </p>
-          <p className="tabular mt-1 font-display text-[32px] font-semibold leading-none">
+          <p className="tabular mt-1 text-[30px] font-bold leading-none tracking-[-0.4px]">
             {formatBRL(saldo)}
           </p>
         </div>
