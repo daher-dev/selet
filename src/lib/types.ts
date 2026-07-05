@@ -168,6 +168,16 @@ export interface StockMovement {
   at: string;
 }
 
+export const FINANCE_CATEGORIES = [
+  "vendas",
+  "compras",
+  "salarios",
+  "aluguel",
+  "marketing",
+  "outros",
+] as const;
+export type FinanceCategory = (typeof FINANCE_CATEGORIES)[number];
+
 export interface FinanceTx {
   id: string;
   label: string;
