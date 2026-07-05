@@ -12,7 +12,8 @@
     "bootstrap:prod": "tsx scripts/bootstrap-prod.ts",
     "emulators": "firebase emulators:start",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

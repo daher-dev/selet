@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Selet
 
-## Getting Started
+Painel de controle da Selet — alimentação saudável, do produtor à sua mesa.
+Multi-loja, mobile-first, pt-BR.
 
-First, run the development server:
+**Produção:** https://app.espacoselet.com.br (App Hosting: `selet--selet-prod.us-east4.hosted.app`)
+
+## Stack
+
+- **Next.js 16** (App Router, RSC + Server Actions — sem API separada)
+- **Firestore** via `firebase-admin` **somente no servidor** (rules negam todo acesso de cliente)
+- **Firebase Auth** (Google) → cookie de sessão httpOnly de 14 dias; allowlist em `users/{email}`
+- **Firebase App Hosting** — deploy automático a cada push na `main`
+- **Tailwind v4** + shadcn/ui (radix) com tokens da marca; Lucide; Recharts
+- Fontes: Cormorant Garamond (display), Albert Sans (UI), JetBrains Mono (números)
+
+## Modelo de dados (multi-tenant)
+
+Tudo escopado por loja em `stores/{storeId}/…` (orders, customers, products,
+stockItems, finance). Identidade global em `users/{email}` com papel
+(`admin`/`funcionario`), lojas e seções permitidas. Valores monetários em
+**centavos inteiros**. O gate de segurança é `requireAccess(storeId, section)`
+na primeira linha de toda página e server action ([src/lib/access.ts](src/lib/access.ts)).
+
+## Desenvolvimento
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run emulators      # Firestore + Auth emulators (precisa de Java)
+npm run seed           # loja + admin no emulador
+npm run dev            # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.example` → `.env.local` já aponta para os emuladores.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Testes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run test           # Vitest: unit + componentes + repositórios (emulador)
+npm run e2e            # Playwright: fluxo completo em viewport mobile
+```
 
-## Learn More
+O CI (GitHub Actions) roda lint, typecheck, Vitest e Playwright em todo push/PR.
 
-To learn more about Next.js, take a look at the following resources:
+## Operações
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Convidar alguém:** Equipe → Novo membro (a pessoa entra com a conta Google do e-mail convidado).
+- **Nova loja:** criar doc em `stores/{id}` (name, sub, initial) — via script ou console.
+- **Bootstrap de produção (uma vez):** `gcloud auth application-default login && npm run bootstrap:prod`.
+- **Regras/índices:** `firebase deploy --only firestore`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+O design de referência (gerado no Claude Design) está em [docs/design](docs/design).
