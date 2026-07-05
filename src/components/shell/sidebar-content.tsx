@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
 import type { SessionUser, Store } from "@/lib/types";
@@ -121,6 +121,17 @@ export function SidebarContent({
               {user.role === "admin" ? "Administrador" : "Funcionário"}
             </p>
           </div>
+          <button
+            type="button"
+            aria-label="Sair"
+            onClick={async () => {
+              await fetch("/api/session", { method: "DELETE" });
+              window.location.href = "/login";
+            }}
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-wash hover:text-ink"
+          >
+            <LogOut className="size-4" strokeWidth={1.8} />
+          </button>
         </div>
       </div>
     </div>

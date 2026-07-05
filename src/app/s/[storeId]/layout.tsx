@@ -1,21 +1,7 @@
+import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
-import type { SessionUser, Store } from "@/lib/types";
-
-// TODO(M2): replace placeholders with real session (getSessionUser) and
-// store membership checks; redirect to /login when unauthenticated.
-const PLACEHOLDER_USER: SessionUser = {
-  email: "joao@daher.dev",
-  uid: null,
-  name: "João Daher",
-  role: "admin",
-  storeIds: "all",
-  sections: [],
-  status: "ativo",
-};
-
-const PLACEHOLDER_STORES: Store[] = [
-  { id: "demo", name: "Vila Velha/ES", sub: "Loja matriz", initial: "V" },
-];
+import { canAccessStore, requireSessionUser } from "@/lib/access";
+import { listStoresForUser } from "@/data/stores";
 
 export default async function StoreLayout({
   children,
@@ -25,11 +11,19 @@ export default async function StoreLayout({
   params: Promise<{ storeId: string }>;
 }) {
   const { storeId } = await params;
-  const store =
-    PLACEHOLDER_STORES.find((s) => s.id === storeId) ?? PLACEHOLDER_STORES[0];
+  const user = await requireSessionUser();
+
+  if (!canAccessStore(user, storeId)) notFound();
+
+  const stores = await listStoresForUser(user);
+  const store = stores.find((s) => s.id === storeId);
+  if (!store) {
+    // Store doesn't exist (or user lost access) — send to their first store.
+    redirect(stores[0] ? `/s/${stores[0].id}` : "/login");
+  }
 
   return (
-    <AppShell user={PLACEHOLDER_USER} store={store} stores={PLACEHOLDER_STORES}>
+    <AppShell user={user} store={store} stores={stores}>
       {children}
     </AppShell>
   );
