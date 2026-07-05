@@ -38,6 +38,43 @@ export async function activateInvitedUser(
   });
 }
 
+export interface InviteUserInput {
+  email: string;
+  name: string;
+  phone?: string;
+  role: "admin" | "funcionario";
+  storeIds: string[] | "all";
+  sections: string[];
+}
+
+export async function inviteUser(input: InviteUserInput): Promise<void> {
+  const email = input.email.toLowerCase();
+  const ref = usersCol().doc(email);
+  const existing = await ref.get();
+  if (existing.exists) throw new Error("Este e-mail já faz parte da equipe.");
+  await ref.set({
+    ...input,
+    email,
+    uid: null,
+    status: "convidado",
+    invitedAt: FieldValue.serverTimestamp(),
+  });
+}
+
+export async function updateUserAccess(
+  email: string,
+  input: Omit<InviteUserInput, "email">,
+): Promise<void> {
+  await usersCol().doc(email.toLowerCase()).update({ ...input });
+}
+
+export async function setUserStatus(
+  email: string,
+  status: "ativo" | "inativo",
+): Promise<void> {
+  await usersCol().doc(email.toLowerCase()).update({ status });
+}
+
 export async function listUsers(): Promise<TeamMember[]> {
   const snap = await usersCol().get();
   return snap.docs.map((doc) => {
