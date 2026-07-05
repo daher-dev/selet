@@ -102,6 +102,23 @@ export interface Customer {
   avgReorderDays: number | null;
 }
 
+export const PRODUCT_CATEGORIES = [
+  "bowls",
+  "sopas",
+  "salgados",
+  "bebidas",
+] as const;
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+
+export const PRODUCT_TYPE_TAGS = [
+  "vegano",
+  "vegetariano",
+  "sem-lactose",
+  "sem-gluten",
+  "proteico",
+] as const;
+export type ProductTypeTag = (typeof PRODUCT_TYPE_TAGS)[number];
+
 export interface Product {
   id: string;
   name: string;

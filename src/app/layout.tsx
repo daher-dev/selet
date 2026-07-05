@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Albert_Sans, Cormorant_Garamond, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { Toaster } from "@/components/ui/sonner";
 
 const albertSans = Albert_Sans({
   variable: "--font-albert",
@@ -51,6 +52,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-surface text-ink font-sans">
         {children}
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );
