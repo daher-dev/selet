@@ -1,16 +1,15 @@
-import { Package } from "lucide-react";
-import { PageHeader } from "@/components/shell/page-header";
-import { EmptyState } from "@/components/ui/empty-state";
+import { requireAccess } from "@/lib/access";
+import { listStockItems } from "@/data/stock";
+import { EstoqueClient } from "./estoque-client";
 
-export default function EstoquePage() {
-  return (
-    <>
-      <PageHeader title="Estoque" subtitle="Insumos e inventário." />
-      <EmptyState
-        icon={Package}
-        title="Nenhum item ainda"
-        description="Cadastre insumos para controlar entradas, saídas e alertas de reposição."
-      />
-    </>
-  );
+export default async function EstoquePage({
+  params,
+}: {
+  params: Promise<{ storeId: string }>;
+}) {
+  const { storeId } = await params;
+  await requireAccess(storeId, "estoque");
+  const items = await listStockItems(storeId);
+
+  return <EstoqueClient storeId={storeId} items={items} />;
 }
