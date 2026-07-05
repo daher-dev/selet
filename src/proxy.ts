@@ -17,6 +17,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except static assets and the session API route itself.
-  matcher: ["/((?!api/session|_next|icon.svg|favicon.ico).*)"],
+  // Everything except static assets and API routes (which handle their
+  // own auth — session exchange and client-error reporting must work
+  // without a cookie).
+  matcher: ["/((?!api/|_next|icon.svg|favicon.ico).*)"],
 };
