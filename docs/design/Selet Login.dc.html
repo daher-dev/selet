@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Albert+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  @keyframes seletFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+  @keyframes seletRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .selet-rise { animation: seletRise .5s cubic-bezier(.22,1,.36,1) both; }
+  .selet-leaf { animation: seletFloat 6s ease-in-out infinite; }
+  @media (max-width: 760px) {
+    .selet-root { flex-direction: column !important; }
+    .selet-brand { flex: none !important; padding: 26px 26px 30px !important; }
+    .selet-brand-mid, .selet-brand-foot { display: none !important; }
+    .selet-form { width: 100% !important; padding: 34px 24px 44px !important; align-items: flex-start !important; }
+    .selet-form-inner { margin: 0 auto !important; }
+  }
+</style>
+</helmet>
+<div class="selet-root" style="min-height:100vh; display:flex; font-family:'Albert Sans',system-ui,sans-serif; background:#F3F8EF; color:#15231C;">
+
+  <!-- Brand / imagery panel -->
+  <div class="selet-brand" style="flex:1; position:relative; overflow:hidden; background:linear-gradient(160deg,#1C7A4A 0%,#186B41 45%,#0F5233 100%); display:flex; flex-direction:column; justify-content:space-between; padding:52px 56px; min-width:0;">
+    <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.04) 0,rgba(255,255,255,.04) 1px,transparent 1px,transparent 11px); pointer-events:none;"></div>
+    <div class="selet-leaf" style="position:absolute; top:-60px; right:-40px; width:340px; height:340px; border-radius:50%; background:rgba(146,193,125,.16); pointer-events:none;"></div>
+    <div class="selet-leaf" style="position:absolute; bottom:-90px; left:-70px; width:300px; height:300px; border-radius:50%; background:rgba(146,193,125,.10); pointer-events:none; animation-delay:-3s;"></div>
+
+    <div style="display:flex; align-items:baseline; gap:11px; position:relative;">
+      <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:40px; line-height:1; color:#fff; letter-spacing:.5px;">Selet</span>
+      <span style="font-size:9px; font-weight:600; letter-spacing:2.5px; color:#92C17D; text-transform:uppercase;">Vida ativa &amp; saudável</span>
+    </div>
+
+    <div class="selet-brand-mid" style="position:relative; max-width:440px;">
+      <p style="font-size:14px; line-height:1.6; color:rgba(255,255,255,.72); margin:0;">Acompanhe treinos, hábitos e progresso da sua equipe em um só lugar. Entre para continuar.</p>
+    </div>
+
+    <div class="selet-brand-foot" style="position:relative; display:flex; gap:26px; font-size:12px; color:rgba(255,255,255,.6);">
+      <span>Mais energia</span>
+      <span style="color:rgba(255,255,255,.28);">•</span>
+      <span>Progresso diário</span>
+      <span style="color:rgba(255,255,255,.28);">•</span>
+      <span>Hábitos que ficam</span>
+    </div>
+  </div>
+
+  <!-- Login panel -->
+  <div class="selet-form" style="width:min(46%,560px); flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:40px; background:#FBFDF9;">
+    <div class="selet-rise selet-form-inner" style="width:100%; max-width:352px;">
+
+      <div style="width:52px; height:52px; border-radius:14px; background:#186B41; display:flex; align-items:center; justify-content:center; margin-bottom:26px; box-shadow:0 12px 26px -12px rgba(24,107,65,.6);">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"/><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"/></svg>
+      </div>
+
+      <h1 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:34px; line-height:1.1; margin:0 0 8px; color:#15231C;">Bem-vindo de volta</h1>
+      <p style="font-size:14px; line-height:1.55; color:#6E7C72; margin:0 0 32px;">Acesse o painel da Selet com sua conta Google.</p>
+
+      <button onClick="{{ signIn }}"
+        style-hover="border-color:#186B41; box-shadow:0 10px 24px -14px rgba(24,107,65,.5); transform:translateY(-1px)"
+        style-active="transform:translateY(0)"
+        style="display:flex; align-items:center; justify-content:center; gap:12px; width:100%; padding:14px 18px; background:#fff; border:1.5px solid #E1E9DD; border-radius:13px; cursor:pointer; font-family:inherit; font-size:15px; font-weight:600; color:#15231C; transition:border-color .16s ease, box-shadow .16s ease, transform .16s ease;">
+        <svg width="19" height="19" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z"/></svg>
+        <span>Entrar com Google</span>
+      </button>
+
+      <div style="display:flex; align-items:center; gap:12px; margin:26px 0;">
+        <span style="flex:1; height:1px; background:#E7EEE6;"></span>
+        <span style="font-size:11px; font-weight:600; letter-spacing:1px; color:#A8B4AC; text-transform:uppercase;">Acesso exclusivo</span>
+        <span style="flex:1; height:1px; background:#E7EEE6;"></span>
+      </div>
+
+      <div style="display:flex; align-items:flex-start; gap:11px; padding:14px 15px; background:#F3F8EF; border:1px solid #E7EEE6; border-radius:12px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.8" style="flex-shrink:0; margin-top:1px;"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <p style="font-size:12.5px; line-height:1.5; color:#4B5A50; margin:0;">Apenas contas autorizadas da equipe Selet. Fale com o administrador para solicitar acesso.</p>
+      </div>
+
+      <p style="font-size:12px; line-height:1.55; color:#98A69C; margin:28px 0 0; text-align:center;">Ao entrar, você concorda com os <a href="#" style="color:#186B41; text-decoration:none; font-weight:600;">Termos</a> e a <a href="#" style="color:#186B41; text-decoration:none; font-weight:600;">Política de Privacidade</a>.</p>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      signIn: () => { console.log('Google sign-in'); }
+    };
+  }
+}
+</script>
+</body>
+</html>

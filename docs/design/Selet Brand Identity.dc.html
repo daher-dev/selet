@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Albert+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  doc-page:not(:defined) { visibility: hidden; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+</style>
+</helmet>
+<x-import component-from-global-scope="doc-page" from="./doc-page.js" size="letter" margin="0" hint-size="100%,100%">
+
+<div style="font-family:'Albert Sans',system-ui,sans-serif; color:#15231C; line-height:1.62; font-size:15px;">
+
+  <!-- COVER -->
+  <section style="padding:88px 64px 72px; background:linear-gradient(160deg,#1C7A4A 0%,#186B41 46%,#0F5233 100%); position:relative; overflow:hidden;">
+    <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0,rgba(255,255,255,.045) 1px,transparent 1px,transparent 12px); pointer-events:none;"></div>
+    <div style="position:absolute; top:-70px; right:-60px; width:320px; height:320px; border-radius:50%; background:rgba(146,193,125,.16);"></div>
+    <div style="position:relative;">
+      <div style="width:74px; height:74px; border-radius:19px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 18px 40px -18px rgba(0,0,0,.5); margin-bottom:150px;">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"/><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"/></svg>
+      </div>
+      <span style="font-size:11px; font-weight:600; letter-spacing:3px; color:#92C17D; text-transform:uppercase;">Manual da marca</span>
+      <h1 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:76px; line-height:.98; color:#fff; margin:14px 0 0; letter-spacing:.5px;">Identidade<br>visual Selet</h1>
+      <p style="font-size:15px; color:rgba(255,255,255,.74); max-width:440px; margin:22px 0 0;">Os fundamentos da nossa marca — logotipo, símbolo, cores, tipografia e tom de voz. Um guia para manter a Selet consistente em qualquer lugar.</p>
+    </div>
+    <div style="position:relative; margin-top:150px; display:flex; gap:40px; font-size:12px; color:rgba(255,255,255,.6); border-top:1px solid rgba(255,255,255,.16); padding-top:20px;">
+      <span><strong style="color:#fff; font-weight:600;">Versão</strong>&nbsp;&nbsp;1.0</span>
+      <span><strong style="color:#fff; font-weight:600;">Atualizado</strong>&nbsp;&nbsp;Julho 2026</span>
+      <span><strong style="color:#fff; font-weight:600;">Uso</strong>&nbsp;&nbsp;Interno</span>
+    </div>
+  </section>
+
+  <!-- ESSENCE -->
+  <section style="padding:64px 64px 12px;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">01 — Essência</span>
+    <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:40px; line-height:1.08; margin:12px 0 0; color:#15231C;">Saúde que cabe na sua rotina.</h2>
+    <p style="font-size:16px; line-height:1.7; color:#3F4E45; max-width:620px; margin:20px 0 0;">A Selet é para quem quer viver com mais energia — treinar, se mover e comer bem sem complicar. Nossa marca respira o mesmo que defendemos: leve, ativa e constante. Cada expressão visual deve parecer viva e cuidada — nunca pesada ou artificial.</p>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:34px;">
+      <div style="padding:22px 20px; background:#F3F8EF; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:600; color:#186B41;">Vital</div>
+        <p style="font-size:13.5px; color:#5C6B61; margin:8px 0 0;">Cores vivas de folha, espaço para respirar, energia em cada tela.</p>
+      </div>
+      <div style="padding:22px 20px; background:#F3F8EF; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:600; color:#186B41;">Honesto</div>
+        <p style="font-size:13.5px; color:#5C6B61; margin:8px 0 0;">Linguagem direta, sem promessas vazias nem jargão.</p>
+      </div>
+      <div style="padding:22px 20px; background:#F3F8EF; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:600; color:#186B41;">Constante</div>
+        <p style="font-size:13.5px; color:#5C6B61; margin:8px 0 0;">Progresso todo dia, hábitos que ficam, nada de radicalismo.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOGO -->
+  <section style="padding:56px 64px 12px;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">02 — Logotipo</span>
+    <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:40px; line-height:1.08; margin:12px 0 24px; color:#15231C;">A assinatura</h2>
+
+    <div style="display:flex; align-items:center; justify-content:center; gap:16px; padding:56px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:18px;">
+      <span style="width:60px; height:60px; border-radius:15px; background:#186B41; display:flex; align-items:center; justify-content:center;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"/><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"/></svg>
+      </span>
+      <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:56px; line-height:1; color:#186B41; letter-spacing:.5px;">Selet</span>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+      <div style="padding:22px 24px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; color:#8A968D; text-transform:uppercase; margin-bottom:12px;">Símbolo isolado</div>
+        <div style="display:flex; align-items:center; justify-content:center; height:96px;">
+          <span style="width:56px; height:56px; border-radius:14px; background:#186B41; display:flex; align-items:center; justify-content:center;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"/><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"/></svg>
+          </span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:10px 0 0;">Para avatares, favicons e espaços pequenos onde o nome não cabe.</p>
+      </div>
+      <div style="padding:22px 24px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; color:#8A968D; text-transform:uppercase; margin-bottom:12px;">Logotipo textual</div>
+        <div style="display:flex; align-items:center; justify-content:center; height:96px;">
+          <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:46px; color:#186B41; letter-spacing:.5px;">Selet</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:10px 0 0;">Cormorant Garamond SemiBold. Usar quando o símbolo já aparece por perto.</p>
+      </div>
+    </div>
+
+    <!-- Clear space & minimum size -->
+    <div style="display:grid; grid-template-columns:1.15fr 1fr; gap:14px; margin-top:14px;">
+      <div style="padding:24px; background:#F3F8EF; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; color:#8A968D; text-transform:uppercase; margin-bottom:16px;">Área de proteção</div>
+        <div style="display:flex; align-items:center; justify-content:center; gap:14px; padding:26px; background:#fff; border:1px dashed #B7CBA9; border-radius:12px;">
+          <span style="width:44px; height:44px; border-radius:11px; background:#186B41; display:flex; align-items:center; justify-content:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"/><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"/></svg>
+          </span>
+          <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:40px; color:#186B41;">Selet</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:12px 0 0;">Mantenha uma margem livre equivalente à altura do símbolo em todos os lados. Nada deve invadir esse espaço.</p>
+      </div>
+      <div style="padding:24px; background:#F3F8EF; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; color:#8A968D; text-transform:uppercase; margin-bottom:16px;">Tamanho mínimo</div>
+        <div style="display:flex; align-items:center; justify-content:center; gap:36px; padding:26px 20px; background:#fff; border:1px solid #E7EEE6; border-radius:12px;">
+          <span style="text-align:center;">
+            <span style="display:inline-flex; width:24px; height:24px; border-radius:7px; background:#186B41; align-items:center; justify-content:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"/><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"/></svg></span>
+            <span style="display:block; font-family:'JetBrains Mono',monospace; font-size:10px; color:#8A968D; margin-top:8px;">24 px</span>
+          </span>
+          <span style="text-align:center;">
+            <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:22px; color:#186B41;">Selet</span>
+            <span style="display:block; font-family:'JetBrains Mono',monospace; font-size:10px; color:#8A968D; margin-top:8px;">80 px larg.</span>
+          </span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:12px 0 0;">Abaixo desses limites a legibilidade se perde. Não reduza mais.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MISUSE -->
+  <section style="padding:56px 64px 12px;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">03 — Uso incorreto</span>
+    <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:40px; line-height:1.08; margin:12px 0 24px; color:#15231C;">O que nunca fazer</h2>
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+      <div style="border:1px solid #EED6D6; border-radius:13px; overflow:hidden;">
+        <div style="height:104px; display:flex; align-items:center; justify-content:center; background:#FBFDF9;">
+          <span style="width:44px; height:44px; border-radius:11px; background:linear-gradient(135deg,#E23; #F80); background:#D93B3B; display:flex; align-items:center; justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"/><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"/></svg></span>
+        </div>
+        <div style="padding:12px 14px; border-top:1px solid #EED6D6;"><span style="color:#C0392B; font-weight:700; font-size:15px;">✕</span> <span style="font-size:12.5px; color:#5C6B61;">Não troque a cor do símbolo.</span></div>
+      </div>
+      <div style="border:1px solid #EED6D6; border-radius:13px; overflow:hidden;">
+        <div style="height:104px; display:flex; align-items:center; justify-content:center; background:#FBFDF9;">
+          <span style="width:44px; height:44px; border-radius:11px; background:#186B41; display:flex; align-items:center; justify-content:center; transform:rotate(-16deg);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"/><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"/></svg></span>
+        </div>
+        <div style="padding:12px 14px; border-top:1px solid #EED6D6;"><span style="color:#C0392B; font-weight:700; font-size:15px;">✕</span> <span style="font-size:12.5px; color:#5C6B61;">Não incline nem gire.</span></div>
+      </div>
+      <div style="border:1px solid #EED6D6; border-radius:13px; overflow:hidden;">
+        <div style="height:104px; display:flex; align-items:center; justify-content:center; background:#FBFDF9;">
+          <span style="width:64px; height:40px; border-radius:11px; background:#186B41; display:flex; align-items:center; justify-content:center;"><svg width="34" height="20" viewBox="0 0 24 24" preserveAspectRatio="none" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"/><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"/></svg></span>
+        </div>
+        <div style="padding:12px 14px; border-top:1px solid #EED6D6;"><span style="color:#C0392B; font-weight:700; font-size:15px;">✕</span> <span style="font-size:12.5px; color:#5C6B61;">Não distorça as proporções.</span></div>
+      </div>
+      <div style="border:1px solid #EED6D6; border-radius:13px; overflow:hidden;">
+        <div style="height:104px; display:flex; align-items:center; justify-content:center; background:#8A968D;">
+          <span style="width:44px; height:44px; border-radius:11px; background:#186B41; display:flex; align-items:center; justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"/><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"/></svg></span>
+        </div>
+        <div style="padding:12px 14px; border-top:1px solid #EED6D6;"><span style="color:#C0392B; font-weight:700; font-size:15px;">✕</span> <span style="font-size:12.5px; color:#5C6B61;">Não use sobre fundo sem contraste.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COLOR -->
+  <section style="padding:56px 64px 12px;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">04 — Cores</span>
+    <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:40px; line-height:1.08; margin:12px 0 6px; color:#15231C;">Paleta</h2>
+    <p style="font-size:15px; color:#3F4E45; max-width:600px; margin:0 0 26px;">O verde folha é a assinatura. Neutros quentes carregam o texto e as superfícies; o âmbar aparece só para alertas.</p>
+
+    <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:12px;">
+      <div style="border-radius:16px; overflow:hidden; border:1px solid #E7EEE6;">
+        <div style="height:150px; background:#186B41;"></div>
+        <div style="padding:16px 18px;">
+          <div style="font-weight:600; font-size:16px; color:#15231C;">Verde Selet</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#8A968D; margin-top:4px;">#186B41 · Primária</div>
+        </div>
+      </div>
+      <div style="border-radius:16px; overflow:hidden; border:1px solid #E7EEE6;">
+        <div style="height:150px; background:#0F5233;"></div>
+        <div style="padding:16px 18px;">
+          <div style="font-weight:600; font-size:15px; color:#15231C;">Verde Profundo</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#8A968D; margin-top:4px;">#0F5233</div>
+        </div>
+      </div>
+      <div style="border-radius:16px; overflow:hidden; border:1px solid #E7EEE6;">
+        <div style="height:150px; background:#92C17D;"></div>
+        <div style="padding:16px 18px;">
+          <div style="font-weight:600; font-size:15px; color:#15231C;">Folha Clara</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#8A968D; margin-top:4px;">#92C17D</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:12px;">
+      <div style="border-radius:14px; overflow:hidden; border:1px solid #E7EEE6;">
+        <div style="height:74px; background:#15231C;"></div>
+        <div style="padding:11px 13px;"><div style="font-weight:600; font-size:13px;">Tinta</div><div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#8A968D; margin-top:3px;">#15231C</div></div>
+      </div>
+      <div style="border-radius:14px; overflow:hidden; border:1px solid #E7EEE6;">
+        <div style="height:74px; background:#5C6B61;"></div>
+        <div style="padding:11px 13px;"><div style="font-weight:600; font-size:13px;">Texto suave</div><div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#8A968D; margin-top:3px;">#5C6B61</div></div>
+      </div>
+      <div style="border-radius:14px; overflow:hidden; border:1px solid #E7EEE6;">
+        <div style="height:74px; background:#ECF4E8;"></div>
+        <div style="padding:11px 13px;"><div style="font-weight:600; font-size:13px;">Verde névoa</div><div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#8A968D; margin-top:3px;">#ECF4E8</div></div>
+      </div>
+      <div style="border-radius:14px; overflow:hidden; border:1px solid #E7EEE6;">
+        <div style="height:74px; background:#F3F8EF;"></div>
+        <div style="padding:11px 13px;"><div style="font-weight:600; font-size:13px;">Superfície</div><div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#8A968D; margin-top:3px;">#F3F8EF</div></div>
+      </div>
+      <div style="border-radius:14px; overflow:hidden; border:1px solid #E7EEE6;">
+        <div style="height:74px; background:#B7791F;"></div>
+        <div style="padding:11px 13px;"><div style="font-weight:600; font-size:13px;">Âmbar alerta</div><div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#8A968D; margin-top:3px;">#B7791F</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPOGRAPHY -->
+  <section style="padding:56px 64px 12px;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">05 — Tipografia</span>
+    <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:40px; line-height:1.08; margin:12px 0 24px; color:#15231C;">Duas vozes</h2>
+
+    <div style="padding:30px 32px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:16px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid #EEF3EA; padding-bottom:14px; margin-bottom:18px;">
+        <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:22px; color:#186B41;">Cormorant Garamond</span>
+        <span style="font-size:11px; font-weight:700; letter-spacing:1px; color:#8A968D; text-transform:uppercase;">Display · Títulos</span>
+      </div>
+      <div style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:52px; line-height:1.02; color:#15231C;">Aa Bb Cc</div>
+      <div style="font-family:'Cormorant Garamond',serif; font-size:20px; color:#5C6B61; margin-top:12px;">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz 0123456789</div>
+      <p style="font-size:13px; color:#8A968D; margin:16px 0 0;">Serifada e elegante, com um toque editorial. Usar em títulos, números-destaque e o logotipo. Pesos 500–600, incluindo itálico.</p>
+    </div>
+
+    <div style="padding:30px 32px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid #EEF3EA; padding-bottom:14px; margin-bottom:18px;">
+        <span style="font-weight:700; font-size:20px; color:#186B41;">Albert Sans</span>
+        <span style="font-size:11px; font-weight:700; letter-spacing:1px; color:#8A968D; text-transform:uppercase;">Texto · Interface</span>
+      </div>
+      <div style="font-weight:600; font-size:40px; line-height:1.05; color:#15231C;">Aa Bb Cc</div>
+      <div style="font-size:16px; color:#5C6B61; margin-top:12px;">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz 0123456789</div>
+      <p style="font-size:13px; color:#8A968D; margin:16px 0 0;">Sem serifa, geométrica e legível em qualquer tamanho. Corpo de texto, rótulos e todo o produto. Pesos 400–700.</p>
+    </div>
+  </section>
+
+  <!-- VOICE -->
+  <section style="padding:56px 64px 72px;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">06 — Tom de voz</span>
+    <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:40px; line-height:1.08; margin:12px 0 24px; color:#15231C;">Como falamos</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div style="padding:24px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:14px;">
+        <div style="font-size:12px; font-weight:700; letter-spacing:1px; color:#186B41; text-transform:uppercase; margin-bottom:14px;">Somos</div>
+        <ul style="margin:0; padding-left:18px; color:#3F4E45; font-size:14.5px; line-height:1.8;">
+          <li>Diretos e claros</li>
+          <li>Motivadores, como um bom treino</li>
+          <li>Confiantes sem exagero</li>
+          <li>Práticos e úteis</li>
+        </ul>
+      </div>
+      <div style="padding:24px; background:#FBF6F2; border:1px solid #EADFD4; border-radius:14px;">
+        <div style="font-size:12px; font-weight:700; letter-spacing:1px; color:#B7791F; text-transform:uppercase; margin-bottom:14px;">Não somos</div>
+        <ul style="margin:0; padding-left:18px; color:#6B5D4E; font-size:14.5px; line-height:1.8;">
+          <li>Corporativos ou frios</li>
+          <li>Cheios de jargão de marketing</li>
+          <li>Alarmistas sobre saúde</li>
+          <li>Prolixos</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:26px; padding:28px 32px; background:#186B41; border-radius:16px;">
+      <div style="font-size:11px; font-weight:700; letter-spacing:2px; color:#92C17D; text-transform:uppercase;">Na prática</div>
+      <p style="font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:500; font-size:26px; line-height:1.35; color:#fff; margin:12px 0 0;">"Um passo de cada vez. O seu corpo sente a diferença."</p>
+    </div>
+  </section>
+
+</div>
+
+</x-import>
+</x-dc>
+</body>
+</html>
