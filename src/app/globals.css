@@ -42,6 +42,8 @@
   --color-cat-proteinas-wash: #f5e7df;
 
   --color-success: #3a9d5d;
+  --color-info: #2f6fb5;
+  --color-info-wash: #e6eff8;
 }
 
 @theme inline {
