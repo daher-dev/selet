@@ -1,16 +1,15 @@
-import { Users } from "lucide-react";
-import { PageHeader } from "@/components/shell/page-header";
-import { EmptyState } from "@/components/ui/empty-state";
+import { requireAccess } from "@/lib/access";
+import { listCustomers } from "@/data/customers";
+import { ClientesClient } from "./clientes-client";
 
-export default function ClientesPage() {
-  return (
-    <>
-      <PageHeader title="Clientes" subtitle="Sua base de clientes." />
-      <EmptyState
-        icon={Users}
-        title="Nenhum cliente ainda"
-        description="Cadastre clientes para acompanhar pedidos, aniversários e recompras."
-      />
-    </>
-  );
+export default async function ClientesPage({
+  params,
+}: {
+  params: Promise<{ storeId: string }>;
+}) {
+  const { storeId } = await params;
+  await requireAccess(storeId, "clientes");
+  const customers = await listCustomers(storeId);
+
+  return <ClientesClient storeId={storeId} customers={customers} />;
 }
