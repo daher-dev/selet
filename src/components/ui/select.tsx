@@ -80,7 +80,10 @@ function SelectContent({
         <SelectPrimitive.Viewport
           data-position={position}
           className={cn(
-            "p-1",
+            // p-2: at p-1 (4px) the items' own rounded corners sit almost
+            // flush against the content card's larger rounded-xl corners,
+            // reading as cramped — 8px clears that visually.
+            "p-2",
             "data-[position=popper]:h-(--radix-select-trigger-height) data-[position=popper]:w-full data-[position=popper]:min-w-(--radix-select-trigger-width)",
             position === "popper" && ""
           )}
