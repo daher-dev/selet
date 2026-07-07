@@ -303,9 +303,9 @@ function MemberForm({
                   return (
                     <label
                       key={store.id}
-                      className="flex items-center justify-between rounded-xl border border-border bg-paper px-3.5 py-2.5"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-paper px-3.5 py-2.5"
                     >
-                      <span className="text-[13px] font-semibold text-ink">
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
                         {store.name}
                         <span className="ml-1.5 font-normal text-ink-faint">
                           {store.sub}
