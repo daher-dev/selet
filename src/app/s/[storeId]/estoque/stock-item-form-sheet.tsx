@@ -67,7 +67,7 @@ function StockItemForm({
   onClose: () => void;
 }) {
   const [name, setName] = useState(item?.name ?? "");
-  const [category, setCategory] = useState<StockCategory>(item?.category ?? "secos");
+  const [category, setCategory] = useState<StockCategory>(item?.category ?? "nutricao");
   const [unit, setUnit] = useState<StockUnit>(item?.unit ?? "g");
   const [tracked, setTracked] = useState(item?.tracked ?? false);
   const [pkgLabel, setPkgLabel] = useState(item?.pkgLabel ?? "");
@@ -84,6 +84,7 @@ function StockItemForm({
   const [yieldPct, setYieldPct] = useState(
     item?.yieldPct != null ? String(item.yieldPct) : "",
   );
+  const [archived, setArchived] = useState(item?.archived ?? false);
   const [initialSealed, setInitialSealed] = useState("0");
   const [initialOpen, setInitialOpen] = useState("0");
   const [pending, startTransition] = useTransition();
@@ -113,6 +114,7 @@ function StockItemForm({
         sellPrice: resellable ? money(sellPrice) : undefined,
         reorderAt: reorderAt ? Number(reorderAt) : 0,
         yieldPct: yieldPct ? Number(yieldPct) : undefined,
+        archived,
         initialSealed: Number(initialSealed) || 0,
         initialOpen: Number(initialOpen) || 0,
       };
@@ -246,6 +248,13 @@ function StockItemForm({
           description="Item também é vendido no varejo."
           checked={resellable}
           onChange={setResellable}
+        />
+
+        <ToggleRow
+          title="Arquivado"
+          description="Itens arquivados não aparecem na lista padrão do estoque."
+          checked={archived}
+          onChange={setArchived}
         />
 
         <div className="grid grid-cols-2 gap-3">

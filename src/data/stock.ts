@@ -33,6 +33,7 @@ function toItem(id: string, d: FirebaseFirestore.DocumentData): StockItem {
     reorderAt: d.reorderAt ?? 0,
     lowStock: d.lowStock ?? false,
     yieldPct: d.yieldPct,
+    archived: d.archived ?? false,
     updatedAt: d.updatedAt?.toDate().toISOString() ?? "",
   };
 }
@@ -69,6 +70,7 @@ export interface StockItemInput {
   sellPrice?: number;
   reorderAt: number;
   yieldPct?: number;
+  archived?: boolean;
 }
 
 export async function createStockItem(

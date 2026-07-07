@@ -31,6 +31,7 @@ const itemSchema = z
     sellPrice: z.number().int().nonnegative().optional(),
     reorderAt: z.number().nonnegative().default(0),
     yieldPct: z.number().min(0).max(100).optional(),
+    archived: z.boolean().default(false),
     initialSealed: z.number().int().nonnegative().default(0),
     initialOpen: z.number().nonnegative().default(0),
   })
@@ -90,6 +91,7 @@ export async function updateStockItemAction(
       sellPrice: parsed.sellPrice,
       reorderAt: parsed.reorderAt,
       yieldPct: parsed.yieldPct,
+      archived: parsed.archived,
     };
     await requireAccess(storeId, "estoque");
     await updateStockItem(storeId, itemId, data);

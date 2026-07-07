@@ -1,9 +1,33 @@
 import type { APIRequestContext, BrowserContext } from "@playwright/test";
+import { getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { importCatalog } from "../scripts/lib/import-catalog";
 
 const FIRESTORE = "http://localhost:8080";
 const AUTH = "http://localhost:9099";
 const PROJECT = "selet-prod";
 export const ADMIN_EMAIL = "joao@daher.dev";
+
+/** The two stores the system bootstraps with. */
+export const BOOTSTRAP_STORES = [
+  { id: "vila-velha", name: "Vila Velha/ES", sub: "Loja matriz", initial: "V" },
+  { id: "passos", name: "Passos/MG", sub: "Filial", initial: "P" },
+];
+
+/**
+ * Creates both bootstrap store docs and imports the full menu + stock catalog
+ * into each, using the same importer the seed/bootstrap scripts run. Talks to
+ * the Firestore emulator via firebase-admin.
+ */
+export async function seedCatalog() {
+  process.env.FIRESTORE_EMULATOR_HOST ??= "localhost:8080";
+  const app = getApps()[0] ?? initializeApp({ projectId: PROJECT });
+  const db = getFirestore(app);
+  for (const { id, ...store } of BOOTSTRAP_STORES) {
+    await db.doc(`stores/${id}`).set(store, { merge: true });
+    await importCatalog(db, id);
+  }
+}
 
 const OWNER = { Authorization: "Bearer owner" };
 

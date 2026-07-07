@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
@@ -78,9 +79,10 @@ function ProductForm({
     product ? formatBRL(product.price).replace(/R\$\s?/, "") : "",
   );
   const [category, setCategory] = useState<string>(
-    product?.category ?? "bowls",
+    product?.category ?? "shakes",
   );
   const [typeTags, setTypeTags] = useState<string[]>(product?.typeTags ?? []);
+  const [description, setDescription] = useState(product?.description ?? "");
   const [active, setActive] = useState(product?.active ?? true);
   const [pending, startTransition] = useTransition();
 
@@ -100,6 +102,7 @@ function ProductForm({
         price: priceCentavos,
         category: category as (typeof PRODUCT_CATEGORIES)[number],
         typeTags: typeTags as (typeof PRODUCT_TYPE_TAGS)[number][],
+        description: description.trim() || undefined,
         active,
       };
       const result = product
@@ -156,6 +159,19 @@ function ProductForm({
               className="rounded-xl pl-9 tabular"
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="product-description">Descrição</Label>
+          <Textarea
+            id="product-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Shake de Morango com Baunilha e borda de Morango…"
+            rows={3}
+            maxLength={280}
+            className="rounded-xl"
+          />
         </div>
 
         <div className="space-y-1.5">

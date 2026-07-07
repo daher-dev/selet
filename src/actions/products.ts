@@ -21,6 +21,7 @@ const productSchema = z.object({
   price: z.number().int().positive("Preço deve ser maior que zero."),
   category: z.enum(PRODUCT_CATEGORIES),
   typeTags: z.array(z.enum(PRODUCT_TYPE_TAGS)).default([]),
+  description: z.string().trim().max(280).optional(),
   active: z.boolean().default(true),
 });
 

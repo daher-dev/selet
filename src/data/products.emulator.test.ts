@@ -16,32 +16,36 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
 
   it("creates, reads, updates and deletes a product", async () => {
     const id = await createProduct(storeId, {
-      name: "Bowl de frango",
-      price: 2990,
-      category: "bowls",
+      name: "Shake Frutas Vermelhas",
+      price: 3600,
+      category: "shakes",
       typeTags: ["proteico"],
+      description: "Morango com Baunilha e borda de Morango.",
       active: true,
     });
 
     let product = await getProduct(storeId, id);
     expect(product).toMatchObject({
-      name: "Bowl de frango",
-      price: 2990,
-      category: "bowls",
+      name: "Shake Frutas Vermelhas",
+      price: 3600,
+      category: "shakes",
       typeTags: ["proteico"],
+      description: "Morango com Baunilha e borda de Morango.",
       active: true,
     });
 
     await updateProduct(storeId, id, {
-      name: "Bowl de frango grande",
-      price: 3490,
-      category: "bowls",
+      name: "Shake Frutas Vermelhas G",
+      price: 4200,
+      category: "shakes",
       typeTags: [],
       active: false,
     });
     product = await getProduct(storeId, id);
-    expect(product?.price).toBe(3490);
+    expect(product?.price).toBe(4200);
     expect(product?.active).toBe(false);
+    // description cleared on an update that omits it
+    expect(product?.description).toBeUndefined();
 
     const all = await listProducts(storeId);
     expect(all).toHaveLength(1);

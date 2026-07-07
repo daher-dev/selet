@@ -136,6 +136,11 @@ export function ProdutosClient({ storeId, products }: ProdutosClientProps) {
                         </Badge>
                       )}
                     </span>
+                    {product.description && (
+                      <span className="mt-0.5 block truncate text-[11.5px] text-ink-soft">
+                        {product.description}
+                      </span>
+                    )}
                     {product.typeTags.length > 0 && (
                       <span className="mt-0.5 block truncate text-[11.5px] text-ink-faint">
                         {product.typeTags

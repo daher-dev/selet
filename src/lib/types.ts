@@ -29,12 +29,13 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const PAY_METHODS = ["pix", "cartao", "dinheiro"] as const;
 export type PayMethod = (typeof PAY_METHODS)[number];
 
+// Herbalife distributor lines (the real supply "menu"): Nutrição Interna,
+// Linha 24 Hours, Produtos Avulsos, Linha Externa (personal care).
 export const STOCK_CATEGORIES = [
-  "bebidas",
-  "hortifruti",
-  "proteinas",
-  "secos",
-  "base",
+  "nutricao",
+  "esporte",
+  "avulsos",
+  "beleza",
 ] as const;
 export type StockCategory = (typeof STOCK_CATEGORIES)[number];
 
@@ -102,11 +103,15 @@ export interface Customer {
   avgReorderDays: number | null;
 }
 
+// Café menu sections (CARDÁPIO): Shakes (Gourmet + Tradicional), Waffle,
+// Refeições Salgadas, Bebidas e Chás, Lanches rápidos, Extras.
 export const PRODUCT_CATEGORIES = [
-  "bowls",
-  "sopas",
+  "shakes",
+  "waffles",
   "salgados",
   "bebidas",
+  "lanches",
+  "adicionais",
 ] as const;
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 
@@ -125,6 +130,7 @@ export interface Product {
   price: number; // centavos
   category: string;
   typeTags: string[];
+  description?: string;
   active: boolean;
   createdAt: string;
 }
@@ -150,6 +156,8 @@ export interface StockItem {
   reorderAt: number;
   lowStock: boolean;
   yieldPct?: number; // rendimento
+  /** hidden from the default estoque list (e.g. non-food resale lines) */
+  archived: boolean;
   updatedAt: string;
 }
 

@@ -1,0 +1,371 @@
+[
+  {
+    "slug": "shake-frutas-vermelhas",
+    "name": "Frutas Vermelhas",
+    "description": "Delicioso Shake de Morango com Baunilha e borda de Morango e calda de Fibra de Uva.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-frutas-citricas",
+    "name": "Frutas Cítricas",
+    "description": "Uma refrescante combinação de Abacaxi e Baunilha com borda de Manga e Proteína crocante de chocolate.",
+    "category": "shakes",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "shake-oreo",
+    "name": "Oreo",
+    "description": "O Shake mais crocante tem Cookies e Baunilha e uma borda de Cookies com dupla dose de chocolate crocante.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-floresta-negra",
+    "name": "Floresta Negra",
+    "description": "Explosão de sabores com Chocolate e Baunilha combinado com o sabor cítrico da Fibra de Uva e trufado com Chocolate.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-ovomaltine",
+    "name": "Ovomaltine",
+    "description": "Shake delicioso de chocolate com doce de leite, com borda de chocolate e dupla dose crocante de chocolate.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-tiramisu",
+    "name": "Tiramisú",
+    "description": "Delicioso shake de café com doce de leite com dupla borda de café cremoso adicionado proteína crocante de chocolate. (Temporário)",
+    "category": "shakes",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "shake-bombom-serenata",
+    "name": "Bombom Serenata",
+    "description": "Doce combinação de Chocolate e Doce de leite com deliciosa borda de Chocolate e Waffle proteico de Chocolate.",
+    "category": "shakes",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "shake-sensacao",
+    "name": "Sensação",
+    "description": "Delicioso Shake de Morango e Chocolate com borda de Chocolate e cítrica calda de Fibra de Uva com saboroso crispy de Chocolate.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-bubaloo",
+    "name": "Bubaloo",
+    "description": "Uma perfeita combinação de Morango e Baunilha batido com uma Fibra de Uva e uma deliciosa borda de Uva.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-bolo-de-banana",
+    "name": "Bolo de Banana",
+    "description": "O sabor marcante do Shake de Banana junto com Doce de leite e uma deliciosa borda dupla de Banana com canela e Waffle de chocolate.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-kit-kat",
+    "name": "Kit Kat",
+    "description": "Incrível combinação de Cookies com Doce de leite e borda de Chocolate com 4 Kit kat proteico de Oreo e deliciosos crispy de chocolate.",
+    "category": "shakes",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "shake-pave-de-coco",
+    "name": "Pavê de Côco",
+    "description": "Combinação de Doce de Leite e Côco, com borda dupla de Chocolate e delicioso crispy de chocolate.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-frutas-amarelas",
+    "name": "Frutas Amarelas",
+    "description": "Refrescante combinação de Banana e Baunilha, com uma calda levemente cítrica de Fibra de Manga com deliciosa borda de ninho (baunilha).",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-shake-de-goiaba",
+    "name": "Shake de Goiaba",
+    "description": "Perfeita combinação de Morango com Fibra de Manga com deliciosa borda de Baunilha.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-shake-da-beleza",
+    "name": "Shake da Beleza",
+    "description": "A mais bonita combinação de Morango e Baunilha com Colágeno verisol de Frutas vermelhas e saborosa borda de Morango.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-cocada-de-abacaxi",
+    "name": "Cocada de Abacaxi",
+    "description": "Shake geladinho de abacaxi com côco e borda de côco, com calda de fibra de manga.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-petit-gateau",
+    "name": "Petit Gateau",
+    "description": "Seu Shake quentinho de Chocolate com Waffle e camada gelada e cremosa de Baunilha.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-bubaloo-turbinado",
+    "name": "Bubaloo Turbinado",
+    "description": "Shake Bubaloo com Crunch e 2 Kit kats proteicos.",
+    "category": "shakes",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "shake-trad-danoninho",
+    "name": "Danoninho",
+    "description": "Banana + Morango + borda de Morango.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-trad-bombom-branco",
+    "name": "Bombom Branco",
+    "description": "Baunilha + Cookies + borda de Cookies.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-trad-doce-de-morango",
+    "name": "Doce de Morango",
+    "description": "Doce de leite + Morango + borda de Doce de leite.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-trad-sonho",
+    "name": "Sonho",
+    "description": "Doce de leite + Chocolate + Baunilha + borda de Chocolate.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-trad-capuccino",
+    "name": "Capuccino",
+    "description": "Café + Chocolate + borda Doce de leite. (Temporário)",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-trad-abacaxi-com-coco",
+    "name": "Abacaxi com Côco",
+    "description": "Abacaxi + Côco + borda de côco.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "shake-trad-cocada-de-morango",
+    "name": "Cocada de Morango",
+    "description": "Côco + morango + borda de morango.",
+    "category": "shakes",
+    "typeTags": []
+  },
+  {
+    "slug": "waffle-waffle-de-chocolate",
+    "name": "Waffle de Chocolate",
+    "description": "Delicioso e quentinho Waffle sem farinha. Escolha uma massa (Doce de leite, Baunilha, Abacaxi, Morango, Banana, Cookies, Chocolate, Milho ou Café) e uma calda.",
+    "category": "waffles",
+    "typeTags": []
+  },
+  {
+    "slug": "waffle-waffle-turbinado",
+    "name": "Waffle Turbinado",
+    "description": "Waffle com Calda de Fibra de uva e Crunch.",
+    "category": "waffles",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "salgado-pizza-proteica",
+    "name": "Pizza Proteica",
+    "description": "Massa proteica sem farinha feita com a Nutrisoup, recheada com molho de tomate, queijo, tomate cereja e tempero da casa.",
+    "category": "salgados",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "salgado-pizza-de-frango",
+    "name": "Pizza de Frango",
+    "description": "A deliciosa pizza proteica ainda mais turbinada com Frango desfiado por cima.",
+    "category": "salgados",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "salgado-escondidinho-de-frango",
+    "name": "Escondidinho de Frango",
+    "description": "O delicioso escondidinho de frango, saudável e com calorias reduzidas.",
+    "category": "salgados",
+    "typeTags": []
+  },
+  {
+    "slug": "salgado-trio-de-coxinhas",
+    "name": "Trio de Coxinhas",
+    "description": "Nossa saborosa coxinha é sem massa, altamente proteica e de baixa caloria.",
+    "category": "salgados",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "bebida-sunset",
+    "name": "Sunset",
+    "description": "",
+    "category": "bebidas",
+    "typeTags": []
+  },
+  {
+    "slug": "bebida-refrigerante-saudavel",
+    "name": "Refrigerante Saudável",
+    "description": "",
+    "category": "bebidas",
+    "typeTags": []
+  },
+  {
+    "slug": "bebida-hype-drink",
+    "name": "Hype Drink",
+    "description": "",
+    "category": "bebidas",
+    "typeTags": []
+  },
+  {
+    "slug": "bebida-seca-barriga",
+    "name": "Seca Barriga",
+    "description": "",
+    "category": "bebidas",
+    "typeTags": []
+  },
+  {
+    "slug": "bebida-colageno-drink",
+    "name": "Colágeno Drink",
+    "description": "",
+    "category": "bebidas",
+    "typeTags": []
+  },
+  {
+    "slug": "lanche-barrinha-de-proteina",
+    "name": "Barrinha de Proteína",
+    "description": "",
+    "category": "lanches",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "lanche-pudim-proteico",
+    "name": "Pudim Proteico",
+    "description": "",
+    "category": "lanches",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "lanche-pao-de-mel-trufa",
+    "name": "Pão de Mel / Trufa",
+    "description": "",
+    "category": "lanches",
+    "typeTags": []
+  },
+  {
+    "slug": "lanche-coxinha-proteica",
+    "name": "Coxinha Proteica",
+    "description": "",
+    "category": "lanches",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "lanche-barra-proteica",
+    "name": "Barra Proteica",
+    "description": "",
+    "category": "lanches",
+    "typeTags": [
+      "proteico"
+    ]
+  },
+  {
+    "slug": "add-crunch-1-colher",
+    "name": "Crunch (1 colher)",
+    "description": "Proteína crocante extra para o seu shake.",
+    "category": "adicionais",
+    "typeTags": []
+  },
+  {
+    "slug": "add-crunch-2-colheres",
+    "name": "Crunch (2 colheres)",
+    "description": "Proteína crocante extra para o seu shake.",
+    "category": "adicionais",
+    "typeTags": []
+  },
+  {
+    "slug": "add-waffle-proteico-1-4",
+    "name": "Waffle Proteico 1/4",
+    "description": "Adicione mais proteína ao seu shake.",
+    "category": "adicionais",
+    "typeTags": []
+  },
+  {
+    "slug": "add-2-kit-kat-proteico",
+    "name": "2 Kit Kat Proteico",
+    "description": "Adicione mais proteína ao seu shake.",
+    "category": "adicionais",
+    "typeTags": []
+  },
+  {
+    "slug": "add-4-kit-kat-proteico",
+    "name": "4 Kit Kat Proteico",
+    "description": "Adicione mais proteína ao seu shake.",
+    "category": "adicionais",
+    "typeTags": []
+  },
+  {
+    "slug": "add-borda-dupla",
+    "name": "Borda Dupla",
+    "description": "Borda dupla no seu shake.",
+    "category": "adicionais",
+    "typeTags": []
+  },
+  {
+    "slug": "add-calda-quente",
+    "name": "Calda Quente",
+    "description": "Calda quente no seu shake.",
+    "category": "adicionais",
+    "typeTags": []
+  },
+  {
+    "slug": "add-fibra-soluvel",
+    "name": "Fibra Solúvel",
+    "description": "Fibra solúvel de Uva, Manga ou Limão com mel.",
+    "category": "adicionais",
+    "typeTags": []
+  }
+]

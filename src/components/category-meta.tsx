@@ -1,12 +1,15 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Beef,
-  Carrot,
-  Croissant,
   CupSoda,
-  Salad,
-  Soup,
-  Wheat,
+  Dumbbell,
+  GlassWater,
+  Grid3x3,
+  Leaf,
+  Pizza,
+  PlusCircle,
+  Sandwich,
+  ShoppingBag,
+  Sparkles,
 } from "lucide-react";
 
 export interface CategoryMeta {
@@ -17,21 +20,22 @@ export interface CategoryMeta {
   bg: string;
 }
 
-/** Product categories (Catálogo). */
+/** Product categories (Catálogo) — the café menu sections. */
 export const PRODUCT_CATEGORY_META: Record<string, CategoryMeta> = {
-  bowls: { label: "Bowls", icon: Salad, fg: "text-cat-bowls", bg: "bg-cat-bowls-wash" },
-  sopas: { label: "Sopas", icon: Soup, fg: "text-cat-sopas", bg: "bg-cat-sopas-wash" },
-  salgados: { label: "Salgados", icon: Croissant, fg: "text-cat-salgados", bg: "bg-cat-salgados-wash" },
+  shakes: { label: "Shakes", icon: GlassWater, fg: "text-cat-shakes", bg: "bg-cat-shakes-wash" },
+  waffles: { label: "Waffles", icon: Grid3x3, fg: "text-cat-waffles", bg: "bg-cat-waffles-wash" },
+  salgados: { label: "Salgados", icon: Pizza, fg: "text-cat-salgados", bg: "bg-cat-salgados-wash" },
   bebidas: { label: "Bebidas", icon: CupSoda, fg: "text-cat-bebidas", bg: "bg-cat-bebidas-wash" },
+  lanches: { label: "Lanches", icon: Sandwich, fg: "text-cat-lanches", bg: "bg-cat-lanches-wash" },
+  adicionais: { label: "Adicionais", icon: PlusCircle, fg: "text-cat-adicionais", bg: "bg-cat-adicionais-wash" },
 };
 
-/** Stock (insumo) categories. */
+/** Stock (insumo) categories — the Herbalife distributor lines. */
 export const STOCK_CATEGORY_META: Record<string, CategoryMeta> = {
-  bebidas: { label: "Bebidas", icon: CupSoda, fg: "text-cat-bebidas", bg: "bg-cat-bebidas-wash" },
-  hortifruti: { label: "Hortifrúti", icon: Carrot, fg: "text-cat-bowls", bg: "bg-cat-bowls-wash" },
-  proteinas: { label: "Proteínas", icon: Beef, fg: "text-cat-proteinas", bg: "bg-cat-proteinas-wash" },
-  secos: { label: "Secos", icon: Wheat, fg: "text-cat-salgados", bg: "bg-cat-salgados-wash" },
-  base: { label: "Base", icon: Soup, fg: "text-cat-sopas", bg: "bg-cat-sopas-wash" },
+  nutricao: { label: "Nutrição", icon: Leaf, fg: "text-cat-nutricao", bg: "bg-cat-nutricao-wash" },
+  esporte: { label: "24 Hours", icon: Dumbbell, fg: "text-cat-esporte", bg: "bg-cat-esporte-wash" },
+  avulsos: { label: "Avulsos", icon: ShoppingBag, fg: "text-cat-avulsos", bg: "bg-cat-avulsos-wash" },
+  beleza: { label: "Beleza", icon: Sparkles, fg: "text-cat-beleza", bg: "bg-cat-beleza-wash" },
 };
 
 export const PRODUCT_TYPE_TAG_LABELS: Record<string, string> = {

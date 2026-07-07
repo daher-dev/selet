@@ -15,6 +15,7 @@ function toProduct(id: string, d: FirebaseFirestore.DocumentData): Product {
     price: d.price,
     category: d.category,
     typeTags: d.typeTags ?? [],
+    description: d.description ?? undefined,
     active: d.active ?? true,
     createdAt: d.createdAt?.toDate().toISOString() ?? "",
   };
@@ -38,6 +39,7 @@ export interface ProductInput {
   price: number;
   category: string;
   typeTags: string[];
+  description?: string;
   active: boolean;
 }
 
@@ -57,7 +59,11 @@ export async function updateProduct(
   productId: string,
   input: ProductInput,
 ): Promise<void> {
-  await productsCol(storeId).doc(productId).update({ ...input });
+  await productsCol(storeId)
+    .doc(productId)
+    // Explicit delete so clearing the description in the form persists
+    // (a plain update() would leave the old value in place).
+    .update({ ...input, description: input.description ?? FieldValue.delete() });
 }
 
 export async function deleteProduct(

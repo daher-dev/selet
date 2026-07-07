@@ -12,7 +12,7 @@ const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 
 const GRANOLA: StockItemInput = {
   name: "Granola",
-  category: "secos",
+  category: "nutricao",
   unit: "g",
   tracked: true,
   pkgLabel: "pote",
@@ -82,7 +82,7 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
     const storeId = `test-stock-c-${Date.now()}`;
     const id = await createStockItem(
       storeId,
-      { ...GRANOLA, name: "Alface", category: "hortifruti", unit: "un", tracked: false, pkgLabel: undefined, pkgSize: undefined, reorderAt: 5 },
+      { ...GRANOLA, name: "Alface", category: "avulsos", unit: "un", tracked: false, pkgLabel: undefined, pkgSize: undefined, reorderAt: 5 },
       { sealed: 0, open: 10 },
     );
 

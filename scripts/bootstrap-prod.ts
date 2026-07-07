@@ -9,6 +9,8 @@
  */
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { importCatalog } from "./lib/import-catalog";
+import { seedInvites } from "./lib/team";
 
 const ADMIN_EMAIL = "joao@daher.dev";
 
@@ -20,16 +22,18 @@ if (process.env.FIRESTORE_EMULATOR_HOST) {
 const app = getApps()[0] ?? initializeApp({ projectId: "selet-prod" });
 const db = getFirestore(app);
 
+const STORES = [
+  { id: "vila-velha", name: "Vila Velha/ES", sub: "Loja matriz", initial: "V" },
+  { id: "passos", name: "Passos/MG", sub: "Filial", initial: "P" },
+];
+
 async function bootstrap() {
-  await db.doc("stores/vila-velha").set(
-    {
-      name: "Vila Velha/ES",
-      sub: "Loja matriz",
-      initial: "V",
-      createdAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
+  for (const { id, ...store } of STORES) {
+    await db.doc(`stores/${id}`).set(
+      { ...store, createdAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+  }
 
   await db.doc(`users/${ADMIN_EMAIL}`).set(
     {
@@ -44,7 +48,20 @@ async function bootstrap() {
     { merge: true },
   );
 
-  console.log("Bootstrap ok: loja vila-velha + admin", ADMIN_EMAIL);
+  const invited = await seedInvites(db);
+  if (invited.length) console.log("Convites criados:", invited.join(", "));
+
+  for (const { id } of STORES) {
+    const r = await importCatalog(db, id);
+    console.log(`Catálogo importado em ${id}: ${r.products} produtos, ${r.stockItems} itens de estoque`);
+  }
+
+  console.log(
+    "Bootstrap ok: lojas",
+    STORES.map((s) => s.id).join(", "),
+    "+ admin",
+    ADMIN_EMAIL,
+  );
 }
 
 bootstrap().then(
