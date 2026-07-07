@@ -41,18 +41,11 @@ export default async function FinanceiroPage({
     });
   }
 
+  // All-time balance + per-month in/out buckets for the trend chart.
   let saldo = 0;
-  let monthIn = 0;
-  let monthOut = 0;
-  const currentKey = monthKey(now);
   for (const tx of txs) {
-    const signed = tx.direction === "in" ? tx.amount : -tx.amount;
-    saldo += signed;
+    saldo += tx.direction === "in" ? tx.amount : -tx.amount;
     const key = tx.date ? monthKey(new Date(tx.date)) : null;
-    if (key === currentKey) {
-      if (tx.direction === "in") monthIn += tx.amount;
-      else monthOut += tx.amount;
-    }
     if (key && buckets.has(key)) {
       const bucket = buckets.get(key)!;
       if (tx.direction === "in") bucket.in += tx.amount;
@@ -61,15 +54,18 @@ export default async function FinanceiroPage({
   }
 
   // Avg ticket + distinct customers per month, from non-cancelled orders.
+  // Outstanding (unpaid) orders are bucketed by their competência month so the
+  // client can scope "a receber" to the selected month.
   const orderStats = new Map<string, { total: number; count: number; customers: Set<string> }>();
-  const receivables = { total: 0, count: 0 };
+  const receivablesByMonth: Record<string, { total: number; count: number }> = {};
   for (const order of orders) {
     if (order.status === "cancelado") continue;
-    if (!order.paid) {
-      receivables.total += order.total;
-      receivables.count += 1;
-    }
     const key = monthKey(new Date(order.createdAt));
+    if (!order.paid) {
+      const r = (receivablesByMonth[key] ??= { total: 0, count: 0 });
+      r.total += order.total;
+      r.count += 1;
+    }
     if (!orderStats.has(key)) {
       orderStats.set(key, { total: 0, count: 0, customers: new Set() });
     }
@@ -90,11 +86,9 @@ export default async function FinanceiroPage({
     <FinanceiroClient
       storeId={storeId}
       saldo={saldo}
-      monthIn={monthIn}
-      monthOut={monthOut}
-      receivables={receivables}
+      receivablesByMonth={receivablesByMonth}
       months={[...buckets.values()]}
-      transactions={txs.slice(0, 25)}
+      transactions={txs}
     />
   );
 }

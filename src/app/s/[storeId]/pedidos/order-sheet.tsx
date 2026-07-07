@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Ban, Loader2, Minus, Plus, RotateCcw, Search } from "lucide-react";
+import {
+  Ban,
+  Check,
+  ChevronLeft,
+  Loader2,
+  Minus,
+  Plus,
+  RotateCcw,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import type {
   Customer,
@@ -51,6 +60,11 @@ import {
 } from "@/components/category-meta";
 
 const WALK_IN = "__walk_in__";
+
+/** Order-independent signature of an item's adicionais, for merging lines. */
+function addonSignature(addons?: string[]): string {
+  return [...(addons ?? [])].sort().join("|");
+}
 
 interface OrderSheetProps {
   storeId: string;
@@ -140,32 +154,28 @@ function OrderForm({
     return customers.find((c) => c.id === customerId)?.name ?? "";
   }
 
-  function addProduct(product: Product) {
+  // A configured line (product + qty + chosen adicionais, price already folded
+  // into unitPrice). Merges into an identical existing line — same product AND
+  // same set of adicionais — otherwise becomes its own line.
+  function addConfiguredItem(item: OrderItem) {
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === product.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.productId === product.id ? { ...i, qty: i.qty + 1 } : i,
+      const sig = addonSignature(item.addons);
+      const idx = prev.findIndex(
+        (i) => i.productId === item.productId && addonSignature(i.addons) === sig,
+      );
+      if (idx >= 0) {
+        return prev.map((i, j) =>
+          j === idx ? { ...i, qty: i.qty + item.qty } : i,
         );
       }
-      return [
-        ...prev,
-        {
-          productId: product.id,
-          name: product.name,
-          qty: 1,
-          unitPrice: product.price,
-        },
-      ];
+      return [...prev, item];
     });
   }
 
-  function changeQty(productId: string, delta: number) {
+  function changeQty(index: number, delta: number) {
     setItems((prev) =>
       prev
-        .map((i) =>
-          i.productId === productId ? { ...i, qty: i.qty + delta } : i,
-        )
+        .map((i, j) => (j === index ? { ...i, qty: i.qty + delta } : i))
         .filter((i) => i.qty > 0),
     );
   }
@@ -333,9 +343,9 @@ function OrderForm({
             </button>
           ) : (
             <ul className="space-y-2">
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <li
-                  key={item.productId}
+                  key={`${item.productId}-${index}`}
                   className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5"
                 >
                   <span className="min-w-0 flex-1">
@@ -345,15 +355,21 @@ function OrderForm({
                     <span className="tabular text-[11.5px] text-ink-faint">
                       {formatBRL(item.unitPrice)} un.
                     </span>
+                    {item.addons && item.addons.length > 0 && (
+                      <span className="mt-0.5 block text-[11.5px] leading-snug text-ink-soft">
+                        <span className="font-semibold">Adicionais:</span>{" "}
+                        {item.addons.join(", ")}
+                      </span>
+                    )}
                   </span>
                   <div className="flex items-center gap-1">
-                    <QtyButton onClick={() => changeQty(item.productId, -1)}>
+                    <QtyButton onClick={() => changeQty(index, -1)}>
                       <Minus className="size-3.5" />
                     </QtyButton>
                     <span className="tabular w-7 text-center text-[13px] font-bold text-ink">
                       {item.qty}
                     </span>
-                    <QtyButton onClick={() => changeQty(item.productId, 1)}>
+                    <QtyButton onClick={() => changeQty(index, 1)}>
                       <Plus className="size-3.5" />
                     </QtyButton>
                   </div>
@@ -459,7 +475,7 @@ function OrderForm({
         products={products}
         open={pickerOpen}
         onOpenChange={setPickerOpen}
-        onPick={addProduct}
+        onAdd={addConfiguredItem}
       />
     </>
   );
@@ -487,72 +503,251 @@ function ProductPickerDialog({
   products,
   open,
   onOpenChange,
-  onPick,
+  onAdd,
 }: {
   products: Product[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPick: (product: Product) => void;
+  onAdd: (item: OrderItem) => void;
 }) {
   const [query, setQuery] = useState("");
+  // A picked product moves us from the catalog list to the config step.
+  const [config, setConfig] = useState<Product | null>(null);
+
+  function reset() {
+    setQuery("");
+    setConfig(null);
+  }
+
+  function close() {
+    onOpenChange(false);
+  }
+
   const q = query.trim().toLowerCase();
   const filtered = q
     ? products.filter((p) => p.name.toLowerCase().includes(q))
     : products;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[80dvh] w-[calc(100%-2rem)] max-w-md gap-0 overflow-hidden rounded-2xl p-0">
-        <DialogHeader className="border-b border-border p-4 pb-3">
-          <DialogTitle className="text-[15px] font-bold">
-            Adicionar item
-          </DialogTitle>
-          <div className="relative mt-2">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar no catálogo…"
-              className="rounded-xl pl-9"
-            />
-          </div>
-        </DialogHeader>
-        <div className="overflow-y-auto p-3">
-          {filtered.length === 0 ? (
-            <p className="px-2 py-8 text-center text-[12.5px] text-ink-faint">
-              {products.length === 0
-                ? "Cadastre produtos no Catálogo primeiro."
-                : "Nada encontrado."}
-            </p>
-          ) : (
-            <ul className="space-y-1.5">
-              {filtered.map((product) => {
-                const meta = PRODUCT_CATEGORY_META[product.category];
-                return (
-                  <li key={product.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onPick(product);
-                        toast.success(`${product.name} adicionado.`);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl border border-transparent px-2.5 py-2 text-left transition-colors hover:border-border hover:bg-paper"
-                    >
-                      {meta && <CategoryTile meta={meta} className="size-9" />}
-                      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
-                        {product.name}
-                      </span>
-                      <span className="tabular shrink-0 text-[13px] font-bold text-ink">
-                        {formatBRL(product.price)}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        onOpenChange(next);
+        if (!next) reset();
+      }}
+    >
+      <DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] max-w-md gap-0 overflow-hidden rounded-2xl p-0">
+        {config ? (
+          <ProductConfig
+            product={config}
+            onBack={() => setConfig(null)}
+            onConfirm={(item) => {
+              onAdd(item);
+              toast.success(`${item.name} adicionado.`);
+              close();
+              reset();
+            }}
+          />
+        ) : (
+          <>
+            <DialogHeader className="border-b border-border p-4 pb-3">
+              <DialogTitle className="text-[15px] font-bold">
+                Adicionar item
+              </DialogTitle>
+              <div className="relative mt-2">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar no catálogo…"
+                  className="rounded-xl pl-9"
+                />
+              </div>
+            </DialogHeader>
+            <div className="overflow-y-auto p-3">
+              {filtered.length === 0 ? (
+                <p className="px-2 py-8 text-center text-[12.5px] text-ink-faint">
+                  {products.length === 0
+                    ? "Cadastre produtos no Catálogo primeiro."
+                    : "Nada encontrado."}
+                </p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {filtered.map((product) => {
+                    const meta = PRODUCT_CATEGORY_META[product.category];
+                    return (
+                      <li key={product.id}>
+                        <button
+                          type="button"
+                          onClick={() => setConfig(product)}
+                          className="flex w-full items-center gap-3 rounded-xl border border-transparent px-2.5 py-2 text-left transition-colors hover:border-border hover:bg-paper"
+                        >
+                          {meta && <CategoryTile meta={meta} className="size-9" />}
+                          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
+                            {product.name}
+                          </span>
+                          <span className="tabular shrink-0 text-[13px] font-bold text-ink">
+                            {formatBRL(product.price)}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Config step for a picked product: quantity + optional adicionais. Selected
+ * add-on prices fold into the item's unitPrice so downstream order math is
+ * untouched; their names ride along on OrderItem.addons.
+ */
+function ProductConfig({
+  product,
+  onBack,
+  onConfirm,
+}: {
+  product: Product;
+  onBack: () => void;
+  onConfirm: (item: OrderItem) => void;
+}) {
+  const [qty, setQty] = useState(1);
+  const [selected, setSelected] = useState<string[]>([]);
+  const meta = PRODUCT_CATEGORY_META[product.category];
+  const addons = product.adicionais ?? [];
+
+  function toggleAddon(name: string) {
+    setSelected((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+    );
+  }
+
+  const addonsTotal = addons
+    .filter((a) => selected.includes(a.name))
+    .reduce((s, a) => s + a.price, 0);
+  const unitPrice = product.price + addonsTotal;
+  const subtotal = qty * unitPrice;
+
+  function confirm() {
+    onConfirm({
+      productId: product.id,
+      name: product.name,
+      qty,
+      unitPrice,
+      ...(selected.length > 0 ? { addons: selected } : {}),
+    });
+  }
+
+  return (
+    <>
+      <DialogHeader className="border-b border-border p-4 pb-3">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-paper text-ink-soft transition-colors hover:border-primary hover:text-primary"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <DialogTitle className="min-w-0 flex-1 truncate text-[15px] font-bold">
+            {product.name}
+          </DialogTitle>
+        </div>
+      </DialogHeader>
+
+      <div className="space-y-5 overflow-y-auto p-4">
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-paper p-3">
+          {meta && <CategoryTile meta={meta} className="size-11" />}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[14px] font-semibold text-ink">
+              {product.name}
+            </span>
+            <span className="tabular text-[11.5px] text-ink-faint">
+              {formatBRL(product.price)} un.
+            </span>
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label>Quantidade</Label>
+          <div className="flex items-center gap-1.5">
+            <QtyButton onClick={() => setQty((v) => Math.max(1, v - 1))}>
+              <Minus className="size-3.5" />
+            </QtyButton>
+            <span className="tabular w-8 text-center text-[15px] font-bold text-ink">
+              {qty}
+            </span>
+            <QtyButton onClick={() => setQty((v) => v + 1)}>
+              <Plus className="size-3.5" />
+            </QtyButton>
+          </div>
+        </div>
+
+        {addons.length > 0 && (
+          <div className="space-y-2">
+            <Label>Adicionais</Label>
+            <div className="space-y-2">
+              {addons.map((addon) => {
+                const active = selected.includes(addon.name);
+                return (
+                  <button
+                    key={addon.name}
+                    type="button"
+                    onClick={() => toggleAddon(addon.name)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors",
+                      active
+                        ? "border-primary bg-mist"
+                        : "border-border bg-card hover:border-primary/40",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                        active
+                          ? "border-primary bg-primary text-white"
+                          : "border-border bg-paper text-transparent",
+                      )}
+                    >
+                      <Check className="size-3.5" strokeWidth={3} />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
+                      {addon.name}
+                    </span>
+                    <span className="tabular shrink-0 text-[12.5px] font-bold text-primary">
+                      + {formatBRL(addon.price)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 border-t border-border p-4">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[11px] font-semibold text-ink-faint">
+            Subtotal
+          </span>
+          <span className="tabular text-[20px] font-bold text-primary">
+            {formatBRL(subtotal)}
+          </span>
+        </span>
+        <Button
+          onClick={confirm}
+          className="h-11 gap-1.5 rounded-xl px-5 font-semibold"
+        >
+          <Plus className="size-4" />
+          Adicionar
+        </Button>
+      </div>
+    </>
   );
 }

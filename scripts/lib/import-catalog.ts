@@ -14,6 +14,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
+import { recipeFor } from "./recipes";
 
 // Resolved from the repo root (cwd for tsx scripts, vitest and Playwright),
 // avoiding import.meta so this loads under every runner.
@@ -84,6 +85,7 @@ export async function importCatalog(
   for (const p of priced) {
     const ref = productsCol.doc(p.slug);
     const snap = await ref.get();
+    const rec = recipeFor(p.slug, p.category, prices[p.slug]);
     const fields = {
       name: p.name,
       price: prices[p.slug],
@@ -91,6 +93,12 @@ export async function importCatalog(
       typeTags: p.typeTags,
       description: p.description || undefined,
       active: true,
+      saleType: rec.saleType,
+      recipe: rec.recipe,
+      adicionais: rec.adicionais,
+      tiers: rec.tiers,
+      insumoId: rec.insumoId,
+      stockManaged: rec.stockManaged,
     };
     // Only stamp createdAt on first insert so re-imports don't reset it.
     await ref.set(

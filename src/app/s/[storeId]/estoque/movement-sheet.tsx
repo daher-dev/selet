@@ -303,42 +303,59 @@ function MovementForm({
               Últimas movimentações
             </p>
             <ul className="space-y-1.5">
-              {movements.map((m) => (
-                <li
-                  key={m.id}
-                  className="flex items-center gap-2.5 rounded-xl border border-border bg-paper px-3 py-2 text-[12px]"
-                >
-                  <span
-                    className={cn(
-                      "flex size-6 shrink-0 items-center justify-center rounded-md",
-                      m.type === "entrada" && "bg-mint-wash text-primary",
-                      m.type === "saida" && "bg-danger-wash text-destructive",
-                      m.type === "abertura" && "bg-amber-wash text-amber",
-                    )}
+              {movements.map((m) => {
+                const unitLabel = m.byPackage ? (item.pkgLabel ?? "emb.") : item.unit;
+                return (
+                  <li
+                    key={m.id}
+                    className="flex items-center gap-2.5 rounded-xl border border-border bg-paper px-3 py-2 text-[12px]"
                   >
-                    {m.type === "entrada" ? (
-                      <ArrowDownToLine className="size-3.5" />
-                    ) : m.type === "saida" ? (
-                      <ArrowUpFromLine className="size-3.5" />
-                    ) : (
-                      <PackageOpen className="size-3.5" />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="tabular block font-semibold text-ink">
-                      {m.type === "abertura"
-                        ? `Abriu 1 ${item.pkgLabel ?? "embalagem"}`
-                        : `${m.qty} ${m.byPackage ? (item.pkgLabel ?? "emb.") : item.unit}`}
+                    <span
+                      className={cn(
+                        "flex size-6 shrink-0 items-center justify-center rounded-md",
+                        m.type === "entrada" && "bg-mint-wash text-primary",
+                        m.type === "saida" && "bg-danger-wash text-destructive",
+                        m.type === "abertura" && "bg-amber-wash text-amber",
+                      )}
+                    >
+                      {m.type === "entrada" ? (
+                        <ArrowDownToLine className="size-3.5" />
+                      ) : m.type === "saida" ? (
+                        <ArrowUpFromLine className="size-3.5" />
+                      ) : (
+                        <PackageOpen className="size-3.5" />
+                      )}
                     </span>
-                    {m.reason && (
-                      <span className="block truncate text-ink-faint">{m.reason}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-ink">
+                        {m.reason
+                          ? m.reason
+                          : m.type === "abertura"
+                            ? `Abriu 1 ${item.pkgLabel ?? "embalagem"}`
+                            : m.type === "entrada"
+                              ? "Entrada"
+                              : "Saída"}
+                      </span>
+                      {/* date · price (entradas carry a cost) */}
+                      <span className="tabular block text-ink-faint">
+                        {formatRelative(m.at)}
+                        {m.price != null && <> · {formatBRL(m.price)}</>}
+                      </span>
+                    </span>
+                    {m.type !== "abertura" && (
+                      <span
+                        className={cn(
+                          "tabular shrink-0 text-[12.5px] font-bold",
+                          m.type === "entrada" ? "text-success" : "text-destructive",
+                        )}
+                      >
+                        {m.type === "entrada" ? "+" : "−"}
+                        {m.qty} {unitLabel}
+                      </span>
                     )}
-                  </span>
-                  <span className="shrink-0 text-ink-faint">
-                    {formatRelative(m.at)}
-                  </span>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

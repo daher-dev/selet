@@ -1,10 +1,20 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, ShieldCheck, UserCheck, UserX } from "lucide-react";
+import {
+  Calendar,
+  LogIn,
+  Loader2,
+  Mail,
+  Phone,
+  ShieldCheck,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { Section, Store, TeamMember } from "@/lib/types";
 import { SECTIONS } from "@/lib/types";
+import { formatDate, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   inviteMemberAction,
@@ -22,6 +32,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+
+const STATUS_META: Record<
+  string,
+  { label: string; fg: string; bg: string; dot: string }
+> = {
+  ativo: { label: "Ativo", fg: "text-primary", bg: "bg-mint-wash", dot: "bg-success" },
+  convidado: { label: "Convidado", fg: "text-info", bg: "bg-info-wash", dot: "bg-amber" },
+  inativo: { label: "Inativo", fg: "text-ink-faint", bg: "bg-wash", dot: "bg-ink-faint" },
+};
 
 const SECTION_LABELS: Record<Section, string> = {
   pedidos: "Pedidos",
@@ -55,11 +74,40 @@ export function MemberSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-md">
         <SheetHeader className="border-b border-border">
-          <SheetTitle className="text-[17px] font-bold">
-            {member ? member.name : "Novo membro"}
-          </SheetTitle>
-          {member && (
-            <p className="text-[11.5px] text-ink-faint">{member.email}</p>
+          {member ? (
+            <div className="flex items-center gap-3">
+              <span
+                className={cn(
+                  "flex size-11 shrink-0 items-center justify-center rounded-full text-[14px] font-bold",
+                  member.role === "admin"
+                    ? "bg-amber-wash text-amber"
+                    : "bg-mist text-primary",
+                )}
+              >
+                {initials(member.name)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <SheetTitle className="truncate text-[17px] font-bold">
+                  {member.name}
+                </SheetTitle>
+                <p className="truncate text-[11.5px] text-ink-faint">
+                  {member.email}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold",
+                  STATUS_META[member.status].bg,
+                  STATUS_META[member.status].fg,
+                )}
+              >
+                {STATUS_META[member.status].label}
+              </span>
+            </div>
+          ) : (
+            <SheetTitle className="text-[17px] font-bold">
+              Novo membro
+            </SheetTitle>
           )}
         </SheetHeader>
         <MemberForm
@@ -152,6 +200,23 @@ function MemberForm({
   return (
     <>
       <div className="flex-1 space-y-4 p-4">
+        {member && (
+          <div className="flex flex-wrap gap-2">
+            {member.phone && (
+              <span className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-[12px] text-ink-soft">
+                <Phone className="size-3.5 text-ink-faint" />
+                {member.phone}
+              </span>
+            )}
+            <span className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-[12px] text-ink-soft">
+              <Calendar className="size-3.5 text-ink-faint" />
+              {member.firstLoginAt
+                ? `Ativo desde ${formatDate(member.firstLoginAt)}`
+                : `Desde ${formatDate(member.invitedAt)}`}
+            </span>
+          </div>
+        )}
+
         <div className="space-y-1.5">
           <Label htmlFor="member-name">Nome</Label>
           <Input
@@ -295,6 +360,50 @@ function MemberForm({
           </>
         )}
 
+        {member && (
+          <div className="space-y-1.5">
+            <Label>Atividade recente</Label>
+            {/* Honest status timeline from the dates on TeamMember — there is
+                no activity-event pipeline, so we only surface real milestones. */}
+            <div className="rounded-xl border border-border bg-paper">
+              <TimelineRow
+                icon={Mail}
+                label="Convite enviado"
+                detail={formatDate(member.invitedAt)}
+              />
+              {member.firstLoginAt && (
+                <TimelineRow
+                  icon={LogIn}
+                  label="Primeiro acesso"
+                  detail={formatDate(member.firstLoginAt)}
+                  bordered
+                />
+              )}
+              <div className="flex items-center gap-3 border-t border-border px-3.5 py-3">
+                <span
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-lg",
+                    STATUS_META[member.status].bg,
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "size-2 rounded-full",
+                      STATUS_META[member.status].dot,
+                    )}
+                  />
+                </span>
+                <span className="text-[12.5px] font-semibold text-ink">
+                  Status atual:{" "}
+                  <span className={STATUS_META[member.status].fg}>
+                    {STATUS_META[member.status].label}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {member && !isSelf && (
           <Button
             variant="ghost"
@@ -351,5 +460,36 @@ function MemberForm({
         </Button>
       </SheetFooter>
     </>
+  );
+}
+
+function TimelineRow({
+  icon: Icon,
+  label,
+  detail,
+  bordered = false,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  detail: string;
+  bordered?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-3 px-3.5 py-3",
+        bordered && "border-t border-border",
+      )}
+    >
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-mist text-primary">
+        <Icon className="size-3.5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[12.5px] font-semibold text-ink">
+          {label}
+        </span>
+        <span className="block text-[11px] text-ink-faint">{detail}</span>
+      </span>
+    </div>
   );
 }

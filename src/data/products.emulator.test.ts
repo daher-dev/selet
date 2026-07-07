@@ -22,6 +22,14 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
       typeTags: ["proteico"],
       description: "Morango com Baunilha e borda de Morango.",
       active: true,
+      saleType: "menu",
+      recipe: [
+        { stockItemId: "shake-baunilha", name: "Shake Baunilha", qty: null, unit: "g" },
+        { name: "Leite em pó", qty: 15, unit: "g" },
+      ],
+      adicionais: [{ name: "Protein Crunch", price: 500 }],
+      tiers: [{ qty: 1, price: 3600 }],
+      stockManaged: false,
     });
 
     let product = await getProduct(storeId, id);
@@ -32,7 +40,15 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
       typeTags: ["proteico"],
       description: "Morango com Baunilha e borda de Morango.",
       active: true,
+      saleType: "menu",
+      adicionais: [{ name: "Protein Crunch", price: 500 }],
+      tiers: [{ qty: 1, price: 3600 }],
     });
+    // The BASE recipe round-trips, including the "sem medição" (null qty) row.
+    expect(product?.recipe).toEqual([
+      { stockItemId: "shake-baunilha", name: "Shake Baunilha", qty: null, unit: "g" },
+      { name: "Leite em pó", qty: 15, unit: "g" },
+    ]);
 
     await updateProduct(storeId, id, {
       name: "Shake Frutas Vermelhas G",
@@ -40,10 +56,21 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
       category: "shakes",
       typeTags: [],
       active: false,
+      saleType: "menu",
+      recipe: [{ name: "Shake Baunilha", qty: null, unit: "g" }],
+      adicionais: [],
+      tiers: [
+        { qty: 1, price: 4200 },
+        { qty: 3, price: 11000 },
+      ],
+      stockManaged: true,
     });
     product = await getProduct(storeId, id);
     expect(product?.price).toBe(4200);
     expect(product?.active).toBe(false);
+    expect(product?.stockManaged).toBe(true);
+    expect(product?.tiers).toHaveLength(2);
+    expect(product?.adicionais).toEqual([]);
     // description cleared on an update that omits it
     expect(product?.description).toBeUndefined();
 
@@ -63,6 +90,11 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
       category: "bebidas",
       typeTags: [],
       active: true,
+      saleType: "menu",
+      recipe: [],
+      adicionais: [],
+      tiers: [{ qty: 1, price: 1200 }],
+      stockManaged: false,
     });
     expect(await listProducts(otherStore)).toHaveLength(0);
   });

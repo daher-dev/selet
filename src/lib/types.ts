@@ -124,15 +124,60 @@ export const PRODUCT_TYPE_TAGS = [
 ] as const;
 export type ProductTypeTag = (typeof PRODUCT_TYPE_TAGS)[number];
 
+// How a catalog item is sold. "menu" = prepared in-store from a recipe (BASE)
+// that consumes stock; "revenda" = a stock item resold directly.
+export const PRODUCT_SALE_TYPES = ["menu", "revenda"] as const;
+export type ProductSaleType = (typeof PRODUCT_SALE_TYPES)[number];
+
+/**
+ * One BASE ingredient of a prepared (menu) item. Name-based (mirrors the real
+ * café recipe cards): `stockItemId` links to a stockItems doc when the
+ * ingredient is a tracked Herbalife insumo, but stays undefined for untracked
+ * pantry items (Ninho, Morango…). `qty: null` renders as "sem medição".
+ */
+export interface RecipeItem {
+  stockItemId?: string;
+  name: string;
+  qty: number | null;
+  unit: string;
+}
+
+/** An optional add-on for a menu item — also a consumed item, with an extra price. */
+export interface ProductAddon {
+  stockItemId?: string;
+  name: string;
+  price: number; // centavos, extra charge
+  qty?: number | null;
+  unit?: string;
+}
+
+/** Price-by-quantity row. The `qty: 1` tier is the unit price; higher tiers are lote/batches. */
+export interface PriceTier {
+  qty: number;
+  price: number; // centavos
+}
+
 export interface Product {
   id: string;
   name: string;
-  price: number; // centavos
+  price: number; // centavos — the unit price (mirrors the qty:1 tier)
   category: string;
   typeTags: string[];
   description?: string;
   active: boolean;
   createdAt: string;
+  /** Sale type — defaults to "menu" for legacy docs without the field. */
+  saleType: ProductSaleType;
+  /** BASE recipe (menu items). Empty for revenda. */
+  recipe: RecipeItem[];
+  /** Optional add-ons (menu items). Empty for revenda. */
+  adicionais: ProductAddon[];
+  /** Price tiers; always includes the unit (qty:1) tier. */
+  tiers: PriceTier[];
+  /** Linked stock item slug (revenda items resell one insumo). */
+  insumoId?: string;
+  /** Whether a menu item is produced in batches and kept in stock (drives "Produzir"). */
+  stockManaged: boolean;
 }
 
 export interface StockItem {

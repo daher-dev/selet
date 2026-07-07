@@ -1,5 +1,6 @@
 import { requireAccess } from "@/lib/access";
 import { listCustomers } from "@/data/customers";
+import { listOrders } from "@/data/orders";
 import { ClientesClient } from "./clientes-client";
 
 export default async function ClientesPage({
@@ -9,7 +10,14 @@ export default async function ClientesPage({
 }) {
   const { storeId } = await params;
   await requireAccess(storeId, "clientes");
-  const customers = await listCustomers(storeId);
+  // Orders feed the per-customer "Histórico recente" in the detail sheet;
+  // filtered by customerId on the client. Already sorted newest-first.
+  const [customers, orders] = await Promise.all([
+    listCustomers(storeId),
+    listOrders(storeId),
+  ]);
 
-  return <ClientesClient storeId={storeId} customers={customers} />;
+  return (
+    <ClientesClient storeId={storeId} customers={customers} orders={orders} />
+  );
 }

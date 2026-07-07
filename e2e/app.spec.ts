@@ -51,7 +51,11 @@ test("full flow: login → product → customer → order → paid → dashboard
   await page.getByRole("option", { name: "Carla Mendes" }).click();
   await sheet.getByRole("button", { name: "Adicionar", exact: true }).click();
   await page.getByRole("dialog").getByText("Bowl de salmão").click();
-  await page.keyboard.press("Escape"); // close product picker
+  // Config step: confirm quantity 1 (no add-ons); adding closes the picker.
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Adicionar", exact: true })
+    .click();
   await sheet.getByRole("button", { name: "Pago", exact: true }).click();
   await sheet.getByRole("button", { name: "Pix" }).click();
   await sheet.getByRole("button", { name: "Criar pedido" }).click();
@@ -61,7 +65,7 @@ test("full flow: login → product → customer → order → paid → dashboard
 
   // --- Finance reflects the paid order
   await page.goto("/s/vila-velha/financeiro");
-  await expect(page.getByText(/Pedido #/)).toBeVisible();
+  await expect(page.getByText(/Pedido #/).first()).toBeVisible();
 
   // --- Dashboard KPIs reflect everything
   await page.goto("/s/vila-velha");

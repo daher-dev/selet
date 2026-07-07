@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Plus, Search, ShieldCheck, UserCog, Users } from "lucide-react";
 import type { Store, TeamMember } from "@/lib/types";
-import { formatRelative, initials } from "@/lib/format";
+import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,25 @@ import { MemberSheet } from "./member-sheet";
 
 type RoleFilter = "todos" | "admin" | "funcionario";
 
-const STATUS_META: Record<string, { label: string; fg: string; bg: string }> = {
-  ativo: { label: "Ativo", fg: "text-primary", bg: "bg-mint-wash" },
-  convidado: { label: "Convidado", fg: "text-info", bg: "bg-info-wash" },
-  inativo: { label: "Inativo", fg: "text-ink-faint", bg: "bg-wash" },
+const STATUS_META: Record<
+  string,
+  { label: string; fg: string; bg: string; dot: string }
+> = {
+  ativo: { label: "Ativo", fg: "text-primary", bg: "bg-mint-wash", dot: "bg-success" },
+  convidado: { label: "Convidado", fg: "text-info", bg: "bg-info-wash", dot: "bg-amber" },
+  inativo: { label: "Inativo", fg: "text-ink-faint", bg: "bg-wash", dot: "bg-ink-faint" },
 };
+
+/** Short label for the stores a member belongs to. */
+function storesLabel(member: TeamMember, stores: Store[]): string {
+  if (member.storeIds === "all") return "Todas as lojas";
+  const ids = member.storeIds;
+  if (ids.length === 0) return "Nenhuma loja";
+  if (ids.length === 1) {
+    return stores.find((s) => s.id === ids[0])?.name ?? "1 loja";
+  }
+  return `${ids.length} lojas`;
+}
 
 interface EquipeClientProps {
   storeId: string;
@@ -128,51 +142,64 @@ export function EquipeClient({
                 <button
                   type="button"
                   onClick={() => setSelectedEmail(member.email)}
-                  className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(24,107,65,.28)]"
+                  className="flex w-full flex-col gap-3 rounded-2xl border border-border bg-card p-3.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(24,107,65,.28)]"
                 >
-                  <span
-                    className={cn(
-                      "flex size-10 shrink-0 items-center justify-center rounded-full text-[12.5px] font-bold",
-                      member.role === "admin"
-                        ? "bg-amber-wash text-amber"
-                        : "bg-mist text-primary",
-                    )}
-                  >
-                    {initials(member.name)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate text-[14px] font-semibold text-ink">
-                        {member.name}
-                      </span>
-                      {member.email === meEmail && (
-                        <span className="shrink-0 rounded-full bg-mist px-1.5 py-0.5 text-[9.5px] font-bold uppercase text-primary">
-                          você
-                        </span>
-                      )}
-                    </span>
-                    <span className="block truncate text-[11.5px] text-ink-faint">
-                      {member.email}
-                      {member.role === "admin"
-                        ? " · Administrador"
-                        : ` · ${member.sections.length} ${member.sections.length === 1 ? "área" : "áreas"}`}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="flex items-center gap-3">
                     <span
                       className={cn(
-                        "rounded-full px-2 py-0.5 text-[10px] font-bold",
-                        status.bg,
-                        status.fg,
+                        "flex size-10 shrink-0 items-center justify-center rounded-full text-[12.5px] font-bold",
+                        member.role === "admin"
+                          ? "bg-amber-wash text-amber"
+                          : "bg-mist text-primary",
                       )}
                     >
-                      {status.label}
+                      {initials(member.name)}
                     </span>
-                    {member.firstLoginAt && (
-                      <span className="text-[10.5px] text-ink-faint">
-                        visto {formatRelative(member.firstLoginAt)}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate text-[14px] font-semibold text-ink">
+                          {member.name}
+                        </span>
+                        <span
+                          className={cn(
+                            "flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] font-bold uppercase",
+                            member.role === "admin"
+                              ? "bg-amber-wash text-amber"
+                              : "bg-mist text-primary",
+                          )}
+                        >
+                          {member.role === "admin" && (
+                            <ShieldCheck className="size-2.5" />
+                          )}
+                          {member.role === "admin" ? "Admin" : "Funcionário"}
+                        </span>
+                        {member.email === meEmail && (
+                          <span className="shrink-0 rounded-full bg-mist px-1.5 py-0.5 text-[9.5px] font-bold uppercase text-primary">
+                            você
+                          </span>
+                        )}
                       </span>
-                    )}
+                      <span className="block truncate text-[11.5px] text-ink-faint">
+                        {member.email}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-2.5 border-t border-border pt-2.5">
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "size-1.5 shrink-0 rounded-full",
+                          status.dot,
+                        )}
+                      />
+                      <span className="text-[11.5px] text-ink-soft">
+                        {status.label}
+                      </span>
+                    </span>
+                    <span className="flex-1" />
+                    <span className="truncate text-[11.5px] text-ink-faint">
+                      {storesLabel(member, stores)}
+                    </span>
                   </span>
                 </button>
               </li>

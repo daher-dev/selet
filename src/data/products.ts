@@ -2,22 +2,37 @@ import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
-import type { Product } from "@/lib/types";
+import type {
+  PriceTier,
+  Product,
+  ProductAddon,
+  ProductSaleType,
+  RecipeItem,
+} from "@/lib/types";
 
 function productsCol(storeId: string) {
   return getDb().collection("stores").doc(storeId).collection("products");
 }
 
 function toProduct(id: string, d: FirebaseFirestore.DocumentData): Product {
+  const saleType = d.saleType === "revenda" ? "revenda" : "menu";
+  const price = d.price ?? 0;
   return {
     id,
     name: d.name,
-    price: d.price,
+    price,
     category: d.category,
     typeTags: d.typeTags ?? [],
     description: d.description ?? undefined,
     active: d.active ?? true,
     createdAt: d.createdAt?.toDate().toISOString() ?? "",
+    saleType,
+    recipe: d.recipe ?? [],
+    adicionais: d.adicionais ?? [],
+    // Legacy docs without tiers fall back to a single unit tier at the base price.
+    tiers: d.tiers?.length ? d.tiers : [{ qty: 1, price }],
+    insumoId: d.insumoId ?? undefined,
+    stockManaged: d.stockManaged ?? false,
   };
 }
 
@@ -41,6 +56,12 @@ export interface ProductInput {
   typeTags: string[];
   description?: string;
   active: boolean;
+  saleType: ProductSaleType;
+  recipe: RecipeItem[];
+  adicionais: ProductAddon[];
+  tiers: PriceTier[];
+  insumoId?: string;
+  stockManaged: boolean;
 }
 
 export async function createProduct(
@@ -49,6 +70,7 @@ export async function createProduct(
 ): Promise<string> {
   const ref = await productsCol(storeId).add({
     ...input,
+    insumoId: input.insumoId ?? null,
     createdAt: FieldValue.serverTimestamp(),
   });
   return ref.id;
@@ -61,9 +83,13 @@ export async function updateProduct(
 ): Promise<void> {
   await productsCol(storeId)
     .doc(productId)
-    // Explicit delete so clearing the description in the form persists
+    // Explicit delete so clearing an optional field in the form persists
     // (a plain update() would leave the old value in place).
-    .update({ ...input, description: input.description ?? FieldValue.delete() });
+    .update({
+      ...input,
+      description: input.description ?? FieldValue.delete(),
+      insumoId: input.insumoId ?? FieldValue.delete(),
+    });
 }
 
 export async function deleteProduct(

@@ -10,9 +10,26 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/shell/page-header";
 import { CHANNEL_META, STATUS_META } from "@/components/order-meta";
+import {
+  CategoryTile,
+  PRODUCT_CATEGORY_META,
+  type CategoryMeta,
+} from "@/components/category-meta";
 import { OrderSheet } from "./order-sheet";
 
 type StatusFilter = "todos" | Order["status"];
+
+// OrderItem doesn't carry a category — we resolve it from the live catalog and
+// fall back to a neutral tile for items whose product is gone/unknown.
+const NEUTRAL_TILE: CategoryMeta = {
+  label: "Item",
+  icon: ShoppingBag,
+  fg: "text-ink-soft",
+  bg: "bg-mist",
+};
+
+// Chips shown inline on a card before collapsing the rest into a "+N".
+const MAX_ITEM_CHIPS = 4;
 
 const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "todos", label: "Todos" },
@@ -43,6 +60,13 @@ export function PedidosClient({
   const [creating, setCreating] = useState(false);
 
   const selected = orders.find((o) => o.id === selectedId) ?? null;
+
+  // productId → category, so we can color each item chip on the cards.
+  const categoryById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of products) map.set(p.id, p.category);
+    return map;
+  }, [products]);
 
   const receivables = useMemo(
     () => orders.filter((o) => !o.paid && o.status !== "cancelado"),
@@ -160,9 +184,11 @@ export function PedidosClient({
           {filtered.map((order) => {
             const channel = CHANNEL_META[order.channel];
             const status = STATUS_META[order.status];
-            const itemsSummary = order.items
-              .map((i) => `${i.qty}× ${i.name}`)
-              .join(", ");
+            const showAllItems = order.items.length <= MAX_ITEM_CHIPS;
+            const visibleItems = showAllItems
+              ? order.items
+              : order.items.slice(0, MAX_ITEM_CHIPS - 1);
+            const hiddenItems = order.items.length - visibleItems.length;
             return (
               <li key={order.id}>
                 <button
@@ -190,9 +216,33 @@ export function PedidosClient({
                       {formatBRL(order.total)}
                     </span>
                   </div>
-                  <p className="mt-0.5 truncate text-[12px] text-ink-soft">
-                    {itemsSummary}
-                  </p>
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {visibleItems.map((item, i) => {
+                      const meta =
+                        PRODUCT_CATEGORY_META[
+                          categoryById.get(item.productId) ?? ""
+                        ] ?? NEUTRAL_TILE;
+                      return (
+                        <span
+                          key={`${item.productId}-${i}`}
+                          className="flex min-w-0 items-center gap-1.5 rounded-full border border-border bg-paper py-1 pl-1 pr-2.5"
+                        >
+                          <CategoryTile meta={meta} className="size-7 rounded-lg" />
+                          <span className="min-w-0 truncate text-[12px] text-ink-soft">
+                            <strong className="font-bold text-primary">
+                              {item.qty}
+                            </strong>{" "}
+                            {item.name}
+                          </span>
+                        </span>
+                      );
+                    })}
+                    {hiddenItems > 0 && (
+                      <span className="self-center px-1 text-[11.5px] font-semibold text-ink-faint">
+                        +{hiddenItems}
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-2 flex items-center gap-1.5">
                     <span
                       className={cn(

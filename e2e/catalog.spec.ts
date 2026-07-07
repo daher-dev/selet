@@ -3,7 +3,7 @@ import { BOOTSTRAP_STORES, logIn, resetEmulator, seedCatalog } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
-const CATEGORY_CHIPS = ["Shakes", "Waffles", "Salgados", "Bebidas", "Lanches", "Adicionais"];
+const CATEGORIES = ["Shakes", "Waffles", "Salgados", "Bebidas", "Lanches", "Adicionais"];
 
 // Frutas Vermelhas is priced per store — proof the price book is applied.
 const FRUTAS_VERMELHAS_PRICE: Record<string, string> = {
@@ -28,17 +28,20 @@ test("bootstrapped catalog renders for both stores", async ({
     // --- Catálogo (produtos)
     await page.goto(`/s/${store.id}/produtos`);
 
-    // All six real menu categories show as filter chips.
-    for (const chip of CATEGORY_CHIPS) {
+    // The Categoria filter (a dropdown) offers all six real menu sections.
+    const categoria = page.getByRole("combobox").first();
+    await categoria.click();
+    for (const cat of CATEGORIES) {
       await expect(
-        page.getByRole("button", { name: chip, exact: true }),
-        `${chip} chip in ${store.id}`,
+        page.getByRole("option", { name: cat, exact: true }),
+        `${cat} option in ${store.id}`,
       ).toBeVisible();
     }
+    await page.keyboard.press("Escape");
 
-    // A seeded product with its store-specific price and description copy.
+    // A seeded product with its store-specific price and its BASE recipe row.
     await expect(page.getByText("Frutas Vermelhas", { exact: true })).toBeVisible();
-    await expect(page.getByText(/borda de Morango e calda de Fibra de Uva/)).toBeVisible();
+    await expect(page.getByText("Shake Herbalife Baunilha").first()).toBeVisible();
     await expect(
       page.getByText(FRUTAS_VERMELHAS_PRICE[store.id]).first(),
     ).toBeVisible();
@@ -49,7 +52,8 @@ test("bootstrapped catalog renders for both stores", async ({
     });
 
     // Filtering by a category narrows the list to that section.
-    await page.getByRole("button", { name: "Bebidas", exact: true }).click();
+    await categoria.click();
+    await page.getByRole("option", { name: "Bebidas", exact: true }).click();
     await expect(page.getByText("Sunset", { exact: true })).toBeVisible();
     await expect(page.getByText("Frutas Vermelhas", { exact: true })).toHaveCount(0);
 

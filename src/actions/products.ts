@@ -8,12 +8,36 @@ import {
   deleteProduct,
   updateProduct,
 } from "@/data/products";
-import { PRODUCT_CATEGORIES, PRODUCT_TYPE_TAGS } from "@/lib/types";
+import {
+  PRODUCT_CATEGORIES,
+  PRODUCT_SALE_TYPES,
+  PRODUCT_TYPE_TAGS,
+} from "@/lib/types";
 
 export interface ActionResult {
   ok: boolean;
   error?: string;
 }
+
+const recipeItemSchema = z.object({
+  stockItemId: z.string().optional(),
+  name: z.string().trim().min(1),
+  qty: z.number().nonnegative().nullable(),
+  unit: z.string().trim().default(""),
+});
+
+const addonSchema = z.object({
+  stockItemId: z.string().optional(),
+  name: z.string().trim().min(1),
+  price: z.number().int().nonnegative(),
+  qty: z.number().nonnegative().nullable().optional(),
+  unit: z.string().trim().optional(),
+});
+
+const tierSchema = z.object({
+  qty: z.number().int().positive(),
+  price: z.number().int().nonnegative(),
+});
 
 const productSchema = z.object({
   storeId: z.string().min(1),
@@ -23,6 +47,12 @@ const productSchema = z.object({
   typeTags: z.array(z.enum(PRODUCT_TYPE_TAGS)).default([]),
   description: z.string().trim().max(280).optional(),
   active: z.boolean().default(true),
+  saleType: z.enum(PRODUCT_SALE_TYPES).default("menu"),
+  recipe: z.array(recipeItemSchema).default([]),
+  adicionais: z.array(addonSchema).default([]),
+  tiers: z.array(tierSchema).min(1).default([{ qty: 1, price: 0 }]),
+  insumoId: z.string().optional(),
+  stockManaged: z.boolean().default(false),
 });
 
 export type ProductFormInput = z.input<typeof productSchema>;

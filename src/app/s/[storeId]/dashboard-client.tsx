@@ -59,59 +59,28 @@ export function DashboardClient({
           icon={Users}
           label="Clientes ativos"
           value={String(kpis.activeCustomers)}
+          caption="na sua base"
         />
         <Kpi
           icon={Sparkles}
           label="Novos (30 dias)"
           value={String(kpis.newCustomers30d)}
+          caption="últimos 30 dias"
         />
         <Kpi
           icon={ShoppingBag}
           label="Pedidos no mês"
           value={String(kpis.monthOrders)}
-          hint={formatBRL(kpis.monthRevenue)}
+          caption={`${formatBRL(kpis.monthRevenue)} · este mês`}
         />
         <Kpi
           icon={Cake}
           label="Aniversários"
           value={String(kpis.birthdays)}
-          hint="próximos 30 dias"
+          caption="próximos 30 dias · ver clientes"
+          href={`${base}/clientes`}
         />
       </div>
-
-      {/* Low stock alert */}
-      {lowStock.length > 0 && (
-        <Link
-          href={`${base}/estoque`}
-          className="mb-4 block rounded-2xl border border-amber/40 bg-amber-wash p-4"
-        >
-          <div className="flex items-center gap-2.5">
-            <AlertTriangle className="size-4 text-amber" />
-            <h3 className="text-[13px] font-bold text-ink">
-              Estoque baixo
-            </h3>
-            <span className="ml-auto text-[11px] font-bold uppercase tracking-wide text-amber">
-              Ver estoque
-            </span>
-          </div>
-          <ul className="mt-2.5 space-y-1.5">
-            {lowStock.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center gap-3 text-[12.5px]"
-              >
-                <span className="min-w-0 flex-1 truncate font-semibold text-ink">
-                  {item.name}
-                </span>
-                <span className="tabular shrink-0 whitespace-nowrap text-ink-soft">
-                  {formatQty(item.qty, item.unit)} · repor em{" "}
-                  {formatQty(item.reorderAt, item.unit)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Link>
-      )}
 
       <div className="mb-4 grid gap-2.5 lg:grid-cols-2">
         {/* Channel donut */}
@@ -274,6 +243,50 @@ export function DashboardClient({
           )}
         </div>
       </div>
+
+      {/* Low stock — status-dot chip grid (bottom of page) */}
+      {lowStock.length > 0 && (
+        <Link
+          href={`${base}/estoque`}
+          className="mt-4 block rounded-2xl border border-amber/40 bg-amber-wash p-4"
+        >
+          <div className="mb-3 flex items-center gap-2.5">
+            <AlertTriangle className="size-4 text-amber" />
+            <h3 className="text-[13px] font-bold text-ink">Estoque baixo</h3>
+            <span className="ml-auto text-[11px] font-bold uppercase tracking-wide text-amber">
+              Ver estoque
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {lowStock.map((item) => {
+              const out = item.qty <= 0;
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-2.5 rounded-xl border border-amber/40 bg-card px-3 py-2.5"
+                >
+                  <span
+                    className={cn(
+                      "size-2.5 shrink-0 rounded-full",
+                      out ? "bg-destructive" : "bg-amber",
+                    )}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12.5px] font-semibold text-ink">
+                      {item.name}
+                    </span>
+                    <span className="tabular block text-[11px] font-semibold text-amber">
+                      {out
+                        ? "Esgotado"
+                        : `${formatQty(item.qty, item.unit)} em estoque · repor em ${formatQty(item.reorderAt, item.unit)}`}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Link>
+      )}
     </>
   );
 }
@@ -282,15 +295,17 @@ function Kpi({
   icon: Icon,
   label,
   value,
-  hint,
+  caption,
+  href,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
-  hint?: string;
+  caption?: string;
+  href?: string;
 }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-3.5">
+  const inner = (
+    <>
       <span className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide text-ink-faint">
         <Icon className="size-3.5 text-primary" />
         {label}
@@ -298,7 +313,19 @@ function Kpi({
       <p className="tabular mt-1 text-[28px] font-bold leading-none tracking-[-0.4px] text-ink">
         {value}
       </p>
-      {hint && <p className="mt-1 text-[11px] text-ink-faint">{hint}</p>}
-    </div>
+      {caption && <p className="mt-1 text-[11px] text-ink-faint">{caption}</p>}
+    </>
   );
+  const base = "rounded-2xl border border-border bg-card p-3.5";
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={cn(base, "block transition-colors hover:border-primary/40")}
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return <div className={base}>{inner}</div>;
 }

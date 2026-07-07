@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Crown, MapPin, Phone, Plus, Search, Users } from "lucide-react";
-import type { Customer } from "@/lib/types";
+import type { Customer, Order } from "@/lib/types";
 import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,9 +23,11 @@ const SEGMENTS: { key: Segment; label: string }[] = [
 export function ClientesClient({
   storeId,
   customers,
+  orders = [],
 }: {
   storeId: string;
   customers: Customer[];
+  orders?: Order[];
 }) {
   const [query, setQuery] = useState("");
   const [segment, setSegment] = useState<Segment>("ativos");
@@ -35,6 +37,12 @@ export function ClientesClient({
 
   // Look up by id so the drawer always shows fresh data after revalidation.
   const selected = customers.find((c) => c.id === selectedId) ?? null;
+
+  // The selected customer's orders (newest-first, as listOrders returns them).
+  const selectedOrders = useMemo(
+    () => (selectedId ? orders.filter((o) => o.customerId === selectedId) : []),
+    [orders, selectedId],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -163,6 +171,7 @@ export function ClientesClient({
       <CustomerDetailSheet
         storeId={storeId}
         customer={selected}
+        orders={selectedOrders}
         open={selectedId !== null}
         onOpenChange={(open) => {
           if (!open) setSelectedId(null);
