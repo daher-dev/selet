@@ -41,27 +41,31 @@ export function EstoqueClient({
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [status, setStatus] = useState<StatusFilter>("todos");
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState<StockItem | null>(null);
   const [formOpen, setFormOpen] = useState(false);
 
   const selected = items.find((i) => i.id === selectedId) ?? null;
-  const lowCount = items.filter((i) => i.lowStock).length;
+  const activeItems = items.filter((i) => !i.archived);
+  const archivedCount = items.length - activeItems.length;
+  const lowCount = activeItems.filter((i) => i.lowStock).length;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
+      if (showArchived ? !item.archived : item.archived) return false;
       if (category && item.category !== category) return false;
       if (status !== "todos" && stockStatus(item) !== status) return false;
       return !q || item.name.toLowerCase().includes(q);
     });
-  }, [items, query, category, status]);
+  }, [items, query, category, status, showArchived]);
 
   return (
     <>
       <PageHeader
         title="Estoque"
-        subtitle={`${items.length} ${items.length === 1 ? "insumo" : "insumos"} cadastrados`}
+        subtitle={`${activeItems.length} ${activeItems.length === 1 ? "insumo" : "insumos"} cadastrados`}
         action={
           <Button
             onClick={() => {
@@ -100,7 +104,8 @@ export function EstoqueClient({
             className="rounded-xl bg-card pl-9"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <FilterRowLabel>Categoria</FilterRowLabel>
           <FilterChip label="Todas" active={category === null} onClick={() => setCategory(null)} />
           {Object.entries(STOCK_CATEGORY_META).map(([key, meta]) => (
             <FilterChip
@@ -111,7 +116,8 @@ export function EstoqueClient({
             />
           ))}
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <FilterRowLabel>Situação</FilterRowLabel>
           {(["todos", "critico", "baixo", "normal"] as const).map((s) => (
             <FilterChip
               key={s}
@@ -120,6 +126,13 @@ export function EstoqueClient({
               onClick={() => setStatus(s)}
             />
           ))}
+          {archivedCount > 0 && (
+            <FilterChip
+              label={`Arquivados (${archivedCount})`}
+              active={showArchived}
+              onClick={() => setShowArchived((v) => !v)}
+            />
+          )}
         </div>
       </div>
 
@@ -199,6 +212,15 @@ export function EstoqueClient({
         onOpenChange={setFormOpen}
       />
     </>
+  );
+}
+
+/** Row label for the filter chip rows — desktop only, mobile keeps chips compact. */
+function FilterRowLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="hidden w-20 shrink-0 text-[11px] font-bold uppercase tracking-wide text-ink-faint lg:inline-block">
+      {children}
+    </span>
   );
 }
 

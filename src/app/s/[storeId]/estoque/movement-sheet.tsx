@@ -45,7 +45,8 @@ export function MovementSheet({
         {item && (
           <>
             <SheetHeader className="border-b border-border">
-              <div className="flex items-center justify-between gap-3">
+              {/* pr-8 keeps the edit button clear of the sheet's built-in close X */}
+              <div className="flex items-center justify-between gap-3 pr-8">
                 <div className="min-w-0">
                   <SheetTitle className="truncate text-[17px] font-bold">
                     {item.name}
