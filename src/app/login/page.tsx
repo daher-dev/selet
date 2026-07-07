@@ -35,8 +35,8 @@ export default async function LoginPage() {
 
         <div className="relative hidden max-w-[440px] lg:block">
           <p className="text-[14px] leading-[1.6] text-white/72">
-            Acompanhe treinos, hábitos e progresso da sua equipe em um só
-            lugar. Entre para continuar.
+            Pedidos, clientes, estoque e finanças da sua loja em um só lugar.
+            Entre para continuar.
           </p>
         </div>
 
