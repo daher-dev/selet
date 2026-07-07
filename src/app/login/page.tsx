@@ -33,9 +33,10 @@ export default async function LoginPage() {
           </span>
         </div>
 
-        <div className="relative hidden max-w-md lg:block">
-          <p className="font-display text-[34px] font-medium italic leading-[1.25] text-white">
-            Comida de verdade, do produtor à sua mesa.
+        <div className="relative hidden max-w-[440px] lg:block">
+          <p className="text-[14px] leading-[1.6] text-white/72">
+            Acompanhe treinos, hábitos e progresso da sua equipe em um só
+            lugar. Entre para continuar.
           </p>
         </div>
 
