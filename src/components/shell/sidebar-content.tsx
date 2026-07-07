@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Check, ChevronsUpDown, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/format";
 import type { SessionUser, Store } from "@/lib/types";
@@ -61,15 +61,16 @@ export function SidebarContent({
               router.push(`/s/${id}`);
             }}
           >
-            <SelectTrigger className="w-full rounded-xl border-border bg-card px-3 py-2 h-auto">
+            <SelectTrigger className="h-auto w-full rounded-xl border-border bg-card px-3 py-2">
               <StoreRow store={store} />
-              <ChevronsUpDown className="size-4 text-ink-faint" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              position="popper"
+              className="w-[var(--radix-select-trigger-width)] rounded-xl"
+            >
               {stores.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
+                <SelectItem key={s.id} value={s.id} className="rounded-lg py-1.5">
                   <StoreRow store={s} />
-                  {s.id === store.id && <Check className="size-4 text-primary" />}
                 </SelectItem>
               ))}
             </SelectContent>
