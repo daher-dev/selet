@@ -98,10 +98,12 @@ export function DashboardClient({
             {lowStock.map((item) => (
               <li
                 key={item.id}
-                className="flex items-center justify-between text-[12.5px]"
+                className="flex items-center gap-3 text-[12.5px]"
               >
-                <span className="font-semibold text-ink">{item.name}</span>
-                <span className="tabular text-ink-soft">
+                <span className="min-w-0 flex-1 truncate font-semibold text-ink">
+                  {item.name}
+                </span>
+                <span className="tabular shrink-0 whitespace-nowrap text-ink-soft">
                   {formatQty(item.qty, item.unit)} · repor em{" "}
                   {formatQty(item.reorderAt, item.unit)}
                 </span>
