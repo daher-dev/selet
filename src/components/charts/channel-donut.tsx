@@ -1,13 +1,11 @@
-"use client";
-
-import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
-import { cn } from "@/lib/utils";
-
 const CHANNELS = [
-  { key: "instagram", label: "Instagram", color: "#c2407e", dot: "bg-channel-instagram" },
-  { key: "whatsapp", label: "WhatsApp", color: "#1e9e54", dot: "bg-channel-whatsapp" },
-  { key: "loja", label: "Loja física", color: "#9db394", dot: "bg-channel-loja" },
+  { key: "instagram", label: "Instagram", color: "#C2407E" },
+  { key: "whatsapp", label: "WhatsApp", color: "#1E9E54" },
+  { key: "loja", label: "Loja física", color: "#9DB394" },
 ] as const;
+
+const R = 48;
+const C = 2 * Math.PI * R; // circumference ≈ 301.6
 
 export function ChannelDonut({
   byChannel,
@@ -15,53 +13,67 @@ export function ChannelDonut({
   byChannel: { instagram: number; whatsapp: number; loja: number };
 }) {
   const total = byChannel.instagram + byChannel.whatsapp + byChannel.loja;
-  const data = CHANNELS.map((c) => ({ ...c, value: byChannel[c.key] }));
 
   if (total === 0) {
     return (
       <p className="py-6 text-center text-[12.5px] text-ink-faint">
-        Sem pedidos neste mês ainda.
+        Sem pedidos neste período ainda.
       </p>
     );
   }
 
+  let cumulative = 0;
+  const segments = CHANNELS.map((c) => {
+    const value = byChannel[c.key];
+    const pct = value / total;
+    const len = C * pct;
+    const seg = {
+      ...c,
+      value,
+      pct: Math.round(pct * 100),
+      dash: `${len.toFixed(1)} ${(C - len).toFixed(1)}`,
+      offset: (-C * cumulative).toFixed(1),
+    };
+    cumulative += pct;
+    return seg;
+  });
+
   return (
-    <div className="flex items-center gap-4">
-      <div className="relative size-[132px] shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              innerRadius={44}
-              outerRadius={62}
-              paddingAngle={3}
-              strokeWidth={0}
-              isAnimationActive={false}
-            >
-              {data.map((entry) => (
-                <Cell key={entry.key} fill={entry.color} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="tabular text-[24px] font-bold leading-none tracking-[-0.4px] text-ink">
-            {total}
-          </span>
-          <span className="text-[9.5px] font-bold uppercase tracking-wide text-ink-faint">
-            pedidos
-          </span>
-        </div>
-      </div>
-      <ul className="flex-1 space-y-2">
-        {data.map((entry) => (
-          <li key={entry.key} className="flex items-center gap-2 text-[12.5px]">
-            <span className={cn("size-2 rounded-full", entry.dot)} />
-            <span className="flex-1 text-ink-soft">{entry.label}</span>
-            <span className="tabular font-bold text-ink">{entry.value}</span>
-            <span className="tabular w-10 text-right text-ink-faint">
-              {total ? Math.round((entry.value / total) * 100) : 0}%
+    <div className="flex items-center gap-[18px]">
+      <svg
+        width="118"
+        height="118"
+        viewBox="0 0 118 118"
+        className="shrink-0 -rotate-90"
+      >
+        <circle cx="59" cy="59" r={R} fill="none" stroke="#F0F4ED" strokeWidth="16" />
+        {segments.map((s) => (
+          <circle
+            key={s.key}
+            cx="59"
+            cy="59"
+            r={R}
+            fill="none"
+            stroke={s.color}
+            strokeWidth="16"
+            strokeDasharray={s.dash}
+            strokeDashoffset={s.offset}
+          />
+        ))}
+      </svg>
+      <ul className="flex flex-1 flex-col gap-[11px]">
+        {segments.map((s) => (
+          <li key={s.key} className="flex items-center gap-2.5">
+            <span
+              className="size-2.5 rounded-[3px]"
+              style={{ background: s.color }}
+            />
+            <span className="flex-1 text-[13px] text-[#3D4A42]">{s.label}</span>
+            <span className="tabular text-[13px] font-bold text-ink">
+              {s.value}
+            </span>
+            <span className="tabular w-[38px] text-right text-[11.5px] text-ink-faint">
+              {s.pct}%
             </span>
           </li>
         ))}

@@ -3,7 +3,7 @@ import { canAccessSection } from "@/lib/access";
 import { listOrders } from "@/data/orders";
 import { listCustomers } from "@/data/customers";
 import { listStockItems } from "@/data/stock";
-import { DashboardClient } from "./dashboard-client";
+import { DashboardClient, type KpiCard } from "./dashboard-client";
 
 export default async function DashboardPage({
   params,
@@ -15,11 +15,16 @@ export default async function DashboardPage({
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 86_400_000);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
+  // Period-over-period deltas: fetch this + last month in one bounded query
+  // (not a full scan), then split in memory. NOTE: for production scale these
+  // month counts should be materialized into a per-store KPI summary doc,
+  // updated inside the order/customer write transactions (see plan §pre-compute),
+  // so the dashboard reads one small doc instead of two months of orders.
   const [orders, customers, stockItems] = await Promise.all([
     canAccessSection(user, "pedidos")
-      ? listOrders(storeId, { since: startOfMonth })
+      ? listOrders(storeId, { since: startOfLastMonth })
       : Promise.resolve([]),
     canAccessSection(user, "clientes")
       ? listCustomers(storeId)
@@ -30,88 +35,117 @@ export default async function DashboardPage({
   ]);
 
   const active = customers.filter((c) => !c.archived);
-  const validOrders = orders.filter((o) => o.status !== "cancelado");
 
-  // KPIs
-  const newCustomers30d = active.filter(
-    (c) => c.since && new Date(c.since) >= thirtyDaysAgo,
+  const thisMonthOrders = orders.filter(
+    (o) => new Date(o.createdAt) >= startOfMonth && o.status !== "cancelado",
+  );
+  const lastMonthOrders = orders.filter(
+    (o) => new Date(o.createdAt) < startOfMonth && o.status !== "cancelado",
+  );
+
+  // New customers this vs last month (delta feeds the KPI trend pills).
+  const newThisMonth = active.filter(
+    (c) => c.since && new Date(c.since) >= startOfMonth,
   ).length;
+  const newLastMonth = active.filter((c) => {
+    if (!c.since) return false;
+    const d = new Date(c.since);
+    return d >= startOfLastMonth && d < startOfMonth;
+  }).length;
 
-  // Upcoming birthdays (next 30 days), sorted by how soon.
-  const upcomingBirthdays = active
-    .filter((c) => c.birthday)
-    .map((c) => {
-      const b = c.birthday!;
-      let next = new Date(now.getFullYear(), b.month - 1, b.day);
-      if (next < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
-        next = new Date(now.getFullYear() + 1, b.month - 1, b.day);
-      }
-      const inDays = Math.round((next.getTime() - now.getTime()) / 86_400_000);
-      return { customer: c, inDays };
-    })
-    .filter((b) => b.inDays <= 30)
-    .sort((a, b) => a.inDays - b.inDays)
-    .slice(0, 5);
-
-  // Reorder-due: past their usual reorder interval (or within 2 days of it).
-  const reorderDue = active
-    .filter((c) => c.avgReorderDays !== null && c.lastOrderAt)
-    .map((c) => {
-      const dueAt =
-        new Date(c.lastOrderAt!).getTime() + c.avgReorderDays! * 86_400_000;
-      const inDays = Math.round((dueAt - now.getTime()) / 86_400_000);
-      return { customer: c, inDays };
-    })
-    .filter((r) => r.inDays <= 2)
-    .sort((a, b) => a.inDays - b.inDays)
-    .slice(0, 5);
+  // Upcoming birthdays (next 30 days).
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const upcomingBirthdays = active.filter((c) => {
+    if (!c.birthday) return false;
+    const b = c.birthday;
+    let next = new Date(now.getFullYear(), b.month - 1, b.day);
+    if (next < today) next = new Date(now.getFullYear() + 1, b.month - 1, b.day);
+    const inDays = Math.round((next.getTime() - today.getTime()) / 86_400_000);
+    return inDays <= 30;
+  }).length;
 
   // Channel split + top sellers from this month's orders.
   const byChannel = { instagram: 0, whatsapp: 0, loja: 0 };
-  const sellers = new Map<string, { name: string; qty: number; revenue: number }>();
-  for (const order of validOrders) {
+  const sellers = new Map<string, { name: string; qty: number }>();
+  for (const order of thisMonthOrders) {
     byChannel[order.channel] += 1;
     for (const item of order.items) {
-      const s = sellers.get(item.productId) ?? {
-        name: item.name,
-        qty: 0,
-        revenue: 0,
-      };
+      const s = sellers.get(item.productId) ?? { name: item.name, qty: 0 };
       s.qty += item.qty;
-      s.revenue += item.qty * item.unitPrice;
       sellers.set(item.productId, s);
     }
   }
   const topSellers = [...sellers.values()]
     .sort((a, b) => b.qty - a.qty)
-    .slice(0, 5);
+    .slice(0, 4);
 
-  const lowStock = stockItems.filter((i) => i.lowStock).slice(0, 5);
+  const lowStock = stockItems
+    .filter((i) => i.lowStock)
+    .map((i) => ({
+      id: i.id,
+      name: i.name,
+      qty: i.qty,
+      unit: i.unit,
+    }))
+    .slice(0, 6);
+
+  const pctDelta =
+    lastMonthOrders.length > 0
+      ? Math.round(
+          ((thisMonthOrders.length - lastMonthOrders.length) /
+            lastMonthOrders.length) *
+            100,
+        )
+      : thisMonthOrders.length > 0
+        ? 100
+        : 0;
+
+  const kpis: KpiCard[] = [
+    {
+      label: "Clientes ativos",
+      value: String(active.length),
+      sub: "vs. período anterior",
+      trend: trendPill(newThisMonth, "green"),
+    },
+    {
+      label: "Novos clientes",
+      value: String(newThisMonth),
+      sub: "últimos 30 dias",
+      trend: trendPill(newThisMonth - newLastMonth, "blue"),
+    },
+    {
+      label: "Pedidos no período",
+      value: String(thisMonthOrders.length),
+      sub: "este mês",
+      trend: trendPill(pctDelta, "green", true),
+    },
+    {
+      label: "Aniversários próximos",
+      value: String(upcomingBirthdays),
+      sub: "próximos 30 dias · ver clientes",
+      href: `/s/${storeId}/clientes?seg=aniversarios`,
+    },
+  ];
 
   return (
     <DashboardClient
       storeId={storeId}
-      kpis={{
-        activeCustomers: active.length,
-        newCustomers30d,
-        monthOrders: validOrders.length,
-        monthRevenue: validOrders.reduce((s, o) => s + o.total, 0),
-        birthdays: upcomingBirthdays.length,
-      }}
+      kpis={kpis}
       byChannel={byChannel}
       topSellers={topSellers}
       lowStock={lowStock}
-      recentOrders={orders.slice(0, 5)}
-      upcomingBirthdays={upcomingBirthdays.map((b) => ({
-        id: b.customer.id,
-        name: b.customer.name,
-        inDays: b.inDays,
-      }))}
-      reorderDue={reorderDue.map((r) => ({
-        id: r.customer.id,
-        name: r.customer.name,
-        inDays: r.inDays,
-      }))}
     />
   );
+}
+
+/** Build a KPI trend pill from a delta; null when there's nothing to show. */
+function trendPill(
+  delta: number,
+  tone: "green" | "blue",
+  percent = false,
+): KpiCard["trend"] {
+  if (delta === 0) return null;
+  const sign = delta > 0 ? "+" : "−";
+  const text = `${sign}${Math.abs(delta)}${percent ? "%" : ""}`;
+  return { text, tone: delta > 0 ? tone : "red" };
 }
