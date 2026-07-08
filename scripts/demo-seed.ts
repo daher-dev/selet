@@ -147,6 +147,101 @@ const MANUAL_FINANCE: DemoFinance[] = [
   { slug: "venda-balcao", label: "Venda avulsa no balcão", category: "vendas", amount: 5400, direction: "in", days: 1 },
 ];
 
+// Which menu item each insumo is typically consumed for (design seedHist ref map).
+const CONSUMO_REF: Record<string, string> = {
+  "Shake Herbalife Baunilha": "Shake Frutas Vermelhas",
+  "Pó de Proteína (PDM)": "Waffle Proteico",
+  "Nutrisoup Creme Verde-Frango": "Pizza Proteica",
+  "Fiber Concentrate": "Seca Barriga",
+  "Protein Crunch": "Shake Ovomaltine",
+  "Herbal Concentrate": "Hype Drink",
+  "Beauty Drink Colágeno": "Shake da Beleza",
+  "Kit Kat Proteico": "Shake Bombom Serenata",
+  "Leite em pó (Ninho)": "Shake Frutas Vermelhas",
+  "Morango": "Shake Tradicional Danoninho",
+};
+
+/**
+ * Demo-only movement history for stock items, so the detail drawer's
+ * reason-colored timeline (ENTRADA/VENDA/CONSUMO/AJUSTE) is populated for
+ * visual review. Writes movement docs directly (no ledger recompute) — the
+ * live sealed/open counts stay as seeded by importCatalog.
+ */
+async function seedStockHistory(
+  store: FirebaseFirestore.DocumentReference,
+  orders: DemoOrder[],
+) {
+  const refOrderCode = orders.find((o) => o.paid)?.code ?? orders[0]?.code;
+  const snap = await store.collection("stockItems").get();
+  for (const doc of snap.docs) {
+    const d = doc.data();
+    if (!d.tracked) continue;
+    const movs = doc.ref.collection("movements");
+    // Clear any prior demo history so re-runs stay idempotent.
+    const prior = await movs.get();
+    for (const m of prior.docs) await m.ref.delete();
+
+    const pkgSize: number = d.pkgSize ?? 1;
+    const cost: number | undefined = d.cost;
+    const continuo: boolean = d.continuousUse ?? false;
+    const resellable: boolean = d.resellable ?? false;
+    const ref = CONSUMO_REF[d.name] ?? "Produção";
+
+    // 1) Opening purchase (green "Compra").
+    await movs.doc().set({
+      type: "entrada",
+      qty: (d.sealed ?? 0) + 2,
+      byPackage: true,
+      price: cost ?? null,
+      reason: "ENTRADA",
+      refOrder: null,
+      refItem: null,
+      by: "joao@daher.dev",
+      at: daysAgo(8),
+    });
+
+    // 2) A sale (VENDA, blue) for resellable items, else consumption (CONSUMO, purple).
+    if (resellable && refOrderCode) {
+      await movs.doc().set({
+        type: "saida",
+        qty: 2,
+        byPackage: false,
+        price: null,
+        reason: "VENDA",
+        refOrder: refOrderCode,
+        refItem: null,
+        by: "joao@daher.dev",
+        at: daysAgo(3),
+      });
+    } else {
+      await movs.doc().set({
+        type: "saida",
+        qty: continuo ? Math.max(5, Math.round(pkgSize * 0.05)) : 2,
+        byPackage: false,
+        price: null,
+        reason: "CONSUMO",
+        refOrder: null,
+        refItem: ref,
+        by: "joao@daher.dev",
+        at: daysAgo(4),
+      });
+    }
+
+    // 3) A stock-count adjustment (AJUSTE, grey).
+    await movs.doc().set({
+      type: "saida",
+      qty: 1,
+      byPackage: false,
+      price: null,
+      reason: "AJUSTE",
+      refOrder: null,
+      refItem: "Contagem",
+      by: "joao@daher.dev",
+      at: daysAgo(1),
+    });
+  }
+}
+
 async function seedStore(db: Firestore, storeId: StoreId) {
   const store = db.collection("stores").doc(storeId);
   const customers = CUSTOMERS.filter((c) => c.store === storeId);
@@ -216,6 +311,8 @@ async function seedStore(db: Firestore, storeId: StoreId) {
       date: daysAgo(t.days),
     });
   }
+
+  await seedStockHistory(store, orders);
 
   const paid = orders.filter((o) => o.paid).length;
   console.log(

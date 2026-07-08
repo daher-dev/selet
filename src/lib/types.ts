@@ -210,6 +210,8 @@ export interface StockItem {
   continuousUse: boolean;
   /** How the open package is consumed: measured amount vs mark-empty-after-N-uses. */
   consumptionMode: ConsumptionMode;
+  /** contínuo: whether a package is currently open and being consumed (usos accrue on it). */
+  openPkg: boolean;
   /** Uses tallied on the currently-open package (contínuo items); reset on next open. */
   usos: number;
   resellable: boolean;

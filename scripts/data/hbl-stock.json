@@ -14,7 +14,8 @@
     "usos": 14,
     "resellable": false,
     "cost": 12973,
-    "reorderAt": 1
+    "reorderAt": 1,
+    "openPkg": true
   },
   {
     "slug": "po-de-proteina-240g-22cs-ou-40-csr",
@@ -31,7 +32,8 @@
     "usos": 9,
     "resellable": false,
     "cost": 11528,
-    "reorderAt": 1
+    "reorderAt": 1,
+    "openPkg": true
   },
   {
     "slug": "nutri-soup-creme-verde-frango-416g-16-porcoes",
@@ -48,7 +50,8 @@
     "usos": 6,
     "resellable": false,
     "cost": 12973,
-    "reorderAt": 1
+    "reorderAt": 1,
+    "openPkg": true
   },
   {
     "slug": "fiber-concentrate-manga-uva-limao-30-cs",
@@ -65,7 +68,8 @@
     "usos": 22,
     "resellable": false,
     "cost": 10216,
-    "reorderAt": 1
+    "reorderAt": 1,
+    "openPkg": true
   },
   {
     "slug": "protein-crunch",
@@ -82,7 +86,8 @@
     "usos": 5,
     "resellable": false,
     "cost": 6132,
-    "reorderAt": 1
+    "reorderAt": 1,
+    "openPkg": true
   },
   {
     "slug": "herbal-concentrate-51g-original-e-limao-50cc",
@@ -188,7 +193,8 @@
     "usos": 3,
     "resellable": false,
     "cost": 2800,
-    "reorderAt": 2
+    "reorderAt": 2,
+    "openPkg": true
   },
   {
     "slug": "kit-kat-proteico",

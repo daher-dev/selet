@@ -1,21 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { StockCategory, StockItem, StockUnit } from "@/lib/types";
-import { STOCK_CATEGORIES, STOCK_UNITS } from "@/lib/types";
-import { formatBRL, parseBRL } from "@/lib/format";
+import type { StockCategory, StockUnit } from "@/lib/types";
+import { STOCK_CATEGORIES } from "@/lib/types";
+import { parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import {
-  createStockItemAction,
-  deleteStockItemAction,
-  updateStockItemAction,
-} from "@/actions/stock";
+import { createStockItemAction } from "@/actions/stock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -24,32 +18,38 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { STOCK_CATEGORY_META } from "@/components/category-meta";
+import { unitLabel } from "./stock-view";
 
-interface StockItemFormSheetProps {
+interface Props {
   storeId: string;
-  item: StockItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function StockItemFormSheet({
-  storeId,
-  item,
-  open,
-  onOpenChange,
-}: StockItemFormSheetProps) {
+const UNIT_GROUPS: StockUnit[][] = [
+  ["un", "sache"],
+  ["g", "kg"],
+  ["ml", "L"],
+];
+
+export function StockItemFormSheet({ storeId, open, onOpenChange }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-md">
-        <SheetHeader className="border-b border-border">
-          <SheetTitle className="text-[17px] font-bold">
-            {item ? "Editar item" : "Novo item"}
+      <SheetContent
+        side="right"
+        className="w-full gap-0 overflow-y-auto p-0 sm:max-w-[520px]"
+      >
+        <SheetHeader className="gap-0 border-b border-border p-5">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-leaf">
+            Novo item de estoque
+          </span>
+          <SheetTitle className="mt-0.5 text-[19px] font-bold">
+            Cadastrar item
           </SheetTitle>
         </SheetHeader>
         <StockItemForm
-          key={item?.id ?? "new"}
+          key={open ? "open" : "closed"}
           storeId={storeId}
-          item={item}
           onClose={() => onOpenChange(false)}
         />
       </SheetContent>
@@ -59,122 +59,100 @@ export function StockItemFormSheet({
 
 function StockItemForm({
   storeId,
-  item,
   onClose,
 }: {
   storeId: string;
-  item: StockItem | null;
   onClose: () => void;
 }) {
-  const [name, setName] = useState(item?.name ?? "");
-  const [category, setCategory] = useState<StockCategory>(item?.category ?? "secos");
-  const [unit, setUnit] = useState<StockUnit>(item?.unit ?? "g");
-  const [tracked, setTracked] = useState(item?.tracked ?? false);
-  const [pkgLabel, setPkgLabel] = useState(item?.pkgLabel ?? "");
-  const [pkgSize, setPkgSize] = useState(item?.pkgSize ? String(item.pkgSize) : "");
-  const [continuousUse, setContinuousUse] = useState(item?.continuousUse ?? false);
-  const [resellable, setResellable] = useState(item?.resellable ?? false);
-  const [cost, setCost] = useState(
-    item?.cost != null ? formatBRL(item.cost).replace(/R\$\s?/, "") : "",
-  );
-  const [sellPrice, setSellPrice] = useState(
-    item?.sellPrice != null ? formatBRL(item.sellPrice).replace(/R\$\s?/, "") : "",
-  );
-  const [reorderAt, setReorderAt] = useState(item ? String(item.reorderAt) : "");
-  const [yieldPct, setYieldPct] = useState(
-    item?.yieldPct != null ? String(item.yieldPct) : "",
-  );
-  const [archived, setArchived] = useState(item?.archived ?? false);
-  const [initialSealed, setInitialSealed] = useState("0");
-  const [initialOpen, setInitialOpen] = useState("0");
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState<StockCategory>("bebidas");
+  const [unit, setUnit] = useState<StockUnit>("un");
+  const [pkgSize, setPkgSize] = useState("12");
+  const [continuo, setContinuo] = useState(false);
+  const [sealed, setSealed] = useState("");
+  const [cost, setCost] = useState("");
+  const [reorder, setReorder] = useState("");
+  const [tipOpen, setTipOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function money(value: string): number | undefined {
-    if (!value.trim()) return undefined;
-    try {
-      return parseBRL(value);
-    } catch {
-      return undefined;
-    }
-  }
+  const isCount = unit === "un" || unit === "sache";
+  const isMeasured = !isCount;
 
   function submit() {
+    if (!name.trim()) return toast.error("Informe o nome do item.");
+    const size = Number(String(pkgSize).replace(",", ".")) || 1;
+    const sealedN = Math.round(Number(sealed) || 0);
+    let costC: number | undefined;
+    if (cost.trim()) {
+      try {
+        costC = parseBRL(cost);
+      } catch {
+        return toast.error("Preço inválido.");
+      }
+    }
+    const reorderN =
+      reorder.trim() !== ""
+        ? Math.max(0, Number(String(reorder).replace(",", ".")) || 0)
+        : Math.max(1, Math.round(sealedN / 3));
+
     startTransition(async () => {
-      const input = {
+      const r = await createStockItemAction({
         storeId,
-        name,
+        name: name.trim(),
         category,
         unit,
-        tracked,
-        pkgLabel: tracked ? pkgLabel || undefined : undefined,
-        pkgSize: tracked && pkgSize ? Number(pkgSize) : undefined,
-        continuousUse,
-        resellable,
-        cost: money(cost),
-        sellPrice: resellable ? money(sellPrice) : undefined,
-        reorderAt: reorderAt ? Number(reorderAt) : 0,
-        yieldPct: yieldPct ? Number(yieldPct) : undefined,
-        archived,
-        initialSealed: Number(initialSealed) || 0,
-        initialOpen: Number(initialOpen) || 0,
-      };
-      const result = item
-        ? await updateStockItemAction(item.id, input)
-        : await createStockItemAction(input);
-      if (result.ok) {
-        toast.success(item ? "Item atualizado." : "Item criado.");
+        tracked: true,
+        pkgLabel: "caixa",
+        pkgSize: size,
+        continuousUse: isMeasured && continuo,
+        consumptionMode: isMeasured && continuo ? "continuo" : "medido",
+        resellable: false,
+        cost: costC,
+        reorderAt: reorderN,
+        archived: false,
+        initialSealed: sealedN,
+        initialOpen: 0,
+      });
+      if (r.ok) {
+        toast.success("Item adicionado ao estoque.");
         onClose();
-      } else {
-        toast.error(result.error);
-      }
-    });
-  }
-
-  function remove() {
-    if (!item) return;
-    startTransition(async () => {
-      const result = await deleteStockItemAction(storeId, item.id);
-      if (result.ok) {
-        toast.success("Item removido.");
-        onClose();
-      } else {
-        toast.error(result.error);
-      }
+      } else toast.error(r.error);
     });
   }
 
   return (
     <>
-      <div className="flex-1 space-y-4 p-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="stock-name">Nome</Label>
+      <div className="flex-1 space-y-5 p-5">
+        <div>
+          <FieldLabel>Nome do item</FieldLabel>
           <Input
-            id="stock-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Granola artesanal"
-            className="rounded-xl"
+            placeholder="Ex: Leite de coco"
+            className="h-[42px] rounded-lg bg-paper"
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label>Categoria</Label>
-          <div className="flex flex-wrap gap-2">
+        <div>
+          <FieldLabel>Categoria</FieldLabel>
+          <div className="flex flex-wrap gap-1.5">
             {STOCK_CATEGORIES.map((key) => {
               const meta = STOCK_CATEGORY_META[key];
-              const selected = category === key;
+              const Icon = meta.icon;
+              const on = category === key;
               return (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setCategory(key)}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors",
-                    selected
+                    "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors",
+                    on
                       ? "border-primary bg-primary text-white"
                       : "border-border bg-card text-ink-soft hover:border-primary/40",
                   )}
                 >
+                  <Icon className="size-3.5" strokeWidth={1.8} />
                   {meta.label}
                 </button>
               );
@@ -182,227 +160,193 @@ function StockItemForm({
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label>Unidade</Label>
+        <div>
+          <FieldLabel>Unidade de uso</FieldLabel>
           <div className="flex gap-2">
-            {STOCK_UNITS.map((u) => (
-              <button
-                key={u}
-                type="button"
-                onClick={() => setUnit(u)}
-                className={cn(
-                  "flex-1 rounded-xl border px-2 py-2 text-[12.5px] font-semibold transition-colors",
-                  unit === u
-                    ? "border-primary bg-mist text-primary"
-                    : "border-border bg-card text-ink-soft hover:border-primary/40",
-                )}
+            {UNIT_GROUPS.map((group, gi) => (
+              <div
+                key={gi}
+                className="flex flex-1 gap-0.5 rounded-lg border border-border bg-surface p-0.5"
               >
-                {u}
-              </button>
+                {group.map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => setUnit(u)}
+                    className={cn(
+                      "flex-1 rounded-md py-2 text-[12.5px] font-semibold transition-colors",
+                      unit === u ? "bg-primary text-white" : "text-ink-soft hover:text-ink",
+                    )}
+                  >
+                    {unitLabel(u)}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
         </div>
 
-        <ToggleRow
-          title="Rastreado por embalagem"
-          description="Controle embalagens lacradas e quantidade aberta."
-          checked={tracked}
-          onChange={setTracked}
-        />
-
-        {tracked && (
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-paper p-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="stock-pkg-label">Embalagem</Label>
-              <Input
-                id="stock-pkg-label"
-                value={pkgLabel}
-                onChange={(e) => setPkgLabel(e.target.value)}
-                placeholder="pote, caixa…"
-                className="rounded-xl bg-card"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="stock-pkg-size">Tamanho ({unit})</Label>
-              <Input
-                id="stock-pkg-size"
-                value={pkgSize}
-                onChange={(e) => setPkgSize(e.target.value.replace(/[^\d.,]/g, ""))}
-                placeholder="500"
-                inputMode="decimal"
-                className="rounded-xl bg-card tabular"
-              />
-            </div>
-          </div>
-        )}
-
-        <ToggleRow
-          title="Uso contínuo"
-          description="Consumo sem medição exata — controle só por abertura de embalagem."
-          checked={continuousUse}
-          onChange={setContinuousUse}
-        />
-
-        <ToggleRow
-          title="Revendável"
-          description="Item também é vendido no varejo."
-          checked={resellable}
-          onChange={setResellable}
-        />
-
-        <ToggleRow
-          title="Arquivado"
-          description="Itens arquivados não aparecem na lista padrão do estoque."
-          checked={archived}
-          onChange={setArchived}
-        />
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="stock-cost">
-              Custo {tracked ? "por embalagem" : `por ${unit}`}
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-ink-faint">
-                R$
-              </span>
-              <Input
-                id="stock-cost"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                placeholder="18,00"
-                inputMode="decimal"
-                className="rounded-xl pl-9 tabular"
-              />
-            </div>
-          </div>
-          {resellable && (
-            <div className="space-y-1.5">
-              <Label htmlFor="stock-sell">Preço de venda</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-ink-faint">
-                  R$
-                </span>
-                <Input
-                  id="stock-sell"
-                  value={sellPrice}
-                  onChange={(e) => setSellPrice(e.target.value)}
-                  placeholder="32,00"
-                  inputMode="decimal"
-                  className="rounded-xl pl-9 tabular"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="stock-reorder">Repor abaixo de ({unit})</Label>
-            <Input
-              id="stock-reorder"
-              value={reorderAt}
-              onChange={(e) => setReorderAt(e.target.value.replace(/[^\d.,]/g, ""))}
-              placeholder="1000"
+        {isCount && (
+          <div>
+            <FieldLabel>
+              Lote <span className="font-semibold normal-case tracking-normal text-ink-faint">(opcional)</span>
+            </FieldLabel>
+            <InlineInput
+              value={pkgSize}
+              onChange={setPkgSize}
+              suffix={`${unitLabel(unit)} / caixa`}
               inputMode="decimal"
-              className="rounded-xl tabular"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="stock-yield">Rendimento (%)</Label>
-            <Input
-              id="stock-yield"
-              value={yieldPct}
-              onChange={(e) => setYieldPct(e.target.value.replace(/[^\d]/g, ""))}
-              placeholder="90"
-              inputMode="numeric"
-              className="rounded-xl tabular"
-            />
+        )}
+
+        {isMeasured && (
+          <div>
+            <FieldLabel>Baixa no estoque</FieldLabel>
+            <div className="flex gap-0.5 rounded-lg border border-border bg-surface p-0.5">
+              {[
+                { value: false, label: "Medição exata" },
+                { value: true, label: "Uso contínuo" },
+              ].map((o) => (
+                <button
+                  key={String(o.value)}
+                  type="button"
+                  onClick={() => setContinuo(o.value)}
+                  className={cn(
+                    "flex-1 rounded-md py-2 text-[12.5px] font-semibold transition-colors",
+                    continuo === o.value ? "bg-primary text-white" : "text-ink-soft hover:text-ink",
+                  )}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">
+              {continuo
+                ? "Uso contínuo: sem medição — baixa manual por embalagem."
+                : "Medição exata: deduz a quantidade usada a cada preparo."}
+            </p>
+          </div>
+        )}
+
+        <div>
+          <span className="mb-2 flex items-center gap-1.5">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+              Estoque inicial
+            </span>
+            <span className="text-[11px] font-semibold text-ink-faint">(opcional)</span>
+            <span className="relative inline-flex">
+              {tipOpen && (
+                <span className="fixed inset-0 z-10" onClick={() => setTipOpen(false)} />
+              )}
+              <button
+                type="button"
+                onClick={() => setTipOpen((v) => !v)}
+                className="relative z-20 flex size-4 items-center justify-center rounded-full border border-[#c5cfc7] text-[10px] font-bold text-ink-faint"
+              >
+                i
+              </button>
+              {tipOpen && (
+                <span className="absolute bottom-[calc(100%+8px)] left-1/2 z-20 w-52 -translate-x-1/2 rounded-lg bg-ink px-3 py-2 text-[11.5px] font-medium leading-snug text-white shadow-lg">
+                  Se informados, geram uma entrada no histórico.
+                </span>
+              )}
+            </span>
+          </span>
+          <div className="flex gap-2.5">
+            <SmallField label="Quantidade" className="flex-1">
+              <InlineInput value={sealed} onChange={setSealed} suffix="caixas" inputMode="numeric" />
+            </SmallField>
+            <SmallField label="Preço de compra" className="flex-1">
+              <InlineInput value={cost} onChange={setCost} prefix="R$" inputMode="decimal" />
+            </SmallField>
           </div>
         </div>
 
-        {!item && (
-          <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-paper p-3">
-            {tracked && (
-              <div className="space-y-1.5">
-                <Label htmlFor="stock-initial-sealed">Lacradas iniciais</Label>
-                <Input
-                  id="stock-initial-sealed"
-                  value={initialSealed}
-                  onChange={(e) => setInitialSealed(e.target.value.replace(/[^\d]/g, ""))}
-                  inputMode="numeric"
-                  className="rounded-xl bg-card tabular"
-                />
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label htmlFor="stock-initial-open">
-                {tracked ? `Aberto inicial (${unit})` : `Quantidade inicial (${unit})`}
-              </Label>
-              <Input
-                id="stock-initial-open"
-                value={initialOpen}
-                onChange={(e) => setInitialOpen(e.target.value.replace(/[^\d.,]/g, ""))}
-                inputMode="decimal"
-                className="rounded-xl bg-card tabular"
-              />
-            </div>
-          </div>
-        )}
-
-        {item && (
-          <Button
-            variant="ghost"
-            onClick={remove}
-            disabled={pending}
-            className="w-full gap-1.5 rounded-xl text-destructive hover:bg-danger-wash hover:text-destructive"
-          >
-            <Trash2 className="size-4" />
-            Remover item
-          </Button>
-        )}
+        <div>
+          <FieldLabel>
+            Alerta de estoque baixo{" "}
+            <span className="font-semibold normal-case tracking-normal text-ink-faint">(opcional)</span>
+          </FieldLabel>
+          <InlineInput
+            value={reorder}
+            onChange={setReorder}
+            prefix="avisar abaixo de"
+            suffix="caixas"
+            placeholder="auto"
+            inputMode="decimal"
+          />
+        </div>
       </div>
 
-      <SheetFooter className="flex-row gap-2 border-t border-border">
-        <Button
-          variant="outline"
-          onClick={onClose}
-          disabled={pending}
-          className="flex-1 rounded-xl"
-        >
+      <SheetFooter className="flex-row gap-2.5 border-t border-border p-5">
+        <Button variant="outline" onClick={onClose} disabled={pending} className="flex-1 rounded-lg">
           Cancelar
         </Button>
         <Button
           onClick={submit}
-          disabled={pending || !name.trim() || (tracked && (!pkgLabel.trim() || !pkgSize))}
-          className="flex-1 rounded-xl font-semibold"
+          disabled={pending || !name.trim()}
+          className="flex-[1.4] rounded-lg font-semibold"
         >
           {pending && <Loader2 className="size-4 animate-spin" />}
-          Salvar
+          Adicionar ao estoque
         </Button>
       </SheetFooter>
     </>
   );
 }
 
-function ToggleRow({
-  title,
-  description,
-  checked,
-  onChange,
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+      {children}
+    </span>
+  );
+}
+
+function SmallField({
+  label,
+  className,
+  children,
 }: {
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
+  label: string;
+  className?: string;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-paper px-3.5 py-3">
-      <div>
-        <p className="text-[13px] font-semibold text-ink">{title}</p>
-        <p className="text-[11.5px] text-ink-faint">{description}</p>
-      </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
+    <label className={cn("block", className)}>
+      <span className="mb-1.5 block text-[11px] text-ink-soft">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function InlineInput({
+  value,
+  onChange,
+  prefix,
+  suffix,
+  placeholder,
+  inputMode,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  prefix?: string;
+  suffix?: string;
+  placeholder?: string;
+  inputMode?: "decimal" | "numeric" | "text";
+}) {
+  return (
+    <div className="flex h-[42px] items-center gap-1.5 rounded-lg border border-border bg-paper px-3.5">
+      {prefix && <span className="whitespace-nowrap text-[12.5px] text-ink-faint">{prefix}</span>}
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        inputMode={inputMode}
+        placeholder={placeholder}
+        className="tabular w-full min-w-0 bg-transparent text-[15px] font-bold text-ink outline-none placeholder:font-normal placeholder:text-ink-faint"
+      />
+      {suffix && <span className="whitespace-nowrap text-[13px] text-ink-faint">{suffix}</span>}
     </div>
   );
 }

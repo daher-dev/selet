@@ -59,6 +59,11 @@
   --color-success: #3a9d5d;
   --color-info: #2f6fb5;
   --color-info-wash: #e6eff8;
+
+  /* Fracionado (open-package) panel — the estoque card's purple split. */
+  --color-violet: #7a5ab0;
+  --color-violet-wash: #f7f3fc;
+  --color-violet-track: #e6e1f0;
 }
 
 @theme inline {

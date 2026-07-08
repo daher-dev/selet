@@ -7,6 +7,8 @@ import {
   applyMovement,
   createStockItem,
   deleteStockItem,
+  markPackageEmpty,
+  openNextPackage,
   updateStockItem,
 } from "@/data/stock";
 import {
@@ -70,12 +72,15 @@ export async function createStockItemAction(
       consumptionMode:
         consumptionMode ?? (rest.continuousUse ? "continuo" : "medido"),
     } as const;
-    await requireAccess(storeId, "estoque");
-    await createStockItem(storeId, data, {
-      sealed: data.tracked ? initialSealed : 0,
-      open: initialOpen,
-    });
+    const user = await requireAccess(storeId, "estoque");
+    await createStockItem(
+      storeId,
+      data,
+      { sealed: data.tracked ? initialSealed : 0, open: initialOpen },
+      user.email,
+    );
     revalidatePath(`/s/${storeId}/estoque`);
+    revalidatePath(`/s/${storeId}`);
   });
 }
 
@@ -128,6 +133,30 @@ export async function listMovementsAction(
   await requireAccess(storeId, "estoque");
   const { listMovements } = await import("@/data/stock");
   return listMovements(storeId, itemId, 15);
+}
+
+export async function openNextPackageAction(
+  storeId: string,
+  itemId: string,
+): Promise<ActionResult> {
+  return run(async () => {
+    const user = await requireAccess(storeId, "estoque");
+    await openNextPackage(storeId, itemId, user.email);
+    revalidatePath(`/s/${storeId}/estoque`);
+    revalidatePath(`/s/${storeId}`);
+  });
+}
+
+export async function markPackageEmptyAction(
+  storeId: string,
+  itemId: string,
+): Promise<ActionResult> {
+  return run(async () => {
+    const user = await requireAccess(storeId, "estoque");
+    await markPackageEmpty(storeId, itemId, user.email);
+    revalidatePath(`/s/${storeId}/estoque`);
+    revalidatePath(`/s/${storeId}`);
+  });
 }
 
 const movementSchema = z.object({

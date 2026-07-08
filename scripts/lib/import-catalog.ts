@@ -43,6 +43,8 @@ interface StockRow {
   sealed?: number;
   open?: number;
   usos?: number;
+  /** contínuo: whether a package is currently open (usos accrue on it). */
+  openPkg?: boolean;
   continuousUse: boolean;
   consumptionMode?: "medido" | "continuo";
   resellable: boolean;
@@ -140,12 +142,21 @@ export async function importCatalog(
     } else {
       // First insert — seed the opening ledger from the JSON and derive qty.
       const state = derive(s.tracked, s.pkgSize, s.sealed ?? 0, s.open ?? 0);
+      const openPkg = s.openPkg ?? false;
+      const usable = s.continuousUse
+        ? (s.sealed ?? 0) + (openPkg ? 1 : 0)
+        : state.qty;
+      const thr =
+        s.tracked && !s.continuousUse
+          ? s.reorderAt * (s.pkgSize || 1)
+          : s.reorderAt;
       await ref.set(
         prune({
           ...catalogFields,
           ...state,
+          openPkg,
           usos: s.usos ?? 0,
-          lowStock: state.qty <= s.reorderAt,
+          lowStock: usable <= thr,
         }),
       );
     }

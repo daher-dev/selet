@@ -30,6 +30,7 @@ function toItem(id: string, d: FirebaseFirestore.DocumentData): StockItem {
     qty: d.qty ?? 0,
     continuousUse: d.continuousUse ?? false,
     consumptionMode: d.consumptionMode ?? (d.continuousUse ? "continuo" : "medido"),
+    openPkg: d.openPkg ?? false,
     usos: d.usos ?? 0,
     resellable: d.resellable ?? false,
     cost: d.cost,
@@ -46,6 +47,33 @@ function toItem(id: string, d: FirebaseFirestore.DocumentData): StockItem {
 function derive(tracked: boolean, pkgSize: number | undefined, sealed: number, open: number) {
   const qty = tracked && pkgSize ? sealed * pkgSize + open : open;
   return { sealed, open, qty };
+}
+
+/**
+ * Low-stock test in the design's package-based terms. contínuo items count
+ * whole packages (sealed + the open one) against a package threshold; measured
+ * tracked items compare base-unit qty against reorderAt packages × pkgSize;
+ * untracked items compare loose qty against reorderAt units.
+ */
+function computeLowStock(f: {
+  tracked?: boolean;
+  continuousUse?: boolean;
+  pkgSize?: number;
+  sealed?: number;
+  open?: number;
+  qty?: number;
+  openPkg?: boolean;
+  reorderAt?: number;
+}): boolean {
+  const tracked = f.tracked ?? false;
+  const continuo = f.continuousUse ?? false;
+  const pkgSize = f.pkgSize || 1;
+  const reorderAt = f.reorderAt ?? 0;
+  const usable = continuo
+    ? (f.sealed ?? 0) + (f.openPkg ? 1 : 0)
+    : (f.qty ?? 0);
+  const thr = tracked && !continuo ? reorderAt * pkgSize : reorderAt;
+  return usable <= thr;
 }
 
 export async function listStockItems(storeId: string): Promise<StockItem[]> {
@@ -97,15 +125,34 @@ export async function createStockItem(
   storeId: string,
   input: StockItemInput,
   initial: { sealed: number; open: number } = { sealed: 0, open: 0 },
+  by?: string,
 ): Promise<string> {
   const state = derive(input.tracked, input.pkgSize, initial.sealed, initial.open);
-  const ref = await stockCol(storeId).add({
+  const ref = stockCol(storeId).doc();
+  await ref.set({
     ...input,
     ...state,
+    openPkg: false,
     usos: 0,
-    lowStock: state.qty <= input.reorderAt,
+    lowStock: computeLowStock({ ...input, ...state, openPkg: false }),
     updatedAt: FieldValue.serverTimestamp(),
   });
+  // Opening balance → a "Compra" (ENTRADA) history entry, so a freshly
+  // created item shows where its stock came from (design: "geram uma entrada").
+  const openingQty = input.tracked ? initial.sealed : initial.open;
+  if (openingQty > 0) {
+    await ref.collection("movements").doc().set({
+      type: "entrada",
+      qty: openingQty,
+      byPackage: input.tracked,
+      price: input.cost ?? null,
+      reason: "ENTRADA",
+      refOrder: null,
+      refItem: null,
+      by: by ?? "sistema",
+      at: Timestamp.now(),
+    });
+  }
   return ref.id;
 }
 
@@ -125,7 +172,7 @@ export async function updateStockItem(
     tx.update(ref, {
       ...input,
       ...state,
-      lowStock: state.qty <= input.reorderAt,
+      lowStock: computeLowStock({ ...input, ...state, openPkg: d.openPkg ?? false }),
       updatedAt: Timestamp.now(),
     });
   });
@@ -214,20 +261,109 @@ export async function applyMovement(
     }
 
     const state = derive(tracked, pkgSize || undefined, sealed, open);
-    tx.update(ref, {
+    const patch: Record<string, unknown> = {
       ...state,
-      lowStock: state.qty <= (d.reorderAt ?? 0),
+      lowStock: computeLowStock({
+        tracked,
+        continuousUse: d.continuousUse ?? false,
+        pkgSize,
+        ...state,
+        openPkg: d.openPkg ?? false,
+        reorderAt: d.reorderAt ?? 0,
+      }),
       updatedAt: Timestamp.now(),
-    });
+    };
+    // An entrada refreshes the item's stored cost to the latest purchase price
+    // (per package for tracked items, per base unit otherwise).
+    if (input.type === "entrada" && input.price != null) patch.cost = input.price;
+    tx.update(ref, patch);
     tx.set(ref.collection("movements").doc(), {
       type: input.type,
       qty: input.type === "abertura" ? 1 : input.qty,
       byPackage: input.type === "abertura" ? true : input.byPackage,
       price: input.price ?? null,
-      reason: input.reason ?? null,
+      reason: input.reason ?? (input.type === "entrada" ? "ENTRADA" : "SAIDA"),
       refOrder: input.refOrder ?? null,
       refItem: input.refItem ?? null,
       by: input.by,
+      at: Timestamp.now(),
+    });
+  });
+}
+
+/**
+ * contínuo: opens the next sealed package. Decrements sealed, marks a package
+ * open, and resets the usos counter. Logs an abertura movement so the timeline
+ * records when the package was opened.
+ */
+export async function openNextPackage(
+  storeId: string,
+  itemId: string,
+  by: string,
+): Promise<void> {
+  const db = getDb();
+  const ref = stockCol(storeId).doc(itemId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error("Item não encontrado.");
+    const d = snap.data()!;
+    if (!d.continuousUse) throw new Error("Item não é de uso contínuo.");
+    if (d.openPkg) throw new Error("Já existe uma embalagem aberta.");
+    if ((d.sealed ?? 0) < 1) throw new Error("Nenhuma embalagem lacrada em estoque.");
+    const sealed = (d.sealed ?? 0) - 1;
+    tx.update(ref, {
+      sealed,
+      openPkg: true,
+      usos: 0,
+      lowStock: computeLowStock({ ...d, sealed, openPkg: true }),
+      updatedAt: Timestamp.now(),
+    });
+    tx.set(ref.collection("movements").doc(), {
+      type: "abertura",
+      qty: 1,
+      byPackage: true,
+      price: null,
+      reason: "AJUSTE",
+      refOrder: null,
+      refItem: "Abriu embalagem",
+      by,
+      at: Timestamp.now(),
+    });
+  });
+}
+
+/**
+ * contínuo: marks the open package empty. Logs a PERDA carrying how many usos
+ * the package served, then leaves no package open (the next open reopens one).
+ */
+export async function markPackageEmpty(
+  storeId: string,
+  itemId: string,
+  by: string,
+): Promise<void> {
+  const db = getDb();
+  const ref = stockCol(storeId).doc(itemId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error("Item não encontrado.");
+    const d = snap.data()!;
+    if (!d.openPkg) throw new Error("Nenhuma embalagem aberta.");
+    const usos = d.usos ?? 0;
+    tx.update(ref, {
+      openPkg: false,
+      usos: 0,
+      lowStock: computeLowStock({ ...d, openPkg: false }),
+      updatedAt: Timestamp.now(),
+    });
+    tx.set(ref.collection("movements").doc(), {
+      type: "saida",
+      qty: 1,
+      byPackage: true,
+      price: null,
+      reason: "PERDA",
+      refOrder: null,
+      refItem: `Embalagem esvaziada · ${usos} ${usos === 1 ? "uso" : "usos"}`,
+      by,
       at: Timestamp.now(),
     });
   });
