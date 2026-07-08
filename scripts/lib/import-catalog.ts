@@ -14,6 +14,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
+import { consumptionModeForUnit, isWeightVolumeUnit } from "../../src/lib/types";
 import { recipeFor } from "./recipes";
 
 // Resolved from the repo root (cwd for tsx scripts, vitest and Playwright),
@@ -94,7 +95,10 @@ export async function importCatalog(
   for (const p of priced) {
     const ref = productsCol.doc(p.slug);
     const snap = await ref.get();
-    const rec = recipeFor(p.slug, p.category, prices[p.slug]);
+    const rec = recipeFor(p, prices);
+    // Default prep duration (minutes): sob demanda ~1, lote ~4, revenda → none.
+    const duration =
+      rec.prep === "lote" ? 4 : rec.prep === "sob demanda" ? 1 : undefined;
     const fields = {
       name: p.name,
       price: prices[p.slug],
@@ -108,6 +112,8 @@ export async function importCatalog(
       tiers: rec.tiers,
       insumoId: rec.insumoId,
       stockManaged: rec.stockManaged,
+      prep: rec.prep,
+      duration,
     };
     // Only stamp createdAt on first insert so re-imports don't reset it.
     await ref.set(
@@ -120,6 +126,11 @@ export async function importCatalog(
   for (const s of stock) {
     const ref = stockCol.doc(s.slug);
     const snap = await ref.get();
+    // UNIT RULE (single source of truth in src/lib/types): weight/volume →
+    // contínuo (manual, usos + mark-empty); countable → medido. Any conflicting
+    // value in the JSON is ignored — the unit decides.
+    const continuousUse = isWeightVolumeUnit(s.unit);
+    const consumptionMode = consumptionModeForUnit(s.unit);
     const catalogFields = {
       name: s.name,
       category: s.category,
@@ -127,8 +138,8 @@ export async function importCatalog(
       tracked: s.tracked,
       pkgLabel: s.pkgLabel,
       pkgSize: s.pkgSize,
-      continuousUse: s.continuousUse,
-      consumptionMode: s.consumptionMode ?? (s.continuousUse ? "continuo" : "medido"),
+      continuousUse,
+      consumptionMode,
       resellable: s.resellable,
       sellPrice: s.sellPrice,
       cost: s.cost,
@@ -143,11 +154,11 @@ export async function importCatalog(
       // First insert — seed the opening ledger from the JSON and derive qty.
       const state = derive(s.tracked, s.pkgSize, s.sealed ?? 0, s.open ?? 0);
       const openPkg = s.openPkg ?? false;
-      const usable = s.continuousUse
+      const usable = continuousUse
         ? (s.sealed ?? 0) + (openPkg ? 1 : 0)
         : state.qty;
       const thr =
-        s.tracked && !s.continuousUse
+        s.tracked && !continuousUse
           ? s.reorderAt * (s.pkgSize || 1)
           : s.reorderAt;
       await ref.set(

@@ -1,26 +1,32 @@
 /**
- * BASE recipes + ADICIONAIS + price tiers for the café catalog.
+ * BASE recipes + inferred ADICIONAIS + per-store pricing for the café catalog.
  *
- * Real data source: the reference design's `baseProducts` array
- * (docs/design/Selet Admin.dc.html, "Dados reais do cardápio Selet") gives the
- * exact recipe/adicionais for the core menu items — those are encoded verbatim
- * in OVERRIDES below. Every Selet shake shares the same Herbalife base (shake
- * powder + Ninho), so products the design doesn't enumerate get a category
- * default following the same real pattern. Ingredient names link to a tracked
- * stockItems slug when one exists (Fiber, Crunch, Nutrisoup…); pantry items
- * that aren't Herbalife stock (Ninho, Morango, Kit Kat) stay name-only.
+ * Everything here is DERIVED from the committed real data (scripts/data/*):
+ *   - recipes come from each item's category + its menu-catalog description
+ *     (morango / kit kat counts / colágeno are read off the description text);
+ *   - adicionais are the "adicionais"-category items, attached to menu items and
+ *     PRICED FROM THE STORE PRICE BOOK (the add-* slugs in menu-prices.json), so
+ *     Vila Velha and Passos carry their own add-on prices;
+ *   - consumption is unit-derived: every WEIGHT/VOLUME insumo (g) is "contínuo"
+ *     and carries qty = null ("sem medição", tallied by +usos); only COUNTABLE
+ *     insumos (un/sachê: Morango, Kit Kat, Colágeno) carry a real measured count.
+ *
+ * No demo/fictional data: quantities that aren't a real count are null, not a
+ * made-up gram weight.
  */
 
 export interface RecipeItemData {
   stockItemId?: string;
   name: string;
-  qty: number | null; // null => "sem medição"
+  qty: number | null; // null => "sem medição" (contínuo insumo)
   unit: string;
 }
 export interface AddonData {
   stockItemId?: string;
   name: string;
-  price: number; // centavos
+  price: number; // centavos (from the store price book)
+  qty?: number | null;
+  unit?: string;
 }
 export interface TierData {
   qty: number;
@@ -33,230 +39,225 @@ export interface ProductRecipe {
   tiers: TierData[];
   insumoId?: string;
   stockManaged: boolean;
+  prep: "sob demanda" | "lote" | null;
 }
 
-/** Ingredient/add-on display name → tracked stockItems slug (undefined = untracked pantry item). */
-const STOCK: Record<string, string | undefined> = {
-  "Shake Herbalife Baunilha": "shake-todos-os-sabores",
-  "Leite em pó (Ninho)": undefined,
-  "Fiber Concentrate": "fiber-concentrate-manga-uva-limao-30-cs",
-  "Protein Crunch": "protein-crunch",
-  "Kit Kat Proteico": undefined,
-  "Beauty Drink Colágeno": "beauty-drink-colageno-frutas-vermelhas",
-  Morango: undefined,
-  "Nutrisoup Creme Verde-Frango": "nutri-soup-creme-verde-frango-416g-16-porcoes",
-  "Pó de Proteína (PDM)": "po-de-proteina-240g-22cs-ou-40-csr",
-  "Herbal Concentrate": "herbal-concentrate-51g-original-e-limao-50cc",
-  "Barra de Proteína (Citrus Lemon e Peanut)": "barra-de-proteina-citrus-lemon-e-peanut",
-  "Liftoff 75g (1 sachê)": "liftoff-75g-1-sache",
-  "Sopa Instantânea todos sabores - unidade": "sopa-instantanea-todos-sabores-unidade",
+/** The store's slug → price_centavos map (menu-prices.json[storeId]). */
+export type StorePrices = Record<string, number>;
+
+export interface RecipeInput {
+  slug: string;
+  category: string;
+  description: string;
+}
+
+/** Tracked insumo (stockItems doc) with the display name + base unit used in recipes. */
+interface Insumo {
+  id: string;
+  name: string;
+  unit: string;
+}
+
+// The tracked Herbalife/café insumos referenced by recipes and add-ons. Ids are
+// the stockItems slugs from scripts/data/hbl-stock.json.
+const INSUMO = {
+  shake: { id: "shake-todos-os-sabores", name: "Shake Herbalife Baunilha", unit: "g" },
+  ninho: { id: "leite-em-po-ninho", name: "Leite em pó (Ninho)", unit: "g" },
+  pdm: { id: "po-de-proteina-240g-22cs-ou-40-csr", name: "Pó de Proteína (PDM)", unit: "g" },
+  nutrisoup: {
+    id: "nutri-soup-creme-verde-frango-416g-16-porcoes",
+    name: "Nutrisoup Creme Verde-Frango",
+    unit: "g",
+  },
+  fiber: { id: "fiber-concentrate-manga-uva-limao-30-cs", name: "Fiber Concentrate", unit: "g" },
+  crunch: { id: "protein-crunch", name: "Protein Crunch", unit: "g" },
+  herbal: { id: "herbal-concentrate-51g-original-e-limao-50cc", name: "Herbal Concentrate", unit: "g" },
+  beauty: { id: "beauty-drink-colageno-frutas-vermelhas", name: "Beauty Drink Colágeno", unit: "sache" },
+  morango: { id: "morango", name: "Morango", unit: "un" },
+  kitkat: { id: "kit-kat-proteico", name: "Kit Kat Proteico", unit: "un" },
+  barra: { id: "barra-de-proteina-citrus-lemon-e-peanut", name: "Barra de Proteína", unit: "un" },
+} satisfies Record<string, Insumo>;
+
+/** One recipe ingredient. Weight/volume insumos pass qty = null (sem medição). */
+function ri(insumo: Insumo, qty: number | null): RecipeItemData {
+  return { stockItemId: insumo.id, name: insumo.name, qty, unit: insumo.unit };
+}
+
+// --- ADICIONAIS: the "adicionais"-category items, mapped to their insumo. ---
+// price is looked up per store from the add-* slug; qty is null for contínuo
+// (grams tallied by usos) and a real count for medido (Kit Kat un).
+interface AddonSpec {
+  name: string;
+  insumo?: Insumo;
+  qty?: number | null;
+}
+const ADDON_SPECS: Record<string, AddonSpec> = {
+  "add-crunch-1-colher": { name: "Crunch (1 colher)", insumo: INSUMO.crunch, qty: null },
+  "add-crunch-2-colheres": { name: "Crunch (2 colheres)", insumo: INSUMO.crunch, qty: null },
+  "add-waffle-proteico-1-4": { name: "Waffle Proteico 1/4", insumo: INSUMO.pdm, qty: null },
+  "add-2-kit-kat-proteico": { name: "2 Kit Kat Proteico", insumo: INSUMO.kitkat, qty: 2 },
+  "add-4-kit-kat-proteico": { name: "4 Kit Kat Proteico", insumo: INSUMO.kitkat, qty: 4 },
+  "add-borda-dupla": { name: "Borda Dupla", insumo: INSUMO.shake, qty: null },
+  "add-calda-quente": { name: "Calda Quente" }, // topping, no stock link
+  "add-fibra-soluvel": { name: "Fibra Solúvel", insumo: INSUMO.fiber, qty: null },
 };
 
-// Omit stockItemId entirely when the ingredient isn't tracked stock — Firestore
-// rejects nested `undefined` without ignoreUndefinedProperties.
-function r(name: string, qty: number | null, unit: string): RecipeItemData {
-  const id = STOCK[name];
-  return id ? { stockItemId: id, name, qty, unit } : { name, qty, unit };
+// Full add-on set → every shake. Waffles carry Crunch (1/2), Fibra Solúvel and
+// the Kit Kat (2/4) add-ons.
+const SHAKE_ADDONS = Object.keys(ADDON_SPECS);
+const WAFFLE_ADDONS = [
+  "add-crunch-1-colher",
+  "add-crunch-2-colheres",
+  "add-fibra-soluvel",
+  "add-2-kit-kat-proteico",
+  "add-4-kit-kat-proteico",
+];
+
+/** Build the add-on list for a product, pricing each slug from the store book. */
+function buildAddons(slugs: string[], prices: StorePrices): AddonData[] {
+  const out: AddonData[] = [];
+  for (const slug of slugs) {
+    const price = prices[slug];
+    if (typeof price !== "number") continue; // store doesn't sell this add-on
+    const spec = ADDON_SPECS[slug];
+    const addon: AddonData = { name: spec.name, price };
+    if (spec.insumo) {
+      addon.stockItemId = spec.insumo.id;
+      addon.qty = spec.qty ?? null;
+      addon.unit = spec.insumo.unit;
+    }
+    out.push(addon);
+  }
+  return out;
 }
-function a(name: string, price: number): AddonData {
-  const id = STOCK[name];
-  return id ? { stockItemId: id, name, price } : { name, price };
+
+/** Standalone add-on product (adicionais category) → consumes its own insumo. */
+function addonStandaloneRecipe(slug: string): RecipeItemData[] {
+  const spec = ADDON_SPECS[slug];
+  if (!spec?.insumo) return []; // Calda Quente: no tracked insumo
+  return [ri(spec.insumo, spec.qty ?? null)];
 }
 
-const FIBER = () => a("Fiber Concentrate", 800);
-const CRUNCH = () => a("Protein Crunch", 500);
+/**
+ * Shake recipe: Herbalife base (shake + Ninho, both contínuo) plus the measured
+ * specifics read off the description — Morango (2 un) when it mentions morango,
+ * Kit Kat (the count in the text) when it mentions kit kat, and Colágeno for the
+ * Shake da Beleza.
+ */
+function shakeRecipe(slug: string, description: string): RecipeItemData[] {
+  const items: RecipeItemData[] = [ri(INSUMO.shake, null), ri(INSUMO.ninho, null)];
+  const d = description.toLowerCase();
+  if (d.includes("morango")) items.push(ri(INSUMO.morango, 2));
+  if (/kit\s*kat/i.test(description)) {
+    const m = description.match(/(\d+)\s*kit\s*kat/i);
+    items.push(ri(INSUMO.kitkat, m ? Number(m[1]) : 2));
+  }
+  if (slug === "shake-shake-da-beleza") items.push(ri(INSUMO.beauty, 1));
+  return items;
+}
 
-// --- Design "baseProducts" (real recipes), keyed by our catalog slug. ---
-const OVERRIDES: Record<string, ProductRecipe> = {
-  "shake-frutas-vermelhas": {
-    saleType: "menu",
-    recipe: [r("Shake Herbalife Baunilha", null, "g"), r("Leite em pó (Ninho)", null, "g")],
-    adicionais: [FIBER(), CRUNCH()],
-    tiers: [{ qty: 1, price: 3600 }],
-    stockManaged: false,
-  },
-  "shake-oreo": {
-    saleType: "menu",
-    recipe: [r("Shake Herbalife Baunilha", null, "g"), r("Leite em pó (Ninho)", null, "g")],
-    adicionais: [a("Kit Kat Proteico", 500), CRUNCH()],
-    tiers: [{ qty: 1, price: 3600 }],
-    stockManaged: false,
-  },
-  "shake-ovomaltine": {
-    saleType: "menu",
-    recipe: [r("Shake Herbalife Baunilha", null, "g"), r("Protein Crunch", null, "g")],
-    adicionais: [FIBER()],
-    tiers: [{ qty: 1, price: 4100 }],
-    stockManaged: false,
-  },
-  "shake-bombom-serenata": {
-    saleType: "menu",
-    recipe: [
-      r("Shake Herbalife Baunilha", null, "g"),
-      r("Leite em pó (Ninho)", null, "g"),
-      r("Kit Kat Proteico", 2, "un"),
-    ],
-    adicionais: [FIBER()],
-    tiers: [{ qty: 1, price: 4400 }],
-    stockManaged: false,
-  },
-  "shake-shake-da-beleza": {
-    saleType: "menu",
-    recipe: [r("Shake Herbalife Baunilha", null, "g"), r("Beauty Drink Colágeno", 1, "sachê")],
-    adicionais: [],
-    tiers: [{ qty: 1, price: 4400 }],
-    stockManaged: false,
-  },
-  "shake-trad-danoninho": {
-    saleType: "menu",
-    recipe: [r("Shake Herbalife Baunilha", null, "g"), r("Morango", 2, "un")],
-    adicionais: [FIBER()],
-    tiers: [{ qty: 1, price: 2800 }],
-    stockManaged: false,
-  },
-  "salgado-pizza-proteica": {
-    saleType: "menu",
-    recipe: [r("Nutrisoup Creme Verde-Frango", 40, "g")],
-    adicionais: [],
-    tiers: [{ qty: 1, price: 3300 }],
-    stockManaged: false,
-  },
-  "salgado-pizza-de-frango": {
-    saleType: "menu",
-    recipe: [r("Nutrisoup Creme Verde-Frango", 40, "g")],
-    adicionais: [],
-    tiers: [{ qty: 1, price: 3600 }],
-    stockManaged: false,
-  },
-  "salgado-escondidinho-de-frango": {
-    saleType: "menu",
-    recipe: [r("Nutrisoup Creme Verde-Frango", 40, "g"), r("Pó de Proteína (PDM)", 20, "g")],
-    adicionais: [],
-    tiers: [{ qty: 1, price: 3600 }],
-    stockManaged: false,
-  },
-  "lanche-coxinha-proteica": {
-    saleType: "menu",
-    recipe: [r("Pó de Proteína (PDM)", 25, "g"), r("Nutrisoup Creme Verde-Frango", 15, "g")],
-    adicionais: [],
-    tiers: [
-      { qty: 1, price: 1500 },
-      { qty: 3, price: 3700 },
-    ],
-    stockManaged: true,
-  },
-  "bebida-hype-drink": {
-    saleType: "menu",
-    recipe: [r("Herbal Concentrate", 3, "g")],
-    adicionais: [],
-    tiers: [{ qty: 1, price: 2800 }],
-    stockManaged: false,
-  },
-  "bebida-colageno-drink": {
-    saleType: "menu",
-    recipe: [r("Beauty Drink Colágeno", 1, "sachê")],
-    adicionais: [],
-    tiers: [{ qty: 1, price: 2200 }],
-    stockManaged: false,
-  },
-  "bebida-seca-barriga": {
-    saleType: "menu",
-    recipe: [r("Fiber Concentrate", 5, "g")],
-    adicionais: [],
-    tiers: [{ qty: 1, price: 1900 }],
-    stockManaged: false,
-  },
-  "bebida-refrigerante-saudavel": {
-    saleType: "menu",
-    recipe: [r("Herbal Concentrate", 2, "g")],
-    adicionais: [],
-    tiers: [{ qty: 1, price: 1800 }],
-    stockManaged: false,
-  },
-  // Revenda — resold stock items (no recipe).
-  "lanche-barra-proteica": {
-    saleType: "revenda",
-    recipe: [],
-    adicionais: [],
-    tiers: [{ qty: 1, price: 1800 }],
-    insumoId: STOCK["Barra de Proteína (Citrus Lemon e Peanut)"],
-    stockManaged: false,
-  },
-  "lanche-barrinha-de-proteina": {
-    saleType: "revenda",
-    recipe: [],
-    adicionais: [],
-    tiers: [{ qty: 1, price: 1800 }],
-    insumoId: STOCK["Barra de Proteína (Citrus Lemon e Peanut)"],
-    stockManaged: false,
-  },
-};
+/**
+ * Resolve the full recipe/adicionais/pricing payload for a catalog item, given
+ * the store's price book (so add-ons and tiers carry that store's prices).
+ */
+export function recipeFor(item: RecipeInput, prices: StorePrices): ProductRecipe {
+  const { slug, category, description } = item;
+  const tiers: TierData[] = [{ qty: 1, price: prices[slug] ?? 0 }];
 
-/** Category default following the real Selet pattern, for items the design doesn't enumerate. */
-function categoryDefault(category: string, priceCentavos: number): ProductRecipe {
-  const tiers: TierData[] = [{ qty: 1, price: priceCentavos }];
   switch (category) {
     case "shakes":
       return {
         saleType: "menu",
-        recipe: [r("Shake Herbalife Baunilha", null, "g"), r("Leite em pó (Ninho)", null, "g")],
-        adicionais: [FIBER(), CRUNCH()],
+        recipe: shakeRecipe(slug, description),
+        adicionais: buildAddons(SHAKE_ADDONS, prices),
         tiers,
         stockManaged: false,
+        prep: "sob demanda",
       };
+
     case "waffles":
       return {
         saleType: "menu",
-        recipe: [r("Pó de Proteína (PDM)", 25, "g"), r("Leite em pó (Ninho)", null, "g")],
-        adicionais: [FIBER(), CRUNCH()],
+        recipe: [ri(INSUMO.pdm, null), ri(INSUMO.ninho, null)],
+        adicionais: buildAddons(WAFFLE_ADDONS, prices),
         tiers,
         stockManaged: false,
+        prep: "sob demanda",
       };
-    case "salgados":
-      return {
-        saleType: "menu",
-        recipe: [r("Nutrisoup Creme Verde-Frango", 40, "g")],
-        adicionais: [],
-        tiers,
-        stockManaged: false,
-      };
-    case "bebidas":
-      return {
-        saleType: "menu",
-        recipe: [r("Herbal Concentrate", 3, "g")],
-        adicionais: [],
-        tiers,
-        stockManaged: false,
-      };
-    case "lanches":
-      return {
-        saleType: "menu",
-        recipe: [r("Pó de Proteína (PDM)", 20, "g")],
-        adicionais: [],
-        tiers,
-        stockManaged: false,
-      };
-    case "adicionais":
-    default:
-      // Add-ons sold standalone: a simple priced item, no base recipe.
-      return { saleType: "menu", recipe: [], adicionais: [], tiers, stockManaged: false };
-  }
-}
 
-/** Resolve the recipe payload for a catalog slug. Real design data wins; else category default. */
-export function recipeFor(
-  slug: string,
-  category: string,
-  priceCentavos: number,
-): ProductRecipe {
-  const override = OVERRIDES[slug];
-  if (override) {
-    // The unit (qty:1) tier follows the store's real price book; lote tiers are
-    // kept from the design as-is.
-    const tiers = override.tiers.map((t) =>
-      t.qty === 1 ? { ...t, price: priceCentavos } : t,
-    );
-    return { ...override, tiers };
+    case "salgados": {
+      if (slug === "salgado-trio-de-coxinhas") {
+        return {
+          saleType: "menu",
+          recipe: [ri(INSUMO.pdm, null), ri(INSUMO.nutrisoup, null)],
+          adicionais: [],
+          tiers,
+          stockManaged: true,
+          prep: "lote",
+        };
+      }
+      const recipe =
+        slug === "salgado-escondidinho-de-frango"
+          ? [ri(INSUMO.nutrisoup, null), ri(INSUMO.pdm, null)]
+          : [ri(INSUMO.nutrisoup, null)]; // pizza proteica / de frango
+      return { saleType: "menu", recipe, adicionais: [], tiers, stockManaged: false, prep: "sob demanda" };
+    }
+
+    case "bebidas": {
+      let recipe: RecipeItemData[];
+      if (slug === "bebida-seca-barriga") recipe = [ri(INSUMO.fiber, null)];
+      else if (slug === "bebida-colageno-drink") recipe = [ri(INSUMO.beauty, 1)];
+      else recipe = [ri(INSUMO.herbal, null)]; // hype / sunset / refrigerante
+      return { saleType: "menu", recipe, adicionais: [], tiers, stockManaged: false, prep: "sob demanda" };
+    }
+
+    case "lanches": {
+      if (slug === "lanche-coxinha-proteica") {
+        return {
+          saleType: "menu",
+          recipe: [ri(INSUMO.pdm, null), ri(INSUMO.nutrisoup, null)],
+          adicionais: [],
+          tiers,
+          stockManaged: true,
+          prep: "lote",
+        };
+      }
+      if (slug === "lanche-barrinha-de-proteina" || slug === "lanche-barra-proteica") {
+        return {
+          saleType: "revenda",
+          recipe: [],
+          adicionais: [],
+          tiers,
+          insumoId: INSUMO.barra.id,
+          stockManaged: false,
+          prep: null,
+        };
+      }
+      if (slug === "lanche-pudim-proteico") {
+        return {
+          saleType: "menu",
+          recipe: [ri(INSUMO.pdm, null)],
+          adicionais: [],
+          tiers,
+          stockManaged: false,
+          prep: "sob demanda",
+        };
+      }
+      // Pão de Mel / Trufa — no tracked insumo.
+      return { saleType: "menu", recipe: [], adicionais: [], tiers, stockManaged: false, prep: "sob demanda" };
+    }
+
+    case "adicionais":
+      return {
+        saleType: "menu",
+        recipe: addonStandaloneRecipe(slug),
+        adicionais: [],
+        tiers,
+        stockManaged: false,
+        prep: "sob demanda",
+      };
+
+    default:
+      return { saleType: "menu", recipe: [], adicionais: [], tiers, stockManaged: false, prep: "sob demanda" };
   }
-  return categoryDefault(category, priceCentavos);
 }

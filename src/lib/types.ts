@@ -64,6 +64,19 @@ export type StockUnit = (typeof STOCK_UNITS)[number];
 export const CONSUMPTION_MODES = ["medido", "continuo"] as const;
 export type ConsumptionMode = (typeof CONSUMPTION_MODES)[number];
 
+/**
+ * Unit → consumption-mode rule (single source of truth, reused by the app and
+ * the import/seed scripts). WEIGHT/VOLUME items (g/kg/ml/L) are never weighed
+ * per use: they are "contínuo" — tracked by a `usos` counter and marked empty.
+ * COUNTABLE items (un/sachê) are "medido" — deducted by an exact count.
+ */
+export function isWeightVolumeUnit(unit: string): boolean {
+  return unit === "g" || unit === "kg" || unit === "ml" || unit === "L";
+}
+export function consumptionModeForUnit(unit: string): ConsumptionMode {
+  return isWeightVolumeUnit(unit) ? "continuo" : "medido";
+}
+
 export type UserRole = "admin" | "funcionario";
 export type UserStatus = "ativo" | "inativo" | "convidado";
 
