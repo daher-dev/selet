@@ -11,6 +11,7 @@ import {
   openNextPackage,
   updateStockItem,
 } from "@/data/stock";
+import { logActivity } from "@/data/activity";
 import {
   CONSUMPTION_MODES,
   STOCK_CATEGORIES,
@@ -141,7 +142,14 @@ export async function openNextPackageAction(
 ): Promise<ActionResult> {
   return run(async () => {
     const user = await requireAccess(storeId, "estoque");
-    await openNextPackage(storeId, itemId, user.email);
+    const name = await openNextPackage(storeId, itemId, user.email);
+    await logActivity(storeId, {
+      icon: "package",
+      label: `Abriu nova embalagem · ${name}`,
+      detail: "Estoque",
+      by: user.email,
+      section: "estoque",
+    });
     revalidatePath(`/s/${storeId}/estoque`);
     revalidatePath(`/s/${storeId}`);
   });
@@ -153,7 +161,14 @@ export async function markPackageEmptyAction(
 ): Promise<ActionResult> {
   return run(async () => {
     const user = await requireAccess(storeId, "estoque");
-    await markPackageEmpty(storeId, itemId, user.email);
+    const name = await markPackageEmpty(storeId, itemId, user.email);
+    await logActivity(storeId, {
+      icon: "package",
+      label: `Finalizou embalagem · ${name}`,
+      detail: "Estoque",
+      by: user.email,
+      section: "estoque",
+    });
     revalidatePath(`/s/${storeId}/estoque`);
     revalidatePath(`/s/${storeId}`);
   });
@@ -179,7 +194,23 @@ export async function applyMovementAction(
   return run(async () => {
     const { storeId, itemId, ...data } = movementSchema.parse(input);
     const user = await requireAccess(storeId, "estoque");
-    await applyMovement(storeId, itemId, { ...data, by: user.email });
+    const name = await applyMovement(storeId, itemId, { ...data, by: user.email });
+    const isAdjust = data.reason === "AJUSTE";
+    await logActivity(storeId, {
+      icon: isAdjust
+        ? "sliders-horizontal"
+        : data.type === "entrada"
+          ? "package-plus"
+          : "package-minus",
+      label: isAdjust
+        ? `Ajuste · ${name}`
+        : data.type === "entrada"
+          ? `Registrou entrada · ${name}`
+          : `Baixa · ${name}`,
+      detail: "Estoque",
+      by: user.email,
+      section: "estoque",
+    });
     revalidatePath(`/s/${storeId}/estoque`);
     revalidatePath(`/s/${storeId}`);
   });

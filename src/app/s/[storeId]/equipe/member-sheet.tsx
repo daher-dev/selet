@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
+  Activity,
   Ban,
   Calendar,
+  ChefHat,
   Check,
   CircleCheck,
   CircleDollarSign,
@@ -12,19 +15,31 @@ import {
   Loader2,
   Mail,
   Package,
+  PackageMinus,
+  PackagePlus,
   Phone,
   ShieldCheck,
   ShieldUser,
+  SlidersHorizontal,
   Tag,
+  Truck,
+  UserPlus,
   Users,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { GrantableSection, Store, TeamMember } from "@/lib/types";
+import type {
+  ActivityEntry,
+  GrantableSection,
+  Store,
+  TeamMember,
+} from "@/lib/types";
 import { GRANTABLE_SECTIONS } from "@/lib/types";
-import { formatDate, initials } from "@/lib/format";
+import { formatDate, formatRelative, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   inviteMemberAction,
+  listMemberActivityAction,
   setMemberStatusAction,
   updateMemberAction,
 } from "@/actions/team";
@@ -70,6 +85,24 @@ const ROLE_DESC = {
   funcionario:
     "Acesso operacional: registra pedidos, dá baixa no estoque e atende clientes nas lojas atribuídas.",
 } as const;
+
+// Maps the stored lucide icon name (design metaphors) to a component.
+const ACTIVITY_ICONS: Record<string, LucideIcon> = {
+  inbox: Inbox,
+  "circle-check": CircleCheck,
+  ban: Ban,
+  wallet: Wallet,
+  "user-plus": UserPlus,
+  tag: Tag,
+  "chef-hat": ChefHat,
+  package: Package,
+  "package-plus": PackagePlus,
+  "package-minus": PackageMinus,
+  "sliders-horizontal": SlidersHorizontal,
+  "shield-check": ShieldCheck,
+  "circle-dollar": CircleDollarSign,
+  truck: Truck,
+};
 
 interface MemberSheetProps {
   storeId: string;
@@ -183,6 +216,23 @@ function MemberForm({
     return member ? current : ["pedidos"];
   });
   const [pending, startTransition] = useTransition();
+
+  // Real "Atividade recente" feed for this member in the current store. null =
+  // still loading; [] = no events yet. Fetched on open (the form remounts per
+  // member via the `key` prop, so this runs fresh each time a member is viewed).
+  const [activity, setActivity] = useState<ActivityEntry[] | null>(null);
+  const memberEmail = member?.email;
+  useEffect(() => {
+    if (!memberEmail) return;
+    let cancelled = false;
+    setActivity(null);
+    listMemberActivityAction(storeId, memberEmail).then((entries) => {
+      if (!cancelled) setActivity(entries);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [storeId, memberEmail]);
 
   const isSelf = member?.email === meEmail;
   const locked = isSelf || (member?.role === "admin" && !meIsAdmin);
@@ -436,20 +486,25 @@ function MemberForm({
         {member && (
           <div className="space-y-2">
             <Label>Atividade recente</Label>
-            {/* Honest milestone timeline from the dates on TeamMember. A rich
-                per-action activity feed (produced X, edited price, registered
-                order…) is a Phase-3 deliverable — the ActivityEntry pipeline
-                that writes/reads those events is not built yet, so we surface
-                only the real invite/first-login/status milestones rather than
-                fabricate a persisted feed.
-                TODO(phase-3): render TeamMember activity events once the
-                ActivityEntry collection is written and read (see plan
-                "Activity feed" — design 1837-1851). */}
+            {/* Real per-action feed from stores/{storeId}/activities, filtered
+                to this member's email, with the honest invite/first-login/
+                status milestones kept as the tail. */}
             <div className="rounded-xl border border-border bg-paper">
+              {activity === null ? (
+                <div className="flex items-center gap-2 px-3.5 py-4 text-[12px] text-ink-faint">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Carregando atividade…
+                </div>
+              ) : (
+                activity.map((entry, i) => (
+                  <ActivityRow key={entry.id} entry={entry} bordered={i > 0} />
+                ))
+              )}
               <TimelineRow
                 icon={Mail}
                 label="Convite enviado"
                 detail={formatDate(member.invitedAt)}
+                bordered={activity === null || activity.length > 0}
               />
               {member.firstLoginAt && (
                 <TimelineRow
@@ -481,9 +536,11 @@ function MemberForm({
                 </span>
               </div>
             </div>
-            <p className="text-[11px] leading-relaxed text-ink-faint">
-              O histórico detalhado de ações da equipe chega em breve.
-            </p>
+            {activity !== null && activity.length === 0 && (
+              <p className="text-[11px] leading-relaxed text-ink-faint">
+                Ainda não há ações registradas nesta loja.
+              </p>
+            )}
           </div>
         )}
 
@@ -579,6 +636,41 @@ function SegButton({
       <Icon className="size-[15px]" />
       {label}
     </button>
+  );
+}
+
+function ActivityRow({
+  entry,
+  bordered = false,
+}: {
+  entry: ActivityEntry;
+  bordered?: boolean;
+}) {
+  const Icon = ACTIVITY_ICONS[entry.icon] ?? Activity;
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-3 px-3.5 py-3",
+        bordered && "border-t border-border",
+      )}
+    >
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-mist text-primary">
+        <Icon className="size-3.5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[12.5px] font-semibold text-ink">
+          {entry.label}
+        </span>
+        {entry.detail && (
+          <span className="block truncate text-[11px] text-ink-faint">
+            {entry.detail}
+          </span>
+        )}
+      </span>
+      <span className="shrink-0 pt-0.5 text-[10.5px] text-ink-faint">
+        {formatRelative(entry.at)}
+      </span>
+    </div>
   );
 }
 

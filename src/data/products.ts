@@ -117,6 +117,8 @@ export async function deleteProduct(
 }
 
 export interface ProduceResult {
+  /** The produced item's name (for activity/UI labels). */
+  name: string;
   /** Finished units on hand after the batch. */
   producedStock: number;
   /** Insumos that couldn't be fully consumed (short stock, best-effort). */
@@ -141,7 +143,7 @@ export async function produceBatch(
   }
   const db = getDb();
   const pRef = productsCol(storeId).doc(productId);
-  let result: ProduceResult = { producedStock: 0, shortages: [] };
+  let result: ProduceResult = { name: "", producedStock: 0, shortages: [] };
 
   await db.runTransaction(async (tx) => {
     // ---- READ phase. ----
@@ -198,7 +200,7 @@ export async function produceBatch(
       tx.set(stockItemRef(storeId, m.itemId).collection("movements").doc(), m.doc);
     }
     tx.update(pRef, { producedStock: newProduced });
-    result = { producedStock: newProduced, shortages };
+    result = { name: label, producedStock: newProduced, shortages };
   });
 
   return result;

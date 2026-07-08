@@ -9,7 +9,9 @@ import {
   setUserStatus,
   updateUserAccess,
 } from "@/data/users";
+import { listActivity, logActivity } from "@/data/activity";
 import { GRANTABLE_SECTIONS } from "@/lib/types";
+import type { ActivityEntry } from "@/lib/types";
 import type { ActionResult } from "./products";
 
 const memberSchema = z.object({
@@ -63,6 +65,13 @@ export async function inviteMemberAction(
     const actor = await requireAccess(storeId, "equipe");
     assertCanManage(actor, data.role);
     await inviteUser(data);
+    await logActivity(storeId, {
+      icon: "user-plus",
+      label: `Convidou ${data.name}`,
+      detail: "Equipe",
+      by: actor.email,
+      section: "equipe",
+    });
     revalidatePath(`/s/${storeId}/equipe`);
   });
 }
@@ -78,6 +87,13 @@ export async function updateMemberAction(
     assertCanManage(actor, target.role, email);
     assertCanManage(actor, data.role);
     await updateUserAccess(email, data);
+    await logActivity(storeId, {
+      icon: "shield-check",
+      label: `Alterou permissão · ${data.name}`,
+      detail: "Equipe",
+      by: actor.email,
+      section: "equipe",
+    });
     revalidatePath(`/s/${storeId}/equipe`);
   });
 }
@@ -93,6 +109,25 @@ export async function setMemberStatusAction(
     if (!target) throw new Error("Membro não encontrado.");
     assertCanManage(actor, target.role, email);
     await setUserStatus(email, status);
+    await logActivity(storeId, {
+      icon: status === "inativo" ? "ban" : "circle-check",
+      label: `${status === "inativo" ? "Desativou" : "Reativou"} acesso · ${target.name}`,
+      detail: "Equipe",
+      by: actor.email,
+      section: "equipe",
+    });
     revalidatePath(`/s/${storeId}/equipe`);
   });
+}
+
+/**
+ * Recent activity for a team member in the current store — powers the member
+ * sheet's "Atividade recente" timeline. Gated on team-management access.
+ */
+export async function listMemberActivityAction(
+  storeId: string,
+  email: string,
+): Promise<ActivityEntry[]> {
+  await requireAccess(storeId, "equipe");
+  return listActivity(storeId, { byEmail: email, limit: 12 });
 }

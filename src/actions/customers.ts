@@ -8,6 +8,7 @@ import {
   setCustomerArchived,
   updateCustomer,
 } from "@/data/customers";
+import { logActivity } from "@/data/activity";
 import type { ActionResult } from "./products";
 
 const customerSchema = z.object({
@@ -54,8 +55,15 @@ export async function createCustomerAction(
 ): Promise<ActionResult> {
   return run(async () => {
     const { storeId, ...data } = customerSchema.parse(input);
-    await requireAccess(storeId, "clientes");
+    const user = await requireAccess(storeId, "clientes");
     await createCustomer(storeId, data);
+    await logActivity(storeId, {
+      icon: "user-plus",
+      label: `Cadastrou cliente · ${data.name}`,
+      detail: "Clientes",
+      by: user.email,
+      section: "clientes",
+    });
     revalidatePath(`/s/${storeId}/clientes`);
   });
 }

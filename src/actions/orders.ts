@@ -9,8 +9,28 @@ import {
   setOrderStatus,
   updateOrder,
 } from "@/data/orders";
-import { ORDER_CHANNELS, ORDER_STATUSES, PAY_METHODS } from "@/lib/types";
+import { logActivity } from "@/data/activity";
+import { orderCode } from "@/lib/format";
+import {
+  ORDER_CHANNELS,
+  ORDER_STATUSES,
+  PAY_METHODS,
+  type OrderChannel,
+  type PayMethod,
+} from "@/lib/types";
 import type { ActionResult } from "./products";
+
+const CHANNEL_LABEL: Record<OrderChannel, string> = {
+  instagram: "Instagram",
+  whatsapp: "WhatsApp",
+  loja: "Loja",
+};
+
+const PAY_METHOD_LABEL: Record<PayMethod, string> = {
+  pix: "Pix",
+  cartao: "Cartão",
+  dinheiro: "Dinheiro",
+};
 
 const orderItemSchema = z.object({
   productId: z.string().min(1),
@@ -65,7 +85,24 @@ export async function createOrderAction(
     const { storeId, paid, payMethod, ...data } = createOrderSchema.parse(input);
     if (paid && !payMethod) throw new Error("Selecione a forma de pagamento.");
     const user = await requireAccess(storeId, "pedidos");
-    await createOrder(storeId, data, { paid, payMethod }, user.email);
+    const orderId = await createOrder(storeId, data, { paid, payMethod }, user.email);
+    const code = orderCode(orderId);
+    await logActivity(storeId, {
+      icon: "inbox",
+      label: `Registrou pedido #${code}`,
+      detail: `Pedidos · ${CHANNEL_LABEL[data.channel]}`,
+      by: user.email,
+      section: "pedidos",
+    });
+    if (paid && payMethod) {
+      await logActivity(storeId, {
+        icon: "wallet",
+        label: `Recebeu pagamento · #${code}`,
+        detail: `Pedidos · ${PAY_METHOD_LABEL[payMethod]}`,
+        by: user.email,
+        section: "pedidos",
+      });
+    }
     revalidate(storeId);
   });
 }
@@ -95,6 +132,24 @@ export async function setOrderStatusAction(
     const { storeId, orderId, status } = statusSchema.parse(input);
     const user = await requireAccess(storeId, "pedidos");
     await setOrderStatus(storeId, orderId, status, user.email);
+    const code = orderCode(orderId);
+    if (status === "concluido") {
+      await logActivity(storeId, {
+        icon: "circle-check",
+        label: `Concluiu pedido #${code}`,
+        detail: "Pedidos",
+        by: user.email,
+        section: "pedidos",
+      });
+    } else if (status === "cancelado") {
+      await logActivity(storeId, {
+        icon: "ban",
+        label: `Cancelou pedido #${code}`,
+        detail: "Pedidos",
+        by: user.email,
+        section: "pedidos",
+      });
+    }
     revalidate(storeId);
   });
 }
@@ -114,8 +169,17 @@ export async function setOrderPaymentAction(
     if (paid && !payMethod) {
       throw new Error("Selecione a forma de pagamento.");
     }
-    await requireAccess(storeId, "pedidos");
+    const user = await requireAccess(storeId, "pedidos");
     await setOrderPayment(storeId, orderId, paid, payMethod);
+    if (paid && payMethod) {
+      await logActivity(storeId, {
+        icon: "wallet",
+        label: `Recebeu pagamento · #${orderCode(orderId)}`,
+        detail: `Pedidos · ${PAY_METHOD_LABEL[payMethod]}`,
+        by: user.email,
+        section: "pedidos",
+      });
+    }
     revalidate(storeId);
   });
 }

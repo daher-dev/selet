@@ -324,9 +324,13 @@ export interface TeamMember extends SessionUser {
 
 export interface ActivityEntry {
   id: string;
+  /** lucide icon name (kebab-case, e.g. "inbox", "circle-check"). */
   icon: string;
   label: string;
   detail: string;
+  /** Acting user email. */
   by: string;
   at: string;
+  /** The module the event belongs to (for filtering/metadata). */
+  section?: Section;
 }

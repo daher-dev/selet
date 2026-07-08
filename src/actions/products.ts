@@ -9,6 +9,7 @@ import {
   produceBatch,
   updateProduct,
 } from "@/data/products";
+import { logActivity } from "@/data/activity";
 import {
   PRODUCT_CATEGORIES,
   PRODUCT_SALE_TYPES,
@@ -93,8 +94,15 @@ export async function updateProductAction(
 ): Promise<ActionResult> {
   return run(async () => {
     const { storeId, ...data } = productSchema.parse(input);
-    await requireAccess(storeId, "produtos");
+    const user = await requireAccess(storeId, "produtos");
     await updateProduct(storeId, productId, data);
+    await logActivity(storeId, {
+      icon: "tag",
+      label: `Editou · ${data.name}`,
+      detail: "Catálogo",
+      by: user.email,
+      section: "produtos",
+    });
     revalidatePath(`/s/${storeId}/produtos`);
   });
 }
@@ -132,6 +140,13 @@ export async function produceBatchAction(
     const { storeId, productId, porcoes } = produceSchema.parse(input);
     const user = await requireAccess(storeId, "estoque");
     const result = await produceBatch(storeId, productId, porcoes, user.email);
+    await logActivity(storeId, {
+      icon: "chef-hat",
+      label: `Produziu ${porcoes}x ${result.name}`,
+      detail: "Estoque",
+      by: user.email,
+      section: "estoque",
+    });
     revalidatePath(`/s/${storeId}/estoque`);
     revalidatePath(`/s/${storeId}/produtos`);
     revalidatePath(`/s/${storeId}`);

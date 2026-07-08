@@ -207,14 +207,16 @@ export async function applyMovement(
   storeId: string,
   itemId: string,
   input: MovementInput,
-): Promise<void> {
+): Promise<string> {
   const db = getDb();
   const ref = stockCol(storeId).doc(itemId);
+  let name = "";
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Item não encontrado.");
     const d = snap.data()!;
+    name = d.name ?? "";
     const tracked: boolean = d.tracked ?? false;
     const pkgSize: number = d.pkgSize ?? 0;
     let sealed: number = d.sealed ?? 0;
@@ -290,6 +292,7 @@ export async function applyMovement(
       at: Timestamp.now(),
     });
   });
+  return name;
 }
 
 /**
@@ -301,13 +304,15 @@ export async function openNextPackage(
   storeId: string,
   itemId: string,
   by: string,
-): Promise<void> {
+): Promise<string> {
   const db = getDb();
   const ref = stockCol(storeId).doc(itemId);
+  let name = "";
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Item não encontrado.");
     const d = snap.data()!;
+    name = d.name ?? "";
     if (!d.continuousUse) throw new Error("Item não é de uso contínuo.");
     if (d.openPkg) throw new Error("Já existe uma embalagem aberta.");
     if ((d.sealed ?? 0) < 1) throw new Error("Nenhuma embalagem lacrada em estoque.");
@@ -331,6 +336,7 @@ export async function openNextPackage(
       at: Timestamp.now(),
     });
   });
+  return name;
 }
 
 /**
@@ -341,13 +347,15 @@ export async function markPackageEmpty(
   storeId: string,
   itemId: string,
   by: string,
-): Promise<void> {
+): Promise<string> {
   const db = getDb();
   const ref = stockCol(storeId).doc(itemId);
+  let name = "";
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Item não encontrado.");
     const d = snap.data()!;
+    name = d.name ?? "";
     if (!d.openPkg) throw new Error("Nenhuma embalagem aberta.");
     const usos = d.usos ?? 0;
     tx.update(ref, {
@@ -368,6 +376,7 @@ export async function markPackageEmpty(
       at: Timestamp.now(),
     });
   });
+  return name;
 }
 
 // ---------------------------------------------------------------------------
