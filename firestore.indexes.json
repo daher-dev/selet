@@ -23,6 +23,14 @@
         { "fieldPath": "by", "order": "ASCENDING" },
         { "fieldPath": "at", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "stockItems",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "archived", "order": "ASCENDING" },
+        { "fieldPath": "lowStock", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

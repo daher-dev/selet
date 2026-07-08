@@ -43,6 +43,26 @@ export async function listCustomers(storeId: string): Promise<Customer[]> {
   return snap.docs.map((doc) => toCustomer(doc.id, doc.data()));
 }
 
+/**
+ * Targeted list of customers with a birthday in the current or next calendar
+ * month — a bounded query (single `in` filter on the nested `birthday.month`),
+ * NOT a full scan. Any birthday within the next 30 days necessarily falls in one
+ * of those two months; the caller filters the exact ≤30-day window (and archived
+ * customers) in memory over this small result. Single-field index only — the
+ * nested `birthday.month` field is auto-indexed, so no composite index needed.
+ */
+export async function listUpcomingBirthdays(
+  storeId: string,
+): Promise<Customer[]> {
+  const now = new Date();
+  const thisMonth = now.getMonth() + 1;
+  const nextMonth = (thisMonth % 12) + 1;
+  const snap = await customersCol(storeId)
+    .where("birthday.month", "in", [thisMonth, nextMonth])
+    .get();
+  return snap.docs.map((doc) => toCustomer(doc.id, doc.data()));
+}
+
 export async function getCustomer(
   storeId: string,
   customerId: string,

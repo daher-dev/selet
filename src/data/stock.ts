@@ -111,6 +111,24 @@ export async function countLowStock(storeId: string): Promise<number> {
   return snap.data().count;
 }
 
+/**
+ * Targeted list of active low-stock items for the dashboard's "Estoque baixo"
+ * strip — a bounded query (two equality filters + limit), NOT a full scan.
+ * The badge COUNT comes from the summary; this only fetches the few names/qtys
+ * the strip renders. Composite index (archived, lowStock) in firestore.indexes.json.
+ */
+export async function listLowStock(
+  storeId: string,
+  max = 6,
+): Promise<StockItem[]> {
+  const snap = await stockCol(storeId)
+    .where("archived", "==", false)
+    .where("lowStock", "==", true)
+    .limit(max)
+    .get();
+  return snap.docs.map((doc) => toItem(doc.id, doc.data()));
+}
+
 export async function getStockItem(
   storeId: string,
   itemId: string,
