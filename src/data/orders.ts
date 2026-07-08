@@ -127,7 +127,10 @@ async function recomputeAggregates(
   customerId: string,
   /** pending change applied on top of stored docs (the tx hasn't committed) */
   override?: { orderId: string; total: number | null; createdAt: Timestamp | null },
-) {
+): Promise<() => void> {
+  // Read + compute now (read phase); return a closure that writes later. Callers
+  // may recompute several customers in one tx (e.g. a reassignment), so the
+  // tx.update MUST be deferred — Firestore forbids a read after any write.
   const snap = await tx.get(
     ordersCol(storeId)
       .where("customerId", "==", customerId)
@@ -154,12 +157,14 @@ async function recomputeAggregates(
       ? (last.toMillis() - first.toMillis()) / (count - 1) / 86_400_000
       : null;
 
-  tx.update(storeRef(storeId).collection("customers").doc(customerId), {
-    orderCount: count,
-    totalSpent,
-    lastOrderAt: last,
-    avgReorderDays,
-  });
+  return () => {
+    tx.update(storeRef(storeId).collection("customers").doc(customerId), {
+      orderCount: count,
+      totalSpent,
+      lastOrderAt: last,
+      avgReorderDays,
+    });
+  };
 }
 
 function stockItemRef(storeId: string, itemId: string) {
@@ -342,13 +347,13 @@ export async function createOrder(
       summary,
     );
     stockConsumed = plan.draws;
-    if (input.customerId) {
-      await recomputeAggregates(tx, storeId, input.customerId, {
-        orderId: ref.id,
-        total,
-        createdAt: now,
-      });
-    }
+    const commitAggregates = input.customerId
+      ? await recomputeAggregates(tx, storeId, input.customerId, {
+          orderId: ref.id,
+          total,
+          createdAt: now,
+        })
+      : null;
     // Summary: a new "novo" (open) order enters the current-month aggregates.
     const mk = monthKey(now.toDate());
     summaryAddOrder(summary, {
@@ -363,6 +368,7 @@ export async function createOrder(
 
     // Writes.
     plan.commit();
+    commitAggregates?.();
     writeSummaryTx(tx, storeId, summary);
     tx.set(ref, {
       ...input,
@@ -434,16 +440,19 @@ export async function updateOrder(
     const affected = new Set<string>();
     if (current.customerId) affected.add(current.customerId);
     if (input.customerId) affected.add(input.customerId);
+    const aggregateCommits: Array<() => void> = [];
     for (const customerId of affected) {
-      await recomputeAggregates(tx, storeId, customerId, {
-        orderId,
-        // The updated order counts toward its (new) customer unless cancelled.
-        total: !cancelled && customerId === input.customerId ? total : null,
-        createdAt:
-          !cancelled && customerId === input.customerId
-            ? current.createdAt
-            : null,
-      });
+      aggregateCommits.push(
+        await recomputeAggregates(tx, storeId, customerId, {
+          orderId,
+          // The updated order counts toward its (new) customer unless cancelled.
+          total: !cancelled && customerId === input.customerId ? total : null,
+          createdAt:
+            !cancelled && customerId === input.customerId
+              ? current.createdAt
+              : null,
+        }),
+      );
     }
 
     // Summary: the order's month is immutable (createdAt). An active order is
@@ -480,6 +489,7 @@ export async function updateOrder(
     }
 
     plan.commit();
+    for (const commit of aggregateCommits) commit();
     writeSummaryTx(tx, storeId, summary);
     tx.update(ref, { ...input, total, stockConsumed: plan.draws, updatedAt: Timestamp.now() });
     // Keep the finance mirror in sync with the new total.
@@ -529,13 +539,14 @@ export async function setOrderStatus(
       );
     }
 
-    if (current.customerId && wasCancelled !== willBeCancelled) {
-      await recomputeAggregates(tx, storeId, current.customerId, {
-        orderId,
-        total: willBeCancelled ? null : (current.total ?? 0),
-        createdAt: willBeCancelled ? null : current.createdAt,
-      });
-    }
+    const commitAggregates =
+      current.customerId && wasCancelled !== willBeCancelled
+        ? await recomputeAggregates(tx, storeId, current.customerId, {
+            orderId,
+            total: willBeCancelled ? null : (current.total ?? 0),
+            createdAt: willBeCancelled ? null : current.createdAt,
+          })
+        : null;
 
     // Summary: cancelling removes the order from the month aggregates; uncancel
     // re-adds it (the finance mirror is untouched by status, so `in` isn't
@@ -562,6 +573,7 @@ export async function setOrderStatus(
     }
 
     if (plan) plan.commit();
+    commitAggregates?.();
     writeSummaryTx(tx, storeId, summary);
     const patch: Record<string, unknown> = { status, updatedAt: Timestamp.now() };
     if (plan) patch.stockConsumed = plan.draws;
