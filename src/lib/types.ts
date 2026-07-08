@@ -93,6 +93,25 @@ export interface OrderItem {
   addons?: string[];
 }
 
+/**
+ * One reversible unit of stock the order drew when it was placed. Persisted on
+ * the order so cancel/uncancel/update can apply the EXACT inverse regardless of
+ * how the product's recipe changes afterwards.
+ *  - kind "insumo": a tracked stockItems doc. medido → `amount` base units were
+ *    deducted (reverse by returning them). continuo → `usos` uses were tallied
+ *    on the open package (reverse by subtracting).
+ *  - kind "produced": a stockManaged product's finished-goods count. `amount`
+ *    porções were drawn from product.producedStock (reverse by adding back).
+ */
+export interface ConsumptionDraw {
+  kind: "insumo" | "produced";
+  /** stockItems doc id (insumo) or products doc id (produced). */
+  refId: string;
+  mode?: ConsumptionMode;
+  amount?: number;
+  usos?: number;
+}
+
 export interface Order {
   id: string;
   code: string; // short display code derived from id, e.g. "A3F8"
@@ -104,6 +123,8 @@ export interface Order {
   status: OrderStatus;
   paid: boolean;
   payMethod: PayMethod | null;
+  /** Reversal manifest — the stock this order currently holds (empty when cancelled). */
+  stockConsumed: ConsumptionDraw[];
   createdAt: string;
   updatedAt: string;
 }
@@ -202,6 +223,8 @@ export interface Product {
   insumoId?: string;
   /** Whether a menu item is produced in batches and kept in stock (drives "Produzir"). */
   stockManaged: boolean;
+  /** Finished units on hand (only meaningful for stockManaged menu items; default 0). */
+  producedStock: number;
   /** Production mode: on-demand vs batch/lote (e.g. Coxinha). undefined for revenda. */
   prep?: "sob demanda" | "lote" | null;
   /** Prep/shelf duration in minutes (metadata shown on the catalog card). */

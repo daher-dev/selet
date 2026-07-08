@@ -3,13 +3,18 @@ import "server-only";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
 import type {
+  ConsumptionDraw,
   Order,
   OrderChannel,
   OrderItem,
   OrderStatus,
   PayMethod,
+  Product,
 } from "@/lib/types";
 import { orderCode } from "@/lib/format";
+import { buildConsumptionRequests } from "./consumption";
+import { getProduct } from "./products";
+import { consumeWork, readStockWork, reverseWork, stockPatch } from "./stock";
 
 function storeRef(storeId: string) {
   return getDb().collection("stores").doc(storeId);
@@ -31,6 +36,7 @@ function toOrder(id: string, d: FirebaseFirestore.DocumentData): Order {
     status: d.status,
     paid: d.paid ?? false,
     payMethod: d.payMethod ?? null,
+    stockConsumed: d.stockConsumed ?? [],
     createdAt: d.createdAt?.toDate().toISOString() ?? "",
     updatedAt: d.updatedAt?.toDate().toISOString() ?? "",
   };
@@ -140,6 +146,133 @@ async function recomputeAggregates(
   });
 }
 
+function stockItemRef(storeId: string, itemId: string) {
+  return storeRef(storeId).collection("stockItems").doc(itemId);
+}
+
+function productRef(storeId: string, productId: string) {
+  return storeRef(storeId).collection("products").doc(productId);
+}
+
+/** Loads the products referenced by an order's lines, keyed by id (misses skipped). */
+async function fetchLineProducts(
+  storeId: string,
+  items: OrderItem[],
+): Promise<Map<string, Product>> {
+  const ids = [...new Set(items.map((i) => i.productId))];
+  const loaded = await Promise.all(ids.map((id) => getProduct(storeId, id)));
+  const map = new Map<string, Product>();
+  loaded.forEach((p, i) => {
+    if (p) map.set(ids[i], p);
+  });
+  return map;
+}
+
+/**
+ * Read-only planner for an order's stock consumption. Reverses `oldDraws` (the
+ * order's currently-held manifest) and applies `newItems` (null = hold nothing,
+ * e.g. a cancel) onto a SINGLE working copy per item — reverse-then-apply on the
+ * same copy so a diff-update nets correctly, and Firestore's all-reads-before-
+ * all-writes rule is honoured (this issues only tx.get; the returned `commit`
+ * runs the writes later). Best-effort: never throws; short stock is clamped.
+ * Returns the new manifest (the draws the order now holds).
+ */
+async function planConsumption(
+  tx: FirebaseFirestore.Transaction,
+  storeId: string,
+  orderId: string,
+  by: string,
+  oldDraws: ConsumptionDraw[],
+  newItems: OrderItem[] | null,
+  products: Map<string, Product> | null,
+): Promise<{ draws: ConsumptionDraw[]; commit: () => void }> {
+  const req =
+    newItems && products
+      ? buildConsumptionRequests(newItems, products)
+      : { insumos: new Map<string, { amount: number; uses: number }>(), produced: new Map<string, number>() };
+
+  const stockIds = new Set<string>();
+  const productIds = new Set<string>();
+  for (const d of oldDraws) {
+    if (d.kind === "insumo") stockIds.add(d.refId);
+    else productIds.add(d.refId);
+  }
+  for (const id of req.insumos.keys()) stockIds.add(id);
+  for (const id of req.produced.keys()) productIds.add(id);
+
+  // ---- READ phase: fetch every touched doc once. ----
+  const stock = new Map<
+    string,
+    { ref: FirebaseFirestore.DocumentReference; work: ReturnType<typeof readStockWork> }
+  >();
+  for (const id of stockIds) {
+    const ref = stockItemRef(storeId, id);
+    const snap = await tx.get(ref);
+    if (snap.exists) stock.set(id, { ref, work: readStockWork(snap.data()!) });
+  }
+  const prod = new Map<string, { ref: FirebaseFirestore.DocumentReference; produced: number }>();
+  for (const id of productIds) {
+    const ref = productRef(storeId, id);
+    const snap = await tx.get(ref);
+    if (snap.exists) prod.set(id, { ref, produced: snap.data()!.producedStock ?? 0 });
+  }
+
+  // ---- PLAN phase: pure math on the working copies, collecting writes. ----
+  const code = orderCode(orderId);
+  const movements: { itemId: string; doc: Record<string, unknown> }[] = [];
+  const draws: ConsumptionDraw[] = [];
+
+  // 1) Reverse the old manifest (return what this order was holding).
+  for (const d of oldDraws) {
+    if (d.kind === "insumo") {
+      const entry = stock.get(d.refId);
+      if (!entry) continue;
+      const { movements: ms } = reverseWork(entry.work, d, {
+        refOrder: orderId,
+        refItem: `Estorno #${code}`,
+        by,
+      });
+      for (const doc of ms) movements.push({ itemId: d.refId, doc });
+    } else {
+      const entry = prod.get(d.refId);
+      if (entry) entry.produced += d.amount ?? 0;
+    }
+  }
+
+  // 2) Apply the new requests (draw what this order now holds).
+  for (const [itemId, need] of req.insumos) {
+    const entry = stock.get(itemId);
+    if (!entry) continue;
+    const { movements: ms, draw } = consumeWork(itemId, entry.work, {
+      amount: need.amount,
+      uses: need.uses,
+      reason: "VENDA",
+      refOrder: orderId,
+      refItem: `Pedido #${code}`,
+      by,
+    });
+    for (const doc of ms) movements.push({ itemId, doc });
+    draws.push(draw);
+  }
+  for (const [productId, qty] of req.produced) {
+    const entry = prod.get(productId);
+    if (!entry) continue;
+    const applied = Math.min(qty, entry.produced);
+    entry.produced -= applied;
+    draws.push({ kind: "produced", refId: productId, amount: applied });
+  }
+
+  const commit = () => {
+    for (const { ref, work } of stock.values()) tx.update(ref, stockPatch(work));
+    for (const { ref, produced } of prod.values()) tx.update(ref, { producedStock: produced });
+    for (const m of movements) {
+      tx.set(stockItemRef(storeId, m.itemId).collection("movements").doc(), m.doc);
+    }
+  };
+
+  return { draws, commit };
+}
+
 export async function createOrder(
   storeId: string,
   input: OrderInput,
@@ -147,13 +280,19 @@ export async function createOrder(
     paid: false,
     payMethod: null,
   },
+  by = "sistema",
 ): Promise<string> {
   const db = getDb();
   const ref = ordersCol(storeId).doc();
   const now = Timestamp.now();
   const total = orderTotal(input.items);
+  const products = await fetchLineProducts(storeId, input.items);
 
+  let stockConsumed: ConsumptionDraw[] = [];
   await db.runTransaction(async (tx) => {
+    // Reads first: plan consumption, then recompute aggregates.
+    const plan = await planConsumption(tx, storeId, ref.id, by, [], input.items, products);
+    stockConsumed = plan.draws;
     if (input.customerId) {
       await recomputeAggregates(tx, storeId, input.customerId, {
         orderId: ref.id,
@@ -161,12 +300,15 @@ export async function createOrder(
         createdAt: now,
       });
     }
+    // Writes.
+    plan.commit();
     tx.set(ref, {
       ...input,
       total,
       status: "novo",
       paid: payment.paid,
       payMethod: payment.paid ? payment.payMethod : null,
+      stockConsumed,
       createdAt: now,
       updatedAt: now,
     });
@@ -191,9 +333,11 @@ export async function updateOrder(
   storeId: string,
   orderId: string,
   input: OrderInput,
+  by = "sistema",
 ): Promise<void> {
   const db = getDb();
   const ref = ordersCol(storeId).doc(orderId);
+  const products = await fetchLineProducts(storeId, input.items);
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -201,6 +345,19 @@ export async function updateOrder(
     const current = snap.data()!;
     const cancelled = current.status === "cancelado";
     const total = orderTotal(input.items);
+    const oldDraws = (current.stockConsumed ?? []) as ConsumptionDraw[];
+
+    // Reconcile stock: reverse the old manifest, then re-apply for the new
+    // items — but only if the order is active (a cancelled order holds nothing).
+    const plan = await planConsumption(
+      tx,
+      storeId,
+      orderId,
+      by,
+      oldDraws,
+      cancelled ? null : input.items,
+      cancelled ? null : products,
+    );
 
     const affected = new Set<string>();
     if (current.customerId) affected.add(current.customerId);
@@ -217,7 +374,8 @@ export async function updateOrder(
       });
     }
 
-    tx.update(ref, { ...input, total, updatedAt: Timestamp.now() });
+    plan.commit();
+    tx.update(ref, { ...input, total, stockConsumed: plan.draws, updatedAt: Timestamp.now() });
     // Keep the finance mirror in sync with the new total.
     if (current.paid) {
       tx.update(storeRef(storeId).collection("finance").doc(`order-${orderId}`), {
@@ -231,9 +389,15 @@ export async function setOrderStatus(
   storeId: string,
   orderId: string,
   status: OrderStatus,
+  by = "sistema",
 ): Promise<void> {
   const db = getDb();
   const ref = ordersCol(storeId).doc(orderId);
+  // Pre-load products so an uncancel can re-apply consumption for the stored items.
+  const existing = await getOrder(storeId, orderId);
+  const products = existing
+    ? await fetchLineProducts(storeId, existing.items)
+    : new Map<string, Product>();
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -241,6 +405,23 @@ export async function setOrderStatus(
     const current = snap.data()!;
     const wasCancelled = current.status === "cancelado";
     const willBeCancelled = status === "cancelado";
+    const oldDraws = (current.stockConsumed ?? []) as ConsumptionDraw[];
+
+    // Cancel → reverse and hold nothing. Uncancel → re-apply from stored items.
+    let plan: { draws: ConsumptionDraw[]; commit: () => void } | null = null;
+    if (!wasCancelled && willBeCancelled) {
+      plan = await planConsumption(tx, storeId, orderId, by, oldDraws, null, null);
+    } else if (wasCancelled && !willBeCancelled) {
+      plan = await planConsumption(
+        tx,
+        storeId,
+        orderId,
+        by,
+        [],
+        (current.items ?? []) as OrderItem[],
+        products,
+      );
+    }
 
     if (current.customerId && wasCancelled !== willBeCancelled) {
       await recomputeAggregates(tx, storeId, current.customerId, {
@@ -249,7 +430,11 @@ export async function setOrderStatus(
         createdAt: willBeCancelled ? null : current.createdAt,
       });
     }
-    tx.update(ref, { status, updatedAt: Timestamp.now() });
+
+    if (plan) plan.commit();
+    const patch: Record<string, unknown> = { status, updatedAt: Timestamp.now() };
+    if (plan) patch.stockConsumed = plan.draws;
+    tx.update(ref, patch);
   });
 }
 

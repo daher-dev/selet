@@ -9,9 +9,18 @@ import type {
   ProductSaleType,
   RecipeItem,
 } from "@/lib/types";
+import { consumeWork, readStockWork, stockPatch } from "./stock";
 
 function productsCol(storeId: string) {
   return getDb().collection("stores").doc(storeId).collection("products");
+}
+
+function stockItemRef(storeId: string, itemId: string) {
+  return getDb()
+    .collection("stores")
+    .doc(storeId)
+    .collection("stockItems")
+    .doc(itemId);
 }
 
 function toProduct(id: string, d: FirebaseFirestore.DocumentData): Product {
@@ -33,6 +42,7 @@ function toProduct(id: string, d: FirebaseFirestore.DocumentData): Product {
     tiers: d.tiers?.length ? d.tiers : [{ qty: 1, price }],
     insumoId: d.insumoId ?? undefined,
     stockManaged: d.stockManaged ?? false,
+    producedStock: d.producedStock ?? 0,
     prep: d.prep ?? null,
     duration: d.duration ?? undefined,
   };
@@ -75,6 +85,7 @@ export async function createProduct(
   const ref = await productsCol(storeId).add({
     ...input,
     insumoId: input.insumoId ?? null,
+    producedStock: 0,
     createdAt: FieldValue.serverTimestamp(),
   });
   return ref.id;
@@ -103,4 +114,92 @@ export async function deleteProduct(
   productId: string,
 ): Promise<void> {
   await productsCol(storeId).doc(productId).delete();
+}
+
+export interface ProduceResult {
+  /** Finished units on hand after the batch. */
+  producedStock: number;
+  /** Insumos that couldn't be fully consumed (short stock, best-effort). */
+  shortages: { itemId: string; missing: number }[];
+}
+
+/**
+ * Produces `porcoes` finished units of a stockManaged menu item: consumes its
+ * BASE recipe insumos ×porcoes (per each insumo's mode — medido deducts, contínuo
+ * tallies usos), logs a CONSUMO movement per insumo (refItem = the product), and
+ * adds `porcoes` to product.producedStock. Transactional and best-effort — short
+ * stock is clamped and reported, never thrown, so a batch is never blocked.
+ */
+export async function produceBatch(
+  storeId: string,
+  productId: string,
+  porcoes: number,
+  by: string,
+): Promise<ProduceResult> {
+  if (!Number.isInteger(porcoes) || porcoes < 1) {
+    throw new Error("Informe uma quantidade de porções válida.");
+  }
+  const db = getDb();
+  const pRef = productsCol(storeId).doc(productId);
+  let result: ProduceResult = { producedStock: 0, shortages: [] };
+
+  await db.runTransaction(async (tx) => {
+    // ---- READ phase. ----
+    const psnap = await tx.get(pRef);
+    if (!psnap.exists) throw new Error("Produto não encontrado.");
+    const pdata = psnap.data()!;
+    const recipe = (pdata.recipe ?? []) as RecipeItem[];
+
+    // Aggregate per-insumo need across the recipe (only tracked entries).
+    const needs = new Map<string, { amount: number; uses: number }>();
+    for (const r of recipe) {
+      if (!r.stockItemId) continue;
+      const cur = needs.get(r.stockItemId) ?? { amount: 0, uses: 0 };
+      cur.amount += (r.qty ?? 0) * porcoes;
+      cur.uses += porcoes;
+      needs.set(r.stockItemId, cur);
+    }
+
+    const stock = new Map<
+      string,
+      { ref: FirebaseFirestore.DocumentReference; work: ReturnType<typeof readStockWork> }
+    >();
+    for (const id of needs.keys()) {
+      const ref = stockItemRef(storeId, id);
+      const snap = await tx.get(ref);
+      if (snap.exists) stock.set(id, { ref, work: readStockWork(snap.data()!) });
+    }
+
+    // ---- PLAN phase. ----
+    const movements: { itemId: string; doc: Record<string, unknown> }[] = [];
+    const shortages: { itemId: string; missing: number }[] = [];
+    const label = (pdata.name as string) ?? productId;
+    for (const [itemId, need] of needs) {
+      const entry = stock.get(itemId);
+      if (!entry) {
+        shortages.push({ itemId, missing: need.amount || need.uses });
+        continue;
+      }
+      const { movements: ms, shortage } = consumeWork(itemId, entry.work, {
+        amount: need.amount,
+        uses: need.uses,
+        reason: "CONSUMO",
+        refItem: label,
+        by,
+      });
+      for (const doc of ms) movements.push({ itemId, doc });
+      if (shortage > 0) shortages.push({ itemId, missing: shortage });
+    }
+    const newProduced = (pdata.producedStock ?? 0) + porcoes;
+
+    // ---- WRITE phase. ----
+    for (const { ref, work } of stock.values()) tx.update(ref, stockPatch(work));
+    for (const m of movements) {
+      tx.set(stockItemRef(storeId, m.itemId).collection("movements").doc(), m.doc);
+    }
+    tx.update(pRef, { producedStock: newProduced });
+    result = { producedStock: newProduced, shortages };
+  });
+
+  return result;
 }

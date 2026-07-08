@@ -3,6 +3,7 @@ import "server-only";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
 import type {
+  ConsumptionDraw,
   ConsumptionMode,
   StockCategory,
   StockItem,
@@ -367,6 +368,183 @@ export async function markPackageEmpty(
       at: Timestamp.now(),
     });
   });
+}
+
+// ---------------------------------------------------------------------------
+// Consumption engine (Phase 2). Pure, in-transaction helpers that mutate a
+// lightweight working copy of a stock item so several draws (and a reversal of
+// old draws) can be folded onto ONE read before a single write — the Firestore
+// "all reads before all writes" rule makes this fold necessary. `applyMovement`
+// above stays the manual/single-shot path; these are the sale/production path.
+// ---------------------------------------------------------------------------
+
+/** Mutable slice of a stock doc the consumption math touches. */
+export interface StockWork {
+  tracked: boolean;
+  pkgSize: number;
+  sealed: number;
+  open: number;
+  openPkg: boolean;
+  usos: number;
+  continuousUse: boolean;
+  consumptionMode: ConsumptionMode;
+  reorderAt: number;
+}
+
+export function readStockWork(d: FirebaseFirestore.DocumentData): StockWork {
+  return {
+    tracked: d.tracked ?? false,
+    pkgSize: d.pkgSize ?? 0,
+    sealed: d.sealed ?? 0,
+    open: d.open ?? 0,
+    openPkg: d.openPkg ?? false,
+    usos: d.usos ?? 0,
+    continuousUse: d.continuousUse ?? false,
+    consumptionMode: d.consumptionMode ?? (d.continuousUse ? "continuo" : "medido"),
+    reorderAt: d.reorderAt ?? 0,
+  };
+}
+
+/** The Firestore patch that persists a working copy (keeps qty + lowStock in sync). */
+export function stockPatch(w: StockWork): Record<string, unknown> {
+  const state = derive(w.tracked, w.pkgSize || undefined, w.sealed, w.open);
+  return {
+    ...state,
+    openPkg: w.openPkg,
+    usos: w.usos,
+    lowStock: computeLowStock({
+      tracked: w.tracked,
+      continuousUse: w.continuousUse,
+      pkgSize: w.pkgSize,
+      ...state,
+      openPkg: w.openPkg,
+      reorderAt: w.reorderAt,
+    }),
+    updatedAt: Timestamp.now(),
+  };
+}
+
+type MovementDoc = Record<string, unknown>;
+
+function movement(
+  type: StockMovementType,
+  qty: number,
+  byPackage: boolean,
+  reason: StockMovementReason,
+  ctx: { refOrder?: string; refItem?: string; by: string },
+): MovementDoc {
+  return {
+    type,
+    qty,
+    byPackage,
+    price: null,
+    reason,
+    refOrder: ctx.refOrder ?? null,
+    refItem: ctx.refItem ?? null,
+    by: ctx.by,
+    at: Timestamp.now(),
+  };
+}
+
+export interface ConsumeRequest {
+  /** medido: base units to deduct. */
+  amount: number;
+  /** continuo: uses to tally on the open package. */
+  uses: number;
+  reason: StockMovementReason;
+  refOrder?: string;
+  refItem?: string;
+  by: string;
+}
+
+export interface ConsumeResult {
+  movements: MovementDoc[];
+  draw: ConsumptionDraw;
+  /** Requested minus applied (base units for medido, uses for continuo). */
+  shortage: number;
+}
+
+/**
+ * Best-effort consume against a working copy. Branches on the ITEM's
+ * consumptionMode (never throws): medido deducts a measured amount clamped to
+ * what exists (auto-opening sealed packages like applyMovement's saída);
+ * continuo tallies `uses` onto the open package, auto-opening one if none is
+ * open. Returns the exact draw to persist for later reversal.
+ */
+export function consumeWork(
+  itemId: string,
+  w: StockWork,
+  req: ConsumeRequest,
+): ConsumeResult {
+  const ctx = { refOrder: req.refOrder, refItem: req.refItem, by: req.by };
+
+  if (w.consumptionMode === "continuo") {
+    const uses = req.uses;
+    if (uses <= 0) {
+      return { movements: [], draw: { kind: "insumo", refId: itemId, mode: "continuo", usos: 0 }, shortage: 0 };
+    }
+    const movements: MovementDoc[] = [];
+    // Need an open package to tally uses onto; auto-open one if possible.
+    if (!w.openPkg) {
+      if (w.sealed >= 1) {
+        w.sealed -= 1;
+        w.openPkg = true;
+        w.usos = 0;
+        movements.push(movement("abertura", 1, true, "AJUSTE", { ...ctx, refItem: "Abriu embalagem" }));
+      } else {
+        // Nothing to open or use — flag the full shortage, tally nothing.
+        return { movements, draw: { kind: "insumo", refId: itemId, mode: "continuo", usos: 0 }, shortage: uses };
+      }
+    }
+    w.usos += uses;
+    movements.push(movement("saida", uses, false, req.reason, ctx));
+    return { movements, draw: { kind: "insumo", refId: itemId, mode: "continuo", usos: uses }, shortage: 0 };
+  }
+
+  // medido
+  const need = req.amount;
+  if (need <= 0) {
+    return { movements: [], draw: { kind: "insumo", refId: itemId, mode: "medido", amount: 0 }, shortage: 0 };
+  }
+  const available = w.tracked && w.pkgSize > 0 ? w.sealed * w.pkgSize + w.open : w.open;
+  const consumed = Math.min(need, available);
+  const shortage = need - consumed;
+  if (w.tracked && w.pkgSize > 0) {
+    if (consumed > w.open) {
+      const toOpen = Math.ceil((consumed - w.open) / w.pkgSize);
+      w.sealed -= toOpen;
+      w.open += toOpen * w.pkgSize;
+    }
+    w.open -= consumed;
+  } else {
+    w.open -= consumed;
+  }
+  const movements: MovementDoc[] = consumed > 0 ? [movement("saida", consumed, false, req.reason, ctx)] : [];
+  return { movements, draw: { kind: "insumo", refId: itemId, mode: "medido", amount: consumed }, shortage };
+}
+
+/**
+ * Exact inverse of a persisted insumo draw against a working copy. medido
+ * returns the consumed base units to the loose `open` pool; continuo subtracts
+ * the tallied uses (clamped ≥ 0). Auto-opens from consume are intentionally NOT
+ * re-sealed — opening a package is a physical event a cancellation can't undo.
+ */
+export function reverseWork(
+  w: StockWork,
+  draw: ConsumptionDraw,
+  ctx: { refOrder?: string; refItem?: string; by: string },
+): { movements: MovementDoc[] } {
+  if (draw.kind !== "insumo") return { movements: [] };
+  if (draw.mode === "continuo") {
+    const usos = draw.usos ?? 0;
+    if (usos <= 0) return { movements: [] };
+    w.usos = Math.max(0, w.usos - usos);
+    return { movements: [movement("entrada", usos, false, "AJUSTE", { ...ctx, refItem: ctx.refItem ?? "Estorno" })] };
+  }
+  const amount = draw.amount ?? 0;
+  if (amount <= 0) return { movements: [] };
+  w.open += amount;
+  return { movements: [movement("entrada", amount, false, "AJUSTE", { ...ctx, refItem: ctx.refItem ?? "Estorno" })] };
 }
 
 export async function listMovements(

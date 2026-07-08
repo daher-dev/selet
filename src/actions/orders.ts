@@ -64,8 +64,8 @@ export async function createOrderAction(
   return run(async () => {
     const { storeId, paid, payMethod, ...data } = createOrderSchema.parse(input);
     if (paid && !payMethod) throw new Error("Selecione a forma de pagamento.");
-    await requireAccess(storeId, "pedidos");
-    await createOrder(storeId, data, { paid, payMethod });
+    const user = await requireAccess(storeId, "pedidos");
+    await createOrder(storeId, data, { paid, payMethod }, user.email);
     revalidate(storeId);
   });
 }
@@ -76,8 +76,8 @@ export async function updateOrderAction(
 ): Promise<ActionResult> {
   return run(async () => {
     const { storeId, ...data } = orderSchema.parse(input);
-    await requireAccess(storeId, "pedidos");
-    await updateOrder(storeId, orderId, data);
+    const user = await requireAccess(storeId, "pedidos");
+    await updateOrder(storeId, orderId, data, user.email);
     revalidate(storeId);
   });
 }
@@ -93,8 +93,8 @@ export async function setOrderStatusAction(
 ): Promise<ActionResult> {
   return run(async () => {
     const { storeId, orderId, status } = statusSchema.parse(input);
-    await requireAccess(storeId, "pedidos");
-    await setOrderStatus(storeId, orderId, status);
+    const user = await requireAccess(storeId, "pedidos");
+    await setOrderStatus(storeId, orderId, status, user.email);
     revalidate(storeId);
   });
 }
