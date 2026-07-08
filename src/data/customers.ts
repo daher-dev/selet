@@ -27,6 +27,7 @@ export function toCustomer(
     totalSpent: d.totalSpent ?? 0,
     lastOrderAt: d.lastOrderAt?.toDate().toISOString() ?? null,
     avgReorderDays: d.avgReorderDays ?? null,
+    reorderProduct: d.reorderProduct ?? null,
   };
 }
 
@@ -52,6 +53,8 @@ export interface CustomerInput {
   since?: string; // ISO date; defaults to now on create
   tags: string[];
   notes?: string;
+  /** Only honoured on update — lets the edit form archive/reactivate inline. */
+  archived?: boolean;
 }
 
 export async function createCustomer(
@@ -77,7 +80,7 @@ export async function updateCustomer(
   customerId: string,
   input: CustomerInput,
 ): Promise<void> {
-  const { since, ...data } = input;
+  const { since, archived, ...data } = input;
   await customersCol(storeId)
     .doc(customerId)
     .update({
@@ -87,6 +90,7 @@ export async function updateCustomer(
       // so birthday/notes clear only when explicitly null.
       birthday: input.birthday ?? null,
       ...(since ? { since: Timestamp.fromDate(new Date(since)) } : {}),
+      ...(archived === undefined ? {} : { archived }),
     });
 }
 

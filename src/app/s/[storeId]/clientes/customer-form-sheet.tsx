@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Crown, Loader2 } from "lucide-react";
+import { Archive, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Customer } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -13,13 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DatePicker, MonthPicker } from "@/components/ui/date-picker";
 import {
   Sheet,
   SheetContent,
@@ -27,14 +21,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-
-const MONTHS = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
+import { TAG_CATALOG, maskPhone } from "./customer-logic";
 
 interface CustomerFormSheetProps {
   storeId: string;
+  storeName: string;
   customer: Customer | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -42,6 +33,7 @@ interface CustomerFormSheetProps {
 
 export function CustomerFormSheet({
   storeId,
+  storeName,
   customer,
   open,
   onOpenChange,
@@ -53,13 +45,17 @@ export function CustomerFormSheet({
         className="w-full gap-0 overflow-y-auto sm:max-w-md"
       >
         <SheetHeader className="border-b border-border">
-          <SheetTitle className="text-[17px] font-bold">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-leaf">
+            {customer ? "Editar cadastro" : "Novo cadastro"}
+          </p>
+          <SheetTitle className="text-[19px] font-bold">
             {customer ? "Editar cliente" : "Novo cliente"}
           </SheetTitle>
         </SheetHeader>
         <CustomerForm
           key={customer?.id ?? "new"}
           storeId={storeId}
+          storeName={storeName}
           customer={customer}
           onClose={() => onOpenChange(false)}
         />
@@ -68,49 +64,66 @@ export function CustomerFormSheet({
   );
 }
 
+/** A birthday {day,month} rendered as a Date (fixed reference year) for the calendar. */
+function birthdayToDate(b: Customer["birthday"]): Date | undefined {
+  return b ? new Date(2000, b.month - 1, b.day) : undefined;
+}
+
+/** ISO "since" → MonthPicker value {year, month(0-indexed)}. */
+function sinceToMonth(iso: string): { year: number; month: number } | undefined {
+  if (!iso) return undefined;
+  const d = new Date(iso);
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
 function CustomerForm({
   storeId,
+  storeName,
   customer,
   onClose,
 }: {
   storeId: string;
+  storeName: string;
   customer: Customer | null;
   onClose: () => void;
 }) {
   const [name, setName] = useState(customer?.name ?? "");
-  const [phone, setPhone] = useState(customer?.phone ?? "");
-  const [city, setCity] = useState(customer?.city ?? "");
+  const [phone, setPhone] = useState(customer ? maskPhone(customer.phone ?? "") : "");
   const [instagram, setInstagram] = useState(customer?.instagram ?? "");
-  const [birthDay, setBirthDay] = useState<string>(
-    customer?.birthday ? String(customer.birthday.day) : "",
+  const [birthday, setBirthday] = useState<Customer["birthday"]>(
+    customer?.birthday,
   );
-  const [birthMonth, setBirthMonth] = useState<string>(
-    customer?.birthday ? String(customer.birthday.month) : "",
+  const [since, setSince] = useState<{ year: number; month: number } | undefined>(
+    customer ? sinceToMonth(customer.since) : undefined,
   );
-  const [since, setSince] = useState(
-    customer?.since ? customer.since.slice(0, 10) : "",
-  );
-  const [vip, setVip] = useState(customer?.tags.includes("vip") ?? false);
+  const [tags, setTags] = useState<string[]>(customer?.tags ?? []);
   const [notes, setNotes] = useState(customer?.notes ?? "");
+  const [archived, setArchived] = useState(customer?.archived ?? false);
   const [pending, startTransition] = useTransition();
 
-  function submit() {
-    const birthday =
-      birthDay && birthMonth
-        ? { day: Number(birthDay), month: Number(birthMonth) }
-        : undefined;
+  function toggleTag(id: string) {
+    setTags((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
+    );
+  }
 
+  function submit() {
     startTransition(async () => {
       const input = {
         storeId,
         name,
         phone: phone || undefined,
-        city: city || undefined,
+        // City is derived from the active store on create (design 2401); on
+        // edit we preserve whatever the customer already had.
+        city: customer?.city ?? storeName ?? undefined,
         instagram: instagram || undefined,
         birthday,
-        since: since ? new Date(`${since}T12:00:00Z`).toISOString() : undefined,
-        tags: vip ? ["vip"] : [],
+        since: since
+          ? new Date(Date.UTC(since.year, since.month, 1, 12)).toISOString()
+          : undefined,
+        tags,
         notes: notes || undefined,
+        ...(customer ? { archived } : {}),
       };
       const result = customer
         ? await updateCustomerAction(customer.id, input)
@@ -133,7 +146,7 @@ function CustomerForm({
             id="customer-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Maria Silva"
+            placeholder="Ex: Ana Ribeiro"
             className="rounded-xl"
           />
         </div>
@@ -144,20 +157,20 @@ function CustomerForm({
             <Input
               id="customer-phone"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="(27) 99999-0000"
-              inputMode="tel"
+              onChange={(e) => setPhone(maskPhone(e.target.value))}
+              placeholder="(27) 90000-0000"
+              inputMode="numeric"
               className="rounded-xl"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="customer-city">Cidade</Label>
-            <Input
-              id="customer-city"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Vila Velha/ES"
-              className="rounded-xl"
+            <Label>Aniversário</Label>
+            <DatePicker
+              value={birthdayToDate(birthday)}
+              onChange={(d) =>
+                setBirthday({ day: d.getDate(), month: d.getMonth() + 1 })
+              }
+              placeholder="Selecionar"
             />
           </div>
         </div>
@@ -171,92 +184,95 @@ function CustomerForm({
             <Input
               id="customer-instagram"
               value={instagram}
-              onChange={(e) => setInstagram(e.target.value.replace(/^@/, ""))}
-              placeholder="maria.silva"
+              onChange={(e) =>
+                setInstagram(
+                  e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ""),
+                )
+              }
+              placeholder="usuario"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className="rounded-xl pl-8"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Aniversário</Label>
-            <div className="flex gap-2">
-              <Input
-                value={birthDay}
-                onChange={(e) =>
-                  setBirthDay(e.target.value.replace(/\D/g, "").slice(0, 2))
-                }
-                placeholder="Dia"
-                inputMode="numeric"
-                className="w-16 rounded-xl text-center"
-              />
-              <Select value={birthMonth} onValueChange={setBirthMonth}>
-                <SelectTrigger className="flex-1 rounded-xl">
-                  <SelectValue placeholder="Mês" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTHS.map((m, i) => (
-                    <SelectItem key={m} value={String(i + 1)}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="customer-since">Cliente desde</Label>
-            <Input
-              id="customer-since"
-              type="date"
-              value={since}
-              onChange={(e) => setSince(e.target.value)}
-              className="rounded-xl"
-            />
+        <div className="space-y-1.5">
+          <Label>Cliente desde</Label>
+          <MonthPicker
+            value={since}
+            onChange={setSince}
+            placeholder="Selecionar"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Tags</Label>
+          <div className="flex flex-wrap gap-2">
+            {TAG_CATALOG.map((t) => {
+              const on = tags.includes(t.id);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => toggleTag(t.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-[12.5px] font-semibold transition-all hover:-translate-y-0.5",
+                    on
+                      ? t.onClass
+                      : "border-border bg-card text-ink-faint",
+                  )}
+                >
+                  <t.icon className="size-4" />
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setVip(!vip)}
-          className={cn(
-            "flex w-full items-center justify-between rounded-xl border px-3.5 py-3 transition-colors",
-            vip ? "border-amber bg-amber-wash" : "border-border bg-paper",
-          )}
-        >
-          <span className="flex items-center gap-2.5">
-            <Crown className={cn("size-4", vip ? "text-amber" : "text-ink-faint")} />
-            <span className="text-left">
-              <span className="block text-[13px] font-semibold text-ink">
-                Cliente VIP
-              </span>
-              <span className="block text-[11.5px] text-ink-faint">
-                Destaque na lista e no atendimento.
-              </span>
-            </span>
-          </span>
-          <span
-            className={cn(
-              "text-[11px] font-bold uppercase",
-              vip ? "text-amber" : "text-ink-faint",
-            )}
-          >
-            {vip ? "Sim" : "Não"}
-          </span>
-        </button>
-
         <div className="space-y-1.5">
-          <Label htmlFor="customer-notes">Notas</Label>
+          <Label htmlFor="customer-notes">Anotações</Label>
           <Textarea
             id="customer-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Preferências, restrições, contexto…"
+            placeholder="Preferências, restrições, observações…"
             rows={3}
             className="rounded-xl"
           />
         </div>
+
+        {customer && (
+          <button
+            type="button"
+            onClick={() => setArchived((a) => !a)}
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-colors",
+              archived
+                ? "border-[#7A857D]/40 bg-[#EEF1ED]"
+                : "border-border bg-card hover:bg-surface",
+            )}
+          >
+            <span
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                archived ? "bg-[#7A857D] text-white" : "bg-[#EEF1ED] text-[#7A857D]",
+              )}
+            >
+              <Archive className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-semibold text-ink">
+                {archived ? "Cliente arquivado" : "Arquivar cliente"}
+              </span>
+              <span className="block text-[11.5px] text-ink-faint">
+                Some da lista sem apagar o histórico.
+              </span>
+            </span>
+          </button>
+        )}
       </div>
 
       <SheetFooter className="flex-row gap-2 border-t border-border">
@@ -271,10 +287,10 @@ function CustomerForm({
         <Button
           onClick={submit}
           disabled={pending || !name.trim()}
-          className="flex-1 rounded-xl font-semibold"
+          className="flex-[1.6] rounded-xl font-semibold"
         >
           {pending && <Loader2 className="size-4 animate-spin" />}
-          Salvar
+          {customer ? "Salvar alterações" : "Criar cliente"}
         </Button>
       </SheetFooter>
     </>

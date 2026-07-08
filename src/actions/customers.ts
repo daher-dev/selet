@@ -29,6 +29,7 @@ const customerSchema = z.object({
   since: z.iso.datetime({ offset: true }).optional(),
   tags: z.array(z.string()).default([]),
   notes: z.string().trim().optional(),
+  archived: z.boolean().optional(),
 });
 
 export type CustomerFormInput = z.input<typeof customerSchema>;
