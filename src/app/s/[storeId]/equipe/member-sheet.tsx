@@ -224,8 +224,9 @@ function MemberForm({
   const memberEmail = member?.email;
   useEffect(() => {
     if (!memberEmail) return;
+    // No setActivity(null) reset here: the sheet remounts per member via the
+    // `key` prop, so useState already initialises to null (loading) each open.
     let cancelled = false;
-    setActivity(null);
     listMemberActivityAction(storeId, memberEmail).then((entries) => {
       if (!cancelled) setActivity(entries);
     });
