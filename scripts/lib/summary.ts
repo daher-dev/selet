@@ -15,10 +15,11 @@ export async function refreshStoreSummary(
   storeId: string,
 ): Promise<void> {
   const store = db.collection("stores").doc(storeId);
-  const [ordersSnap, financeSnap, stockSnap] = await Promise.all([
+  const [ordersSnap, financeSnap, stockSnap, customersSnap] = await Promise.all([
     store.collection("orders").get(),
     store.collection("finance").get(),
     store.collection("stockItems").get(),
+    store.collection("customers").get(),
   ]);
 
   const summary = pruneMonths(
@@ -32,6 +33,8 @@ export async function refreshStoreSummary(
           customerId: d.customerId ?? null,
           customerName: d.customerName ?? "",
           createdAt: d.createdAt?.toDate() ?? new Date(0),
+          channel: d.channel,
+          items: d.items ?? [],
         };
       }),
       finance: financeSnap.docs.map((doc) => {
@@ -46,12 +49,20 @@ export async function refreshStoreSummary(
         const d = doc.data();
         return { lowStock: d.lowStock ?? false, archived: d.archived ?? false };
       }),
+      customers: customersSnap.docs.map((doc) => {
+        const d = doc.data();
+        return {
+          since: d.since?.toDate() ?? new Date(0),
+          archived: d.archived ?? false,
+        };
+      }),
     }),
   );
 
   await store.collection("meta").doc("summary").set({
     openOrders: summary.openOrders,
     lowStock: summary.lowStock,
+    activeCustomers: summary.activeCustomers,
     months: summary.months,
     updatedAt: Timestamp.now(),
   });

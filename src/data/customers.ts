@@ -1,8 +1,15 @@
 import "server-only";
 
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
 import type { Customer } from "@/lib/types";
+import {
+  monthKey,
+  readSummaryTx,
+  summaryAddCustomer,
+  summaryArchiveCustomer,
+  writeSummaryTx,
+} from "./summary";
 
 export function customersCol(storeId: string) {
   return getDb().collection("stores").doc(storeId).collection("customers");
@@ -61,16 +68,28 @@ export async function createCustomer(
   storeId: string,
   input: CustomerInput,
 ): Promise<string> {
+  const db = getDb();
+  const ref = customersCol(storeId).doc();
   const { since, ...data } = input;
-  const ref = await customersCol(storeId).add({
-    ...data,
-    nameLower: input.name.toLowerCase(),
-    since: since ? Timestamp.fromDate(new Date(since)) : FieldValue.serverTimestamp(),
-    archived: false,
-    orderCount: 0,
-    totalSpent: 0,
-    lastOrderAt: null,
-    avgReorderDays: null,
+  // Use a concrete Timestamp (not serverTimestamp) so the summary's newCustomers
+  // month exactly matches the stored `since` — the summary is maintained in the
+  // same transaction and can't read a not-yet-resolved server timestamp.
+  const sinceTs = since ? Timestamp.fromDate(new Date(since)) : Timestamp.now();
+
+  await db.runTransaction(async (tx) => {
+    const summary = await readSummaryTx(tx, storeId);
+    summaryAddCustomer(summary, { mk: monthKey(sinceTs.toDate()) });
+    writeSummaryTx(tx, storeId, summary);
+    tx.set(ref, {
+      ...data,
+      nameLower: input.name.toLowerCase(),
+      since: sinceTs,
+      archived: false,
+      orderCount: 0,
+      totalSpent: 0,
+      lastOrderAt: null,
+      avgReorderDays: null,
+    });
   });
   return ref.id;
 }
@@ -80,10 +99,24 @@ export async function updateCustomer(
   customerId: string,
   input: CustomerInput,
 ): Promise<void> {
+  const db = getDb();
+  const ref = customersCol(storeId).doc(customerId);
   const { since, archived, ...data } = input;
-  await customersCol(storeId)
-    .doc(customerId)
-    .update({
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error("Cliente não encontrado.");
+    const wasArchived = snap.data()!.archived ?? false;
+
+    // Reflect an archive/reactivate toggle in the active-base counter (read the
+    // summary during the read phase, before any write).
+    if (archived !== undefined && archived !== wasArchived) {
+      const summary = await readSummaryTx(tx, storeId);
+      summaryArchiveCustomer(summary, archived ? -1 : 1);
+      writeSummaryTx(tx, storeId, summary);
+    }
+
+    tx.update(ref, {
       ...data,
       nameLower: input.name.toLowerCase(),
       // Firestore update() ignores undefined fields (ignoreUndefinedProperties),
@@ -92,6 +125,7 @@ export async function updateCustomer(
       ...(since ? { since: Timestamp.fromDate(new Date(since)) } : {}),
       ...(archived === undefined ? {} : { archived }),
     });
+  });
 }
 
 export async function setCustomerArchived(
@@ -99,5 +133,19 @@ export async function setCustomerArchived(
   customerId: string,
   archived: boolean,
 ): Promise<void> {
-  await customersCol(storeId).doc(customerId).update({ archived });
+  const db = getDb();
+  const ref = customersCol(storeId).doc(customerId);
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error("Cliente não encontrado.");
+    const wasArchived = snap.data()!.archived ?? false;
+
+    if (archived !== wasArchived) {
+      const summary = await readSummaryTx(tx, storeId);
+      summaryArchiveCustomer(summary, archived ? -1 : 1);
+      writeSummaryTx(tx, storeId, summary);
+      tx.update(ref, { archived });
+    }
+  });
 }

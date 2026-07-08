@@ -7,6 +7,7 @@ import {
   emptyMonth,
   emptySummary,
   pruneMonths,
+  type ChannelCounts,
   type MonthAgg,
   type SummaryData,
 } from "@/lib/summary-core";
@@ -18,7 +19,9 @@ export {
   isOpenStatus,
   lowStockContribution,
   monthKey,
+  summaryAddCustomer,
   summaryAddOrder,
+  summaryArchiveCustomer,
   summaryFinance,
   summaryLowStockDelta,
   summaryOpenDelta,
@@ -38,6 +41,7 @@ function mapSummary(d: FirebaseFirestore.DocumentData): SummaryData {
   const months: Record<string, MonthAgg> = {};
   const raw = (d.months ?? {}) as Record<string, Partial<MonthAgg>>;
   for (const [k, v] of Object.entries(raw)) {
+    const ch = (v.channels ?? {}) as Partial<ChannelCounts>;
     months[k] = {
       ...emptyMonth(),
       in: v.in ?? 0,
@@ -47,9 +51,21 @@ function mapSummary(d: FirebaseFirestore.DocumentData): SummaryData {
       unpaidTotal: v.unpaidTotal ?? 0,
       unpaidCount: v.unpaidCount ?? 0,
       customers: v.customers ?? {},
+      channels: {
+        instagram: ch.instagram ?? 0,
+        whatsapp: ch.whatsapp ?? 0,
+        loja: ch.loja ?? 0,
+      },
+      sellers: v.sellers ?? {},
+      newCustomers: v.newCustomers ?? 0,
     };
   }
-  return { openOrders: d.openOrders ?? 0, lowStock: d.lowStock ?? 0, months };
+  return {
+    openOrders: d.openOrders ?? 0,
+    lowStock: d.lowStock ?? 0,
+    activeCustomers: d.activeCustomers ?? 0,
+    months,
+  };
 }
 
 /** Serializes a working summary for Firestore (prunes old months, stamps time). */
@@ -58,6 +74,7 @@ function serialize(s: SummaryData): Record<string, unknown> {
   return {
     openOrders: Math.max(0, pruned.openOrders),
     lowStock: Math.max(0, pruned.lowStock),
+    activeCustomers: Math.max(0, pruned.activeCustomers),
     months: pruned.months,
     updatedAt: Timestamp.now(),
   };
@@ -114,10 +131,11 @@ export async function bumpSummary(
  */
 export async function computeSummary(storeId: string): Promise<SummaryData> {
   const store = getDb().collection("stores").doc(storeId);
-  const [ordersSnap, financeSnap, stockSnap] = await Promise.all([
+  const [ordersSnap, financeSnap, stockSnap, customersSnap] = await Promise.all([
     store.collection("orders").get(),
     store.collection("finance").get(),
     store.collection("stockItems").get(),
+    store.collection("customers").get(),
   ]);
   return computeSummaryFrom({
     orders: ordersSnap.docs.map((doc) => {
@@ -129,6 +147,8 @@ export async function computeSummary(storeId: string): Promise<SummaryData> {
         customerId: d.customerId ?? null,
         customerName: d.customerName ?? "",
         createdAt: d.createdAt?.toDate() ?? new Date(0),
+        channel: d.channel,
+        items: d.items ?? [],
       };
     }),
     finance: financeSnap.docs.map((doc) => {
@@ -142,6 +162,13 @@ export async function computeSummary(storeId: string): Promise<SummaryData> {
     stock: stockSnap.docs.map((doc) => {
       const d = doc.data();
       return { lowStock: d.lowStock ?? false, archived: d.archived ?? false };
+    }),
+    customers: customersSnap.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        since: d.since?.toDate() ?? new Date(0),
+        archived: d.archived ?? false,
+      };
     }),
   });
 }

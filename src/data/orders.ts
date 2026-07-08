@@ -362,6 +362,8 @@ export async function createOrder(
       custKey: customerKey(input.customerId, input.customerName),
       open: true,
       paid: payment.paid,
+      channel: input.channel,
+      items: input.items,
     });
     // Paid at creation → its finance income mirror lands this month too.
     if (payment.paid) summaryFinance(summary, { mk, direction: "in", amount: total });
@@ -469,6 +471,8 @@ export async function updateOrder(
         custKey: customerKey(current.customerId ?? null, current.customerName),
         open,
         paid,
+        channel: current.channel,
+        items: (current.items ?? []) as OrderItem[],
       });
       summaryAddOrder(summary, {
         mk,
@@ -476,6 +480,8 @@ export async function updateOrder(
         custKey: customerKey(input.customerId, input.customerName),
         open,
         paid,
+        channel: input.channel,
+        items: input.items,
       });
     }
     if (paid && total !== oldTotal) {
@@ -556,6 +562,8 @@ export async function setOrderStatus(
     const total = current.total ?? 0;
     const custKey = customerKey(current.customerId ?? null, current.customerName);
     const paid = current.paid ?? false;
+    const channel = current.channel as OrderChannel;
+    const items = (current.items ?? []) as OrderItem[];
     if (!wasCancelled && willBeCancelled) {
       summaryRemoveOrder(summary, {
         mk,
@@ -563,9 +571,19 @@ export async function setOrderStatus(
         custKey,
         open: isOpenStatus(current.status),
         paid,
+        channel,
+        items,
       });
     } else if (wasCancelled && !willBeCancelled) {
-      summaryAddOrder(summary, { mk, total, custKey, open: isOpenStatus(status), paid });
+      summaryAddOrder(summary, {
+        mk,
+        total,
+        custKey,
+        open: isOpenStatus(status),
+        paid,
+        channel,
+        items,
+      });
     } else {
       const delta =
         (isOpenStatus(status) ? 1 : 0) - (isOpenStatus(current.status) ? 1 : 0);

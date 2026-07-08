@@ -6,7 +6,7 @@ import {
   updateOrder,
 } from "./orders";
 import { createManualTx, deleteManualTx } from "./finance";
-import { createCustomer } from "./customers";
+import { createCustomer, setCustomerArchived } from "./customers";
 import { applyMovement, createStockItem } from "./stock";
 import { computeSummary, readSummary } from "./summary";
 
@@ -42,11 +42,16 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     });
     let s = await expectConsistent(storeId);
     expect(s.openOrders).toBe(1);
+    // Two customers created above → active base of 2, both new this month.
+    expect(s.activeCustomers).toBe(2);
     const mk = Object.keys(s.months)[0];
     expect(s.months[mk].orderCount).toBe(1);
     expect(s.months[mk].ticketSum).toBe(4000);
     expect(s.months[mk].unpaidTotal).toBe(4000);
     expect(s.months[mk].in).toBe(0);
+    expect(s.months[mk].newCustomers).toBe(2);
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
+    expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 2 } });
 
     // advance status among open states → still open
     await setOrderStatus(storeId, orderId, "preparando");
@@ -77,18 +82,55 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(s.months[mk].ticketSum).toBe(6000);
     expect(s.months[mk].in).toBe(6000); // paid mirror amount followed the edit
     expect(Object.keys(s.months[mk].customers)).toEqual([`id_${custB}`]);
+    // sellers/channels re-stated by the edit (qty 2 → 3, still loja).
+    expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 3 } });
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
 
     // cancel → removed from month aggregates (paid mirror stays as income)
     await setOrderStatus(storeId, orderId, "cancelado");
     s = await expectConsistent(storeId);
     expect(s.months[mk].orderCount).toBe(0);
     expect(s.months[mk].in).toBe(6000);
+    // channels/sellers drop to nothing while cancelled.
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 0 });
+    expect(s.months[mk].sellers).toEqual({});
 
     // uncancel → back in
     await setOrderStatus(storeId, orderId, "novo");
     s = await expectConsistent(storeId);
     expect(s.months[mk].orderCount).toBe(1);
     expect(s.openOrders).toBe(1);
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
+    expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 3 } });
+  });
+
+  it("tracks the customer base: active count + new-per-month", async () => {
+    const storeId = `test-summary-customers-${Date.now()}`;
+    // Two this month, one back-dated to a past month.
+    await createCustomer(storeId, { name: "Ana", tags: [] });
+    const bruno = await createCustomer(storeId, { name: "Bruno", tags: [] });
+    await createCustomer(storeId, {
+      name: "Cida",
+      tags: [],
+      since: "2026-05-10T12:00:00.000Z",
+    });
+
+    let s = await expectConsistent(storeId);
+    expect(s.activeCustomers).toBe(3);
+    expect(s.months["2026-05"].newCustomers).toBe(1);
+    const thisMk = Object.keys(s.months).find((k) => k !== "2026-05")!;
+    expect(s.months[thisMk].newCustomers).toBe(2);
+
+    // Archive drops the active base but leaves the historical new-per-month tally.
+    await setCustomerArchived(storeId, bruno, true);
+    s = await expectConsistent(storeId);
+    expect(s.activeCustomers).toBe(2);
+    expect(s.months[thisMk].newCustomers).toBe(2);
+
+    // Reactivating restores it (idempotent re-archive is a no-op).
+    await setCustomerArchived(storeId, bruno, false);
+    s = await expectConsistent(storeId);
+    expect(s.activeCustomers).toBe(3);
   });
 
   it("tracks low-stock count and purchase expenses via stock writes", async () => {
