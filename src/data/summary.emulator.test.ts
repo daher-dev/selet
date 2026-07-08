@@ -6,6 +6,7 @@ import {
   updateOrder,
 } from "./orders";
 import { createManualTx, deleteManualTx } from "./finance";
+import { createCustomer } from "./customers";
 import { applyMovement, createStockItem } from "./stock";
 import { computeSummary, readSummary } from "./summary";
 
@@ -29,10 +30,12 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
   it("tracks an order through its whole lifecycle", async () => {
     const storeId = `test-summary-order-${Date.now()}`;
     const items = [{ productId: "p1", name: "Shake", qty: 2, unitPrice: 2000 }];
+    const custA = await createCustomer(storeId, { name: "Balcão A", tags: [] });
+    const custB = await createCustomer(storeId, { name: "Balcão B", tags: [] });
 
     // create (novo, unpaid) → open + a receivable
     const orderId = await createOrder(storeId, {
-      customerId: null,
+      customerId: custA,
       customerName: "Balcão A",
       channel: "loja",
       items,
@@ -63,9 +66,9 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(s.months[mk].unpaidTotal).toBe(0);
     expect(s.months[mk].unpaidCount).toBe(0);
 
-    // edit total + walk-in customer identity
+    // edit total + reassign to another registered customer
     await updateOrder(storeId, orderId, {
-      customerId: null,
+      customerId: custB,
       customerName: "Balcão B",
       channel: "loja",
       items: [{ productId: "p1", name: "Shake", qty: 3, unitPrice: 2000 }],
@@ -73,7 +76,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     s = await expectConsistent(storeId);
     expect(s.months[mk].ticketSum).toBe(6000);
     expect(s.months[mk].in).toBe(6000); // paid mirror amount followed the edit
-    expect(Object.keys(s.months[mk].customers)).toEqual(["n_balcao_b"]);
+    expect(Object.keys(s.months[mk].customers)).toEqual([`id_${custB}`]);
 
     // cancel → removed from month aggregates (paid mirror stays as income)
     await setOrderStatus(storeId, orderId, "cancelado");

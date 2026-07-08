@@ -108,7 +108,8 @@ export async function getOrder(
 }
 
 export interface OrderInput {
-  customerId: string | null;
+  /** Required: every new order references a registered customer. */
+  customerId: string;
   customerName: string;
   channel: OrderChannel;
   items: OrderItem[];

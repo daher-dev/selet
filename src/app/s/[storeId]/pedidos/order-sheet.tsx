@@ -12,7 +12,9 @@ import {
   Search,
   ShoppingBag,
   User,
+  UserPlus,
 } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import type {
   Customer,
@@ -55,8 +57,6 @@ import {
   PRODUCT_CATEGORY_META,
   type CategoryMeta,
 } from "@/components/category-meta";
-
-const WALK_IN = "__walk_in__";
 
 const NEUTRAL_TILE: CategoryMeta = {
   label: "Item",
@@ -136,10 +136,7 @@ function OrderForm({
   onClose: () => void;
 }) {
   const [customerId, setCustomerId] = useState<string>(
-    order?.customerId ?? WALK_IN,
-  );
-  const [walkInName, setWalkInName] = useState(
-    order && !order.customerId ? order.customerName : "",
+    order?.customerId ?? "",
   );
   // Design defaults a new order's channel to Instagram (openNewOrder).
   const [channel, setChannel] = useState<OrderChannel>(
@@ -170,7 +167,6 @@ function OrderForm({
   }
 
   function customerName(): string {
-    if (customerId === WALK_IN) return walkInName.trim();
     return customers.find((c) => c.id === customerId)?.name ?? "";
   }
 
@@ -208,7 +204,7 @@ function OrderForm({
     startTransition(async () => {
       const base = {
         storeId,
-        customerId: customerId === WALK_IN ? null : customerId,
+        customerId,
         customerName: customerName(),
         channel,
         items,
@@ -263,20 +259,15 @@ function OrderForm({
         <div className="space-y-1.5">
           <Label>Cliente</Label>
           <CustomerPicker
+            storeId={storeId}
             customers={customers}
             value={customerId}
             onChange={setCustomerId}
           />
-          {/* KEEP (pending product decision — may be trimmed): the "Sem
-              cadastro" walk-in name input has no equivalent in the design's
-              customer picker, but is useful for anonymous counter sales. */}
-          {customerId === WALK_IN && (
-            <Input
-              value={walkInName}
-              onChange={(e) => setWalkInName(e.target.value)}
-              placeholder="Nome do cliente"
-              className="rounded-xl"
-            />
+          {!customerId && (
+            <p className="text-[11.5px] text-ink-faint">
+              Selecione um cliente para registrar o pedido.
+            </p>
           )}
         </div>
 
@@ -501,7 +492,7 @@ function OrderForm({
           disabled={
             pending ||
             items.length === 0 ||
-            !customerName() ||
+            !customerId ||
             (!order && paid && !payMethod)
           }
           className="flex-1 rounded-xl font-semibold"
@@ -522,15 +513,19 @@ function OrderForm({
 }
 
 /**
- * Searchable customer picker (design 383-411): a Popover listing each customer
- * as avatar + name + phone with a VIP crown, plus a "Sem cadastro" walk-in row
- * and a "Nenhum cliente encontrado" empty state. Replaces the old plain Select.
+ * Searchable customer picker (design 383-411): a Popover listing each
+ * registered customer as avatar + name + phone with a VIP crown, plus a
+ * "Nenhum cliente encontrado" empty state. Customer selection is mandatory —
+ * there is no walk-in option; the empty/no-results state links to Clientes so
+ * staff can register a customer without leaving the flow stuck.
  */
 function CustomerPicker({
+  storeId,
   customers,
   value,
   onChange,
 }: {
+  storeId: string;
   customers: Customer[];
   value: string;
   onChange: (id: string) => void;
@@ -538,8 +533,7 @@ function CustomerPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  const selected =
-    value === WALK_IN ? null : customers.find((c) => c.id === value) ?? null;
+  const selected = customers.find((c) => c.id === value) ?? null;
 
   const q = query.trim().toLowerCase();
   const filtered = q
@@ -577,8 +571,13 @@ function CustomerPicker({
               <User className="size-4" />
             </span>
           )}
-          <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ink">
-            {selected ? selected.name : "Sem cadastro"}
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate text-[14px] font-semibold",
+              selected ? "text-ink" : "text-ink-faint",
+            )}
+          >
+            {selected ? selected.name : "Selecione um cliente"}
           </span>
           <ChevronDown className="size-4 shrink-0 text-ink-faint" />
         </button>
@@ -598,19 +597,6 @@ function CustomerPicker({
           />
         </div>
         <div className="max-h-60 overflow-y-auto p-1.5">
-          <button
-            type="button"
-            onClick={() => pick(WALK_IN)}
-            className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-wash"
-          >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-mist text-ink-faint">
-              <User className="size-4" />
-            </span>
-            <span className="flex-1 text-[13.5px] font-semibold text-ink">
-              Sem cadastro
-            </span>
-            {value === WALK_IN && <Check className="size-4 text-primary" />}
-          </button>
           {filtered.map((c) => {
             const vip = c.tags.includes("vip");
             return (
@@ -643,11 +629,20 @@ function CustomerPicker({
               </button>
             );
           })}
-          {q && filtered.length === 0 && (
+          {filtered.length === 0 && (
             <div className="px-3 py-4 text-center text-[12.5px] text-ink-faint">
-              Nenhum cliente encontrado
+              {q ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
             </div>
           )}
+        </div>
+        <div className="border-t border-border p-1.5">
+          <Link
+            href={`/s/${storeId}/clientes`}
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-primary transition-colors hover:bg-mist"
+          >
+            <UserPlus className="size-4 shrink-0" />
+            Cadastrar cliente
+          </Link>
         </div>
       </PopoverContent>
     </Popover>

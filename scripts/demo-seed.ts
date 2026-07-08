@@ -84,6 +84,8 @@ const CUSTOMERS: DemoCustomer[] = [
   { store: "passos", name: "Fernando Dias", phone: "(35) 99410-2299", city: "Passos/MG", tags: [], notes: "Sem lactose. Sumiu depois de mudar de bairro.", archived: true, orderCount: 9, totalSpent: 41000, lastOrderDays: 32, avgReorderDays: 20, since: monthDate(8, 2023), reorderProduct: "Hype Drink" },
   { store: "vila-velha", name: "Patrícia Gomes", phone: "(27) 99277-5610", city: "Vila Velha/ES", instagram: "pati.gomes", tags: [], birthday: { day: 23, month: 6 }, archived: false, orderCount: 3, totalSpent: 13200, lastOrderDays: 7, avgReorderDays: 21, since: monthDate(4, 2024), reorderProduct: "Shake da Beleza" },
   { store: "passos", name: "João Pedro", phone: "(35) 99188-4002", city: "Passos/MG", tags: [], archived: false, orderCount: 2, totalSpent: 7800, lastOrderDays: 3, avgReorderDays: 15, since: monthDate(5, 2024), reorderProduct: "Hype Drink" },
+  { store: "passos", name: "Tiago Ramos", phone: "(35) 99356-7781", city: "Passos/MG", instagram: "tiago.ramos", tags: [], birthday: { day: 14, month: 10 }, archived: false, orderCount: 12, totalSpent: 58000, lastOrderDays: 2, avgReorderDays: 11, since: monthDate(10, 2023), reorderProduct: "Coxinha Proteica" },
+  { store: "vila-velha", name: "Aline Ferreira", phone: "(27) 99465-2098", city: "Vila Velha/ES", instagram: "aline.ferreira", tags: ["vip"], birthday: { day: 8, month: 4 }, notes: "Gosta de shakes de frutas vermelhas.", archived: false, orderCount: 27, totalSpent: 149000, lastOrderDays: 3, avgReorderDays: 7, since: monthDate(7, 2023), reorderProduct: "Shake Frutas Vermelhas" },
 ];
 
 // ---------------------------------------------------------------------------

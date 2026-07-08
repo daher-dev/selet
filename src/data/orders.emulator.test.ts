@@ -73,8 +73,9 @@ describe.skipIf(!hasEmulator)("orders repository (emulator)", () => {
 
   it("paid toggle creates/deletes exactly one finance doc (idempotent)", async () => {
     const storeId = `test-orders-c-${Date.now()}`;
+    const customerId = await createCustomer(storeId, { name: "Balcão", tags: [] });
     const orderId = await createOrder(storeId, {
-      customerId: null,
+      customerId,
       customerName: "Balcão",
       channel: "loja",
       items: ITEMS,
@@ -100,9 +101,10 @@ describe.skipIf(!hasEmulator)("orders repository (emulator)", () => {
 
   it("creating a paid order writes the finance doc in the same transaction", async () => {
     const storeId = `test-orders-d-${Date.now()}`;
+    const customerId = await createCustomer(storeId, { name: "Balcão", tags: [] });
     const orderId = await createOrder(
       storeId,
-      { customerId: null, customerName: "Balcão", channel: "loja", items: ITEMS },
+      { customerId, customerName: "Balcão", channel: "loja", items: ITEMS },
       { paid: true, payMethod: "dinheiro" },
     );
     expect(await financeDoc(storeId, orderId)).toMatchObject({ amount: 7200 });
@@ -146,11 +148,12 @@ describe.skipIf(!hasEmulator)("orders repository (emulator)", () => {
 
   it("lists orders newest first", async () => {
     const storeId = `test-orders-g-${Date.now()}`;
+    const customerId = await createCustomer(storeId, { name: "AB", tags: [] });
     await createOrder(storeId, {
-      customerId: null, customerName: "A", channel: "loja", items: ITEMS,
+      customerId, customerName: "A", channel: "loja", items: ITEMS,
     });
     await createOrder(storeId, {
-      customerId: null, customerName: "B", channel: "loja", items: ITEMS,
+      customerId, customerName: "B", channel: "loja", items: ITEMS,
     });
     const orders = await listOrders(storeId);
     expect(orders[0].customerName).toBe("B");

@@ -42,8 +42,8 @@ const orderItemSchema = z.object({
 
 const orderSchema = z.object({
   storeId: z.string().min(1),
-  customerId: z.string().nullable(),
-  customerName: z.string().trim().min(1, "Informe o cliente."),
+  customerId: z.string().trim().min(1, "Selecione um cliente."),
+  customerName: z.string().trim().min(1, "Selecione um cliente."),
   channel: z.enum(ORDER_CHANNELS),
   items: z.array(orderItemSchema).min(1, "Adicione ao menos um item."),
 });

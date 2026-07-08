@@ -5,6 +5,7 @@ import {
   listTransactions,
 } from "./finance";
 import { createOrder, setOrderPayment } from "./orders";
+import { createCustomer } from "./customers";
 
 const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 
@@ -35,8 +36,9 @@ describe.skipIf(!hasEmulator)("finance repository (emulator)", () => {
 
   it("refuses to delete order-sourced transactions", async () => {
     const storeId = `test-finance-b-${Date.now()}`;
+    const customerId = await createCustomer(storeId, { name: "Balcão", tags: [] });
     const orderId = await createOrder(storeId, {
-      customerId: null,
+      customerId,
       customerName: "Balcão",
       channel: "loja",
       items: [{ productId: "p", name: "Bowl", qty: 1, unitPrice: 1000 }],
