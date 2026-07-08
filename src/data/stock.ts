@@ -2,6 +2,7 @@ import "server-only";
 
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
+import { stockPurchaseFinanceId, stockPurchaseTxData } from "./finance";
 import type {
   ConsumptionDraw,
   ConsumptionMode,
@@ -15,6 +16,10 @@ import type {
 
 function stockCol(storeId: string) {
   return getDb().collection("stores").doc(storeId).collection("stockItems");
+}
+
+function financeDoc(storeId: string, id: string) {
+  return getDb().collection("stores").doc(storeId).collection("finance").doc(id);
 }
 
 function toItem(id: string, d: FirebaseFirestore.DocumentData): StockItem {
@@ -142,7 +147,9 @@ export async function createStockItem(
   // created item shows where its stock came from (design: "geram uma entrada").
   const openingQty = input.tracked ? initial.sealed : initial.open;
   if (openingQty > 0) {
-    await ref.collection("movements").doc().set({
+    const at = Timestamp.now();
+    const movRef = ref.collection("movements").doc();
+    await movRef.set({
       type: "entrada",
       qty: openingQty,
       byPackage: input.tracked,
@@ -151,8 +158,18 @@ export async function createStockItem(
       refOrder: null,
       refItem: null,
       by: by ?? "sistema",
-      at: Timestamp.now(),
+      at,
     });
+    // Opening purchase with a known unit cost → auto-expense mirror (idempotent).
+    if (input.cost != null && input.cost > 0) {
+      await financeDoc(storeId, stockPurchaseFinanceId(movRef.id)).set(
+        stockPurchaseTxData({
+          itemName: input.name,
+          amount: input.cost * openingQty,
+          date: at,
+        }),
+      );
+    }
   }
   return ref.id;
 }
@@ -280,7 +297,9 @@ export async function applyMovement(
     // (per package for tracked items, per base unit otherwise).
     if (input.type === "entrada" && input.price != null) patch.cost = input.price;
     tx.update(ref, patch);
-    tx.set(ref.collection("movements").doc(), {
+    const at = Timestamp.now();
+    const movRef = ref.collection("movements").doc();
+    tx.set(movRef, {
       type: input.type,
       qty: input.type === "abertura" ? 1 : input.qty,
       byPackage: input.type === "abertura" ? true : input.byPackage,
@@ -289,8 +308,20 @@ export async function applyMovement(
       refOrder: input.refOrder ?? null,
       refItem: input.refItem ?? null,
       by: input.by,
-      at: Timestamp.now(),
+      at,
     });
+    // Auto-expense: a priced entrada is a purchase → mirror into finance.
+    // Deterministic id (stock-{movementId}) keeps it idempotent on re-run.
+    if (input.type === "entrada" && input.price != null && input.price > 0) {
+      tx.set(
+        financeDoc(storeId, stockPurchaseFinanceId(movRef.id)),
+        stockPurchaseTxData({
+          itemName: name,
+          amount: input.price * input.qty,
+          date: at,
+        }),
+      );
+    }
   });
   return name;
 }

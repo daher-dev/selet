@@ -311,7 +311,7 @@ export interface FinanceTx {
   category: string;
   amount: number; // centavos, always positive
   direction: "in" | "out";
-  source: "order" | "manual";
+  source: "order" | "manual" | "stock";
   orderId?: string;
   payMethod?: PayMethod;
   date: string;
