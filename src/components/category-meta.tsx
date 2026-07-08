@@ -5,9 +5,11 @@ import {
   Drumstick,
   GlassWater,
   Grid3x3,
+  Pill,
   Pizza,
   PlusCircle,
   Sandwich,
+  Sparkles,
   Wheat,
 } from "lucide-react";
 
@@ -35,6 +37,8 @@ export const STOCK_CATEGORY_META: Record<string, CategoryMeta> = {
   proteinas: { label: "Proteínas", icon: Drumstick, fg: "text-cat-proteinas", bg: "bg-cat-proteinas-wash" },
   bebidas: { label: "Bebidas", icon: CupSoda, fg: "text-cat-bebidas", bg: "bg-cat-bebidas-wash" },
   hortifruti: { label: "Hortifrúti", icon: Carrot, fg: "text-cat-hortifruti", bg: "bg-cat-hortifruti-wash" },
+  suplementos: { label: "Suplementos", icon: Pill, fg: "text-cat-suplementos", bg: "bg-cat-suplementos-wash" },
+  beleza: { label: "Beleza", icon: Sparkles, fg: "text-cat-beleza", bg: "bg-cat-beleza-wash" },
 };
 
 export const PRODUCT_TYPE_TAG_LABELS: Record<string, string> = {

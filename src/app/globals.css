@@ -53,6 +53,11 @@
   --color-cat-secos-wash: #f5eed2;
   --color-cat-hortifruti: #3a8b4e;
   --color-cat-hortifruti-wash: #e7f2e4;
+  /* Herbalife retail lines — suplementos (jade) + beleza (magenta). */
+  --color-cat-suplementos: #2f9e8f;
+  --color-cat-suplementos-wash: #e2f2ef;
+  --color-cat-beleza: #a94f8f;
+  --color-cat-beleza-wash: #f6e9f1;
 
   --color-success: #3a9d5d;
   --color-info: #2f6fb5;

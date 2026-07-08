@@ -44,14 +44,17 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const PAY_METHODS = ["pix", "cartao", "dinheiro"] as const;
 export type PayMethod = (typeof PAY_METHODS)[number];
 
-// Café working-insumo categories (the recipe-ingredient food groups the design
-// uses): Secos, Proteínas, Bebidas, Hortifrúti. These replace the earlier
-// Herbalife retail distributor lines — Selet is modeled as a café/nutrition bar.
+// Stock categories. The first four are the café working-insumo food groups the
+// design uses (Secos, Proteínas, Bebidas, Hortifrúti). "suplementos" and
+// "beleza" were added for the Herbalife retail distributor catalog — products
+// tracked in inventory but not (yet) resold from the café menu.
 export const STOCK_CATEGORIES = [
   "secos",
   "proteinas",
   "bebidas",
   "hortifruti",
+  "suplementos",
+  "beleza",
 ] as const;
 export type StockCategory = (typeof STOCK_CATEGORIES)[number];
 
