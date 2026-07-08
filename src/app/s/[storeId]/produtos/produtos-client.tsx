@@ -7,6 +7,7 @@ import {
   Filter,
   Hammer,
   List,
+  Package,
   Plus,
   Search,
   Tag,
@@ -230,6 +231,7 @@ export function ProdutosClient({
       />
 
       <ProduzirSheet
+        storeId={storeId}
         product={producing}
         stockItems={stockItems}
         open={produceOpen}
@@ -379,17 +381,30 @@ function ProductCard({
           {unitTier.qty === 1 ? "/ unidade" : `/ ${formatQty(unitTier.qty, "un")}`}
         </span>
         {canProduce && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onProduzir();
-            }}
-            className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#cddcc4] bg-card px-3 text-[12.5px] font-semibold text-primary transition-colors hover:border-primary hover:bg-primary hover:text-white"
-          >
-            <Hammer className="size-3.5" strokeWidth={1.9} />
-            Produzir
-          </button>
+          <>
+            <span
+              className={cn(
+                "tabular ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-semibold",
+                product.producedStock > 0
+                  ? "border-[#cde7d6] bg-mint-wash text-success"
+                  : "border-border bg-paper text-ink-faint",
+              )}
+            >
+              <Package className="size-3.5" strokeWidth={1.9} />
+              {product.producedStock} em estoque
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onProduzir();
+              }}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#cddcc4] bg-card px-3 text-[12.5px] font-semibold text-primary transition-colors hover:border-primary hover:bg-primary hover:text-white"
+            >
+              <Hammer className="size-3.5" strokeWidth={1.9} />
+              Produzir
+            </button>
+          </>
         )}
       </div>
 

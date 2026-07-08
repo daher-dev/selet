@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Minus, Plus } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
+import { AlertTriangle, CheckCircle2, Minus, Package, Plus } from "lucide-react";
+import { toast } from "sonner";
 import type { Product, StockItem } from "@/lib/types";
 import { formatQty } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { produceBatchAction } from "@/actions/products";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -17,22 +19,22 @@ import { CategoryTile, STOCK_CATEGORY_META } from "@/components/category-meta";
 import { isFrac, unitLabel, usableAmount } from "../estoque/stock-view";
 
 /**
- * READ-ONLY "Produzir" simulation. Given a menu recipe and a porção count, it
- * previews the per-insumo stock consumption (need vs available, red/green) and
- * detects shortages — mirroring the design's live "Consumo do estoque" panel.
- *
- * TODO(Phase 2): the confirm button is intentionally disabled. The real
- * produce-to-stock write (deplete open→sealed packages, bump contínuo `usos`,
- * log CONSUMO movements, "abriu N caixa") is the cross-page consumption engine
- * and must NOT be wired here — this component only builds the UI + simulation so
- * Phase 2 only needs to attach the server write to `confirmProduzir`.
+ * "Produzir" sheet. Given a menu recipe and a porção count, it previews the
+ * per-insumo stock consumption (need vs available, red/green) and detects
+ * shortages — mirroring the design's live "Consumo do estoque" panel — then
+ * commits a batch through `produceBatchAction`: consume recipe insumos and bump
+ * the product's finished-goods count (producedStock). Consumption is best-effort
+ * (short stock is clamped, not blocked), so confirm stays enabled even when the
+ * simulation flags a shortage; the shortage is surfaced afterward as a warning.
  */
 export function ProduzirSheet({
+  storeId,
   product,
   stockItems,
   open,
   onOpenChange,
 }: {
+  storeId: string;
   product: Product | null;
   stockItems: StockItem[];
   open: boolean;
@@ -47,6 +49,7 @@ export function ProduzirSheet({
         {product && (
           <ProduzirBody
             key={product.id}
+            storeId={storeId}
             product={product}
             stockItems={stockItems}
             onClose={() => onOpenChange(false)}
@@ -67,15 +70,44 @@ interface SimLine {
 }
 
 function ProduzirBody({
+  storeId,
   product,
   stockItems,
   onClose,
 }: {
+  storeId: string;
   product: Product;
   stockItems: StockItem[];
   onClose: () => void;
 }) {
   const [qty, setQty] = useState(1);
+  const [pending, startTransition] = useTransition();
+
+  function confirmProduzir() {
+    startTransition(async () => {
+      const result = await produceBatchAction({
+        storeId,
+        productId: product.id,
+        porcoes: qty,
+      });
+      if (!result.ok) {
+        toast.error(result.error ?? "Não foi possível produzir.");
+        return;
+      }
+      const short = result.shortages ?? [];
+      if (short.length > 0) {
+        toast.warning(
+          `Produzido ${qty}× ${product.name} — estoque de ${short.length} insumo${short.length > 1 ? "s" : ""} ficou negativo.`,
+          { description: `Agora ${result.producedStock} em estoque.` },
+        );
+      } else {
+        toast.success(`Produzido ${qty}× ${product.name}.`, {
+          description: `Agora ${result.producedStock} em estoque.`,
+        });
+      }
+      onClose();
+    });
+  }
 
   const { byId, byName } = useMemo(() => {
     const byId = new Map<string, StockItem>();
@@ -268,22 +300,38 @@ function ProduzirBody({
             </div>
           ))}
 
-        <p className="text-center text-[11.5px] leading-relaxed text-ink-faint">
-          A baixa automática do estoque ao produzir chega em breve.
-        </p>
+        {/* Finished-goods count this batch adds to. */}
+        <div className="flex items-center gap-2.5 rounded-xl border border-border bg-surface px-4 py-3">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-mist text-primary">
+            <Package className="size-4" strokeWidth={1.9} />
+          </span>
+          <span className="flex-1 text-[12.5px] text-ink-soft">
+            Em estoque agora
+          </span>
+          <span className="tabular text-[15px] font-bold text-ink">
+            {product.producedStock}
+            <span className="ml-1.5 text-[12.5px] font-semibold text-success">
+              +{qty}
+            </span>
+          </span>
+        </div>
       </div>
 
       <SheetFooter className="flex-row gap-2 border-t border-border">
         <Button
           variant="outline"
           onClick={onClose}
+          disabled={pending}
           className="flex-1 rounded-xl"
         >
           Fechar
         </Button>
-        {/* TODO(Phase 2): enable + wire confirmProduzir to the stock-consumption engine. */}
-        <Button disabled className="flex-1 rounded-xl font-semibold">
-          Confirmar (em breve)
+        <Button
+          onClick={confirmProduzir}
+          disabled={pending}
+          className="flex-1 rounded-xl font-semibold"
+        >
+          {pending ? "Produzindo…" : `Produzir ${qty} porç${qty > 1 ? "ões" : "ão"}`}
         </Button>
       </SheetFooter>
     </>
