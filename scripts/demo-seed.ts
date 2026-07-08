@@ -14,6 +14,7 @@
  */
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
+import { refreshStoreSummary } from "./lib/summary";
 
 const PROJECT = "selet-prod";
 const STORE_IDS = ["vila-velha", "passos"] as const;
@@ -332,6 +333,10 @@ async function seedStore(db: Firestore, storeId: StoreId) {
   }
 
   await seedStockHistory(store, orders);
+
+  // Backfill the pre-computed summary now that all orders/finance/stock docs for
+  // this store exist (matches what the app maintains incrementally on writes).
+  await refreshStoreSummary(db, storeId);
 
   const paid = orders.filter((o) => o.paid).length;
   console.log(

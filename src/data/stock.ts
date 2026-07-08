@@ -3,6 +3,15 @@ import "server-only";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
 import { stockPurchaseFinanceId, stockPurchaseTxData } from "./finance";
+import {
+  bumpSummary,
+  lowStockContribution,
+  monthKey,
+  readSummaryTx,
+  summaryFinance,
+  summaryLowStockDelta,
+  writeSummaryTx,
+} from "./summary";
 import type {
   ConsumptionDraw,
   ConsumptionMode,
@@ -135,17 +144,23 @@ export async function createStockItem(
 ): Promise<string> {
   const state = derive(input.tracked, input.pkgSize, initial.sealed, initial.open);
   const ref = stockCol(storeId).doc();
+  const lowStock = computeLowStock({ ...input, ...state, openPkg: false });
   await ref.set({
     ...input,
     ...state,
     openPkg: false,
     usos: 0,
-    lowStock: computeLowStock({ ...input, ...state, openPkg: false }),
+    lowStock,
     updatedAt: FieldValue.serverTimestamp(),
   });
+  // Summary: a new active low-stock item bumps the low-stock badge count. (These
+  // writes aren't transactional, so the summary is updated in its own tx after —
+  // a small non-atomic window on this low-frequency admin path; noted in Stage 3.)
+  const newLow = lowStockContribution(lowStock, input.archived ?? false);
   // Opening balance → a "Compra" (ENTRADA) history entry, so a freshly
   // created item shows where its stock came from (design: "geram uma entrada").
   const openingQty = input.tracked ? initial.sealed : initial.open;
+  let purchaseOut: { amount: number; mk: string } | null = null;
   if (openingQty > 0) {
     const at = Timestamp.now();
     const movRef = ref.collection("movements").doc();
@@ -169,7 +184,14 @@ export async function createStockItem(
           date: at,
         }),
       );
+      purchaseOut = { amount: input.cost * openingQty, mk: monthKey(at.toDate()) };
     }
+  }
+  if (newLow || purchaseOut) {
+    await bumpSummary(storeId, (s) => {
+      if (newLow) summaryLowStockDelta(s, newLow);
+      if (purchaseOut) summaryFinance(s, { mk: purchaseOut.mk, direction: "out", amount: purchaseOut.amount });
+    });
   }
   return ref.id;
 }
@@ -185,12 +207,22 @@ export async function updateStockItem(
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Item não encontrado.");
     const d = snap.data()!;
+    const summary = await readSummaryTx(tx, storeId);
     // Re-derive with (possibly changed) tracking config over current counts.
     const state = derive(input.tracked, input.pkgSize, d.sealed ?? 0, d.open ?? 0);
+    const newLow = computeLowStock({ ...input, ...state, openPkg: d.openPkg ?? false });
+    // Both lowStock and archived can flip here → recompute the badge contribution.
+    const delta =
+      lowStockContribution(newLow, input.archived ?? false) -
+      lowStockContribution(d.lowStock ?? false, d.archived ?? false);
+    if (delta !== 0) {
+      summaryLowStockDelta(summary, delta);
+      writeSummaryTx(tx, storeId, summary);
+    }
     tx.update(ref, {
       ...input,
       ...state,
-      lowStock: computeLowStock({ ...input, ...state, openPkg: d.openPkg ?? false }),
+      lowStock: newLow,
       updatedAt: Timestamp.now(),
     });
   });
@@ -200,7 +232,20 @@ export async function deleteStockItem(
   storeId: string,
   itemId: string,
 ): Promise<void> {
-  await stockCol(storeId).doc(itemId).delete();
+  const db = getDb();
+  const ref = stockCol(storeId).doc(itemId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const d = snap.data()!;
+    const summary = await readSummaryTx(tx, storeId);
+    const delta = -lowStockContribution(d.lowStock ?? false, d.archived ?? false);
+    if (delta !== 0) {
+      summaryLowStockDelta(summary, delta);
+      writeSummaryTx(tx, storeId, summary);
+    }
+    tx.delete(ref);
+  });
 }
 
 export interface MovementInput {
@@ -234,6 +279,9 @@ export async function applyMovement(
     if (!snap.exists) throw new Error("Item não encontrado.");
     const d = snap.data()!;
     name = d.name ?? "";
+    const summary = await readSummaryTx(tx, storeId);
+    const oldLow = d.lowStock ?? false;
+    const archived = d.archived ?? false;
     const tracked: boolean = d.tracked ?? false;
     const pkgSize: number = d.pkgSize ?? 0;
     let sealed: number = d.sealed ?? 0;
@@ -312,16 +360,31 @@ export async function applyMovement(
     });
     // Auto-expense: a priced entrada is a purchase → mirror into finance.
     // Deterministic id (stock-{movementId}) keeps it idempotent on re-run.
+    let purchaseOut = 0;
     if (input.type === "entrada" && input.price != null && input.price > 0) {
+      purchaseOut = input.price * input.qty;
       tx.set(
         financeDoc(storeId, stockPurchaseFinanceId(movRef.id)),
         stockPurchaseTxData({
           itemName: name,
-          amount: input.price * input.qty,
+          amount: purchaseOut,
           date: at,
         }),
       );
     }
+    // Summary: low-stock badge delta (+ the purchase's finance `out`).
+    const lowDelta =
+      lowStockContribution(patch.lowStock as boolean, archived) -
+      lowStockContribution(oldLow, archived);
+    if (lowDelta !== 0) summaryLowStockDelta(summary, lowDelta);
+    if (purchaseOut > 0) {
+      summaryFinance(summary, {
+        mk: monthKey(at.toDate()),
+        direction: "out",
+        amount: purchaseOut,
+      });
+    }
+    if (lowDelta !== 0 || purchaseOut > 0) writeSummaryTx(tx, storeId, summary);
   });
   return name;
 }
@@ -347,12 +410,21 @@ export async function openNextPackage(
     if (!d.continuousUse) throw new Error("Item não é de uso contínuo.");
     if (d.openPkg) throw new Error("Já existe uma embalagem aberta.");
     if ((d.sealed ?? 0) < 1) throw new Error("Nenhuma embalagem lacrada em estoque.");
+    const summary = await readSummaryTx(tx, storeId);
     const sealed = (d.sealed ?? 0) - 1;
+    const newLow = computeLowStock({ ...d, sealed, openPkg: true });
+    const lowDelta =
+      lowStockContribution(newLow, d.archived ?? false) -
+      lowStockContribution(d.lowStock ?? false, d.archived ?? false);
+    if (lowDelta !== 0) {
+      summaryLowStockDelta(summary, lowDelta);
+      writeSummaryTx(tx, storeId, summary);
+    }
     tx.update(ref, {
       sealed,
       openPkg: true,
       usos: 0,
-      lowStock: computeLowStock({ ...d, sealed, openPkg: true }),
+      lowStock: newLow,
       updatedAt: Timestamp.now(),
     });
     tx.set(ref.collection("movements").doc(), {
@@ -388,11 +460,20 @@ export async function markPackageEmpty(
     const d = snap.data()!;
     name = d.name ?? "";
     if (!d.openPkg) throw new Error("Nenhuma embalagem aberta.");
+    const summary = await readSummaryTx(tx, storeId);
     const usos = d.usos ?? 0;
+    const newLow = computeLowStock({ ...d, openPkg: false });
+    const lowDelta =
+      lowStockContribution(newLow, d.archived ?? false) -
+      lowStockContribution(d.lowStock ?? false, d.archived ?? false);
+    if (lowDelta !== 0) {
+      summaryLowStockDelta(summary, lowDelta);
+      writeSummaryTx(tx, storeId, summary);
+    }
     tx.update(ref, {
       openPkg: false,
       usos: 0,
-      lowStock: computeLowStock({ ...d, openPkg: false }),
+      lowStock: newLow,
       updatedAt: Timestamp.now(),
     });
     tx.set(ref.collection("movements").doc(), {

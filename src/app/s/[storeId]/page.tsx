@@ -3,7 +3,12 @@ import { canAccessSection } from "@/lib/access";
 import { listOrders } from "@/data/orders";
 import { listCustomers } from "@/data/customers";
 import { listStockItems } from "@/data/stock";
+import { readSummary } from "@/data/summary";
 import { DashboardClient, type KpiCard } from "./dashboard-client";
+
+function monthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export default async function DashboardPage({
   params,
@@ -16,15 +21,22 @@ export default async function DashboardPage({
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const thisKey = monthKey(startOfMonth);
+  const lastKey = monthKey(startOfLastMonth);
 
-  // Period-over-period deltas: fetch this + last month in one bounded query
-  // (not a full scan), then split in memory. NOTE: for production scale these
-  // month counts should be materialized into a per-store KPI summary doc,
-  // updated inside the order/customer write transactions (see plan §pre-compute),
-  // so the dashboard reads one small doc instead of two months of orders.
+  // The "Pedidos no período" KPI + its month-over-month delta PREFER the
+  // pre-computed summary doc (one small read). When it's present we only need
+  // THIS month's orders (for the channel donut + top sellers), not last month's;
+  // the delta baseline comes from the summary. Absent → fall back to fetching
+  // both months and counting them, so the dashboard never breaks.
+  const summary = canAccessSection(user, "pedidos")
+    ? await readSummary(storeId)
+    : null;
+  const ordersSince = summary ? startOfMonth : startOfLastMonth;
+
   const [orders, customers, stockItems] = await Promise.all([
     canAccessSection(user, "pedidos")
-      ? listOrders(storeId, { since: startOfLastMonth })
+      ? listOrders(storeId, { since: ordersSince })
       : Promise.resolve([]),
     canAccessSection(user, "clientes")
       ? listCustomers(storeId)
@@ -42,6 +54,13 @@ export default async function DashboardPage({
   const lastMonthOrders = orders.filter(
     (o) => new Date(o.createdAt) < startOfMonth && o.status !== "cancelado",
   );
+
+  const thisMonthCount = summary
+    ? (summary.months[thisKey]?.orderCount ?? 0)
+    : thisMonthOrders.length;
+  const lastMonthCount = summary
+    ? (summary.months[lastKey]?.orderCount ?? 0)
+    : lastMonthOrders.length;
 
   // New customers this vs last month (delta feeds the KPI trend pills).
   const newThisMonth = active.filter(
@@ -90,13 +109,9 @@ export default async function DashboardPage({
     .slice(0, 6);
 
   const pctDelta =
-    lastMonthOrders.length > 0
-      ? Math.round(
-          ((thisMonthOrders.length - lastMonthOrders.length) /
-            lastMonthOrders.length) *
-            100,
-        )
-      : thisMonthOrders.length > 0
+    lastMonthCount > 0
+      ? Math.round(((thisMonthCount - lastMonthCount) / lastMonthCount) * 100)
+      : thisMonthCount > 0
         ? 100
         : 0;
 
@@ -115,7 +130,7 @@ export default async function DashboardPage({
     },
     {
       label: "Pedidos no período",
-      value: String(thisMonthOrders.length),
+      value: String(thisMonthCount),
       sub: "este mês",
       trend: trendPill(pctDelta, "green", true),
     },

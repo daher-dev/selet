@@ -10,6 +10,12 @@ import type {
   RecipeItem,
 } from "@/lib/types";
 import { consumeWork, readStockWork, stockPatch } from "./stock";
+import {
+  lowStockContribution,
+  readSummaryTx,
+  summaryLowStockDelta,
+  writeSummaryTx,
+} from "./summary";
 
 function productsCol(storeId: string) {
   return getDb().collection("stores").doc(storeId).collection("products");
@@ -149,6 +155,7 @@ export async function produceBatch(
     // ---- READ phase. ----
     const psnap = await tx.get(pRef);
     if (!psnap.exists) throw new Error("Produto não encontrado.");
+    const summary = await readSummaryTx(tx, storeId);
     const pdata = psnap.data()!;
     const recipe = (pdata.recipe ?? []) as RecipeItem[];
 
@@ -164,12 +171,25 @@ export async function produceBatch(
 
     const stock = new Map<
       string,
-      { ref: FirebaseFirestore.DocumentReference; work: ReturnType<typeof readStockWork> }
+      {
+        ref: FirebaseFirestore.DocumentReference;
+        work: ReturnType<typeof readStockWork>;
+        oldLow: boolean;
+        archived: boolean;
+      }
     >();
     for (const id of needs.keys()) {
       const ref = stockItemRef(storeId, id);
       const snap = await tx.get(ref);
-      if (snap.exists) stock.set(id, { ref, work: readStockWork(snap.data()!) });
+      if (snap.exists) {
+        const data = snap.data()!;
+        stock.set(id, {
+          ref,
+          work: readStockWork(data),
+          oldLow: data.lowStock ?? false,
+          archived: data.archived ?? false,
+        });
+      }
     }
 
     // ---- PLAN phase. ----
@@ -195,7 +215,18 @@ export async function produceBatch(
     const newProduced = (pdata.producedStock ?? 0) + porcoes;
 
     // ---- WRITE phase. ----
-    for (const { ref, work } of stock.values()) tx.update(ref, stockPatch(work));
+    let lowStockDelta = 0;
+    for (const { ref, work, oldLow, archived } of stock.values()) {
+      const patch = stockPatch(work);
+      tx.update(ref, patch);
+      lowStockDelta +=
+        lowStockContribution(patch.lowStock as boolean, archived) -
+        lowStockContribution(oldLow, archived);
+    }
+    if (lowStockDelta !== 0) {
+      summaryLowStockDelta(summary, lowStockDelta);
+      writeSummaryTx(tx, storeId, summary);
+    }
     for (const m of movements) {
       tx.set(stockItemRef(storeId, m.itemId).collection("movements").doc(), m.doc);
     }

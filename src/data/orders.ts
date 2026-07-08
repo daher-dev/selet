@@ -1,6 +1,6 @@
 import "server-only";
 
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
 import type {
   ConsumptionDraw,
@@ -15,6 +15,21 @@ import { orderCode } from "@/lib/format";
 import { buildConsumptionRequests } from "./consumption";
 import { getProduct } from "./products";
 import { consumeWork, readStockWork, reverseWork, stockPatch } from "./stock";
+import {
+  customerKey,
+  isOpenStatus,
+  lowStockContribution,
+  monthKey,
+  readSummaryTx,
+  summaryAddOrder,
+  summaryFinance,
+  summaryLowStockDelta,
+  summaryOpenDelta,
+  summaryReceivable,
+  summaryRemoveOrder,
+  writeSummaryTx,
+  type SummaryData,
+} from "./summary";
 
 function storeRef(storeId: string) {
   return getDb().collection("stores").doc(storeId);
@@ -185,6 +200,8 @@ async function planConsumption(
   oldDraws: ConsumptionDraw[],
   newItems: OrderItem[] | null,
   products: Map<string, Product> | null,
+  /** Shared working summary — commit() folds low-stock flips into it. */
+  summary: SummaryData,
 ): Promise<{ draws: ConsumptionDraw[]; commit: () => void }> {
   const req =
     newItems && products
@@ -203,12 +220,25 @@ async function planConsumption(
   // ---- READ phase: fetch every touched doc once. ----
   const stock = new Map<
     string,
-    { ref: FirebaseFirestore.DocumentReference; work: ReturnType<typeof readStockWork> }
+    {
+      ref: FirebaseFirestore.DocumentReference;
+      work: ReturnType<typeof readStockWork>;
+      oldLow: boolean;
+      archived: boolean;
+    }
   >();
   for (const id of stockIds) {
     const ref = stockItemRef(storeId, id);
     const snap = await tx.get(ref);
-    if (snap.exists) stock.set(id, { ref, work: readStockWork(snap.data()!) });
+    if (snap.exists) {
+      const data = snap.data()!;
+      stock.set(id, {
+        ref,
+        work: readStockWork(data),
+        oldLow: data.lowStock ?? false,
+        archived: data.archived ?? false,
+      });
+    }
   }
   const prod = new Map<string, { ref: FirebaseFirestore.DocumentReference; produced: number }>();
   for (const id of productIds) {
@@ -263,7 +293,15 @@ async function planConsumption(
   }
 
   const commit = () => {
-    for (const { ref, work } of stock.values()) tx.update(ref, stockPatch(work));
+    let lowStockDelta = 0;
+    for (const { ref, work, oldLow, archived } of stock.values()) {
+      const patch = stockPatch(work);
+      tx.update(ref, patch);
+      lowStockDelta +=
+        lowStockContribution(patch.lowStock as boolean, archived) -
+        lowStockContribution(oldLow, archived);
+    }
+    if (lowStockDelta !== 0) summaryLowStockDelta(summary, lowStockDelta);
     for (const { ref, produced } of prod.values()) tx.update(ref, { producedStock: produced });
     for (const m of movements) {
       tx.set(stockItemRef(storeId, m.itemId).collection("movements").doc(), m.doc);
@@ -290,8 +328,18 @@ export async function createOrder(
 
   let stockConsumed: ConsumptionDraw[] = [];
   await db.runTransaction(async (tx) => {
-    // Reads first: plan consumption, then recompute aggregates.
-    const plan = await planConsumption(tx, storeId, ref.id, by, [], input.items, products);
+    // Reads first: summary, plan consumption, then recompute aggregates.
+    const summary = await readSummaryTx(tx, storeId);
+    const plan = await planConsumption(
+      tx,
+      storeId,
+      ref.id,
+      by,
+      [],
+      input.items,
+      products,
+      summary,
+    );
     stockConsumed = plan.draws;
     if (input.customerId) {
       await recomputeAggregates(tx, storeId, input.customerId, {
@@ -300,8 +348,21 @@ export async function createOrder(
         createdAt: now,
       });
     }
+    // Summary: a new "novo" (open) order enters the current-month aggregates.
+    const mk = monthKey(now.toDate());
+    summaryAddOrder(summary, {
+      mk,
+      total,
+      custKey: customerKey(input.customerId, input.customerName),
+      open: true,
+      paid: payment.paid,
+    });
+    // Paid at creation → its finance income mirror lands this month too.
+    if (payment.paid) summaryFinance(summary, { mk, direction: "in", amount: total });
+
     // Writes.
     plan.commit();
+    writeSummaryTx(tx, storeId, summary);
     tx.set(ref, {
       ...input,
       total,
@@ -343,9 +404,18 @@ export async function updateOrder(
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Pedido não encontrado.");
     const current = snap.data()!;
+    const summary = await readSummaryTx(tx, storeId);
     const cancelled = current.status === "cancelado";
     const total = orderTotal(input.items);
+    const oldTotal = current.total ?? 0;
     const oldDraws = (current.stockConsumed ?? []) as ConsumptionDraw[];
+    // The finance mirror buckets `in` by its own date, which can differ from the
+    // order's createdAt (e.g. paid in a later month) — read it so an amount shift
+    // is attributed to the mirror's real month (read phase, before any write).
+    const financeMirrorRef = storeRef(storeId)
+      .collection("finance")
+      .doc(`order-${orderId}`);
+    const financeMirrorSnap = current.paid ? await tx.get(financeMirrorRef) : null;
 
     // Reconcile stock: reverse the old manifest, then re-apply for the new
     // items — but only if the order is active (a cancelled order holds nothing).
@@ -357,6 +427,7 @@ export async function updateOrder(
       oldDraws,
       cancelled ? null : input.items,
       cancelled ? null : products,
+      summary,
     );
 
     const affected = new Set<string>();
@@ -374,13 +445,45 @@ export async function updateOrder(
       });
     }
 
+    // Summary: the order's month is immutable (createdAt). An active order is
+    // re-stated (remove old totals/customer, add new); the finance mirror amount
+    // shift is applied when paid. A cancelled order isn't in the buckets, but its
+    // (still-present) paid mirror amount does change.
+    const mk = monthKey((current.createdAt as Timestamp).toDate());
+    const paid = current.paid ?? false;
+    if (!cancelled) {
+      const open = isOpenStatus(current.status);
+      summaryRemoveOrder(summary, {
+        mk,
+        total: oldTotal,
+        custKey: customerKey(current.customerId ?? null, current.customerName),
+        open,
+        paid,
+      });
+      summaryAddOrder(summary, {
+        mk,
+        total,
+        custKey: customerKey(input.customerId, input.customerName),
+        open,
+        paid,
+      });
+    }
+    if (paid && total !== oldTotal) {
+      const mirrorDate = financeMirrorSnap?.data()?.date as Timestamp | undefined;
+      const financeMk = mirrorDate ? monthKey(mirrorDate.toDate()) : mk;
+      summaryFinance(summary, {
+        mk: financeMk,
+        direction: "in",
+        amount: total - oldTotal,
+      });
+    }
+
     plan.commit();
+    writeSummaryTx(tx, storeId, summary);
     tx.update(ref, { ...input, total, stockConsumed: plan.draws, updatedAt: Timestamp.now() });
     // Keep the finance mirror in sync with the new total.
     if (current.paid) {
-      tx.update(storeRef(storeId).collection("finance").doc(`order-${orderId}`), {
-        amount: total,
-      });
+      tx.update(financeMirrorRef, { amount: total });
     }
   });
 }
@@ -403,6 +506,7 @@ export async function setOrderStatus(
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Pedido não encontrado.");
     const current = snap.data()!;
+    const summary = await readSummaryTx(tx, storeId);
     const wasCancelled = current.status === "cancelado";
     const willBeCancelled = status === "cancelado";
     const oldDraws = (current.stockConsumed ?? []) as ConsumptionDraw[];
@@ -410,7 +514,7 @@ export async function setOrderStatus(
     // Cancel → reverse and hold nothing. Uncancel → re-apply from stored items.
     let plan: { draws: ConsumptionDraw[]; commit: () => void } | null = null;
     if (!wasCancelled && willBeCancelled) {
-      plan = await planConsumption(tx, storeId, orderId, by, oldDraws, null, null);
+      plan = await planConsumption(tx, storeId, orderId, by, oldDraws, null, null, summary);
     } else if (wasCancelled && !willBeCancelled) {
       plan = await planConsumption(
         tx,
@@ -420,6 +524,7 @@ export async function setOrderStatus(
         [],
         (current.items ?? []) as OrderItem[],
         products,
+        summary,
       );
     }
 
@@ -431,7 +536,32 @@ export async function setOrderStatus(
       });
     }
 
+    // Summary: cancelling removes the order from the month aggregates; uncancel
+    // re-adds it (the finance mirror is untouched by status, so `in` isn't
+    // adjusted here). A status change between open/closed states only shifts the
+    // open-orders badge count.
+    const mk = monthKey((current.createdAt as Timestamp).toDate());
+    const total = current.total ?? 0;
+    const custKey = customerKey(current.customerId ?? null, current.customerName);
+    const paid = current.paid ?? false;
+    if (!wasCancelled && willBeCancelled) {
+      summaryRemoveOrder(summary, {
+        mk,
+        total,
+        custKey,
+        open: isOpenStatus(current.status),
+        paid,
+      });
+    } else if (wasCancelled && !willBeCancelled) {
+      summaryAddOrder(summary, { mk, total, custKey, open: isOpenStatus(status), paid });
+    } else {
+      const delta =
+        (isOpenStatus(status) ? 1 : 0) - (isOpenStatus(current.status) ? 1 : 0);
+      if (delta !== 0) summaryOpenDelta(summary, delta);
+    }
+
     if (plan) plan.commit();
+    writeSummaryTx(tx, storeId, summary);
     const patch: Record<string, unknown> = { status, updatedAt: Timestamp.now() };
     if (plan) patch.stockConsumed = plan.draws;
     tx.update(ref, patch);
@@ -456,23 +586,50 @@ export async function setOrderPayment(
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Pedido não encontrado.");
     const current = snap.data()!;
+    const summary = await readSummaryTx(tx, storeId);
+    // Read the existing mirror so we can back its `in` out of the exact month it
+    // was posted in (its date, not the order's) before re-posting / clearing.
+    const mirrorSnap = await tx.get(financeRef);
+
+    const wasPaid = current.paid ?? false;
+    const cancelled = current.status === "cancelado";
+    const total = current.total ?? 0;
+    const orderMk = monthKey((current.createdAt as Timestamp).toDate());
+    const now = Timestamp.now();
 
     tx.update(ref, {
       paid,
       payMethod: paid ? payMethod : null,
-      updatedAt: Timestamp.now(),
+      updatedAt: now,
     });
+
+    // Finance `in`: remove the prior mirror's contribution (by its stored month),
+    // then add the new one when paid — so incremental matches a fresh recompute
+    // that buckets finance by the doc's date.
+    if (mirrorSnap.exists) {
+      const md = mirrorSnap.data()!;
+      const priorMk = md.date ? monthKey((md.date as Timestamp).toDate()) : orderMk;
+      summaryFinance(summary, { mk: priorMk, direction: "in", amount: -(md.amount ?? 0) });
+    }
+    if (paid) {
+      summaryFinance(summary, { mk: monthKey(now.toDate()), direction: "in", amount: total });
+    }
+    // "A receber": an order is a receivable exactly when non-cancelled and unpaid.
+    if (!cancelled && wasPaid !== paid) {
+      summaryReceivable(summary, { mk: orderMk, total, sign: paid ? -1 : 1 });
+    }
+    writeSummaryTx(tx, storeId, summary);
 
     if (paid) {
       tx.set(financeRef, {
         label: `Pedido #${orderCode(orderId)} · ${current.customerName}`,
         category: "vendas",
-        amount: current.total ?? 0,
+        amount: total,
         direction: "in",
         source: "order",
         orderId,
         payMethod,
-        date: FieldValue.serverTimestamp(),
+        date: now,
       });
     } else {
       tx.delete(financeRef);

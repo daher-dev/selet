@@ -9,6 +9,7 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { importCatalog } from "./lib/import-catalog";
+import { refreshStoreSummary } from "./lib/summary";
 import { seedInvites } from "./lib/team";
 
 const ADMIN_EMAIL = "joao@daher.dev";
@@ -51,6 +52,8 @@ async function seed() {
   for (const { id } of STORES) {
     const r = await importCatalog(db, id);
     console.log(`Catálogo importado em ${id}: ${r.products} produtos, ${r.stockItems} itens de estoque`);
+    // Backfill the pre-computed summary doc (low-stock count, etc.).
+    await refreshStoreSummary(db, id);
   }
 
   console.log(

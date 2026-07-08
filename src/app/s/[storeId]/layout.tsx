@@ -8,6 +8,7 @@ import {
 import { listStoresForUser } from "@/data/stores";
 import { countOpenOrders } from "@/data/orders";
 import { countLowStock } from "@/data/stock";
+import { readSummary } from "@/data/summary";
 
 export default async function StoreLayout({
   children,
@@ -28,11 +29,21 @@ export default async function StoreLayout({
     redirect(stores[0] ? `/s/${stores[0].id}` : "/login");
   }
 
-  // Cheap aggregation counts for the nav badges — gated by section access so
-  // members without a section neither see nor pay for the query.
+  // Nav badge counts — PREFER the pre-computed summary doc (one small read),
+  // falling back to the aggregation queries when it's absent so the badges never
+  // break. Gated by section access so members without a section pay for nothing.
+  const summary = await readSummary(storeId);
   const [openOrders, lowStock] = await Promise.all([
-    canAccessSection(user, "pedidos") ? countOpenOrders(storeId) : Promise.resolve(0),
-    canAccessSection(user, "estoque") ? countLowStock(storeId) : Promise.resolve(0),
+    !canAccessSection(user, "pedidos")
+      ? Promise.resolve(0)
+      : summary
+        ? Promise.resolve(summary.openOrders)
+        : countOpenOrders(storeId),
+    !canAccessSection(user, "estoque")
+      ? Promise.resolve(0)
+      : summary
+        ? Promise.resolve(summary.lowStock)
+        : countLowStock(storeId),
   ]);
 
   return (
