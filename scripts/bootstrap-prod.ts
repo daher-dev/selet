@@ -11,6 +11,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { importCatalog } from "./lib/import-catalog";
 import { refreshStoreSummary } from "./lib/summary";
+import { seedRealTeam } from "./lib/team";
 
 const ADMIN_EMAIL = "joao@daher.dev";
 
@@ -48,8 +49,13 @@ async function bootstrap() {
     { merge: true },
   );
 
-  // No demo team in prod — bootstrap creates only the real admin (above), the
-  // stores, and the catalog. Real teammates are invited in-app.
+  // Real team (NOT the fictional demo roster) — the admin above plus the actual
+  // staff in REAL_TEAM. Members without an email yet are reported as pending.
+  const { created, pending } = await seedRealTeam(db);
+  if (created.length) console.log("Equipe provisionada:", created.join(", "));
+  if (pending.length)
+    console.log("Equipe pendente (sem e-mail ainda — convide pela tela Equipe):", pending.join(", "));
+
   for (const { id } of STORES) {
     // Opening ledger stays at ZERO (seedOpeningLedger omitted) — a real store
     // does its day-1 count via entrada movements, not seeded demo counts.
