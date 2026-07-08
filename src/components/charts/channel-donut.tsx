@@ -22,20 +22,22 @@ export function ChannelDonut({
     );
   }
 
-  let cumulative = 0;
-  const segments = CHANNELS.map((c) => {
+  // Prefix sum: each segment starts where the prior segments end. Computing the
+  // offset from the sum of preceding fractions (rather than a running counter)
+  // keeps the render pure — no closure variable is mutated after it's read.
+  const fractions = CHANNELS.map((c) => byChannel[c.key] / total);
+  const segments = CHANNELS.map((c, i) => {
     const value = byChannel[c.key];
-    const pct = value / total;
+    const pct = fractions[i];
     const len = C * pct;
-    const seg = {
+    const priorPct = fractions.slice(0, i).reduce((sum, p) => sum + p, 0);
+    return {
       ...c,
       value,
       pct: Math.round(pct * 100),
       dash: `${len.toFixed(1)} ${(C - len).toFixed(1)}`,
-      offset: (-C * cumulative).toFixed(1),
+      offset: (-C * priorPct).toFixed(1),
     };
-    cumulative += pct;
-    return seg;
   });
 
   return (

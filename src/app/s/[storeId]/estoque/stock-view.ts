@@ -85,7 +85,6 @@ export interface StockCardView {
 export function buildStockCard(item: StockItem): StockCardView {
   const status = stockStatus(item);
   const low = status === "repor" || status === "esgotado";
-  const usable = usableAmount(item);
   const pu = unitLabel(item.unit, false);
   const puPlural = unitLabel(item.unit, true);
   const frac = isFrac(item);

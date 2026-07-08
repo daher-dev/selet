@@ -22,7 +22,9 @@ const GRANOLA: StockItemInput = {
   resellable: true,
   cost: 1800,
   sellPrice: 3200,
-  reorderAt: 1000,
+  // Package-based threshold: tracked+medido items reorder at reorderAt packages
+  // (× pkgSize base units). 2 potes = 1000 g. See computeLowStock in stock.ts.
+  reorderAt: 2,
 };
 
 const mv = { by: "test@selet.com" };
@@ -60,8 +62,10 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
     item = await getStockItem(storeId, id);
     expect(item).toMatchObject({ sealed: 2, open: 0, qty: 1000, lowStock: true });
 
+    // 5 movements applied above + the opening ENTRADA createStockItem records
+    // for the opening balance (sealed: 3 > 0).
     const movements = await listMovements(storeId, id);
-    expect(movements).toHaveLength(5);
+    expect(movements).toHaveLength(6);
   });
 
   it("rejects overdraws", async () => {
@@ -97,10 +101,12 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
 
   it("updating reorder threshold re-evaluates lowStock", async () => {
     const storeId = `test-stock-d-${Date.now()}`;
+    // 3 potes = 1500 g on hand; threshold 2 potes (1000 g) → not low yet.
     const id = await createStockItem(storeId, GRANOLA, { sealed: 3, open: 0 });
     expect((await getStockItem(storeId, id))?.lowStock).toBe(false);
 
-    await updateStockItem(storeId, id, { ...GRANOLA, reorderAt: 2000 });
+    // Raise the threshold above what's on hand (4 potes = 2000 g > 1500 g) → low.
+    await updateStockItem(storeId, id, { ...GRANOLA, reorderAt: 4 });
     expect((await getStockItem(storeId, id))?.lowStock).toBe(true);
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { getDb } from "@/lib/firebase-admin";
 import { importCatalog } from "./lib/import-catalog";
 
@@ -12,6 +12,19 @@ describe.skipIf(!hasEmulator)("importCatalog (emulator)", () => {
     db.collection("stores").doc(storeId).collection("products");
   const stock = (storeId: string) =>
     db.collection("stores").doc(storeId).collection("stockItems");
+
+  // These tests import into the fixed bootstrap stores, and importCatalog
+  // deliberately preserves live stock counts on re-import. The "is idempotent"
+  // test mutates a café insumo (shake-todos-os-sabores) to simulate live
+  // movement, so without a clean slate that mutation leaks into the next run's
+  // fresh-import assertions. Wipe both stores' catalog collections up front so
+  // the first import always sees the pristine hbl-stock.json opening ledger.
+  beforeAll(async () => {
+    for (const storeId of ["vila-velha", "passos"]) {
+      await db.recursiveDelete(products(storeId));
+      await db.recursiveDelete(stock(storeId));
+    }
+  });
 
   it("imports the menu at Vila Velha prices, with descriptions and stock", async () => {
     const r = await importCatalog(db, "vila-velha");

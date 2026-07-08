@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Customer, Order } from "@/lib/types";
+import { AppShellProvider } from "@/components/shell/app-shell-context";
 import { ClientesClient } from "./clientes-client";
 
 vi.mock("next/navigation", () => ({
@@ -53,15 +54,20 @@ const orders: Order[] = [
   } as Order,
 ];
 
+// ClientesClient reads the global header search via useShellSearch, so it must
+// render inside the shell provider (the real app always does). The page keeps
+// its own local search box; the shell search stays empty here.
 function renderList(props: Partial<React.ComponentProps<typeof ClientesClient>> = {}) {
   return render(
-    <ClientesClient
-      storeId="s1"
-      storeName="Vila Velha/ES"
-      customers={customers}
-      orders={orders}
-      {...props}
-    />,
+    <AppShellProvider routeKey="/s/s1/clientes">
+      <ClientesClient
+        storeId="s1"
+        storeName="Vila Velha/ES"
+        customers={customers}
+        orders={orders}
+        {...props}
+      />
+    </AppShellProvider>,
   );
 }
 

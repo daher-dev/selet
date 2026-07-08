@@ -8,7 +8,6 @@ import {
   Boxes,
   ChevronDown,
   Loader2,
-  PackageOpen,
   PackagePlus,
   Pencil,
   Search,
