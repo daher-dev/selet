@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
-  Ban,
   Check,
+  ChevronDown,
   ChevronLeft,
+  Crown,
   Loader2,
   Minus,
   Plus,
-  RotateCcw,
   Search,
+  ShoppingBag,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import type {
@@ -21,7 +23,7 @@ import type {
   Product,
 } from "@/lib/types";
 import { ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
-import { formatBRL, formatRelative } from "@/lib/format";
+import { formatBRL, formatRelative, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   createOrderAction,
@@ -38,13 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -57,9 +53,17 @@ import { CHANNEL_META, PAY_METHOD_META } from "@/components/order-meta";
 import {
   CategoryTile,
   PRODUCT_CATEGORY_META,
+  type CategoryMeta,
 } from "@/components/category-meta";
 
 const WALK_IN = "__walk_in__";
+
+const NEUTRAL_TILE: CategoryMeta = {
+  label: "Item",
+  icon: ShoppingBag,
+  fg: "text-ink-soft",
+  bg: "bg-mist",
+};
 
 /** Order-independent signature of an item's adicionais, for merging lines. */
 function addonSignature(addons?: string[]): string {
@@ -137,7 +141,10 @@ function OrderForm({
   const [walkInName, setWalkInName] = useState(
     order && !order.customerId ? order.customerName : "",
   );
-  const [channel, setChannel] = useState<OrderChannel>(order?.channel ?? "whatsapp");
+  // Design defaults a new order's channel to Instagram (openNewOrder).
+  const [channel, setChannel] = useState<OrderChannel>(
+    order?.channel ?? "instagram",
+  );
   const [items, setItems] = useState<OrderItem[]>(order?.items ?? []);
   const [paid, setPaid] = useState(order?.paid ?? false);
   const [payMethod, setPayMethod] = useState<PayMethod | null>(
@@ -147,7 +154,20 @@ function OrderForm({
   const [pending, startTransition] = useTransition();
 
   const total = items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
+  const itemCount = items.reduce((s, i) => s + i.qty, 0);
   const cancelled = order?.status === "cancelado";
+
+  // productId → Product, so order lines can resolve their category tile.
+  const productById = useMemo(() => {
+    const map = new Map<string, Product>();
+    for (const p of products) map.set(p.id, p);
+    return map;
+  }, [products]);
+
+  function lineMeta(productId: string): CategoryMeta {
+    const cat = productById.get(productId)?.category ?? "";
+    return PRODUCT_CATEGORY_META[cat] ?? NEUTRAL_TILE;
+  }
 
   function customerName(): string {
     if (customerId === WALK_IN) return walkInName.trim();
@@ -178,6 +198,10 @@ function OrderForm({
         .map((i, j) => (j === index ? { ...i, qty: i.qty + delta } : i))
         .filter((i) => i.qty > 0),
     );
+  }
+
+  function removeItem(index: number) {
+    setItems((prev) => prev.filter((_, j) => j !== index));
   }
 
   function submit() {
@@ -236,52 +260,16 @@ function OrderForm({
   return (
     <>
       <div className="flex-1 space-y-5 p-4">
-        {order && (
-          <div className="rounded-2xl border border-border bg-paper p-4">
-            <StatusStepper
-              status={order.status}
-              onChange={changeStatus}
-              disabled={pending}
-            />
-            <Button
-              variant="ghost"
-              disabled={pending}
-              onClick={() => changeStatus(cancelled ? "novo" : "cancelado")}
-              className={cn(
-                "mt-3 w-full gap-1.5 rounded-xl text-[12.5px]",
-                cancelled
-                  ? "text-primary hover:bg-mist hover:text-primary"
-                  : "text-ink-faint hover:bg-danger-wash hover:text-destructive",
-              )}
-            >
-              {cancelled ? (
-                <>
-                  <RotateCcw className="size-4" /> Reabrir pedido
-                </>
-              ) : (
-                <>
-                  <Ban className="size-4" /> Cancelar pedido
-                </>
-              )}
-            </Button>
-          </div>
-        )}
-
         <div className="space-y-1.5">
           <Label>Cliente</Label>
-          <Select value={customerId} onValueChange={setCustomerId}>
-            <SelectTrigger className="w-full rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={WALK_IN}>Sem cadastro</SelectItem>
-              {customers.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <CustomerPicker
+            customers={customers}
+            value={customerId}
+            onChange={setCustomerId}
+          />
+          {/* KEEP (pending product decision — may be trimmed): the "Sem
+              cadastro" walk-in name input has no equivalent in the design's
+              customer picker, but is useful for anonymous counter sales. */}
           {customerId === WALK_IN && (
             <Input
               value={walkInName}
@@ -293,7 +281,7 @@ function OrderForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Canal</Label>
+          <Label>Canal de venda</Label>
           <div className="grid grid-cols-3 gap-2">
             {ORDER_CHANNELS.map((key) => {
               const meta = CHANNEL_META[key];
@@ -319,18 +307,37 @@ function OrderForm({
           </div>
         </div>
 
+        {order && (
+          <div className="space-y-1.5">
+            <Label>Status do pedido</Label>
+            <div className="pt-1">
+              <StatusStepper
+                status={order.status}
+                onChange={changeStatus}
+                disabled={pending}
+              />
+            </div>
+            {!cancelled && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => changeStatus("cancelado")}
+                className="mx-auto mt-2 block rounded-lg px-2.5 py-1 text-[12.5px] font-semibold text-ink-faint transition-colors hover:text-destructive disabled:opacity-50"
+              >
+                Cancelar pedido
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Itens</Label>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPickerOpen(true)}
-              className="h-7 gap-1 rounded-lg px-2.5 text-[12px] font-semibold"
-            >
-              <Plus className="size-3.5" />
-              Adicionar
-            </Button>
+            <Label>Itens do pedido</Label>
+            {items.length > 0 && (
+              <span className="text-[11.5px] text-ink-faint">
+                {itemCount} un.
+              </span>
+            )}
           </div>
 
           {items.length === 0 ? (
@@ -342,48 +349,80 @@ function OrderForm({
               Nenhum item — toque para adicionar do catálogo.
             </button>
           ) : (
-            <ul className="space-y-2">
-              {items.map((item, index) => (
-                <li
-                  key={`${item.productId}-${index}`}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-semibold text-ink">
-                      {item.name}
-                    </span>
-                    <span className="tabular text-[11.5px] text-ink-faint">
-                      {formatBRL(item.unitPrice)} un.
-                    </span>
-                    {item.addons && item.addons.length > 0 && (
-                      <span className="mt-0.5 block text-[11.5px] leading-snug text-ink-soft">
-                        <span className="font-semibold">Adicionais:</span>{" "}
-                        {item.addons.join(", ")}
+            <ul className="space-y-2.5">
+              {items.map((item, index) => {
+                const meta = lineMeta(item.productId);
+                return (
+                  <li
+                    key={`${item.productId}-${index}`}
+                    className="flex flex-col gap-3 rounded-xl border border-border bg-paper p-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <CategoryTile meta={meta} className="size-10" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14px] font-semibold leading-tight text-ink">
+                          {item.name}
+                        </span>
+                        <span className="mt-0.5 block text-[11.5px] text-ink-faint">
+                          {meta.label}
+                        </span>
+                        {item.addons && item.addons.length > 0 && (
+                          <span className="mt-1 flex items-center gap-1 text-[11.5px] text-ink-soft">
+                            <Plus className="size-3 text-primary" strokeWidth={2.4} />
+                            {item.addons.join(", ")}
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <QtyButton onClick={() => changeQty(index, -1)}>
-                      <Minus className="size-3.5" />
-                    </QtyButton>
-                    <span className="tabular w-7 text-center text-[13px] font-bold text-ink">
-                      {item.qty}
-                    </span>
-                    <QtyButton onClick={() => changeQty(index, 1)}>
-                      <Plus className="size-3.5" />
-                    </QtyButton>
-                  </div>
-                  <span className="tabular w-[72px] shrink-0 text-right text-[13px] font-bold text-ink">
-                    {formatBRL(item.qty * item.unitPrice)}
-                  </span>
-                </li>
-              ))}
+                      <button
+                        type="button"
+                        onClick={() => removeItem(index)}
+                        aria-label="Remover item"
+                        className="flex size-7 shrink-0 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-danger-wash hover:text-destructive"
+                      >
+                        <Plus className="size-4 rotate-45" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-0.5">
+                        <QtyButton onClick={() => changeQty(index, -1)}>
+                          <Minus className="size-3.5" />
+                        </QtyButton>
+                        <span className="tabular w-7 text-center text-[14px] font-bold text-ink">
+                          {item.qty}
+                        </span>
+                        <QtyButton onClick={() => changeQty(index, 1)}>
+                          <Plus className="size-3.5" />
+                        </QtyButton>
+                      </div>
+                      <span className="tabular text-[11.5px] text-ink-faint">
+                        {formatBRL(item.unitPrice)} un.
+                      </span>
+                      <span className="tabular ml-auto text-[15px] font-bold text-ink">
+                        {formatBRL(item.qty * item.unitPrice)}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
 
-          <div className="flex items-center justify-between rounded-xl bg-mist px-4 py-3">
-            <span className="text-[13px] font-semibold text-ink-soft">Total</span>
-            <span className="tabular text-[17px] font-bold text-primary">
+          {items.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setPickerOpen(true)}
+              className="h-11 w-full gap-2 rounded-xl border-dashed text-[13px] font-semibold text-ink-soft hover:border-primary/60 hover:text-primary"
+            >
+              <Plus className="size-4" />
+              Adicionar item
+            </Button>
+          )}
+
+          <div className="flex items-center justify-between rounded-xl border border-mint-wash bg-mist px-4 py-3">
+            <span className="text-[13px] font-semibold text-ink-soft">
+              Valor total
+            </span>
+            <span className="tabular text-[22px] font-bold text-primary">
               {formatBRL(total)}
             </span>
           </div>
@@ -395,6 +434,19 @@ function OrderForm({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
+                onClick={() => changePayment(true, payMethod ?? "pix")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors",
+                  paid
+                    ? "border-primary bg-mint-wash text-primary"
+                    : "border-border bg-card text-ink-soft",
+                )}
+              >
+                <Check className="size-4" strokeWidth={2.2} />
+                Pago
+              </button>
+              <button
+                type="button"
                 onClick={() => changePayment(false, null)}
                 className={cn(
                   "rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors",
@@ -404,18 +456,6 @@ function OrderForm({
                 )}
               >
                 A pagar
-              </button>
-              <button
-                type="button"
-                onClick={() => changePayment(true, payMethod)}
-                className={cn(
-                  "rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors",
-                  paid
-                    ? "border-primary bg-mint-wash text-primary"
-                    : "border-border bg-card text-ink-soft",
-                )}
-              >
-                Pago
               </button>
             </div>
             {paid && (
@@ -481,6 +521,152 @@ function OrderForm({
   );
 }
 
+/**
+ * Searchable customer picker (design 383-411): a Popover listing each customer
+ * as avatar + name + phone with a VIP crown, plus a "Sem cadastro" walk-in row
+ * and a "Nenhum cliente encontrado" empty state. Replaces the old plain Select.
+ */
+function CustomerPicker({
+  customers,
+  value,
+  onChange,
+}: {
+  customers: Customer[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const selected =
+    value === WALK_IN ? null : customers.find((c) => c.id === value) ?? null;
+
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? customers.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.phone?.toLowerCase().includes(q) ||
+          c.instagram?.toLowerCase().includes(q),
+      )
+    : customers;
+
+  function pick(id: string) {
+    onChange(id);
+    setOpen(false);
+    setQuery("");
+  }
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setQuery("");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex h-12 w-full items-center gap-3 rounded-xl border border-border bg-paper px-3 text-left transition-colors hover:border-primary/40"
+        >
+          {selected ? (
+            <Avatar name={selected.name} vip={selected.tags.includes("vip")} />
+          ) : (
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-mist text-ink-faint">
+              <User className="size-4" />
+            </span>
+          )}
+          <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ink">
+            {selected ? selected.name : "Sem cadastro"}
+          </span>
+          <ChevronDown className="size-4 shrink-0 text-ink-faint" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-(--radix-popover-trigger-width) p-0"
+      >
+        <div className="flex items-center gap-2 border-b border-border bg-paper px-3 py-2.5">
+          <Search className="size-4 shrink-0 text-ink-faint" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar cliente…"
+            autoFocus
+            className="min-w-0 flex-1 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink-faint"
+          />
+        </div>
+        <div className="max-h-60 overflow-y-auto p-1.5">
+          <button
+            type="button"
+            onClick={() => pick(WALK_IN)}
+            className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-wash"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-mist text-ink-faint">
+              <User className="size-4" />
+            </span>
+            <span className="flex-1 text-[13.5px] font-semibold text-ink">
+              Sem cadastro
+            </span>
+            {value === WALK_IN && <Check className="size-4 text-primary" />}
+          </button>
+          {filtered.map((c) => {
+            const vip = c.tags.includes("vip");
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => pick(c.id)}
+                className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-wash"
+              >
+                <Avatar name={c.name} vip={vip} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13.5px] font-semibold text-ink">
+                    {c.name}
+                  </span>
+                  {(c.phone || c.instagram) && (
+                    <span className="block truncate text-[11px] text-ink-faint">
+                      {c.phone ?? c.instagram}
+                    </span>
+                  )}
+                </span>
+                {vip && (
+                  <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-wash px-2 py-0.5 text-[10px] font-bold text-amber">
+                    <Crown className="size-3" />
+                    VIP
+                  </span>
+                )}
+                {value === c.id && (
+                  <Check className="size-4 shrink-0 text-primary" />
+                )}
+              </button>
+            );
+          })}
+          {q && filtered.length === 0 && (
+            <div className="px-3 py-4 text-center text-[12.5px] text-ink-faint">
+              Nenhum cliente encontrado
+            </div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function Avatar({ name, vip }: { name: string; vip: boolean }) {
+  return (
+    <span
+      className={cn(
+        "flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+        vip ? "bg-amber-wash text-amber" : "bg-mist text-primary",
+      )}
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
 function QtyButton({
   onClick,
   children,
@@ -492,7 +678,7 @@ function QtyButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex size-7 items-center justify-center rounded-lg border border-border bg-paper text-ink-soft transition-colors hover:border-primary hover:text-primary"
+      className="flex size-7 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-wash hover:text-primary"
     >
       {children}
     </button>
@@ -552,14 +738,14 @@ function ProductPickerDialog({
           <>
             <DialogHeader className="border-b border-border p-4 pb-3">
               <DialogTitle className="text-[15px] font-bold">
-                Adicionar item
+                Adicionar ao pedido
               </DialogTitle>
               <div className="relative mt-2">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar no catálogo…"
+                  placeholder="Buscar produto do catálogo…"
                   className="rounded-xl pl-9"
                 />
               </div>
@@ -569,12 +755,13 @@ function ProductPickerDialog({
                 <p className="px-2 py-8 text-center text-[12.5px] text-ink-faint">
                   {products.length === 0
                     ? "Cadastre produtos no Catálogo primeiro."
-                    : "Nada encontrado."}
+                    : "Nenhum produto encontrado"}
                 </p>
               ) : (
                 <ul className="space-y-1.5">
                   {filtered.map((product) => {
-                    const meta = PRODUCT_CATEGORY_META[product.category];
+                    const meta =
+                      PRODUCT_CATEGORY_META[product.category] ?? NEUTRAL_TILE;
                     return (
                       <li key={product.id}>
                         <button
@@ -582,11 +769,19 @@ function ProductPickerDialog({
                           onClick={() => setConfig(product)}
                           className="flex w-full items-center gap-3 rounded-xl border border-transparent px-2.5 py-2 text-left transition-colors hover:border-border hover:bg-paper"
                         >
-                          {meta && <CategoryTile meta={meta} className="size-9" />}
-                          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
-                            {product.name}
+                          <CategoryTile meta={meta} className="size-9" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13.5px] font-semibold text-ink">
+                              {product.name}
+                            </span>
+                            <span className="mt-0.5 flex items-center gap-1.5">
+                              <span className="text-[11px] text-ink-faint">
+                                {meta.label}
+                              </span>
+                              <SaleTypeBadge saleType={product.saleType} />
+                            </span>
                           </span>
-                          <span className="tabular shrink-0 text-[13px] font-bold text-ink">
+                          <span className="tabular shrink-0 text-[13.5px] font-bold text-primary">
                             {formatBRL(product.price)}
                           </span>
                         </button>
@@ -600,6 +795,21 @@ function ProductPickerDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Menu vs Revenda tag on catalog rows (design addProductList typeBadge).
+function SaleTypeBadge({ saleType }: { saleType: Product["saleType"] }) {
+  const revenda = saleType === "revenda";
+  return (
+    <span
+      className={cn(
+        "rounded-full px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide",
+        revenda ? "bg-info-wash text-info" : "bg-mist text-primary",
+      )}
+    >
+      {revenda ? "Revenda" : "Menu"}
+    </span>
   );
 }
 
@@ -619,7 +829,7 @@ function ProductConfig({
 }) {
   const [qty, setQty] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
-  const meta = PRODUCT_CATEGORY_META[product.category];
+  const meta = PRODUCT_CATEGORY_META[product.category] ?? NEUTRAL_TILE;
   const addons = product.adicionais ?? [];
 
   function toggleAddon(name: string) {
@@ -663,20 +873,20 @@ function ProductConfig({
 
       <div className="space-y-5 overflow-y-auto p-4">
         <div className="flex items-center gap-3 rounded-xl border border-border bg-paper p-3">
-          {meta && <CategoryTile meta={meta} className="size-11" />}
+          <CategoryTile meta={meta} className="size-11" />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[14px] font-semibold text-ink">
               {product.name}
             </span>
             <span className="tabular text-[11.5px] text-ink-faint">
-              {formatBRL(product.price)} un.
+              {meta.label} · {formatBRL(product.price)}
             </span>
           </span>
         </div>
 
         <div className="flex items-center justify-between">
           <Label>Quantidade</Label>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card p-0.5">
             <QtyButton onClick={() => setQty((v) => Math.max(1, v - 1))}>
               <Minus className="size-3.5" />
             </QtyButton>
