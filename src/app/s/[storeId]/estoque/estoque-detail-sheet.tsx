@@ -748,9 +748,14 @@ function Timeline({
           : m.refItem && m.refItem !== "—"
             ? m.refItem
             : "";
+        // contínuo items measure loose movements in uses, not base units.
         const unit = m.byPackage
           ? `${item.pkgLabel ?? "emb."}${m.qty === 1 ? "" : "s"}`
-          : unitLabel(item.unit, m.qty !== 1);
+          : item.continuousUse
+            ? m.qty === 1
+              ? "uso"
+              : "usos"
+            : unitLabel(item.unit, m.qty !== 1);
         return (
           <div
             key={m.id}

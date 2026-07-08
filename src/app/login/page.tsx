@@ -21,8 +21,11 @@ export default async function LoginPage() {
               "repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0, rgba(255,255,255,.04) 1px, transparent 1px, transparent 11px)",
           }}
         />
-        <div className="pointer-events-none absolute -top-16 -right-10 size-[340px] rounded-full bg-leaf/16" />
-        <div className="pointer-events-none absolute -bottom-24 -left-18 hidden size-[300px] rounded-full bg-leaf/10 lg:block" />
+        <div className="selet-leaf pointer-events-none absolute -top-16 -right-10 size-[340px] rounded-full bg-leaf/16" />
+        <div
+          className="selet-leaf pointer-events-none absolute -bottom-24 -left-18 size-[300px] rounded-full bg-leaf/10"
+          style={{ animationDelay: "-3s" }}
+        />
 
         <div className="relative flex items-baseline gap-3">
           <span className="font-display text-[32px] font-semibold leading-none tracking-[0.01em] text-white lg:text-[40px]">
@@ -51,7 +54,7 @@ export default async function LoginPage() {
 
       {/* Form panel */}
       <div className="flex flex-1 items-start justify-center bg-paper px-6 py-9 lg:w-[min(46%,560px)] lg:flex-none lg:items-center lg:px-10">
-        <div className="w-full max-w-[352px]">
+        <div className="selet-rise w-full max-w-[352px]">
           <span className="mb-6 flex size-[52px] items-center justify-center rounded-[14px] bg-primary text-white shadow-[0_12px_26px_-12px_rgba(24,107,65,.6)]">
             <SeletLeaf className="size-[26px]" />
           </span>
@@ -92,6 +95,18 @@ export default async function LoginPage() {
               administrador para solicitar acesso.
             </p>
           </div>
+
+          <p className="mt-7 text-center text-[12px] leading-normal text-ink-faint">
+            Ao entrar, você concorda com os{" "}
+            <a href="#" className="font-semibold text-primary hover:underline">
+              Termos
+            </a>{" "}
+            e a{" "}
+            <a href="#" className="font-semibold text-primary hover:underline">
+              Política de Privacidade
+            </a>
+            .
+          </p>
         </div>
       </div>
     </div>

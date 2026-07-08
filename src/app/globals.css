@@ -2,8 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 /*
  * Selet design tokens — sourced from docs/design/Selet Brand Identity.dc.html
  * and Selet Admin.dc.html. Light theme only.
@@ -161,5 +159,41 @@
 @layer utilities {
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Login entrance + ambient float — mirrors docs/design/Selet Login.dc.html */
+  .selet-rise {
+    animation: seletRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .selet-leaf {
+    animation: seletFloat 6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .selet-rise,
+    .selet-leaf {
+      animation: none;
+    }
+  }
+}
+
+@keyframes seletFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes seletRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

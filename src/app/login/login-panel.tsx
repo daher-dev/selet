@@ -16,7 +16,9 @@ export function LoginPanel() {
     setError(null);
     const auth = getClientAuth();
     try {
-      const credential = await signInWithPopup(auth, new GoogleAuthProvider());
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      const credential = await signInWithPopup(auth, provider);
       const idToken = await credential.user.getIdToken();
 
       const res = await fetch("/api/session", {
