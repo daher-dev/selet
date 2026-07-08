@@ -62,19 +62,21 @@ export function EstoqueClient({
     const terms = [query, shellSearch]
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
-    return items
-      .filter((item) => {
-        if (category && item.category !== category) return false;
-        if (status !== "todas" && stockStatus(item) !== status) return false;
-        const cat = STOCK_CATEGORY_META[item.category]?.label ?? item.category;
-        return terms.every((term) =>
-          `${item.name} ${cat}`.toLowerCase().includes(term),
-        );
-      })
-      // Archived items always sink to the bottom of the list.
-      .sort(
-        (a, b) => Number(a.archived) - Number(b.archived),
+    return items.filter((item) => {
+      // Archived items are hidden by default; only the "Arquivado" situação
+      // surfaces them (and then shows them exclusively).
+      if (status === "arquivado") {
+        if (!item.archived) return false;
+      } else if (item.archived) {
+        return false;
+      }
+      if (category && item.category !== category) return false;
+      if (status !== "todas" && stockStatus(item) !== status) return false;
+      const cat = STOCK_CATEGORY_META[item.category]?.label ?? item.category;
+      return terms.every((term) =>
+        `${item.name} ${cat}`.toLowerCase().includes(term),
       );
+    });
   }, [items, query, shellSearch, category, status]);
 
   const categoryLabel =

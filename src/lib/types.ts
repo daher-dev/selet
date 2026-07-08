@@ -242,6 +242,8 @@ export interface Product {
   prep?: "sob demanda" | "lote" | null;
   /** Prep/shelf duration in minutes (metadata shown on the catalog card). */
   duration?: number;
+  /** Hidden from the default catálogo list (e.g. old retail SKUs archived on sync). */
+  archived: boolean;
 }
 
 export interface StockItem {

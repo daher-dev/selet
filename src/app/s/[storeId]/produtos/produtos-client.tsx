@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  Archive,
   ChefHat,
   ChevronDown,
   Filter,
@@ -50,6 +51,7 @@ const TYPE_FILTERS: { value: string; label: string }[] = [
   { value: "all", label: "Todos" },
   { value: "menu", label: "Menu" },
   { value: "revenda", label: "Revenda" },
+  { value: "arquivados", label: "Arquivados" },
 ];
 
 export function ProdutosClient({
@@ -87,8 +89,16 @@ export function ProdutosClient({
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
     return products.filter((p) => {
+      // Archived products are hidden by default; only the "Arquivados" tipo
+      // surfaces them (and then shows them exclusively).
+      if (saleType === "arquivados") {
+        if (!p.archived) return false;
+      } else if (p.archived) {
+        return false;
+      }
       if (category !== "all" && p.category !== category) return false;
-      if (saleType !== "all" && p.saleType !== saleType) return false;
+      if (saleType !== "all" && saleType !== "arquivados" && p.saleType !== saleType)
+        return false;
       const catLabel = PRODUCT_CATEGORY_META[p.category]?.label ?? p.category;
       const haystack = `${p.name} ${catLabel}`.toLowerCase();
       return terms.every((term) => haystack.includes(term));
@@ -159,7 +169,9 @@ export function ProdutosClient({
                 ? ChefHat
                 : opt.value === "revenda"
                   ? Tag
-                  : List;
+                  : opt.value === "arquivados"
+                    ? Archive
+                    : List;
             return (
               <DropdownMenuItem
                 key={opt.value}
@@ -172,7 +184,9 @@ export function ProdutosClient({
                       ? "bg-mist text-primary"
                       : opt.value === "revenda"
                         ? "bg-cat-bebidas-wash text-cat-bebidas"
-                        : undefined
+                        : opt.value === "arquivados"
+                          ? "bg-wash text-ink-faint"
+                          : undefined
                   }
                 >
                   <Icon />

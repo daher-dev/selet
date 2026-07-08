@@ -51,6 +51,7 @@ function toProduct(id: string, d: FirebaseFirestore.DocumentData): Product {
     producedStock: d.producedStock ?? 0,
     prep: d.prep ?? null,
     duration: d.duration ?? undefined,
+    archived: d.archived ?? false,
   };
 }
 
