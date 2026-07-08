@@ -26,8 +26,11 @@ describe.skipIf(!hasEmulator)("importCatalog (emulator)", () => {
     }
   });
 
-  it("imports the menu at Vila Velha prices, with descriptions and stock", async () => {
-    const r = await importCatalog(db, "vila-velha");
+  it("imports the menu at Vila Velha prices, with descriptions and stock (seed path)", async () => {
+    // seedOpeningLedger:true is the emulator/demo path — the store keeps the
+    // realistic hbl-stock.json opening counts. (The prod bootstrap omits it and
+    // starts at ZERO; that branch is covered by the Passos test below.)
+    const r = await importCatalog(db, "vila-velha", { seedOpeningLedger: true });
     expect(r.products).toBeGreaterThan(0);
     expect(r.stockItems).toBeGreaterThan(0);
 
@@ -77,6 +80,9 @@ describe.skipIf(!hasEmulator)("importCatalog (emulator)", () => {
   });
 
   it("imports Passos at its own (cheaper) prices and skips lanches", async () => {
+    // Default (no seedOpeningLedger) is the PROD BOOTSTRAP path: a real store
+    // starts every insumo at ZERO and counts in via entrada movements — NO demo
+    // opening counts (owner directive A).
     const r = await importCatalog(db, "passos");
 
     // Same shake, different store price.
@@ -84,6 +90,23 @@ describe.skipIf(!hasEmulator)("importCatalog (emulator)", () => {
       await products("passos").doc("shake-frutas-vermelhas").get()
     ).data();
     expect(shake?.price).toBe(3300);
+
+    // Prod path: the café insumo lands with a zeroed opening ledger (no demo
+    // counts), but its unit-derived catalog fields are still set.
+    const shakeStock = (
+      await stock("passos").doc("shake-todos-os-sabores").get()
+    ).data();
+    expect(shakeStock).toMatchObject({
+      tracked: true,
+      continuousUse: true,
+      consumptionMode: "continuo",
+      pkgSize: 550,
+      sealed: 0,
+      open: 0,
+      qty: 0,
+      usos: 0,
+      openPkg: false,
+    });
 
     // Passos doesn't sell the lanches, so they aren't imported there…
     const lanche = await products("passos").doc("lanche-barra-proteica").get();
