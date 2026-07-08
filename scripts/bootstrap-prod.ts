@@ -10,7 +10,7 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { importCatalog } from "./lib/import-catalog";
-import { seedInvites } from "./lib/team";
+import { refreshStoreSummary } from "./lib/summary";
 
 const ADMIN_EMAIL = "joao@daher.dev";
 
@@ -48,12 +48,18 @@ async function bootstrap() {
     { merge: true },
   );
 
-  const invited = await seedInvites(db);
-  if (invited.length) console.log("Convites criados:", invited.join(", "));
-
+  // No demo team in prod — bootstrap creates only the real admin (above), the
+  // stores, and the catalog. Real teammates are invited in-app.
   for (const { id } of STORES) {
+    // Opening ledger stays at ZERO (seedOpeningLedger omitted) — a real store
+    // does its day-1 count via entrada movements, not seeded demo counts.
     const r = await importCatalog(db, id);
-    console.log(`Catálogo importado em ${id}: ${r.products} produtos, ${r.stockItems} itens de estoque`);
+    console.log(
+      `Catálogo importado em ${id}: ${r.products} produtos, ${r.stockItems} itens de estoque` +
+        (r.archived ? `, ${r.archived} arquivados` : ""),
+    );
+    // Pre-compute the per-store summary doc (low-stock count, etc.), like seed.ts.
+    await refreshStoreSummary(db, id);
   }
 
   console.log(

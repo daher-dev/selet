@@ -75,11 +75,24 @@ function derive(tracked: boolean, pkgSize: number | undefined, sealed: number, o
 export interface ImportResult {
   products: number;
   stockItems: number;
+  archived: number;
+}
+
+export interface ImportOptions {
+  /**
+   * Seed the opening ledger from hbl-stock.json on FIRST insert (sealed/open/
+   * usos/openPkg). The emulator seed passes true so the local/demo store keeps
+   * realistic counts; the PROD bootstrap omits it (false) so a real store starts
+   * at ZERO and does its day-1 count via entrada movements — no demo data.
+   * Live counts are always preserved on re-import regardless.
+   */
+  seedOpeningLedger?: boolean;
 }
 
 export async function importCatalog(
   db: Firestore,
   storeId: string,
+  { seedOpeningLedger = false }: ImportOptions = {},
 ): Promise<ImportResult> {
   const catalog = readJson<CatalogItem[]>("menu-catalog.json");
   const priceBook = readJson<PriceBook>("menu-prices.json");
@@ -99,13 +112,15 @@ export async function importCatalog(
     // Default prep duration (minutes): sob demanda ~1, lote ~4, revenda → none.
     const duration =
       rec.prep === "lote" ? 4 : rec.prep === "sob demanda" ? 1 : undefined;
+    // Catalog metadata is refreshed on every import. `active`/`archived` are
+    // NOT here: they carry a store's manual sell/hide choice and are set only on
+    // first insert (below) so a re-import never force-reactivates or un-hides.
     const fields = {
       name: p.name,
       price: prices[p.slug],
       category: p.category,
       typeTags: p.typeTags,
       description: p.description || undefined,
-      active: true,
       saleType: rec.saleType,
       recipe: rec.recipe,
       adicionais: rec.adicionais,
@@ -115,9 +130,17 @@ export async function importCatalog(
       prep: rec.prep,
       duration,
     };
-    // Only stamp createdAt on first insert so re-imports don't reset it.
     await ref.set(
-      prune(snap.exists ? fields : { ...fields, createdAt: FieldValue.serverTimestamp() }),
+      prune(
+        snap.exists
+          ? fields
+          : {
+              ...fields,
+              active: true,
+              archived: false,
+              createdAt: FieldValue.serverTimestamp(),
+            },
+      ),
       { merge: true },
     );
   }
@@ -131,6 +154,9 @@ export async function importCatalog(
     // value in the JSON is ignored — the unit decides.
     const continuousUse = isWeightVolumeUnit(s.unit);
     const consumptionMode = consumptionModeForUnit(s.unit);
+    // Catalog metadata refreshed on every import. `archived` is NOT here — it is
+    // a store's manual hide choice, set only on first insert so a re-import never
+    // un-hides an item the store archived (the SYNC pass below owns archiving).
     const catalogFields = {
       name: s.name,
       category: s.category,
@@ -144,19 +170,22 @@ export async function importCatalog(
       sellPrice: s.sellPrice,
       cost: s.cost,
       reorderAt: s.reorderAt,
-      archived: s.archived ?? false,
       updatedAt: FieldValue.serverTimestamp(),
     };
     if (snap.exists) {
-      // Preserve live counts (sealed/open/qty/usos); only refresh catalog metadata.
+      // Preserve live counts (sealed/open/qty/usos) and archived; only refresh
+      // catalog metadata.
       await ref.set(prune(catalogFields), { merge: true });
     } else {
-      // First insert — seed the opening ledger from the JSON and derive qty.
-      const state = derive(s.tracked, s.pkgSize, s.sealed ?? 0, s.open ?? 0);
-      const openPkg = s.openPkg ?? false;
-      const usable = continuousUse
-        ? (s.sealed ?? 0) + (openPkg ? 1 : 0)
-        : state.qty;
+      // First insert. Opening ledger: seedOpeningLedger seeds the realistic
+      // hbl-stock.json counts (emulator/demo); otherwise a real store starts at
+      // ZERO and counts in via entrada movements (prod bootstrap — no demo data).
+      const sealed = seedOpeningLedger ? (s.sealed ?? 0) : 0;
+      const open = seedOpeningLedger ? (s.open ?? 0) : 0;
+      const openPkg = seedOpeningLedger ? (s.openPkg ?? false) : false;
+      const usos = seedOpeningLedger ? (s.usos ?? 0) : 0;
+      const state = derive(s.tracked, s.pkgSize, sealed, open);
+      const usable = continuousUse ? sealed + (openPkg ? 1 : 0) : state.qty;
       const thr =
         s.tracked && !continuousUse
           ? s.reorderAt * (s.pkgSize || 1)
@@ -164,14 +193,44 @@ export async function importCatalog(
       await ref.set(
         prune({
           ...catalogFields,
+          archived: s.archived ?? false,
           ...state,
           openPkg,
-          usos: s.usos ?? 0,
+          usos,
           lowStock: usable <= thr,
         }),
       );
     }
   }
 
-  return { products: priced.length, stockItems: stock.length };
+  // SYNC (idempotent lifecycle): a doc present in the store but ABSENT from the
+  // catalog JSON on re-import is ARCHIVED — never hard-deleted, never left stale.
+  const keepProducts = new Set(priced.map((p) => p.slug));
+  const keepStock = new Set(stock.map((s) => s.slug));
+  const archived =
+    (await archiveAbsent(productsCol, keepProducts)) +
+    (await archiveAbsent(stockCol, keepStock));
+
+  return { products: priced.length, stockItems: stock.length, archived };
+}
+
+/**
+ * Marks every doc in `col` whose id is not in `keep` as archived. Idempotent:
+ * already-archived docs are skipped so re-imports don't churn updatedAt.
+ */
+async function archiveAbsent(
+  col: FirebaseFirestore.CollectionReference,
+  keep: Set<string>,
+): Promise<number> {
+  const snap = await col.get();
+  let n = 0;
+  for (const doc of snap.docs) {
+    if (keep.has(doc.id) || doc.get("archived") === true) continue;
+    await doc.ref.set(
+      { archived: true, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+    n += 1;
+  }
+  return n;
 }

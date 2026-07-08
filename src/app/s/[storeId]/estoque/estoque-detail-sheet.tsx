@@ -25,7 +25,11 @@ import type {
   StockMovementReason,
   StockUnit,
 } from "@/lib/types";
-import { STOCK_CATEGORIES } from "@/lib/types";
+import {
+  consumptionModeForUnit,
+  isWeightVolumeUnit,
+  STOCK_CATEGORIES,
+} from "@/lib/types";
 import { formatBRL, formatRelative, formatQty, parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -305,12 +309,13 @@ function EditPanel({
 }) {
   const [category, setCategory] = useState<StockCategory>(item.category);
   const [unit, setUnit] = useState<StockUnit>(item.unit);
-  const [continuo, setContinuo] = useState(item.continuousUse);
   const [pkgSize, setPkgSize] = useState(item.pkgSize ? String(item.pkgSize) : "");
   const [reorder, setReorder] = useState(String(item.reorderAt));
   const [pending, startTransition] = useTransition();
 
   const isCount = unit === "un" || unit === "sache";
+  // UNIT RULE: consumption mode is DERIVED from the unit, never toggled here.
+  const isWeightVol = isWeightVolumeUnit(unit);
   const reorderUnit = item.tracked ? `${item.pkgLabel ?? "emb."}s` : unit;
 
   function save() {
@@ -323,8 +328,8 @@ function EditPanel({
         tracked: item.tracked,
         pkgLabel: item.pkgLabel,
         pkgSize: pkgSize ? Number(pkgSize.replace(",", ".")) : item.pkgSize,
-        continuousUse: continuo,
-        consumptionMode: continuo ? "continuo" : "medido",
+        continuousUse: isWeightVol,
+        consumptionMode: consumptionModeForUnit(unit),
         resellable: item.resellable,
         cost: item.cost,
         sellPrice: item.sellPrice,
@@ -420,19 +425,18 @@ function EditPanel({
 
           <div>
             <FieldLabel>Baixa no estoque</FieldLabel>
-            <Segmented
-              options={[
-                { value: false, label: "Medição exata" },
-                { value: true, label: "Uso contínuo" },
-              ]}
-              value={continuo}
-              onChange={setContinuo}
-            />
-            <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">
-              {continuo
-                ? "Uso contínuo: sem medição — baixa manual por embalagem."
-                : "Medição exata: deduz a quantidade usada a cada preparo."}
-            </p>
+            <div className="rounded-lg border border-border bg-surface px-3.5 py-2.5">
+              <span className="block text-[12.5px] font-semibold text-ink">
+                {isWeightVol
+                  ? "Controle manual · marcar como vazia"
+                  : "Baixa automática por contagem"}
+              </span>
+              <p className="mt-0.5 text-[11px] leading-snug text-ink-faint">
+                {isWeightVol
+                  ? "Itens por peso/volume não são pesados a cada uso — baixa manual por embalagem."
+                  : "Itens contáveis (un/sachê) deduzem a quantidade usada a cada preparo."}
+              </p>
+            </div>
           </div>
 
           {isCount && (
@@ -944,34 +948,6 @@ function UnitGroups({
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function Segmented<T extends string | boolean>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="flex gap-0.5 rounded-lg border border-border bg-surface p-0.5">
-      {options.map((o) => (
-        <button
-          key={String(o.value)}
-          type="button"
-          onClick={() => onChange(o.value)}
-          className={cn(
-            "flex-1 rounded-md py-2 text-[12.5px] font-semibold transition-colors",
-            value === o.value ? "bg-primary text-white" : "text-ink-soft hover:text-ink",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
     </div>
   );
 }

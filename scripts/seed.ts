@@ -50,7 +50,8 @@ async function seed() {
   if (invited.length) console.log("Convites criados:", invited.join(", "));
 
   for (const { id } of STORES) {
-    const r = await importCatalog(db, id);
+    // Emulator/demo store keeps the realistic hbl-stock.json opening counts.
+    const r = await importCatalog(db, id, { seedOpeningLedger: true });
     console.log(`Catálogo importado em ${id}: ${r.products} produtos, ${r.stockItems} itens de estoque`);
     // Backfill the pre-computed summary doc (low-stock count, etc.).
     await refreshStoreSummary(db, id);

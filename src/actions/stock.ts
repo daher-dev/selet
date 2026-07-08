@@ -14,6 +14,8 @@ import {
 import { logActivity } from "@/data/activity";
 import {
   CONSUMPTION_MODES,
+  consumptionModeForUnit,
+  isWeightVolumeUnit,
   STOCK_CATEGORIES,
   STOCK_MOVEMENT_REASONS,
   STOCK_MOVEMENT_TYPES,
@@ -66,12 +68,14 @@ export async function createStockItemAction(
   input: StockItemFormInput,
 ): Promise<ActionResult> {
   return run(async () => {
-    const { storeId, initialSealed, initialOpen, consumptionMode, ...rest } =
+    const { storeId, initialSealed, initialOpen, ...rest } =
       itemSchema.parse(input);
+    // UNIT RULE (single source of truth): weight/volume → contínuo (manual);
+    // countable → medido. Derived from the unit, never trusted from the client.
     const data = {
       ...rest,
-      consumptionMode:
-        consumptionMode ?? (rest.continuousUse ? "continuo" : "medido"),
+      continuousUse: isWeightVolumeUnit(rest.unit),
+      consumptionMode: consumptionModeForUnit(rest.unit),
     } as const;
     const user = await requireAccess(storeId, "estoque");
     await createStockItem(
@@ -99,10 +103,9 @@ export async function updateStockItemAction(
       tracked: parsed.tracked,
       pkgLabel: parsed.pkgLabel,
       pkgSize: parsed.pkgSize,
-      continuousUse: parsed.continuousUse,
-      consumptionMode:
-        parsed.consumptionMode ??
-        (parsed.continuousUse ? ("continuo" as const) : ("medido" as const)),
+      // UNIT RULE: derived from unit, never trusted from the client.
+      continuousUse: isWeightVolumeUnit(parsed.unit),
+      consumptionMode: consumptionModeForUnit(parsed.unit),
       resellable: parsed.resellable,
       cost: parsed.cost,
       sellPrice: parsed.sellPrice,

@@ -4,7 +4,11 @@ import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { StockCategory, StockUnit } from "@/lib/types";
-import { STOCK_CATEGORIES } from "@/lib/types";
+import {
+  consumptionModeForUnit,
+  isWeightVolumeUnit,
+  STOCK_CATEGORIES,
+} from "@/lib/types";
 import { parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { createStockItemAction } from "@/actions/stock";
@@ -68,7 +72,6 @@ function StockItemForm({
   const [category, setCategory] = useState<StockCategory>("bebidas");
   const [unit, setUnit] = useState<StockUnit>("un");
   const [pkgSize, setPkgSize] = useState("12");
-  const [continuo, setContinuo] = useState(false);
   const [sealed, setSealed] = useState("");
   const [cost, setCost] = useState("");
   const [reorder, setReorder] = useState("");
@@ -76,7 +79,9 @@ function StockItemForm({
   const [pending, startTransition] = useTransition();
 
   const isCount = unit === "un" || unit === "sache";
-  const isMeasured = !isCount;
+  // UNIT RULE: the consumption mode is DERIVED from the unit, never chosen —
+  // weight/volume → contínuo (manual, mark-as-empty); countable → medido (auto).
+  const isWeightVol = isWeightVolumeUnit(unit);
 
   function submit() {
     if (!name.trim()) return toast.error("Informe o nome do item.");
@@ -104,8 +109,8 @@ function StockItemForm({
         tracked: true,
         pkgLabel: "caixa",
         pkgSize: size,
-        continuousUse: isMeasured && continuo,
-        consumptionMode: isMeasured && continuo ? "continuo" : "medido",
+        continuousUse: isWeightVol,
+        consumptionMode: consumptionModeForUnit(unit),
         resellable: false,
         cost: costC,
         reorderAt: reorderN,
@@ -200,34 +205,10 @@ function StockItemForm({
           </div>
         )}
 
-        {isMeasured && (
-          <div>
-            <FieldLabel>Baixa no estoque</FieldLabel>
-            <div className="flex gap-0.5 rounded-lg border border-border bg-surface p-0.5">
-              {[
-                { value: false, label: "Medição exata" },
-                { value: true, label: "Uso contínuo" },
-              ].map((o) => (
-                <button
-                  key={String(o.value)}
-                  type="button"
-                  onClick={() => setContinuo(o.value)}
-                  className={cn(
-                    "flex-1 rounded-md py-2 text-[12.5px] font-semibold transition-colors",
-                    continuo === o.value ? "bg-primary text-white" : "text-ink-soft hover:text-ink",
-                  )}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-1.5 text-[11px] leading-snug text-ink-faint">
-              {continuo
-                ? "Uso contínuo: sem medição — baixa manual por embalagem."
-                : "Medição exata: deduz a quantidade usada a cada preparo."}
-            </p>
-          </div>
-        )}
+        <div>
+          <FieldLabel>Baixa no estoque</FieldLabel>
+          <BaixaInfo isWeightVol={isWeightVol} />
+        </div>
 
         <div>
           <span className="mb-2 flex items-center gap-1.5">
@@ -293,6 +274,28 @@ function StockItemForm({
         </Button>
       </SheetFooter>
     </>
+  );
+}
+
+/**
+ * Read-only display of the DERIVED consumption mode (UNIT RULE): the mode is
+ * fixed by the unit, so there is nothing to toggle — weight/volume items are
+ * manual (mark-as-empty), countable items deduct automatically by count.
+ */
+function BaixaInfo({ isWeightVol }: { isWeightVol: boolean }) {
+  return (
+    <div className="rounded-lg border border-border bg-surface px-3.5 py-2.5">
+      <span className="block text-[12.5px] font-semibold text-ink">
+        {isWeightVol
+          ? "Controle manual · marcar como vazia"
+          : "Baixa automática por contagem"}
+      </span>
+      <p className="mt-0.5 text-[11px] leading-snug text-ink-faint">
+        {isWeightVol
+          ? "Itens por peso/volume não são pesados a cada uso — baixa manual por embalagem."
+          : "Itens contáveis (un/sachê) deduzem a quantidade usada a cada preparo."}
+      </p>
+    </div>
   );
 }
 
