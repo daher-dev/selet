@@ -165,6 +165,11 @@ export async function createStockItem(
   const lowStock = computeLowStock({ ...input, ...state, openPkg: false });
   await ref.set({
     ...input,
+    // Persist an explicit boolean: the low-stock queries (listLowStock /
+    // countLowStock) filter `where("archived","==",false)`, and Firestore
+    // equality does NOT match a missing field — so an item created without it
+    // would be invisible to the dashboard strip and the nav badge.
+    archived: input.archived ?? false,
     ...state,
     openPkg: false,
     usos: 0,

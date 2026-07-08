@@ -9,6 +9,11 @@ import { createManualTx, deleteManualTx } from "./finance";
 import { createCustomer, setCustomerArchived } from "./customers";
 import { applyMovement, createStockItem } from "./stock";
 import { computeSummary, readSummary } from "./summary";
+import {
+  fastPath,
+  slowPath,
+  monthKey,
+} from "@/app/s/[storeId]/dashboard-data";
 
 const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 
@@ -179,6 +184,102 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     s = await expectConsistent(storeId);
     // Deleting the only tx empties (or zeroes) the month bucket.
     expect(s.months[mk]?.out ?? 0).toBe(0);
+  });
+
+  it("dashboard fallback: summary-backed view == fresh scan-and-compute", async () => {
+    const storeId = `test-summary-dashboard-${Date.now()}`;
+
+    // A birthday a few days out — within 30 days AND in this/next calendar month,
+    // so BOTH the bounded listUpcomingBirthdays query (fast path) and the in-memory
+    // scan over all customers (slow path) must count it.
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 5);
+    const custA = await createCustomer(storeId, {
+      name: "Aline",
+      tags: [],
+      birthday: { day: soon.getDate(), month: soon.getMonth() + 1 },
+    });
+    const custB = await createCustomer(storeId, { name: "Bento", tags: [] });
+
+    // Orders across channels with different products → exercises channels + sellers.
+    await createOrder(storeId, {
+      customerId: custA,
+      customerName: "Aline",
+      channel: "instagram",
+      items: [
+        { productId: "p1", name: "Shake", qty: 2, unitPrice: 2000 },
+        { productId: "p2", name: "Barra", qty: 1, unitPrice: 1500 },
+      ],
+    });
+    await createOrder(storeId, {
+      customerId: custB,
+      customerName: "Bento",
+      channel: "whatsapp",
+      items: [{ productId: "p1", name: "Shake", qty: 3, unitPrice: 2000 }],
+    });
+
+    // A tracked, low-stock item → the estoque strip has something to show.
+    await createStockItem(
+      storeId,
+      {
+        name: "Whey",
+        category: "secos",
+        unit: "kg",
+        tracked: true,
+        pkgLabel: "pote",
+        pkgSize: 1,
+        continuousUse: false,
+        consumptionMode: "medido",
+        resellable: false,
+        cost: 9000,
+        reorderAt: 5,
+      },
+      { sealed: 1, open: 0 },
+      "tester",
+    );
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const thisKey = monthKey(startOfMonth);
+    const lastKey = monthKey(startOfLastMonth);
+    const perms = { canPedidos: true, canClientes: true, canEstoque: true };
+
+    // The materialized doc exists (writes maintained it) → the page takes fastPath.
+    const summary = await readSummary(storeId);
+    expect(summary).not.toBeNull();
+
+    const fast = await fastPath({
+      storeId,
+      summary: summary!,
+      now,
+      thisKey,
+      lastKey,
+      ...perms,
+    });
+
+    // The fallback: exactly what the page would render if the summary were absent.
+    const slow = await slowPath({
+      storeId,
+      now,
+      startOfMonth,
+      startOfLastMonth,
+      ...perms,
+    });
+
+    // The whole promise of the pre-computation: identical dashboard either way.
+    expect(fast).toEqual(slow);
+    // Spot-check the summary-derived widgets carry the seeded signal.
+    expect(fast.byChannel).toEqual({ instagram: 1, whatsapp: 1, loja: 0 });
+    expect(fast.topSellers).toEqual([
+      { name: "Shake", qty: 5 },
+      { name: "Barra", qty: 1 },
+    ]);
+    expect(fast.lowStock.map((i) => i.name)).toContain("Whey");
+    expect(fast.kpis.find((k) => k.label === "Clientes ativos")?.value).toBe("2");
+    expect(
+      fast.kpis.find((k) => k.label === "Aniversários próximos")?.value,
+    ).toBe("1");
   });
 
   it("tracks a priced restock movement's expense and low-stock flip", async () => {
