@@ -1,7 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
-import { canAccessStore, requireSessionUser } from "@/lib/access";
+import {
+  canAccessSection,
+  canAccessStore,
+  requireSessionUser,
+} from "@/lib/access";
 import { listStoresForUser } from "@/data/stores";
+import { countOpenOrders } from "@/data/orders";
+import { countLowStock } from "@/data/stock";
 
 export default async function StoreLayout({
   children,
@@ -22,8 +28,20 @@ export default async function StoreLayout({
     redirect(stores[0] ? `/s/${stores[0].id}` : "/login");
   }
 
+  // Cheap aggregation counts for the nav badges — gated by section access so
+  // members without a section neither see nor pay for the query.
+  const [openOrders, lowStock] = await Promise.all([
+    canAccessSection(user, "pedidos") ? countOpenOrders(storeId) : Promise.resolve(0),
+    canAccessSection(user, "estoque") ? countLowStock(storeId) : Promise.resolve(0),
+  ]);
+
   return (
-    <AppShell user={user} store={store} stores={stores}>
+    <AppShell
+      user={user}
+      store={store}
+      stores={stores}
+      badges={{ openOrders, lowStock }}
+    >
       {children}
     </AppShell>
   );

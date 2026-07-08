@@ -51,6 +51,20 @@ export async function listOrders(
   return snap.docs.map((doc) => toOrder(doc.id, doc.data()));
 }
 
+/**
+ * Cheap count of "open" orders (novo|preparando|entrega) for the nav badge.
+ * Uses a Firestore aggregation query — one metered read, no doc scan.
+ * TODO(pre-compute): materialize this into a per-store counter doc updated
+ * inside the order create/status transactions (see plan · pre-compute principle).
+ */
+export async function countOpenOrders(storeId: string): Promise<number> {
+  const snap = await ordersCol(storeId)
+    .where("status", "in", ["novo", "preparando", "entrega"])
+    .count()
+    .get();
+  return snap.data().count;
+}
+
 export async function listOrdersByCustomer(
   storeId: string,
   customerId: string,

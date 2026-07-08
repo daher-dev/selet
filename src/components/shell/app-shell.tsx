@@ -1,62 +1,77 @@
 "use client";
 
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
 import type { SessionUser, Store } from "@/lib/types";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { SidebarContent } from "./sidebar-content";
-import { SeletMark, SeletWordmark } from "./selet-mark";
+import { ShellHeader } from "./shell-header";
+import { AppShellProvider } from "./app-shell-context";
+
+/** Live nav counters computed cheaply in the layout server component. */
+export interface NavBadges {
+  openOrders: number;
+  lowStock: number;
+}
 
 interface AppShellProps {
   user: SessionUser;
   store: Store;
   stores: Store[];
+  badges: NavBadges;
   children: React.ReactNode;
 }
 
-export function AppShell({ user, store, stores, children }: AppShellProps) {
-  const [open, setOpen] = useState(false);
+export function AppShell({
+  user,
+  store,
+  stores,
+  badges,
+  children,
+}: AppShellProps) {
+  const [navOpen, setNavOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
-    <div className="flex min-h-dvh w-full">
-      {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] border-r border-sidebar-border lg:block">
-        <SidebarContent user={user} store={store} stores={stores} />
-      </aside>
+    <AppShellProvider routeKey={pathname}>
+      <div className="flex h-dvh w-full overflow-hidden">
+        {/* Desktop sidebar (≥820px) */}
+        <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] border-r border-border bg-white px-4 py-[22px] min-[820px]:block">
+          <SidebarContent
+            user={user}
+            store={store}
+            stores={stores}
+            badges={badges}
+          />
+        </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-[248px]">
-        {/* Mobile header */}
-        <header className="sticky top-0 z-20 flex h-[60px] items-center gap-3 border-b border-border bg-paper/90 px-4 backdrop-blur lg:hidden">
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Abrir menu"
-                className="-ml-2 text-ink"
-              >
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[266px] p-0">
-              <SheetTitle className="sr-only">Menu</SheetTitle>
-              <SidebarContent
-                user={user}
-                store={store}
-                stores={stores}
-                onNavigate={() => setOpen(false)}
-              />
-            </SheetContent>
-          </Sheet>
-          <div className="flex items-center gap-2">
-            <SeletMark className="size-7" />
-            <SeletWordmark className="text-[20px]" />
-          </div>
-        </header>
+        {/* Mobile slide-in nav drawer (<820px), green-tinted scrim */}
+        <Sheet open={navOpen} onOpenChange={setNavOpen}>
+          <SheetContent
+            side="left"
+            showCloseButton={false}
+            overlayClassName="bg-[rgba(21,35,28,0.4)] supports-backdrop-filter:backdrop-blur-none"
+            className="w-[266px] max-w-[266px] border-border bg-white px-4 py-[18px] min-[820px]:hidden"
+          >
+            <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
+            <SidebarContent
+              user={user}
+              store={store}
+              stores={stores}
+              badges={badges}
+              onNavigate={() => setNavOpen(false)}
+            />
+          </SheetContent>
+        </Sheet>
 
-        <main className="flex-1 px-4 py-4 lg:px-7 lg:py-6">{children}</main>
+        {/* Main column: persistent header + scrollable content */}
+        <div className="flex min-w-0 flex-1 flex-col min-[820px]:pl-[248px]">
+          <ShellHeader store={store} onOpenNav={() => setNavOpen(true)} />
+          <main className="flex-1 overflow-y-auto px-3.5 pb-[72px] pt-4 min-[820px]:px-7 min-[820px]:pb-10 min-[820px]:pt-[26px]">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AppShellProvider>
   );
 }

@@ -1,14 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, Boxes, Package, PackageOpen, Plus, Search } from "lucide-react";
+import { AlertTriangle, Boxes, Package, PackageOpen, Search } from "lucide-react";
 import type { StockItem } from "@/lib/types";
 import { formatQty } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/shell/page-header";
+import {
+  usePageAction,
+  useShellSearch,
+} from "@/components/shell/app-shell-context";
 import { CategoryTile, STOCK_CATEGORY_META } from "@/components/category-meta";
 import { StockItemFormSheet } from "./stock-item-form-sheet";
 import { MovementSheet } from "./movement-sheet";
@@ -53,6 +55,15 @@ export function EstoqueClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState<StockItem | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const shellSearch = useShellSearch();
+
+  usePageAction({
+    label: "Novo item",
+    onClick: () => {
+      setEditing(null);
+      setFormOpen(true);
+    },
+  });
 
   const selected = items.find((i) => i.id === selectedId) ?? null;
   const activeItems = items.filter((i) => !i.archived);
@@ -60,34 +71,19 @@ export function EstoqueClient({
   const lowCount = activeItems.filter((i) => i.lowStock).length;
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const terms = [query, shellSearch]
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
     return items.filter((item) => {
       if (showArchived ? !item.archived : item.archived) return false;
       if (category && item.category !== category) return false;
       if (status !== "todos" && stockStatus(item) !== status) return false;
-      return !q || item.name.toLowerCase().includes(q);
+      return terms.every((term) => item.name.toLowerCase().includes(term));
     });
-  }, [items, query, category, status, showArchived]);
+  }, [items, query, shellSearch, category, status, showArchived]);
 
   return (
     <>
-      <PageHeader
-        title="Estoque"
-        subtitle={`${activeItems.length} ${activeItems.length === 1 ? "insumo" : "insumos"} cadastrados`}
-        action={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-            className="gap-1.5 rounded-xl font-semibold"
-          >
-            <Plus className="size-4" />
-            Novo item
-          </Button>
-        }
-      />
-
       {lowCount > 0 && (
         <div className="mb-4 flex items-center gap-3 rounded-2xl border border-amber/40 bg-amber-wash px-4 py-3">
           <span className="relative flex size-2.5">

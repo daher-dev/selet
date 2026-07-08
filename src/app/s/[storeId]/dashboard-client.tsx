@@ -12,7 +12,7 @@ import {
 import type { Order, StockItem } from "@/lib/types";
 import { formatBRL, formatQty, formatRelative, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/shell/page-header";
+import { usePageAction } from "@/components/shell/app-shell-context";
 import { CHANNEL_META, STATUS_META } from "@/components/order-meta";
 import { ChannelDonut } from "@/components/charts/channel-donut";
 
@@ -46,13 +46,11 @@ export function DashboardClient({
   const maxSellerQty = Math.max(1, ...topSellers.map((s) => s.qty));
   const base = `/s/${storeId}`;
 
+  // Dashboard has no contextual add (design hides it on dashboard/financeiro).
+  usePageAction(null);
+
   return (
     <>
-      <PageHeader
-        title="Visão geral"
-        subtitle="Acompanhe o dia a dia da sua loja."
-      />
-
       {/* KPI grid */}
       <div className="mb-4 grid grid-cols-2 gap-2.5">
         <Kpi

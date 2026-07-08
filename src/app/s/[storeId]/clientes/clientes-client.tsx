@@ -1,14 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Crown, MapPin, Phone, Plus, Search, Users } from "lucide-react";
+import { Crown, MapPin, Phone, Search, Users } from "lucide-react";
 import type { Customer, Order } from "@/lib/types";
 import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/shell/page-header";
+import {
+  usePageAction,
+  useShellSearch,
+} from "@/components/shell/app-shell-context";
 import { CustomerDetailSheet } from "./customer-detail-sheet";
 import { CustomerFormSheet } from "./customer-form-sheet";
 
@@ -34,6 +36,15 @@ export function ClientesClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
+  const shellSearch = useShellSearch();
+
+  usePageAction({
+    label: "Novo cliente",
+    onClick: () => {
+      setEditing(null);
+      setFormOpen(true);
+    },
+  });
 
   // Look up by id so the drawer always shows fresh data after revalidation.
   const selected = customers.find((c) => c.id === selectedId) ?? null;
@@ -45,35 +56,18 @@ export function ClientesClient({
   );
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const terms = [query, shellSearch]
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
     return customers.filter((c) => {
       if (segment === "arquivados" ? !c.archived : c.archived) return false;
       if (segment === "vip" && !c.tags.includes("vip")) return false;
-      return !q || c.name.toLowerCase().includes(q);
+      return terms.every((term) => c.name.toLowerCase().includes(term));
     });
-  }, [customers, query, segment]);
-
-  const activeCount = customers.filter((c) => !c.archived).length;
+  }, [customers, query, shellSearch, segment]);
 
   return (
     <>
-      <PageHeader
-        title="Clientes"
-        subtitle={`${activeCount} ${activeCount === 1 ? "cliente ativo" : "clientes ativos"}`}
-        action={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-            className="gap-1.5 rounded-xl font-semibold"
-          >
-            <Plus className="size-4" />
-            Novo cliente
-          </Button>
-        }
-      />
-
       <div className="mb-4 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />

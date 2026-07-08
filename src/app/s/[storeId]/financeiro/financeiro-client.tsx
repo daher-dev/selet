@@ -20,7 +20,7 @@ import { formatBRL, formatDateShort, orderCode } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/shell/page-header";
+import { usePageAction } from "@/components/shell/app-shell-context";
 import { EntradaSaidaChart, TicketChart } from "@/components/charts/finance-charts";
 import { ManualTxSheet } from "./manual-tx-sheet";
 
@@ -167,6 +167,10 @@ export function FinanceiroClient({
     return { up: diff >= 0, label: `${diff >= 0 ? "+" : "−"}${Math.abs(pct)}%` };
   }, [selectedIndex, range, monthData, net]);
 
+  // Financeiro has no top-bar add (design hides it on dashboard/financeiro);
+  // the "Novo lançamento" trigger stays inline in the competência row below.
+  usePageAction(null);
+
   const monthReceivables = receivablesByMonth[selectedKey];
   const monthTxs = useMemo(
     () =>
@@ -178,20 +182,6 @@ export function FinanceiroClient({
 
   return (
     <>
-      <PageHeader
-        title="Financeiro"
-        subtitle="Entradas, saídas e saldo da loja."
-        action={
-          <Button
-            onClick={() => setFormOpen(true)}
-            className="gap-1.5 rounded-xl font-semibold"
-          >
-            <Plus className="size-4" />
-            Lançamento
-          </Button>
-        }
-      />
-
       {/* Competência (month selector) */}
       <div className="mb-4 flex items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-mist text-primary">
@@ -205,6 +195,21 @@ export function FinanceiroClient({
             {monthLabel(selectedKey)}
           </span>
         </div>
+        <Button
+          onClick={() => setFormOpen(true)}
+          className="hidden gap-1.5 rounded-xl font-semibold sm:flex"
+        >
+          <Plus className="size-4" />
+          Novo lançamento
+        </Button>
+        <Button
+          onClick={() => setFormOpen(true)}
+          size="icon"
+          aria-label="Novo lançamento"
+          className="rounded-xl sm:hidden"
+        >
+          <Plus className="size-4" />
+        </Button>
         <button
           type="button"
           aria-label="Mês anterior"

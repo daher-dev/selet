@@ -8,7 +8,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/shell/page-header";
+import {
+  usePageAction,
+  useShellSearch,
+} from "@/components/shell/app-shell-context";
 import { CHANNEL_META, STATUS_META } from "@/components/order-meta";
 import {
   CategoryTile,
@@ -58,6 +61,9 @@ export function PedidosClient({
   const [onlyUnpaid, setOnlyUnpaid] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const shellSearch = useShellSearch();
+
+  usePageAction({ label: "Novo pedido", onClick: () => setCreating(true) });
 
   const selected = orders.find((o) => o.id === selectedId) ?? null;
 
@@ -75,34 +81,22 @@ export function PedidosClient({
   const receivablesTotal = receivables.reduce((s, o) => s + o.total, 0);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const terms = [query, shellSearch]
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    const matches = (o: Order, term: string) =>
+      o.code.toLowerCase().includes(term) ||
+      o.customerName.toLowerCase().includes(term) ||
+      o.items.some((i) => i.name.toLowerCase().includes(term));
     return orders.filter((o) => {
       if (statusFilter !== "todos" && o.status !== statusFilter) return false;
       if (onlyUnpaid && (o.paid || o.status === "cancelado")) return false;
-      if (!q) return true;
-      return (
-        o.code.toLowerCase().includes(q) ||
-        o.customerName.toLowerCase().includes(q) ||
-        o.items.some((i) => i.name.toLowerCase().includes(q))
-      );
+      return terms.every((term) => matches(o, term));
     });
-  }, [orders, query, statusFilter, onlyUnpaid]);
+  }, [orders, query, shellSearch, statusFilter, onlyUnpaid]);
 
   return (
     <>
-      <PageHeader
-        title="Pedidos"
-        subtitle={`${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"} no total`}
-        action={
-          <Button
-            onClick={() => setCreating(true)}
-            className="gap-1.5 rounded-xl font-semibold"
-          >
-            <Plus className="size-4" />
-            Novo pedido
-          </Button>
-        }
-      />
 
       {receivables.length > 0 && (
         <button

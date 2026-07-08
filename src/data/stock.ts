@@ -53,6 +53,21 @@ export async function listStockItems(storeId: string): Promise<StockItem[]> {
   return snap.docs.map((doc) => toItem(doc.id, doc.data()));
 }
 
+/**
+ * Cheap count of active low-stock items for the Estoque nav dot.
+ * Aggregation query — one metered read, no doc scan.
+ * TODO(pre-compute): materialize into a per-store counter doc updated inside
+ * applyMovement (see plan · pre-compute principle).
+ */
+export async function countLowStock(storeId: string): Promise<number> {
+  const snap = await stockCol(storeId)
+    .where("archived", "==", false)
+    .where("lowStock", "==", true)
+    .count()
+    .get();
+  return snap.data().count;
+}
+
 export async function getStockItem(
   storeId: string,
   itemId: string,

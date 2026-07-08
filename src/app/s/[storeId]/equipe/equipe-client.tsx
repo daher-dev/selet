@@ -1,14 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Search, ShieldCheck, UserCog, Users } from "lucide-react";
+import { Search, ShieldCheck, UserCog, Users } from "lucide-react";
 import type { Store, TeamMember } from "@/lib/types";
 import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/shell/page-header";
+import {
+  usePageAction,
+  useShellSearch,
+} from "@/components/shell/app-shell-context";
 import { MemberSheet } from "./member-sheet";
 
 type RoleFilter = "todos" | "admin" | "funcionario";
@@ -52,40 +54,30 @@ export function EquipeClient({
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("todos");
   const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
+  const shellSearch = useShellSearch();
+
+  usePageAction({ label: "Novo membro", onClick: () => setInviting(true) });
 
   const selected = members.find((m) => m.email === selectedEmail) ?? null;
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const terms = [query, shellSearch]
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    const matches = (m: TeamMember, term: string) =>
+      m.name.toLowerCase().includes(term) ||
+      m.email.toLowerCase().includes(term);
     return members.filter((m) => {
       if (roleFilter !== "todos" && m.role !== roleFilter) return false;
-      return (
-        !q ||
-        m.name.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q)
-      );
+      return terms.every((term) => matches(m, term));
     });
-  }, [members, query, roleFilter]);
+  }, [members, query, shellSearch, roleFilter]);
 
   const adminCount = members.filter((m) => m.role === "admin").length;
   const activeCount = members.filter((m) => m.status === "ativo").length;
 
   return (
     <>
-      <PageHeader
-        title="Equipe"
-        subtitle="Membros, acessos e permissões."
-        action={
-          <Button
-            onClick={() => setInviting(true)}
-            className="gap-1.5 rounded-xl font-semibold"
-          >
-            <Plus className="size-4" />
-            Novo membro
-          </Button>
-        }
-      />
-
       <div className="mb-4 grid grid-cols-3 gap-2.5">
         <Stat icon={Users} label="Membros" value={members.length} />
         <Stat icon={ShieldCheck} label="Admins" value={adminCount} />

@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/shell/page-header";
+import {
+  usePageAction,
+  useShellSearch,
+} from "@/components/shell/app-shell-context";
 import {
   Select,
   SelectContent,
@@ -34,35 +37,29 @@ export function ProdutosClient({ storeId, products }: ProdutosClientProps) {
   const [saleType, setSaleType] = useState<string>("all");
   const [editing, setEditing] = useState<Product | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const shellSearch = useShellSearch();
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const terms = [query, shellSearch]
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
     return products.filter(
       (p) =>
         (category === "all" || p.category === category) &&
         (saleType === "all" || p.saleType === saleType) &&
-        (!q || p.name.toLowerCase().includes(q)),
+        terms.every((term) => p.name.toLowerCase().includes(term)),
     );
-  }, [products, query, category, saleType]);
+  }, [products, query, shellSearch, category, saleType]);
 
   function openNew() {
     setEditing(null);
     setFormOpen(true);
   }
 
+  usePageAction({ label: "Novo item", onClick: openNew });
+
   return (
     <>
-      <PageHeader
-        title="Catálogo"
-        subtitle={`${products.length} ${products.length === 1 ? "produto" : "produtos"} no cardápio`}
-        action={
-          <Button onClick={openNew} className="gap-1.5 rounded-xl font-semibold">
-            <Plus className="size-4" />
-            Novo produto
-          </Button>
-        }
-      />
-
       <div className="mb-4 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
