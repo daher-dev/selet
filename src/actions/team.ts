@@ -9,7 +9,7 @@ import {
   setUserStatus,
   updateUserAccess,
 } from "@/data/users";
-import { SECTIONS } from "@/lib/types";
+import { GRANTABLE_SECTIONS } from "@/lib/types";
 import type { ActionResult } from "./products";
 
 const memberSchema = z.object({
@@ -19,7 +19,9 @@ const memberSchema = z.object({
   phone: z.string().trim().optional(),
   role: z.enum(["admin", "funcionario"]),
   storeIds: z.union([z.literal("all"), z.array(z.string())]),
-  sections: z.array(z.enum(SECTIONS)),
+  // Only the five grantable modules are accepted — "equipe" is admin-only and
+  // can never be granted to a funcionário (server-side escalation guard).
+  sections: z.array(z.enum(GRANTABLE_SECTIONS)),
 });
 
 export type MemberFormInput = z.input<typeof memberSchema>;

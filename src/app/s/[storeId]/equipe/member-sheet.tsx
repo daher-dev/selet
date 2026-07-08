@@ -2,18 +2,25 @@
 
 import { useState, useTransition } from "react";
 import {
+  Ban,
   Calendar,
+  Check,
+  CircleCheck,
+  CircleDollarSign,
+  Inbox,
   LogIn,
   Loader2,
   Mail,
+  Package,
   Phone,
   ShieldCheck,
-  UserCheck,
-  UserX,
+  ShieldUser,
+  Tag,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { Section, Store, TeamMember } from "@/lib/types";
-import { SECTIONS } from "@/lib/types";
+import type { GrantableSection, Store, TeamMember } from "@/lib/types";
+import { GRANTABLE_SECTIONS } from "@/lib/types";
 import { formatDate, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -37,19 +44,32 @@ const STATUS_META: Record<
   string,
   { label: string; fg: string; bg: string; dot: string }
 > = {
-  ativo: { label: "Ativo", fg: "text-primary", bg: "bg-mint-wash", dot: "bg-success" },
-  convidado: { label: "Convidado", fg: "text-info", bg: "bg-info-wash", dot: "bg-amber" },
+  ativo: { label: "Ativo", fg: "text-success", bg: "bg-mint-wash", dot: "bg-success" },
+  convidado: { label: "Convidado", fg: "text-amber", bg: "bg-amber-wash", dot: "bg-amber" },
   inativo: { label: "Inativo", fg: "text-ink-faint", bg: "bg-wash", dot: "bg-ink-faint" },
 };
 
-const SECTION_LABELS: Record<Section, string> = {
-  pedidos: "Pedidos",
-  clientes: "Clientes",
-  produtos: "Catálogo",
-  estoque: "Estoque",
-  financeiro: "Financeiro",
-  equipe: "Equipe",
-};
+// The exactly-five modules a funcionário can be granted (design aclSections,
+// Selet Admin.dc.html:2415-2423). "equipe" is deliberately absent — team
+// management is admin-only.
+const ACCESS_MODULES: {
+  key: GrantableSection;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { key: "pedidos", label: "Pedidos", icon: Inbox },
+  { key: "clientes", label: "Clientes", icon: Users },
+  { key: "produtos", label: "Catálogo", icon: Tag },
+  { key: "estoque", label: "Estoque", icon: Package },
+  { key: "financeiro", label: "Financeiro", icon: CircleDollarSign },
+];
+
+const ROLE_DESC = {
+  admin:
+    "Acesso total: gerencia catálogo, estoque, finanças, pedidos e equipe em todas as lojas.",
+  funcionario:
+    "Acesso operacional: registra pedidos, dá baixa no estoque e atende clientes nas lojas atribuídas.",
+} as const;
 
 interface MemberSheetProps {
   storeId: string;
@@ -80,8 +100,8 @@ export function MemberSheet({
                 className={cn(
                   "flex size-11 shrink-0 items-center justify-center rounded-full text-[14px] font-bold",
                   member.role === "admin"
-                    ? "bg-amber-wash text-amber"
-                    : "bg-mist text-primary",
+                    ? "bg-[#F6EAC6] text-[#8A6312]"
+                    : "bg-mist text-[#3A7D44]",
                 )}
               >
                 {initials(member.name)}
@@ -105,9 +125,14 @@ export function MemberSheet({
               </span>
             </div>
           ) : (
-            <SheetTitle className="text-[17px] font-bold">
-              Novo membro
-            </SheetTitle>
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-[0.5px] text-leaf">
+                Novo membro
+              </span>
+              <SheetTitle className="mt-0.5 text-[19px] font-bold">
+                Convidar para a equipe
+              </SheetTitle>
+            </div>
           )}
         </SheetHeader>
         <MemberForm
@@ -148,9 +173,15 @@ function MemberForm({
   const [storeIds, setStoreIds] = useState<string[]>(
     member && member.storeIds !== "all" ? member.storeIds : [storeId],
   );
-  const [sections, setSections] = useState<Section[]>(
-    (member?.sections as Section[]) ?? ["pedidos", "clientes", "estoque"],
-  );
+  // Only the five grantable modules are ever tracked here — legacy values (e.g.
+  // a stray "equipe") are filtered out so the UI matches the design catalog.
+  const [sections, setSections] = useState<GrantableSection[]>(() => {
+    const grantable = new Set<string>(GRANTABLE_SECTIONS);
+    const current = (member?.sections ?? []).filter((s): s is GrantableSection =>
+      grantable.has(s),
+    );
+    return member ? current : ["pedidos"];
+  });
   const [pending, startTransition] = useTransition();
 
   const isSelf = member?.email === meEmail;
@@ -165,7 +196,9 @@ function MemberForm({
         phone: phone || undefined,
         role,
         storeIds: role === "admin" ? ("all" as const) : storeIds,
-        sections: role === "admin" ? [...SECTIONS] : sections,
+        // Admins get access via their role — they carry no per-module grants
+        // (matching the seed convention). Funcionários carry their toggles.
+        sections: role === "admin" ? [] : sections,
       };
       const result = member
         ? await updateMemberAction(input)
@@ -197,21 +230,23 @@ function MemberForm({
     });
   }
 
+  const isAdmin = role === "admin";
+
   return (
     <>
       <div className="flex-1 space-y-4 p-4">
         {member && (
           <div className="flex flex-wrap gap-2">
             {member.phone && (
-              <span className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-[12px] text-ink-soft">
+              <span className="flex flex-1 items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2.5 text-[12.5px] text-ink-soft">
                 <Phone className="size-3.5 text-ink-faint" />
                 {member.phone}
               </span>
             )}
-            <span className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-[12px] text-ink-soft">
+            <span className="flex flex-1 items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2.5 text-[12.5px] text-ink-soft">
               <Calendar className="size-3.5 text-ink-faint" />
               {member.firstLoginAt
-                ? `Ativo desde ${formatDate(member.firstLoginAt)}`
+                ? `Desde ${formatDate(member.firstLoginAt)}`
                 : `Desde ${formatDate(member.invitedAt)}`}
             </span>
           </div>
@@ -223,7 +258,7 @@ function MemberForm({
             id="member-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ana Souza"
+            placeholder="Ex: Marina Alves"
             disabled={locked}
             className="rounded-xl"
           />
@@ -231,13 +266,13 @@ function MemberForm({
 
         {!member && (
           <div className="space-y-1.5">
-            <Label htmlFor="member-email">E-mail (conta Google)</Label>
+            <Label htmlFor="member-email">E-mail de acesso (conta Google)</Label>
             <Input
               id="member-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="ana@gmail.com"
+              placeholder="nome@selet.com.br"
               className="rounded-xl"
             />
           </div>
@@ -249,122 +284,167 @@ function MemberForm({
             id="member-phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="(27) 99999-0000"
+            placeholder="(27) 90000-0000"
             inputMode="tel"
             disabled={locked}
             className="rounded-xl"
           />
         </div>
 
-        <div className="space-y-1.5">
+        {/* Role segmented control + description (design 1801-1807) */}
+        <div className="space-y-2">
           <Label>Permissão</Label>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
+          <div className="flex gap-0.5 rounded-[10px] border border-border bg-surface p-[3px]">
+            <SegButton
+              active={role === "funcionario"}
               disabled={locked || !meIsAdmin}
               onClick={() => setRole("funcionario")}
-              className={cn(
-                "rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-50",
-                role === "funcionario"
-                  ? "border-primary bg-mist text-primary"
-                  : "border-border bg-card text-ink-soft",
-              )}
-            >
-              Funcionário
-            </button>
-            <button
-              type="button"
+              icon={ShieldUser}
+              label="Funcionário"
+            />
+            <SegButton
+              active={role === "admin"}
               disabled={locked || !meIsAdmin}
               onClick={() => setRole("admin")}
-              className={cn(
-                "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-50",
-                role === "admin"
-                  ? "border-amber bg-amber-wash text-amber"
-                  : "border-border bg-card text-ink-soft",
-              )}
-            >
-              <ShieldCheck className="size-4" />
-              Admin
-            </button>
+              icon={ShieldCheck}
+              label="Admin"
+            />
+          </div>
+          <p className="text-[11.5px] leading-relaxed text-ink-faint">
+            {ROLE_DESC[role]}
+          </p>
+        </div>
+
+        {/* Store access — shown for both roles; admins locked to all (design
+            1809-1821). */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5">
+            Acesso às lojas
+            {isAdmin && (
+              <span className="font-semibold normal-case tracking-normal text-ink-faint">
+                · admin acessa todas
+              </span>
+            )}
+          </Label>
+          <div className="space-y-2">
+            {stores.map((store) => {
+              const checked = isAdmin || storeIds.includes(store.id);
+              const disabled = locked || isAdmin;
+              return (
+                <button
+                  key={store.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() =>
+                    setStoreIds(
+                      checked
+                        ? storeIds.filter((id) => id !== store.id)
+                        : [...storeIds, store.id],
+                    )
+                  }
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
+                    checked
+                      ? "border-primary bg-primary/[0.05]"
+                      : "border-border bg-card",
+                    disabled ? "cursor-default" : "cursor-pointer",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex size-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold",
+                      checked
+                        ? "bg-primary/[0.12] text-primary"
+                        : "bg-mist text-ink-faint",
+                    )}
+                  >
+                    {store.initial}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-semibold text-ink">
+                      {store.name}
+                    </span>
+                    <span className="block truncate text-[11px] text-ink-faint">
+                      {store.sub}
+                    </span>
+                  </span>
+                  {checked && (
+                    <span className="flex size-[22px] shrink-0 items-center justify-center rounded-md bg-primary text-white">
+                      <Check className="size-3" strokeWidth={3} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {role === "admin" ? (
-          <p className="rounded-xl bg-surface px-3.5 py-3 text-[12.5px] leading-normal text-ink-soft">
-            Administradores acessam todas as lojas e todas as áreas do painel.
-          </p>
-        ) : (
-          <>
+        {/* Per-module access — funcionários only (design 1823-1834) */}
+        {!isAdmin && (
+          <div className="space-y-2">
+            <Label>Áreas que pode acessar</Label>
             <div className="space-y-1.5">
-              <Label>Lojas</Label>
-              <div className="space-y-2">
-                {stores.map((store) => {
-                  const checked = storeIds.includes(store.id);
-                  return (
-                    <label
-                      key={store.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-paper px-3.5 py-2.5"
+              {ACCESS_MODULES.map((mod) => {
+                const checked = sections.includes(mod.key);
+                return (
+                  <label
+                    key={mod.key}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-all",
+                      checked
+                        ? "border-primary/40 bg-primary/[0.04]"
+                        : "border-border bg-card",
+                      locked ? "cursor-default" : "cursor-pointer",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex size-[30px] shrink-0 items-center justify-center rounded-lg [&_svg]:size-4",
+                        checked
+                          ? "bg-primary/[0.12] text-primary"
+                          : "bg-mist text-ink-faint",
+                      )}
                     >
-                      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
-                        {store.name}
-                        <span className="ml-1.5 font-normal text-ink-faint">
-                          {store.sub}
-                        </span>
-                      </span>
-                      <Switch
-                        checked={checked}
-                        disabled={locked}
-                        onCheckedChange={(on) =>
-                          setStoreIds(
-                            on
-                              ? [...storeIds, store.id]
-                              : storeIds.filter((id) => id !== store.id),
-                          )
-                        }
-                      />
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Áreas de acesso</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {SECTIONS.map((section) => {
-                  const checked = sections.includes(section);
-                  return (
-                    <label
-                      key={section}
-                      className="flex items-center justify-between rounded-xl border border-border bg-paper px-3 py-2.5"
+                      <mod.icon />
+                    </span>
+                    <span
+                      className={cn(
+                        "flex-1 text-[13.5px] font-semibold",
+                        checked ? "text-ink" : "text-ink-faint",
+                      )}
                     >
-                      <span className="text-[12.5px] font-semibold text-ink">
-                        {SECTION_LABELS[section]}
-                      </span>
-                      <Switch
-                        checked={checked}
-                        disabled={locked}
-                        onCheckedChange={(on) =>
-                          setSections(
-                            on
-                              ? [...sections, section]
-                              : sections.filter((s) => s !== section),
-                          )
-                        }
-                      />
-                    </label>
-                  );
-                })}
-              </div>
+                      {mod.label}
+                    </span>
+                    <Switch
+                      checked={checked}
+                      disabled={locked}
+                      onCheckedChange={(on) =>
+                        setSections(
+                          on
+                            ? [...sections, mod.key]
+                            : sections.filter((s) => s !== mod.key),
+                        )
+                      }
+                    />
+                  </label>
+                );
+              })}
             </div>
-          </>
+          </div>
         )}
 
         {member && (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <Label>Atividade recente</Label>
-            {/* Honest status timeline from the dates on TeamMember — there is
-                no activity-event pipeline, so we only surface real milestones. */}
+            {/* Honest milestone timeline from the dates on TeamMember. A rich
+                per-action activity feed (produced X, edited price, registered
+                order…) is a Phase-3 deliverable — the ActivityEntry pipeline
+                that writes/reads those events is not built yet, so we surface
+                only the real invite/first-login/status milestones rather than
+                fabricate a persisted feed.
+                TODO(phase-3): render TeamMember activity events once the
+                ActivityEntry collection is written and read (see plan
+                "Activity feed" — design 1837-1851). */}
             <div className="rounded-xl border border-border bg-paper">
               <TimelineRow
                 icon={Mail}
@@ -401,31 +481,10 @@ function MemberForm({
                 </span>
               </div>
             </div>
+            <p className="text-[11px] leading-relaxed text-ink-faint">
+              O histórico detalhado de ações da equipe chega em breve.
+            </p>
           </div>
-        )}
-
-        {member && !isSelf && (
-          <Button
-            variant="ghost"
-            onClick={toggleStatus}
-            disabled={pending || locked}
-            className={cn(
-              "w-full gap-1.5 rounded-xl",
-              member.status === "inativo"
-                ? "text-primary hover:bg-mist hover:text-primary"
-                : "text-destructive hover:bg-danger-wash hover:text-destructive",
-            )}
-          >
-            {member.status === "inativo" ? (
-              <>
-                <UserCheck className="size-4" /> Reativar acesso
-              </>
-            ) : (
-              <>
-                <UserX className="size-4" /> Desativar acesso
-              </>
-            )}
-          </Button>
         )}
 
         {isSelf && (
@@ -435,31 +494,91 @@ function MemberForm({
         )}
       </div>
 
-      <SheetFooter className="flex-row gap-2 border-t border-border">
-        <Button
-          variant="outline"
-          onClick={onClose}
-          disabled={pending}
-          className="flex-1 rounded-xl"
-        >
-          Fechar
-        </Button>
-        <Button
-          onClick={submit}
-          disabled={
-            pending ||
-            locked ||
-            !name.trim() ||
-            (!member && !email.trim()) ||
-            (role === "funcionario" && storeIds.length === 0)
-          }
-          className="flex-1 rounded-xl font-semibold"
-        >
-          {pending && <Loader2 className="size-4 animate-spin" />}
-          {member ? "Salvar" : "Enviar convite"}
-        </Button>
+      <SheetFooter className="flex-col gap-2 border-t border-border">
+        {member && !isSelf && (
+          <Button
+            onClick={toggleStatus}
+            disabled={pending || locked}
+            className={cn(
+              "w-full gap-1.5 rounded-xl font-semibold",
+              member.status === "inativo"
+                ? "bg-primary text-white hover:bg-primary/90"
+                : "border border-[#E7C7BD] bg-[#FCF6F4] text-[#C0492F] shadow-none hover:bg-[#F8ECE8]",
+            )}
+          >
+            {member.status === "inativo" ? (
+              <>
+                <CircleCheck className="size-4" /> Reativar acesso
+              </>
+            ) : (
+              <>
+                <Ban className="size-4" /> Desativar acesso
+              </>
+            )}
+          </Button>
+        )}
+        <div className="flex w-full gap-2">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={pending}
+            className="flex-1 rounded-xl"
+          >
+            {member ? "Fechar" : "Cancelar"}
+          </Button>
+          {!locked && (
+            <Button
+              onClick={submit}
+              disabled={
+                pending ||
+                !name.trim() ||
+                (!member && !email.trim()) ||
+                (role === "funcionario" && storeIds.length === 0)
+              }
+              className="flex-[1.6] gap-1.5 rounded-xl font-semibold"
+            >
+              {pending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : member ? null : (
+                <Mail className="size-4" />
+              )}
+              {member ? "Salvar" : "Enviar convite"}
+            </Button>
+          )}
+        </div>
       </SheetFooter>
     </>
+  );
+}
+
+function SegButton({
+  active,
+  disabled,
+  onClick,
+  icon: Icon,
+  label,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors disabled:opacity-50",
+        active
+          ? "bg-primary text-white shadow-[0_2px_6px_-2px_rgba(24,107,65,0.5)]"
+          : "text-ink-soft hover:text-ink",
+      )}
+    >
+      <Icon className="size-[15px]" />
+      {label}
+    </button>
   );
 }
 
