@@ -153,7 +153,6 @@ export const REAL_TEAM: RealMember[] = [
     status: "ativo",
   },
   // Email pending — fill in to provision on the next bootstrap, or invite in-app.
-  // Access for Rebecca is a sensible default; adjust in Equipe once she's in.
   {
     email: null,
     name: "Priscilla",
@@ -162,8 +161,9 @@ export const REAL_TEAM: RealMember[] = [
     sections: [],
     status: "convidado",
   },
+  // Already provisioned in prod; kept here so a fresh bootstrap recreates her.
   {
-    email: null,
+    email: "rebecavitoriadossantosgomes@gmail.com",
     name: "Rebecca",
     role: "funcionario",
     storeIds: ["vila-velha"],

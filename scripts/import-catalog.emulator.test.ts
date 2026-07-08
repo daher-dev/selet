@@ -154,4 +154,64 @@ describe.skipIf(!hasEmulator)("importCatalog (emulator)", () => {
     expect(insumo?.open).toBe(7);
     expect(insumo?.usos).toBe(99);
   });
+
+  it("fresh sync: DELETES import/legacy docs absent from the JSON, PRESERVES in-app (manual) docs", async () => {
+    // A legacy import-managed doc: deterministic slug id NOT in the catalog JSON,
+    // no `source` field (predates the marker). It must be DELETED on re-import.
+    await stock("vila-velha").doc("stale-retail-sku").set({
+      name: "SKU de varejo antigo",
+      category: "secos",
+      tracked: false,
+      archived: false,
+    });
+    // A movement subcollection under it — recursiveDelete must sweep it too.
+    await stock("vila-velha")
+      .doc("stale-retail-sku")
+      .collection("movements")
+      .doc()
+      .set({ type: "entrada", qty: 1, at: new Date() });
+
+    // An in-app-created doc: RANDOM id (.add) NOT in the JSON, source "manual".
+    // It must SURVIVE the fresh sync untouched.
+    const manualRef = await stock("vila-velha").add({
+      name: "Item criado no app",
+      category: "secos",
+      tracked: false,
+      archived: false,
+      source: "manual",
+    });
+    // A stale product too (legacy slug id absent from the price book).
+    await products("vila-velha").doc("produto-descontinuado").set({
+      name: "Produto descontinuado",
+      price: 100,
+      active: true,
+    });
+
+    const r = await importCatalog(db, "vila-velha");
+    // Two absent import/legacy docs (one stock, one product) were removed; the
+    // manual doc was skipped.
+    expect(r.deleted).toBe(2);
+
+    // Legacy/import docs absent from the JSON are gone (subcollection too).
+    expect((await stock("vila-velha").doc("stale-retail-sku").get()).exists).toBe(false);
+    const sweptMovs = await stock("vila-velha")
+      .doc("stale-retail-sku")
+      .collection("movements")
+      .get();
+    expect(sweptMovs.empty).toBe(true);
+    expect((await products("vila-velha").doc("produto-descontinuado").get()).exists).toBe(false);
+
+    // The in-app (manual) doc survives despite being absent from the JSON.
+    expect((await manualRef.get()).exists).toBe(true);
+
+    // The imported catalog is otherwise intact and stamped source "import".
+    const shake = (
+      await stock("vila-velha").doc("shake-todos-os-sabores").get()
+    ).data();
+    expect(shake?.source).toBe("import");
+    const prod = (
+      await products("vila-velha").doc("shake-frutas-vermelhas").get()
+    ).data();
+    expect(prod?.source).toBe("import");
+  });
 });

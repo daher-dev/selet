@@ -75,7 +75,7 @@ function derive(tracked: boolean, pkgSize: number | undefined, sealed: number, o
 export interface ImportResult {
   products: number;
   stockItems: number;
-  archived: number;
+  deleted: number;
 }
 
 export interface ImportOptions {
@@ -129,6 +129,9 @@ export async function importCatalog(
       stockManaged: rec.stockManaged,
       prep: rec.prep,
       duration,
+      // Marks this doc import-managed. The fresh-sync pass below deletes only
+      // docs with source !== "manual" — protecting in-app-created products.
+      source: "import",
     };
     await ref.set(
       prune(
@@ -156,7 +159,8 @@ export async function importCatalog(
     const consumptionMode = consumptionModeForUnit(s.unit);
     // Catalog metadata refreshed on every import. `archived` is NOT here — it is
     // a store's manual hide choice, set only on first insert so a re-import never
-    // un-hides an item the store archived (the SYNC pass below owns archiving).
+    // un-hides an item the store archived (the fresh-sync pass below owns removal
+    // of docs absent from the JSON).
     const catalogFields = {
       name: s.name,
       category: s.category,
@@ -171,6 +175,9 @@ export async function importCatalog(
       cost: s.cost,
       reorderAt: s.reorderAt,
       updatedAt: FieldValue.serverTimestamp(),
+      // Marks this doc import-managed. The fresh-sync pass below deletes only
+      // docs with source !== "manual" — protecting in-app-created items.
+      source: "import",
     };
     if (snap.exists) {
       // Preserve live counts (sealed/open/qty/usos) and archived; only refresh
@@ -203,33 +210,38 @@ export async function importCatalog(
     }
   }
 
-  // SYNC (idempotent lifecycle): a doc present in the store but ABSENT from the
-  // catalog JSON on re-import is ARCHIVED — never hard-deleted, never left stale.
+  // FRESH SYNC (idempotent lifecycle): a doc present in the store but ABSENT
+  // from the catalog JSON on re-import is DELETED, so the catalog exactly
+  // matches the JSON with nothing stale — EXCEPT docs a staff member created
+  // in-app (source === "manual"), which are always preserved.
   const keepProducts = new Set(priced.map((p) => p.slug));
   const keepStock = new Set(stock.map((s) => s.slug));
-  const archived =
-    (await archiveAbsent(productsCol, keepProducts)) +
-    (await archiveAbsent(stockCol, keepStock));
+  const deleted =
+    (await deleteAbsent(db, productsCol, keepProducts)) +
+    (await deleteAbsent(db, stockCol, keepStock));
 
-  return { products: priced.length, stockItems: stock.length, archived };
+  return { products: priced.length, stockItems: stock.length, deleted };
 }
 
 /**
- * Marks every doc in `col` whose id is not in `keep` as archived. Idempotent:
- * already-archived docs are skipped so re-imports don't churn updatedAt.
+ * Recursively deletes every doc in `col` whose id is NOT in `keepSlugs` and
+ * whose `source !== "manual"`. This removes stale import-managed docs (including
+ * legacy docs with no `source` field, which predate the marker and count as
+ * import-managed) while NEVER deleting a doc a staff member created in-app
+ * (source === "manual"). recursiveDelete takes movement subcollections too.
+ * Returns the number of docs deleted.
  */
-async function archiveAbsent(
+async function deleteAbsent(
+  db: Firestore,
   col: FirebaseFirestore.CollectionReference,
-  keep: Set<string>,
+  keepSlugs: Set<string>,
 ): Promise<number> {
   const snap = await col.get();
   let n = 0;
   for (const doc of snap.docs) {
-    if (keep.has(doc.id) || doc.get("archived") === true) continue;
-    await doc.ref.set(
-      { archived: true, updatedAt: FieldValue.serverTimestamp() },
-      { merge: true },
-    );
+    if (keepSlugs.has(doc.id)) continue;
+    if (doc.get("source") === "manual") continue; // in-app doc — never delete
+    await db.recursiveDelete(doc.ref);
     n += 1;
   }
   return n;

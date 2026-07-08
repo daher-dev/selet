@@ -165,6 +165,10 @@ export async function createStockItem(
   const lowStock = computeLowStock({ ...input, ...state, openPkg: false });
   await ref.set({
     ...input,
+    // In-app creation → mark manual so the catalog fresh-sync (importCatalog's
+    // deleteAbsent) NEVER deletes this doc, even though it has a random id not
+    // in the import JSON's slug set.
+    source: "manual",
     // Persist an explicit boolean: the low-stock queries (listLowStock /
     // countLowStock) filter `where("archived","==",false)`, and Firestore
     // equality does NOT match a missing field — so an item created without it

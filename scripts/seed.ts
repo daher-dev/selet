@@ -52,7 +52,10 @@ async function seed() {
   for (const { id } of STORES) {
     // Emulator/demo store keeps the realistic hbl-stock.json opening counts.
     const r = await importCatalog(db, id, { seedOpeningLedger: true });
-    console.log(`Catálogo importado em ${id}: ${r.products} produtos, ${r.stockItems} itens de estoque`);
+    console.log(
+      `Catálogo importado em ${id}: ${r.products} produtos, ${r.stockItems} itens de estoque` +
+        (r.deleted ? `, ${r.deleted} removidos` : ""),
+    );
     // Backfill the pre-computed summary doc (low-stock count, etc.).
     await refreshStoreSummary(db, id);
   }

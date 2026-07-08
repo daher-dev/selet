@@ -93,6 +93,10 @@ export async function createProduct(
     ...input,
     insumoId: input.insumoId ?? null,
     producedStock: 0,
+    // In-app creation → mark manual so the catalog fresh-sync (importCatalog's
+    // deleteAbsent) NEVER deletes this doc, even though it has a random id not
+    // in the import JSON's slug set.
+    source: "manual",
     createdAt: FieldValue.serverTimestamp(),
   });
   return ref.id;

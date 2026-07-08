@@ -62,7 +62,7 @@ async function bootstrap() {
     const r = await importCatalog(db, id);
     console.log(
       `Catálogo importado em ${id}: ${r.products} produtos, ${r.stockItems} itens de estoque` +
-        (r.archived ? `, ${r.archived} arquivados` : ""),
+        (r.deleted ? `, ${r.deleted} removidos` : ""),
     );
     // Pre-compute the per-store summary doc (low-stock count, etc.), like seed.ts.
     await refreshStoreSummary(db, id);
