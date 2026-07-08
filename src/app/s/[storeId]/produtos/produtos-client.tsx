@@ -1,8 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChefHat, Plus, Search, Tag, UtensilsCrossed } from "lucide-react";
-import type { Product } from "@/lib/types";
+import {
+  ChefHat,
+  ChevronDown,
+  Filter,
+  Hammer,
+  List,
+  Plus,
+  Search,
+  Tag,
+  UtensilsCrossed,
+} from "lucide-react";
+import type { Product, StockItem } from "@/lib/types";
+import { PRODUCT_CATEGORIES } from "@/lib/types";
 import { formatBRL, formatQty } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,41 +25,73 @@ import {
   useShellSearch,
 } from "@/components/shell/app-shell-context";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuItemIcon,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   CategoryTile,
   PRODUCT_CATEGORY_META,
+  STOCK_CATEGORY_META,
 } from "@/components/category-meta";
 import { ProductFormSheet } from "./product-form-sheet";
+import { ProduzirSheet } from "./produzir-sheet";
 
 interface ProdutosClientProps {
   storeId: string;
   products: Product[];
+  stockItems: StockItem[];
 }
 
-export function ProdutosClient({ storeId, products }: ProdutosClientProps) {
+const TYPE_FILTERS: { value: string; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "menu", label: "Menu" },
+  { value: "revenda", label: "Revenda" },
+];
+
+export function ProdutosClient({
+  storeId,
+  products,
+  stockItems,
+}: ProdutosClientProps) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [saleType, setSaleType] = useState<string>("all");
   const [editing, setEditing] = useState<Product | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [producing, setProducing] = useState<Product | null>(null);
+  const [produceOpen, setProduceOpen] = useState(false);
   const shellSearch = useShellSearch();
+
+  /** Resolve a recipe/insumo reference to its stock category (for colored tiles). */
+  const categoryFor = useMemo(() => {
+    const byId = new Map<string, StockItem>();
+    const byName = new Map<string, StockItem>();
+    for (const s of stockItems) {
+      byId.set(s.id, s);
+      byName.set(s.name.toLowerCase(), s);
+    }
+    return (ref: { stockItemId?: string; name: string }): string | null => {
+      const item =
+        (ref.stockItemId ? byId.get(ref.stockItemId) : undefined) ??
+        byName.get(ref.name.toLowerCase());
+      return item?.category ?? null;
+    };
+  }, [stockItems]);
 
   const filtered = useMemo(() => {
     const terms = [query, shellSearch]
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
-    return products.filter(
-      (p) =>
-        (category === "all" || p.category === category) &&
-        (saleType === "all" || p.saleType === saleType) &&
-        terms.every((term) => p.name.toLowerCase().includes(term)),
-    );
+    return products.filter((p) => {
+      if (category !== "all" && p.category !== category) return false;
+      if (saleType !== "all" && p.saleType !== saleType) return false;
+      const catLabel = PRODUCT_CATEGORY_META[p.category]?.label ?? p.category;
+      const haystack = `${p.name} ${catLabel}`.toLowerCase();
+      return terms.every((term) => haystack.includes(term));
+    });
   }, [products, query, shellSearch, category, saleType]);
 
   function openNew() {
@@ -58,10 +101,19 @@ export function ProdutosClient({ storeId, products }: ProdutosClientProps) {
 
   usePageAction({ label: "Novo item", onClick: openNew });
 
+  const categoryLabel =
+    category === "all"
+      ? "Categoria"
+      : (PRODUCT_CATEGORY_META[category]?.label ?? "Categoria");
+  const typeLabel =
+    saleType === "all"
+      ? "Tipo"
+      : (TYPE_FILTERS.find((t) => t.value === saleType)?.label ?? "Tipo");
+
   return (
     <>
-      <div className="mb-4 space-y-3">
-        <div className="relative">
+      <div className="mb-4 flex flex-col gap-2.5 md:flex-row md:items-center">
+        <div className="relative md:flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
           <Input
             value={query}
@@ -70,28 +122,65 @@ export function ProdutosClient({ storeId, products }: ProdutosClientProps) {
             className="rounded-xl bg-card pl-9"
           />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <FilterSelect
-            value={category}
-            onValueChange={setCategory}
-            label="Categoria"
-            allLabel="Todas"
-            options={Object.entries(PRODUCT_CATEGORY_META).map(([key, meta]) => ({
-              value: key,
-              label: meta.label,
-            }))}
-          />
-          <FilterSelect
-            value={saleType}
-            onValueChange={setSaleType}
-            label="Tipo"
-            allLabel="Todos"
-            options={[
-              { value: "menu", label: "Menu" },
-              { value: "revenda", label: "Revenda" },
-            ]}
-          />
-        </div>
+
+        <FilterDropdown label={categoryLabel} active={category !== "all"}>
+          <DropdownMenuItem
+            active={category === "all"}
+            onSelect={() => setCategory("all")}
+          >
+            <DropdownMenuItemIcon>
+              <List />
+            </DropdownMenuItemIcon>
+            Todas
+          </DropdownMenuItem>
+          {PRODUCT_CATEGORIES.map((key) => {
+            const meta = PRODUCT_CATEGORY_META[key];
+            const Icon = meta.icon;
+            return (
+              <DropdownMenuItem
+                key={key}
+                active={category === key}
+                onSelect={() => setCategory(key)}
+              >
+                <DropdownMenuItemIcon className={cn(meta.bg, meta.fg)}>
+                  <Icon />
+                </DropdownMenuItemIcon>
+                {meta.label}
+              </DropdownMenuItem>
+            );
+          })}
+        </FilterDropdown>
+
+        <FilterDropdown label={typeLabel} active={saleType !== "all"}>
+          {TYPE_FILTERS.map((opt) => {
+            const Icon =
+              opt.value === "menu"
+                ? ChefHat
+                : opt.value === "revenda"
+                  ? Tag
+                  : List;
+            return (
+              <DropdownMenuItem
+                key={opt.value}
+                active={saleType === opt.value}
+                onSelect={() => setSaleType(opt.value)}
+              >
+                <DropdownMenuItemIcon
+                  className={
+                    opt.value === "menu"
+                      ? "bg-mist text-primary"
+                      : opt.value === "revenda"
+                        ? "bg-cat-bebidas-wash text-cat-bebidas"
+                        : undefined
+                  }
+                >
+                  <Icon />
+                </DropdownMenuItemIcon>
+                {opt.label}
+              </DropdownMenuItem>
+            );
+          })}
+        </FilterDropdown>
       </div>
 
       {filtered.length === 0 ? (
@@ -113,49 +202,105 @@ export function ProdutosClient({ storeId, products }: ProdutosClientProps) {
           }
         />
       ) : (
-        <ul className="space-y-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((product) => (
-            <li key={product.id}>
-              <ProductCard
-                product={product}
-                onClick={() => {
-                  setEditing(product);
-                  setFormOpen(true);
-                }}
-              />
-            </li>
+            <ProductCard
+              key={product.id}
+              product={product}
+              categoryFor={categoryFor}
+              onClick={() => {
+                setEditing(product);
+                setFormOpen(true);
+              }}
+              onProduzir={() => {
+                setProducing(product);
+                setProduceOpen(true);
+              }}
+            />
           ))}
-        </ul>
+        </div>
       )}
 
       <ProductFormSheet
         storeId={storeId}
         product={editing}
+        stockItems={stockItems}
         open={formOpen}
         onOpenChange={setFormOpen}
+      />
+
+      <ProduzirSheet
+        product={producing}
+        stockItems={stockItems}
+        open={produceOpen}
+        onOpenChange={setProduceOpen}
       />
     </>
   );
 }
 
+/** Icon + label + chevron trigger that matches the design's filter menus. */
+function FilterDropdown({
+  label,
+  active,
+  children,
+}: {
+  label: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          "flex h-10 items-center justify-between gap-2 rounded-xl border bg-card px-3.5 text-[13px] font-semibold outline-none transition-colors md:justify-start",
+          active
+            ? "border-primary/50 text-ink"
+            : "border-border text-ink-soft hover:border-primary/40",
+        )}
+      >
+        <Filter className="size-3.5 text-leaf" />
+        <span>{label}</span>
+        <ChevronDown className="size-3.5 text-ink-faint md:ml-1" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-52">
+        {children}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function ProductCard({
   product,
+  categoryFor,
   onClick,
+  onProduzir,
 }: {
   product: Product;
+  categoryFor: (ref: { stockItemId?: string; name: string }) => string | null;
   onClick: () => void;
+  onProduzir: () => void;
 }) {
   const meta = PRODUCT_CATEGORY_META[product.category];
   const isMenu = product.saleType === "menu";
   const tiers = [...product.tiers].sort((a, b) => a.qty - b.qty);
-  const unitTier = tiers.find((t) => t.qty === 1) ?? tiers[0] ?? { qty: 1, price: product.price };
+  const unitTier =
+    tiers.find((t) => t.qty === 1) ?? tiers[0] ?? { qty: 1, price: product.price };
   const batches = tiers.filter((t) => t !== unitTier);
+  const canProduce = isMenu && product.stockManaged && product.active;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className="block w-full rounded-2xl border border-border bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_14px_30px_-16px_rgba(24,107,65,.28)]"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="flex cursor-pointer flex-col rounded-2xl border border-border bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_14px_30px_-16px_rgba(24,107,65,.28)]"
     >
       <div className="flex items-start gap-3">
         {meta && <CategoryTile meta={meta} />}
@@ -179,19 +324,32 @@ function ProductCard({
         <div className="mt-3.5">
           <SectionLabel>Base</SectionLabel>
           <div className="mt-2 flex flex-col gap-1.5">
-            {product.recipe.map((item, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-mist text-primary">
-                  <Leaf12 />
-                </span>
-                <span className="min-w-0 flex-1 truncate text-[13px] text-ink-soft">
-                  {item.name}
-                </span>
-                <span className="tabular shrink-0 text-[12.5px] font-semibold text-ink-faint">
-                  {item.qty == null ? "sem medição" : formatQty(item.qty, item.unit)}
-                </span>
-              </div>
-            ))}
+            {product.recipe.map((item, i) => {
+              const cat = categoryFor(item);
+              const catMeta = cat ? STOCK_CATEGORY_META[cat] : null;
+              return (
+                <div key={i} className="flex items-center gap-2.5">
+                  <span
+                    className={cn(
+                      "flex size-6 shrink-0 items-center justify-center rounded-md",
+                      catMeta ? `${catMeta.bg} ${catMeta.fg}` : "bg-mist text-primary",
+                    )}
+                  >
+                    {catMeta ? (
+                      <catMeta.icon className="size-3.5" strokeWidth={1.8} />
+                    ) : (
+                      <Leaf12 />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink-soft">
+                    {item.name}
+                  </span>
+                  <span className="tabular shrink-0 text-[12.5px] font-semibold text-ink-faint">
+                    {item.qty == null ? "sem medição" : formatQty(item.qty, item.unit)}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -220,6 +378,19 @@ function ProductCard({
         <span className="text-[11.5px] text-ink-faint">
           {unitTier.qty === 1 ? "/ unidade" : `/ ${formatQty(unitTier.qty, "un")}`}
         </span>
+        {canProduce && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onProduzir();
+            }}
+            className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#cddcc4] bg-card px-3 text-[12.5px] font-semibold text-primary transition-colors hover:border-primary hover:bg-primary hover:text-white"
+          >
+            <Hammer className="size-3.5" strokeWidth={1.9} />
+            Produzir
+          </button>
+        )}
       </div>
 
       {batches.length > 0 && (
@@ -235,7 +406,7 @@ function ProductCard({
           ))}
         </div>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -264,45 +435,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Tiny leaf glyph for BASE ingredient tiles. */
+/** Fallback leaf glyph for BASE rows with no linked stock category. */
 function Leaf12() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
       <path d="M2 21c0-3 1.85-5.36 5.08-6" />
     </svg>
-  );
-}
-
-function FilterSelect({
-  value,
-  onValueChange,
-  label,
-  allLabel,
-  options,
-}: {
-  value: string;
-  onValueChange: (v: string) => void;
-  label: string;
-  allLabel: string;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="w-full rounded-xl bg-card">
-        <span className="flex items-center gap-1.5 truncate text-[13px]">
-          <span className="text-ink-faint">{label}:</span>
-          <SelectValue />
-        </span>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">{allLabel}</SelectItem>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   );
 }

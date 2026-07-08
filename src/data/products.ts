@@ -33,6 +33,8 @@ function toProduct(id: string, d: FirebaseFirestore.DocumentData): Product {
     tiers: d.tiers?.length ? d.tiers : [{ qty: 1, price }],
     insumoId: d.insumoId ?? undefined,
     stockManaged: d.stockManaged ?? false,
+    prep: d.prep ?? null,
+    duration: d.duration ?? undefined,
   };
 }
 
@@ -62,6 +64,8 @@ export interface ProductInput {
   tiers: PriceTier[];
   insumoId?: string;
   stockManaged: boolean;
+  prep?: "sob demanda" | "lote" | null;
+  duration?: number;
 }
 
 export async function createProduct(
@@ -89,6 +93,8 @@ export async function updateProduct(
       ...input,
       description: input.description ?? FieldValue.delete(),
       insumoId: input.insumoId ?? FieldValue.delete(),
+      prep: input.prep ?? FieldValue.delete(),
+      duration: input.duration ?? FieldValue.delete(),
     });
 }
 

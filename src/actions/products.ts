@@ -53,6 +53,8 @@ const productSchema = z.object({
   tiers: z.array(tierSchema).min(1).default([{ qty: 1, price: 0 }]),
   insumoId: z.string().optional(),
   stockManaged: z.boolean().default(false),
+  prep: z.enum(["sob demanda", "lote"]).nullish(),
+  duration: z.number().int().positive().optional(),
 });
 
 export type ProductFormInput = z.input<typeof productSchema>;

@@ -1,5 +1,6 @@
 import { requireAccess } from "@/lib/access";
 import { listProducts } from "@/data/products";
+import { listStockItems } from "@/data/stock";
 import { ProdutosClient } from "./produtos-client";
 
 export default async function ProdutosPage({
@@ -9,7 +10,16 @@ export default async function ProdutosPage({
 }) {
   const { storeId } = await params;
   await requireAccess(storeId, "produtos");
-  const products = await listProducts(storeId);
+  const [products, stockItems] = await Promise.all([
+    listProducts(storeId),
+    listStockItems(storeId),
+  ]);
 
-  return <ProdutosClient storeId={storeId} products={products} />;
+  return (
+    <ProdutosClient
+      storeId={storeId}
+      products={products}
+      stockItems={stockItems}
+    />
+  );
 }
