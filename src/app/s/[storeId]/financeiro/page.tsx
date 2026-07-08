@@ -41,10 +41,8 @@ export default async function FinanceiroPage({
     });
   }
 
-  // All-time balance + per-month in/out buckets for the trend chart.
-  let saldo = 0;
+  // Per-month in/out buckets for the trend chart.
   for (const tx of txs) {
-    saldo += tx.direction === "in" ? tx.amount : -tx.amount;
     const key = tx.date ? monthKey(new Date(tx.date)) : null;
     if (key && buckets.has(key)) {
       const bucket = buckets.get(key)!;
@@ -85,7 +83,6 @@ export default async function FinanceiroPage({
   return (
     <FinanceiroClient
       storeId={storeId}
-      saldo={saldo}
       receivablesByMonth={receivablesByMonth}
       months={[...buckets.values()]}
       transactions={txs}

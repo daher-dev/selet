@@ -52,7 +52,7 @@ export function EntradaSaidaChart({ months }: { months: MonthBucket[] }) {
             fontFamily: "var(--font-albert)",
           }}
         />
-        <Bar isAnimationActive={false} dataKey="in" fill="#186b41" radius={[5, 5, 0, 0]} maxBarSize={18} />
+        <Bar isAnimationActive={false} dataKey="in" fill="#92c17d" radius={[5, 5, 0, 0]} maxBarSize={18} />
         <Bar isAnimationActive={false} dataKey="out" fill="#e2c089" radius={[5, 5, 0, 0]} maxBarSize={18} />
       </BarChart>
     </ResponsiveContainer>
@@ -62,7 +62,7 @@ export function EntradaSaidaChart({ months }: { months: MonthBucket[] }) {
 export function TicketChart({ months }: { months: MonthBucket[] }) {
   return (
     <ResponsiveContainer width="100%" height={180}>
-      <ComposedChart data={months} margin={{ top: 4, right: 0, left: -14, bottom: 0 }}>
+      <ComposedChart data={months} margin={{ top: 4, right: -8, left: -14, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#eef3ea" vertical={false} />
         <XAxis dataKey="label" tick={AXIS_STYLE} axisLine={false} tickLine={false} />
         <YAxis
@@ -72,7 +72,15 @@ export function TicketChart({ months }: { months: MonthBucket[] }) {
           tickLine={false}
           tickFormatter={brlShort}
         />
-        <YAxis yAxisId="customers" orientation="right" hide />
+        <YAxis
+          yAxisId="customers"
+          orientation="right"
+          tick={AXIS_STYLE}
+          axisLine={false}
+          tickLine={false}
+          allowDecimals={false}
+          width={28}
+        />
         <Tooltip
           formatter={(value, name) =>
             name === "avgTicket"
