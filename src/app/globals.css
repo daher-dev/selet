@@ -48,14 +48,13 @@
   --color-cat-lanches-wash: #efe8f7;
   --color-cat-adicionais: #5f7d8c;
   --color-cat-adicionais-wash: #e6eef1;
-  --color-cat-beleza: #a94f8f;
-  --color-cat-beleza-wash: #f3e6f0;
-  --color-cat-nutricao: #3a8b4e;
-  --color-cat-nutricao-wash: #e7f2e4;
-  --color-cat-esporte: #2f6fb5;
-  --color-cat-esporte-wash: #e6eff8;
-  --color-cat-avulsos: #b7861c;
-  --color-cat-avulsos-wash: #f5eed2;
+
+  /* Stock (insumo) categories — café food groups. bebidas + proteinas
+     reuse the product tokens above; secos + hortifruti are stock-only. */
+  --color-cat-secos: #ad861c;
+  --color-cat-secos-wash: #f5eed2;
+  --color-cat-hortifruti: #3a8b4e;
+  --color-cat-hortifruti-wash: #e7f2e4;
 
   --color-success: #3a9d5d;
   --color-info: #2f6fb5;

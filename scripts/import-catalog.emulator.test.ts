@@ -32,18 +32,35 @@ describe.skipIf(!hasEmulator)("importCatalog (emulator)", () => {
     expect(shake?.description.length).toBeGreaterThan(0);
     expect(shake?.createdAt).toBeTruthy();
 
-    const kit = (await stock("vila-velha").doc("kit-inicio-consultor").get()).data();
-    expect(kit).toMatchObject({ resellable: true, qty: 0, lowStock: true });
-
-    // The personal-care line lands in its own category, archived.
-    const skin = (
-      await stock("vila-velha").doc("skin-cleanser-facial-citrico-150ml").get()
+    // A tracked café insumo seeds its opening ledger: qty = sealed*pkgSize + open.
+    const shakeStock = (
+      await stock("vila-velha").doc("shake-todos-os-sabores").get()
     ).data();
-    expect(skin).toMatchObject({ category: "beleza", archived: true });
-    // Food items are not archived.
-    expect(
-      (await stock("vila-velha").doc("kit-inicio-consultor").get()).data()?.archived,
-    ).toBe(false);
+    expect(shakeStock).toMatchObject({
+      category: "secos",
+      tracked: true,
+      continuousUse: true,
+      consumptionMode: "continuo",
+      pkgSize: 550,
+      sealed: 3,
+      open: 0,
+      qty: 1650,
+      usos: 14,
+      lowStock: false,
+      archived: false,
+    });
+
+    // An esgotado resale insumo derives lowStock from its reorder threshold.
+    const cr7 = (
+      await stock("vila-velha").doc("cr7-drive-berry-mix").get()
+    ).data();
+    expect(cr7).toMatchObject({ resellable: true, qty: 0, lowStock: true });
+
+    // The café seed ships nothing archived.
+    const archived = (await stock("vila-velha").get()).docs.filter(
+      (d) => d.data().archived === true,
+    );
+    expect(archived).toHaveLength(0);
   });
 
   it("imports Passos at its own (cheaper) prices and skips lanches", async () => {
@@ -73,8 +90,9 @@ describe.skipIf(!hasEmulator)("importCatalog (emulator)", () => {
     const createdAt = (
       await products("vila-velha").doc("shake-frutas-vermelhas").get()
     ).data()?.createdAt;
-    await stock("vila-velha").doc("kit-inicio-consultor").set(
-      { sealed: 0, open: 7, qty: 7, lowStock: false },
+    // Simulate live movement on a café insumo — re-import must not clobber it.
+    await stock("vila-velha").doc("shake-todos-os-sabores").set(
+      { sealed: 0, open: 7, qty: 7, usos: 99, lowStock: false },
       { merge: true },
     );
 
@@ -93,8 +111,11 @@ describe.skipIf(!hasEmulator)("importCatalog (emulator)", () => {
     ).data()?.createdAt;
     expect(createdAt2.isEqual(createdAt)).toBe(true);
 
-    const kit = (await stock("vila-velha").doc("kit-inicio-consultor").get()).data();
-    expect(kit?.qty).toBe(7);
-    expect(kit?.open).toBe(7);
+    const insumo = (
+      await stock("vila-velha").doc("shake-todos-os-sabores").get()
+    ).data();
+    expect(insumo?.qty).toBe(7);
+    expect(insumo?.open).toBe(7);
+    expect(insumo?.usos).toBe(99);
   });
 });

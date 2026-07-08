@@ -3,9 +3,11 @@ import "server-only";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
 import type {
+  ConsumptionMode,
   StockCategory,
   StockItem,
   StockMovement,
+  StockMovementReason,
   StockMovementType,
   StockUnit,
 } from "@/lib/types";
@@ -27,6 +29,8 @@ function toItem(id: string, d: FirebaseFirestore.DocumentData): StockItem {
     open: d.open ?? 0,
     qty: d.qty ?? 0,
     continuousUse: d.continuousUse ?? false,
+    consumptionMode: d.consumptionMode ?? (d.continuousUse ? "continuo" : "medido"),
+    usos: d.usos ?? 0,
     resellable: d.resellable ?? false,
     cost: d.cost,
     sellPrice: d.sellPrice,
@@ -65,6 +69,7 @@ export interface StockItemInput {
   pkgLabel?: string;
   pkgSize?: number;
   continuousUse: boolean;
+  consumptionMode: ConsumptionMode;
   resellable: boolean;
   cost?: number;
   sellPrice?: number;
@@ -82,6 +87,7 @@ export async function createStockItem(
   const ref = await stockCol(storeId).add({
     ...input,
     ...state,
+    usos: 0,
     lowStock: state.qty <= input.reorderAt,
     updatedAt: FieldValue.serverTimestamp(),
   });
@@ -123,7 +129,9 @@ export interface MovementInput {
   qty: number;
   byPackage: boolean;
   price?: number;
-  reason?: string;
+  reason?: StockMovementReason;
+  refOrder?: string;
+  refItem?: string;
   by: string;
 }
 
@@ -202,6 +210,8 @@ export async function applyMovement(
       byPackage: input.type === "abertura" ? true : input.byPackage,
       price: input.price ?? null,
       reason: input.reason ?? null,
+      refOrder: input.refOrder ?? null,
+      refItem: input.refItem ?? null,
       by: input.by,
       at: Timestamp.now(),
     });
@@ -228,6 +238,8 @@ export async function listMovements(
       byPackage: d.byPackage ?? false,
       price: d.price ?? undefined,
       reason: d.reason ?? undefined,
+      refOrder: d.refOrder ?? undefined,
+      refItem: d.refItem ?? undefined,
       by: d.by,
       at: d.at?.toDate().toISOString() ?? "",
     };

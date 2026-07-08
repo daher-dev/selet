@@ -10,7 +10,9 @@ import {
   updateStockItem,
 } from "@/data/stock";
 import {
+  CONSUMPTION_MODES,
   STOCK_CATEGORIES,
+  STOCK_MOVEMENT_REASONS,
   STOCK_MOVEMENT_TYPES,
   STOCK_UNITS,
 } from "@/lib/types";
@@ -26,6 +28,7 @@ const itemSchema = z
     pkgLabel: z.string().trim().optional(),
     pkgSize: z.number().positive().optional(),
     continuousUse: z.boolean().default(false),
+    consumptionMode: z.enum(CONSUMPTION_MODES).optional(),
     resellable: z.boolean().default(false),
     cost: z.number().int().nonnegative().optional(),
     sellPrice: z.number().int().nonnegative().optional(),
@@ -60,8 +63,13 @@ export async function createStockItemAction(
   input: StockItemFormInput,
 ): Promise<ActionResult> {
   return run(async () => {
-    const { storeId, initialSealed, initialOpen, ...data } =
+    const { storeId, initialSealed, initialOpen, consumptionMode, ...rest } =
       itemSchema.parse(input);
+    const data = {
+      ...rest,
+      consumptionMode:
+        consumptionMode ?? (rest.continuousUse ? "continuo" : "medido"),
+    } as const;
     await requireAccess(storeId, "estoque");
     await createStockItem(storeId, data, {
       sealed: data.tracked ? initialSealed : 0,
@@ -86,6 +94,9 @@ export async function updateStockItemAction(
       pkgLabel: parsed.pkgLabel,
       pkgSize: parsed.pkgSize,
       continuousUse: parsed.continuousUse,
+      consumptionMode:
+        parsed.consumptionMode ??
+        (parsed.continuousUse ? ("continuo" as const) : ("medido" as const)),
       resellable: parsed.resellable,
       cost: parsed.cost,
       sellPrice: parsed.sellPrice,
@@ -126,7 +137,9 @@ const movementSchema = z.object({
   qty: z.number().positive("Informe a quantidade."),
   byPackage: z.boolean().default(false),
   price: z.number().int().nonnegative().optional(),
-  reason: z.string().trim().optional(),
+  reason: z.enum(STOCK_MOVEMENT_REASONS).optional(),
+  refOrder: z.string().trim().optional(),
+  refItem: z.string().trim().optional(),
 });
 
 export type MovementFormInput = z.input<typeof movementSchema>;

@@ -1,18 +1,40 @@
 /**
- * Demo data for local/visual review only (NOT for prod). Populates a store with
- * a handful of customers, orders across every status, and finance rows so the
- * list pages render populated when comparing against the design mockup.
+ * Demo data for local/visual review only (NOT for prod). Populates the stores
+ * with the design's realistic roster (docs/design/Selet Admin.dc.html) — VIP
+ * customers with birthdays/notes, tier-priced orders across every status/channel
+ * with distinct human codes (#1039…#1048), and recurring finance expenses — so
+ * the list pages render like the mockup.
  *
- * Usage: FIRESTORE_EMULATOR_HOST=localhost:8080 tsx scripts/demo-seed.ts [storeId]
+ * Usage:
+ *   FIRESTORE_EMULATOR_HOST=localhost:8080 tsx scripts/demo-seed.ts [storeId]
+ * With no arg it seeds every store; pass a storeId to seed just that one.
+ *
+ * Money is integer centavos. Idempotent: deterministic doc ids (customer slug,
+ * numeric order code, finance slug), so re-running overwrites in place.
  */
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
 
 const PROJECT = "selet-prod";
-const storeId = process.argv[2] ?? "vila-velha";
+const STORE_IDS = ["vila-velha", "passos"] as const;
+type StoreId = (typeof STORE_IDS)[number];
+
+const arg = process.argv[2];
+const targetStores: readonly StoreId[] = arg
+  ? STORE_IDS.filter((s) => s === arg)
+  : STORE_IDS;
 
 function daysAgo(n: number): Timestamp {
   return Timestamp.fromMillis(Date.now() - n * 86_400_000);
+}
+
+function minutesAgo(n: number): Timestamp {
+  return Timestamp.fromMillis(Date.now() - n * 60_000);
+}
+
+/** First day of the given month/year (customer "since"). */
+function monthDate(month: number, year: number): Timestamp {
+  return Timestamp.fromDate(new Date(year, month - 1, 1));
 }
 
 /** Short order code, mirroring orderCode() in src/lib/format.ts. */
@@ -20,55 +42,121 @@ function orderCode(id: string): string {
   return id.slice(0, 4).toUpperCase();
 }
 
+/** "carla-menezes" from "Carla Menezes". */
+function slug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+// ---------------------------------------------------------------------------
+// Customers (design `allCustomers`, 2055) — 8 across both stores.
+// ---------------------------------------------------------------------------
+
 interface DemoCustomer {
-  id: string;
+  store: StoreId;
   name: string;
   phone: string;
   city: string;
   instagram?: string;
   tags: string[];
   birthday?: { day: number; month: number };
+  notes?: string;
+  archived: boolean;
   orderCount: number;
-  totalSpent: number;
+  totalSpent: number; // centavos
   lastOrderDays: number | null;
   avgReorderDays: number | null;
+  since: Timestamp;
+  reorderProduct: string;
 }
 
 const CUSTOMERS: DemoCustomer[] = [
-  { id: "cust-ana", name: "Ana Beatriz Souza", phone: "27 99912-3344", city: "Vila Velha/ES", instagram: "anabia", tags: ["fiel", "shakes"], birthday: { day: 12, month: 7 }, orderCount: 14, totalSpent: 52400, lastOrderDays: 3, avgReorderDays: 9 },
-  { id: "cust-carlos", name: "Carlos Menezes", phone: "27 99880-1122", city: "Vila Velha/ES", instagram: "carlosmnz", tags: ["proteico"], orderCount: 6, totalSpent: 21800, lastOrderDays: 21, avgReorderDays: 14 },
-  { id: "cust-juliana", name: "Juliana Prado", phone: "27 99771-5566", city: "Vitória/ES", tags: ["novo"], birthday: { day: 3, month: 8 }, orderCount: 1, totalSpent: 3600, lastOrderDays: 2, avgReorderDays: null },
-  { id: "cust-marcos", name: "Marcos Vinícius", phone: "27 99655-7788", city: "Vila Velha/ES", instagram: "marcosvf", tags: ["reativar"], orderCount: 9, totalSpent: 39600, lastOrderDays: 48, avgReorderDays: 12 },
-  { id: "cust-patricia", name: "Patrícia Gomes", phone: "27 99544-9900", city: "Cariacica/ES", tags: ["fiel", "waffle"], orderCount: 22, totalSpent: 88100, lastOrderDays: 5, avgReorderDays: 7 },
+  { store: "vila-velha", name: "Carla Menezes", phone: "(27) 99812-4471", city: "Vila Velha/ES", instagram: "carlamenezes", tags: ["vip"], birthday: { day: 12, month: 3 }, notes: "Prefere shakes sem lactose. Cliente desde 2023.", archived: false, orderCount: 41, totalSpent: 226000, lastOrderDays: 0, avgReorderDays: 6, since: monthDate(3, 2023), reorderProduct: "Shake Ovomaltine" },
+  { store: "vila-velha", name: "Mariana Lopes", phone: "(27) 99744-1290", city: "Vila Velha/ES", instagram: "mari.lopes", tags: ["vip"], birthday: { day: 28, month: 7 }, notes: "Vegana. Costuma pedir Hype Drink junto.", archived: false, orderCount: 34, totalSpent: 184000, lastOrderDays: 0, avgReorderDays: 8, since: monthDate(6, 2023), reorderProduct: "Shake da Beleza" },
+  { store: "vila-velha", name: "Beatriz Almeida", phone: "(27) 99601-7733", city: "Vila Velha/ES", instagram: "bia.almeida", tags: [], birthday: { day: 5, month: 11 }, archived: false, orderCount: 22, totalSpent: 112000, lastOrderDays: 2, avgReorderDays: 12, since: monthDate(9, 2023), reorderProduct: "Seca Barriga" },
+  { store: "passos", name: "Rafael Souza", phone: "(35) 99820-3344", city: "Passos/MG", tags: [], birthday: { day: 19, month: 9 }, notes: "Sem glúten.", archived: false, orderCount: 18, totalSpent: 92000, lastOrderDays: 1, avgReorderDays: 9, since: monthDate(11, 2023), reorderProduct: "Coxinha Proteica" },
+  { store: "vila-velha", name: "Luiza Castro", phone: "(27) 99533-8812", city: "Vila Velha/ES", instagram: "lu.castro", tags: [], birthday: { day: 2, month: 1 }, archived: false, orderCount: 15, totalSpent: 69000, lastOrderDays: 5, avgReorderDays: 14, since: monthDate(1, 2024), reorderProduct: "Escondidinho de Frango" },
+  { store: "passos", name: "Fernando Dias", phone: "(35) 99410-2299", city: "Passos/MG", tags: [], notes: "Sem lactose. Sumiu depois de mudar de bairro.", archived: true, orderCount: 9, totalSpent: 41000, lastOrderDays: 32, avgReorderDays: 20, since: monthDate(8, 2023), reorderProduct: "Hype Drink" },
+  { store: "vila-velha", name: "Patrícia Gomes", phone: "(27) 99277-5610", city: "Vila Velha/ES", instagram: "pati.gomes", tags: [], birthday: { day: 23, month: 6 }, archived: false, orderCount: 3, totalSpent: 13200, lastOrderDays: 7, avgReorderDays: 21, since: monthDate(4, 2024), reorderProduct: "Shake da Beleza" },
+  { store: "passos", name: "João Pedro", phone: "(35) 99188-4002", city: "Passos/MG", tags: [], archived: false, orderCount: 2, totalSpent: 7800, lastOrderDays: 3, avgReorderDays: 15, since: monthDate(5, 2024), reorderProduct: "Hype Drink" },
 ];
 
+// ---------------------------------------------------------------------------
+// Orders (design `allOrders`, 2040) — 10 with distinct #NNNN codes.
+// The doc id IS the numeric code, so orderCode() (first 4 chars) renders the
+// design's #1048…#1039 instead of a repeated "#DEMO".
+// `total` is the design's tier-priced total (centavos), stored authoritatively
+// (toOrder reads d.total, it never re-derives from items); item unit prices are
+// realistic menu prices that sum to it, except batch tiers (Coxinha) whose per-
+// unit price isn't an integer — there the stored total is the tier price.
+// ---------------------------------------------------------------------------
+
+interface DemoOrderItem {
+  productId: string;
+  name: string;
+  qty: number;
+  unitPrice: number; // centavos
+}
+
 interface DemoOrder {
-  customer: DemoCustomer;
+  code: string; // "1048" — also the doc id
+  store: StoreId;
+  customerName: string;
   channel: "instagram" | "whatsapp" | "loja";
   status: "novo" | "preparando" | "entrega" | "concluido" | "cancelado";
-  items: { productId: string; name: string; qty: number; unitPrice: number; addons?: string[] }[];
+  items: DemoOrderItem[];
+  total: number; // centavos (authoritative)
   paid: boolean;
   payMethod: "pix" | "cartao" | "dinheiro" | null;
-  createdDays: number;
+  minutesAgo: number;
 }
 
 const ORDERS: DemoOrder[] = [
-  { customer: CUSTOMERS[0], channel: "instagram", status: "novo", paid: false, payMethod: null, createdDays: 0, items: [ { productId: "shake-oreo", name: "Oreo", qty: 1, unitPrice: 3600, addons: ["Protein Crunch"] }, { productId: "shake-frutas-vermelhas", name: "Frutas Vermelhas", qty: 1, unitPrice: 3600 } ] },
-  { customer: CUSTOMERS[4], channel: "whatsapp", status: "preparando", paid: true, payMethod: "pix", createdDays: 0, items: [ { productId: "waffle-proteico", name: "Waffle Proteico", qty: 2, unitPrice: 3100 } ] },
-  { customer: CUSTOMERS[1], channel: "loja", status: "entrega", paid: true, payMethod: "cartao", createdDays: 1, items: [ { productId: "shake-ovomaltine", name: "Ovomaltine", qty: 1, unitPrice: 4100 } ] },
-  { customer: CUSTOMERS[2], channel: "instagram", status: "concluido", paid: true, payMethod: "pix", createdDays: 2, items: [ { productId: "shake-frutas-vermelhas", name: "Frutas Vermelhas", qty: 1, unitPrice: 3600 } ] },
-  { customer: CUSTOMERS[3], channel: "whatsapp", status: "cancelado", paid: false, payMethod: null, createdDays: 4, items: [ { productId: "shake-bombom-serenata", name: "Bombom Serenata", qty: 1, unitPrice: 4400 } ] },
-  { customer: CUSTOMERS[4], channel: "loja", status: "concluido", paid: true, payMethod: "dinheiro", createdDays: 6, items: [ { productId: "shake-oreo", name: "Oreo", qty: 3, unitPrice: 3600 } ] },
+  { code: "1048", store: "vila-velha", customerName: "Mariana Lopes", channel: "instagram", status: "preparando", total: 7200, paid: false, payMethod: null, minutesAgo: 6, items: [ { productId: "shake-shake-da-beleza", name: "Shake da Beleza", qty: 1, unitPrice: 4400 }, { productId: "bebida-hype-drink", name: "Hype Drink", qty: 1, unitPrice: 2800 } ] },
+  { code: "1047", store: "passos", customerName: "Rafael Souza", channel: "whatsapp", status: "novo", total: 3700, paid: false, payMethod: null, minutesAgo: 12, items: [ { productId: "lanche-coxinha-proteica", name: "Coxinha Proteica", qty: 3, unitPrice: 1233 } ] },
+  { code: "1046", store: "vila-velha", customerName: "Beatriz Almeida", channel: "loja", status: "concluido", total: 6100, paid: true, payMethod: "pix", minutesAgo: 20, items: [ { productId: "salgado-pizza-proteica", name: "Pizza Proteica", qty: 1, unitPrice: 3300 }, { productId: "bebida-hype-drink", name: "Hype Drink", qty: 1, unitPrice: 2800 } ] },
+  { code: "1045", store: "vila-velha", customerName: "Carla Menezes", channel: "whatsapp", status: "entrega", total: 8200, paid: true, payMethod: "pix", minutesAgo: 34, items: [ { productId: "shake-ovomaltine", name: "Shake Ovomaltine", qty: 2, unitPrice: 4100 } ] },
+  { code: "1044", store: "passos", customerName: "João Pedro", channel: "instagram", status: "preparando", total: 5600, paid: false, payMethod: null, minutesAgo: 41, items: [ { productId: "bebida-hype-drink", name: "Hype Drink", qty: 2, unitPrice: 2800 } ] },
+  { code: "1043", store: "vila-velha", customerName: "Luiza Castro", channel: "instagram", status: "concluido", total: 5500, paid: true, payMethod: "cartao", minutesAgo: 60, items: [ { productId: "salgado-pizza-de-frango", name: "Pizza de Frango", qty: 1, unitPrice: 3600 }, { productId: "bebida-seca-barriga", name: "Seca Barriga", qty: 1, unitPrice: 1900 } ] },
+  { code: "1042", store: "passos", customerName: "Fernando Dias", channel: "loja", status: "concluido", total: 2200, paid: true, payMethod: "dinheiro", minutesAgo: 65, items: [ { productId: "bebida-colageno-drink", name: "Colágeno Drink", qty: 1, unitPrice: 2200 } ] },
+  { code: "1041", store: "vila-velha", customerName: "Patrícia Gomes", channel: "whatsapp", status: "cancelado", total: 3600, paid: false, payMethod: null, minutesAgo: 120, items: [ { productId: "salgado-escondidinho-de-frango", name: "Escondidinho de Frango", qty: 1, unitPrice: 3600 } ] },
+  { code: "1040", store: "passos", customerName: "Tiago Ramos", channel: "instagram", status: "concluido", total: 7400, paid: false, payMethod: null, minutesAgo: 125, items: [ { productId: "lanche-coxinha-proteica", name: "Coxinha Proteica", qty: 6, unitPrice: 1233 } ] },
+  { code: "1039", store: "vila-velha", customerName: "Aline Ferreira", channel: "whatsapp", status: "concluido", total: 6400, paid: true, payMethod: "pix", minutesAgo: 180, items: [ { productId: "shake-frutas-vermelhas", name: "Shake Frutas Vermelhas", qty: 1, unitPrice: 3600 }, { productId: "bebida-hype-drink", name: "Hype Drink", qty: 1, unitPrice: 2800 } ] },
 ];
 
-async function main() {
-  process.env.FIRESTORE_EMULATOR_HOST ??= "localhost:8080";
-  const app = getApps()[0] ?? initializeApp({ projectId: PROJECT });
-  const db: Firestore = getFirestore(app);
-  const store = db.collection("stores").doc(storeId);
+// Recurring / manual finance rows per store. Categories are restricted to
+// FINANCE_CATEGORIES (vendas/compras/salarios/aluguel/marketing/outros).
+interface DemoFinance {
+  slug: string;
+  label: string;
+  category: "vendas" | "compras" | "salarios" | "aluguel" | "marketing" | "outros";
+  amount: number; // centavos
+  direction: "in" | "out";
+  days: number;
+}
 
-  for (const c of CUSTOMERS) {
-    await store.collection("customers").doc(c.id).set({
+const MANUAL_FINANCE: DemoFinance[] = [
+  { slug: "compra-insumos", label: "Compra de insumos Herbalife", category: "compras", amount: 128000, direction: "out", days: 8 },
+  { slug: "folha-salarios", label: "Folha de pagamento da equipe", category: "salarios", amount: 340000, direction: "out", days: 5 },
+  { slug: "aluguel", label: "Aluguel do ponto", category: "aluguel", amount: 120000, direction: "out", days: 5 },
+  { slug: "marketing", label: "Tráfego pago · Instagram/Meta", category: "marketing", amount: 45000, direction: "out", days: 10 },
+  { slug: "venda-balcao", label: "Venda avulsa no balcão", category: "vendas", amount: 5400, direction: "in", days: 1 },
+];
+
+async function seedStore(db: Firestore, storeId: StoreId) {
+  const store = db.collection("stores").doc(storeId);
+  const customers = CUSTOMERS.filter((c) => c.store === storeId);
+  const orders = ORDERS.filter((o) => o.store === storeId);
+
+  // Index customers by name so orders can link to a real customer doc.
+  const idByName = new Map(customers.map((c) => [c.name, slug(c.name)]));
+
+  for (const c of customers) {
+    await store.collection("customers").doc(slug(c.name)).set({
       name: c.name,
       nameLower: c.name.toLowerCase(),
       phone: c.phone,
@@ -76,54 +164,50 @@ async function main() {
       instagram: c.instagram ?? null,
       tags: c.tags,
       birthday: c.birthday ?? null,
-      since: daysAgo(120),
-      archived: false,
+      notes: c.notes ?? null,
+      since: c.since,
+      archived: c.archived,
       orderCount: c.orderCount,
       totalSpent: c.totalSpent,
       lastOrderAt: c.lastOrderDays == null ? null : daysAgo(c.lastOrderDays),
       avgReorderDays: c.avgReorderDays,
+      reorderProduct: c.reorderProduct,
     });
   }
 
-  let n = 0;
-  for (const o of ORDERS) {
-    const ref = store.collection("orders").doc(`demo-order-${n++}`);
-    const total = o.items.reduce((s, it) => s + it.qty * it.unitPrice, 0);
-    const when = daysAgo(o.createdDays);
+  for (const o of orders) {
+    const ref = store.collection("orders").doc(o.code);
+    const when = minutesAgo(o.minutesAgo);
+    const customerId = idByName.get(o.customerName) ?? null;
     await ref.set({
-      customerId: o.customer.id,
-      customerName: o.customer.name,
+      customerId,
+      customerName: o.customerName,
       channel: o.channel,
       items: o.items,
-      total,
+      total: o.total,
       status: o.status,
       paid: o.paid,
       payMethod: o.paid ? o.payMethod : null,
       createdAt: when,
       updatedAt: when,
     });
+    // Mirror paid orders into finance (matches the app's order-{id} ledger doc).
     if (o.paid) {
-      await store.collection("finance").doc(`order-${ref.id}`).set({
-        label: `Pedido #${orderCode(ref.id)} · ${o.customer.name}`,
+      await store.collection("finance").doc(`order-${o.code}`).set({
+        label: `Pedido #${orderCode(o.code)} · ${o.customerName}`,
         category: "vendas",
-        amount: total,
+        amount: o.total,
         direction: "in",
         source: "order",
-        orderId: ref.id,
+        orderId: o.code,
         payMethod: o.payMethod,
         date: when,
       });
     }
   }
 
-  const manual = [
-    { label: "Compra de insumos Herbalife", category: "insumos", amount: 48000, direction: "out" as const, days: 8 },
-    { label: "Aluguel do ponto", category: "operacao", amount: 120000, direction: "out" as const, days: 5 },
-    { label: "Venda avulsa balcão", category: "vendas", amount: 5400, direction: "in" as const, days: 1 },
-  ];
-  let m = 0;
-  for (const t of manual) {
-    await store.collection("finance").doc(`demo-manual-${m++}`).set({
+  for (const t of MANUAL_FINANCE) {
+    await store.collection("finance").doc(`demo-${t.slug}`).set({
       label: t.label,
       category: t.category,
       amount: t.amount,
@@ -133,7 +217,21 @@ async function main() {
     });
   }
 
-  console.log(`Demo seed ok em ${storeId}: ${CUSTOMERS.length} clientes, ${ORDERS.length} pedidos, ${manual.length} lançamentos manuais`);
+  const paid = orders.filter((o) => o.paid).length;
+  console.log(
+    `Demo seed ok em ${storeId}: ${customers.length} clientes, ${orders.length} pedidos (${paid} pagos), ${MANUAL_FINANCE.length} lançamentos manuais`,
+  );
+}
+
+async function main() {
+  process.env.FIRESTORE_EMULATOR_HOST ??= "localhost:8080";
+  const app = getApps()[0] ?? initializeApp({ projectId: PROJECT });
+  const db: Firestore = getFirestore(app);
+  db.settings({ ignoreUndefinedProperties: true });
+
+  for (const storeId of targetStores) {
+    await seedStore(db, storeId);
+  }
 }
 
 main().catch((e) => {

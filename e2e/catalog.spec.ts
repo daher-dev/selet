@@ -57,22 +57,21 @@ test("bootstrapped catalog renders for both stores", async ({
     await expect(page.getByText("Sunset", { exact: true })).toBeVisible();
     await expect(page.getByText("Frutas Vermelhas", { exact: true })).toHaveCount(0);
 
-    // --- Estoque (Herbalife supply, imported as stock items)
+    // --- Estoque (café insumos, imported as tracked stock items)
     await page.goto(`/s/${store.id}/estoque`);
-    await expect(page.getByText(/Whey Protein 3W/)).toBeVisible();
-    await expect(page.getByText(/Fiber Powder/)).toBeVisible();
+    await expect(page.getByText("Fiber Concentrate", { exact: true })).toBeVisible();
+    await expect(page.getByText("Morango", { exact: true })).toBeVisible();
 
-    // The personal-care (beleza) line is archived → hidden by default…
+    // The old Herbalife retail SKUs are gone — the list is the café taxonomy now.
+    await expect(page.getByText(/Whey Protein 3W/)).toHaveCount(0);
     await expect(page.getByText(/SKIN - Cleanser/)).toHaveCount(0);
+
+    // The café seed ships nothing archived, so the Arquivados toggle isn't offered.
+    await expect(page.getByRole("button", { name: /Arquivados/ })).toHaveCount(0);
 
     await page.screenshot({
       path: `test-results/catalog-estoque-${store.id}.png`,
       fullPage: true,
     });
-
-    // …and revealed by the Arquivados toggle.
-    await page.getByRole("button", { name: /Arquivados/ }).click();
-    await expect(page.getByText(/SKIN - Cleanser/)).toBeVisible();
-    await expect(page.getByText(/Whey Protein 3W/)).toHaveCount(0);
   }
 });

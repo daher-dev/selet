@@ -29,18 +29,25 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const PAY_METHODS = ["pix", "cartao", "dinheiro"] as const;
 export type PayMethod = (typeof PAY_METHODS)[number];
 
-// Herbalife distributor lines (the real supply "menu"): Nutrição Interna,
-// Linha 24 Hours, Produtos Avulsos, Linha Externa (personal care).
+// Café working-insumo categories (the recipe-ingredient food groups the design
+// uses): Secos, Proteínas, Bebidas, Hortifrúti. These replace the earlier
+// Herbalife retail distributor lines — Selet is modeled as a café/nutrition bar.
 export const STOCK_CATEGORIES = [
-  "nutricao",
-  "esporte",
-  "avulsos",
-  "beleza",
+  "secos",
+  "proteinas",
+  "bebidas",
+  "hortifruti",
 ] as const;
 export type StockCategory = (typeof STOCK_CATEGORIES)[number];
 
-export const STOCK_UNITS = ["g", "ml", "L", "kg", "un"] as const;
+export const STOCK_UNITS = ["g", "ml", "L", "kg", "un", "sache"] as const;
 export type StockUnit = (typeof STOCK_UNITS)[number];
+
+// How an item's open package is consumed. "medido": deduct a measured amount
+// (g/un/sachê) per use. "continuo": not measured per use — the open package is
+// tracked by a `usos` counter and marked empty after N uses.
+export const CONSUMPTION_MODES = ["medido", "continuo"] as const;
+export type ConsumptionMode = (typeof CONSUMPTION_MODES)[number];
 
 export type UserRole = "admin" | "funcionario";
 export type UserStatus = "ativo" | "inativo" | "convidado";
@@ -101,6 +108,8 @@ export interface Customer {
   totalSpent: number; // centavos
   lastOrderAt: string | null;
   avgReorderDays: number | null;
+  /** Predicted repurchase product (names *what* to re-offer in the reorder card). */
+  reorderProduct?: string | null;
 }
 
 // Café menu sections (CARDÁPIO): Shakes (Gourmet + Tradicional), Waffle,
@@ -178,6 +187,10 @@ export interface Product {
   insumoId?: string;
   /** Whether a menu item is produced in batches and kept in stock (drives "Produzir"). */
   stockManaged: boolean;
+  /** Production mode: on-demand vs batch/lote (e.g. Coxinha). undefined for revenda. */
+  prep?: "sob demanda" | "lote" | null;
+  /** Prep/shelf duration in minutes (metadata shown on the catalog card). */
+  duration?: number;
 }
 
 export interface StockItem {
@@ -195,6 +208,10 @@ export interface StockItem {
   qty: number;
   /** contínuo: consumed without per-use measurement, only package opens */
   continuousUse: boolean;
+  /** How the open package is consumed: measured amount vs mark-empty-after-N-uses. */
+  consumptionMode: ConsumptionMode;
+  /** Uses tallied on the currently-open package (contínuo items); reset on next open. */
+  usos: number;
   resellable: boolean;
   cost?: number; // centavos per package (tracked) or base unit
   sellPrice?: number; // centavos, resellable items
@@ -209,6 +226,19 @@ export interface StockItem {
 export const STOCK_MOVEMENT_TYPES = ["entrada", "saida", "abertura"] as const;
 export type StockMovementType = (typeof STOCK_MOVEMENT_TYPES)[number];
 
+// The semantic cause of a movement (the design's reason taxonomy). `type` is the
+// physical direction; `reason` is why: manual adjust, restock, loss, a sale, or
+// consumption by production.
+export const STOCK_MOVEMENT_REASONS = [
+  "AJUSTE",
+  "ENTRADA",
+  "SAIDA",
+  "VENDA",
+  "CONSUMO",
+  "PERDA",
+] as const;
+export type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
+
 export interface StockMovement {
   id: string;
   type: StockMovementType;
@@ -216,7 +246,11 @@ export interface StockMovement {
   qty: number;
   byPackage: boolean;
   price?: number; // centavos, entradas
-  reason?: string;
+  reason?: StockMovementReason;
+  /** The order this movement fulfilled (VENDA). */
+  refOrder?: string;
+  /** The product/menu item this movement was consumed for (CONSUMO/production). */
+  refItem?: string;
   by: string; // user email
   at: string;
 }

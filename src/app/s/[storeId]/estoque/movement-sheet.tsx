@@ -133,7 +133,7 @@ function MovementForm({
         qty: parsedQty,
         byPackage: item.tracked ? byPackage : false,
         price: parsedPrice,
-        reason: reason || undefined,
+        refItem: reason || undefined,
       });
       if (result.ok) {
         toast.success(type === "entrada" ? "Entrada registrada." : "Saída registrada.");
@@ -328,8 +328,8 @@ function MovementForm({
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold text-ink">
-                        {m.reason
-                          ? m.reason
+                        {m.refItem
+                          ? m.refItem
                           : m.type === "abertura"
                             ? `Abriu 1 ${item.pkgLabel ?? "embalagem"}`
                             : m.type === "entrada"

@@ -67,7 +67,7 @@ function StockItemForm({
   onClose: () => void;
 }) {
   const [name, setName] = useState(item?.name ?? "");
-  const [category, setCategory] = useState<StockCategory>(item?.category ?? "nutricao");
+  const [category, setCategory] = useState<StockCategory>(item?.category ?? "secos");
   const [unit, setUnit] = useState<StockUnit>(item?.unit ?? "g");
   const [tracked, setTracked] = useState(item?.tracked ?? false);
   const [pkgLabel, setPkgLabel] = useState(item?.pkgLabel ?? "");

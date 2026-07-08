@@ -1,15 +1,14 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Carrot,
   CupSoda,
-  Dumbbell,
+  Drumstick,
   GlassWater,
   Grid3x3,
-  Leaf,
   Pizza,
   PlusCircle,
   Sandwich,
-  ShoppingBag,
-  Sparkles,
+  Wheat,
 } from "lucide-react";
 
 export interface CategoryMeta {
@@ -30,12 +29,12 @@ export const PRODUCT_CATEGORY_META: Record<string, CategoryMeta> = {
   adicionais: { label: "Adicionais", icon: PlusCircle, fg: "text-cat-adicionais", bg: "bg-cat-adicionais-wash" },
 };
 
-/** Stock (insumo) categories — the Herbalife distributor lines. */
+/** Stock (insumo) categories — the café's recipe-ingredient food groups. */
 export const STOCK_CATEGORY_META: Record<string, CategoryMeta> = {
-  nutricao: { label: "Nutrição", icon: Leaf, fg: "text-cat-nutricao", bg: "bg-cat-nutricao-wash" },
-  esporte: { label: "24 Hours", icon: Dumbbell, fg: "text-cat-esporte", bg: "bg-cat-esporte-wash" },
-  avulsos: { label: "Avulsos", icon: ShoppingBag, fg: "text-cat-avulsos", bg: "bg-cat-avulsos-wash" },
-  beleza: { label: "Beleza", icon: Sparkles, fg: "text-cat-beleza", bg: "bg-cat-beleza-wash" },
+  secos: { label: "Secos", icon: Wheat, fg: "text-cat-secos", bg: "bg-cat-secos-wash" },
+  proteinas: { label: "Proteínas", icon: Drumstick, fg: "text-cat-proteinas", bg: "bg-cat-proteinas-wash" },
+  bebidas: { label: "Bebidas", icon: CupSoda, fg: "text-cat-bebidas", bg: "bg-cat-bebidas-wash" },
+  hortifruti: { label: "Hortifrúti", icon: Carrot, fg: "text-cat-hortifruti", bg: "bg-cat-hortifruti-wash" },
 };
 
 export const PRODUCT_TYPE_TAG_LABELS: Record<string, string> = {

@@ -37,9 +37,16 @@ interface StockRow {
   category: string;
   unit: string;
   tracked: boolean;
+  pkgLabel?: string;
+  pkgSize?: number;
+  /** Opening ledger — seeded only on first insert; live counts win on re-import. */
+  sealed?: number;
+  open?: number;
+  usos?: number;
   continuousUse: boolean;
+  consumptionMode?: "medido" | "continuo";
   resellable: boolean;
-  sellPrice: number;
+  sellPrice?: number;
   cost?: number;
   reorderAt: number;
   archived?: boolean;
@@ -56,7 +63,7 @@ function prune<T extends Record<string, unknown>>(obj: T): T {
   ) as T;
 }
 
-/** Ledger invariant mirrored from src/data/stock.ts. */
+/** Ledger invariant mirrored from src/data/stock.ts: qty = sealed*pkgSize + open. */
 function derive(tracked: boolean, pkgSize: number | undefined, sealed: number, open: number) {
   const qty = tracked && pkgSize ? sealed * pkgSize + open : open;
   return { sealed, open, qty };
@@ -116,7 +123,10 @@ export async function importCatalog(
       category: s.category,
       unit: s.unit,
       tracked: s.tracked,
+      pkgLabel: s.pkgLabel,
+      pkgSize: s.pkgSize,
       continuousUse: s.continuousUse,
+      consumptionMode: s.consumptionMode ?? (s.continuousUse ? "continuo" : "medido"),
       resellable: s.resellable,
       sellPrice: s.sellPrice,
       cost: s.cost,
@@ -125,14 +135,16 @@ export async function importCatalog(
       updatedAt: FieldValue.serverTimestamp(),
     };
     if (snap.exists) {
-      // Preserve live counts; only refresh catalog metadata.
+      // Preserve live counts (sealed/open/qty/usos); only refresh catalog metadata.
       await ref.set(prune(catalogFields), { merge: true });
     } else {
-      const state = derive(s.tracked, undefined, 0, 0);
+      // First insert — seed the opening ledger from the JSON and derive qty.
+      const state = derive(s.tracked, s.pkgSize, s.sealed ?? 0, s.open ?? 0);
       await ref.set(
         prune({
           ...catalogFields,
           ...state,
+          usos: s.usos ?? 0,
           lowStock: state.qty <= s.reorderAt,
         }),
       );
