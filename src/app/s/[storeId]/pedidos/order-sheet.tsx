@@ -704,10 +704,13 @@ function ProductPickerDialog({
     onOpenChange(false);
   }
 
+  // Adicional-type products aren't independently orderable — they only show
+  // up as live add-ons inside another product's config step.
+  const orderable = products.filter((p) => p.saleType !== "adicional");
   const q = query.trim().toLowerCase();
   const filtered = q
-    ? products.filter((p) => p.name.toLowerCase().includes(q))
-    : products;
+    ? orderable.filter((p) => p.name.toLowerCase().includes(q))
+    : orderable;
 
   return (
     <Dialog
@@ -721,6 +724,7 @@ function ProductPickerDialog({
         {config ? (
           <ProductConfig
             product={config}
+            allProducts={products}
             onBack={() => setConfig(null)}
             onConfirm={(item) => {
               onAdd(item);
@@ -748,7 +752,7 @@ function ProductPickerDialog({
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {filtered.length === 0 ? (
                 <p className="px-2 py-8 text-center text-[12.5px] text-ink-faint">
-                  {products.length === 0
+                  {orderable.length === 0
                     ? "Cadastre produtos no Catálogo primeiro."
                     : "Nenhum produto encontrado"}
                 </p>
@@ -793,17 +797,24 @@ function ProductPickerDialog({
   );
 }
 
-// Menu vs Revenda tag on catalog rows (design addProductList typeBadge).
+// Menu vs Revenda vs Adicional tag on catalog rows (design addProductList typeBadge).
 function SaleTypeBadge({ saleType }: { saleType: Product["saleType"] }) {
-  const revenda = saleType === "revenda";
+  const style =
+    saleType === "revenda"
+      ? "bg-info-wash text-info"
+      : saleType === "adicional"
+        ? "bg-violet-wash text-violet"
+        : "bg-mist text-primary";
+  const label =
+    saleType === "revenda" ? "Revenda" : saleType === "adicional" ? "Adicional" : "Menu";
   return (
     <span
       className={cn(
         "rounded-full px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide",
-        revenda ? "bg-info-wash text-info" : "bg-mist text-primary",
+        style,
       )}
     >
-      {revenda ? "Revenda" : "Menu"}
+      {label}
     </span>
   );
 }
@@ -815,17 +826,32 @@ function SaleTypeBadge({ saleType }: { saleType: Product["saleType"] }) {
  */
 function ProductConfig({
   product,
+  allProducts,
   onBack,
   onConfirm,
 }: {
   product: Product;
+  /** Full catalog, used to resolve current price/name for productId-linked addons. */
+  allProducts: Product[];
   onBack: () => void;
   onConfirm: (item: OrderItem) => void;
 }) {
   const [qty, setQty] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const meta = PRODUCT_CATEGORY_META[product.category] ?? NEUTRAL_TILE;
-  const addons = product.adicionais ?? [];
+  // Resolve live price/display-name for addons linked to a catalog
+  // "adicional" product. `name` (used for selection + the consumption
+  // engine's name-based lookup against the saved product) stays the cached
+  // value so it keeps matching after a rename — only the label shown here
+  // and the price folded into the total are live.
+  const addons = (product.adicionais ?? []).map((a) => {
+    const linked = a.productId ? allProducts.find((p) => p.id === a.productId) : undefined;
+    return {
+      ...a,
+      price: linked?.price ?? a.price,
+      displayName: linked?.name as string | undefined,
+    };
+  });
 
   function toggleAddon(name: string) {
     setSelected((prev) =>
@@ -923,7 +949,7 @@ function ProductConfig({
                       <Check className="size-3.5" strokeWidth={3} />
                     </span>
                     <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
-                      {addon.name}
+                      {addon.displayName ?? addon.name}
                     </span>
                     <span className="tabular shrink-0 text-[12.5px] font-bold text-primary">
                       + {formatBRL(addon.price)}

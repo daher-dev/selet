@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   Archive,
+  Blocks,
   ChefHat,
   ChevronDown,
   Filter,
@@ -51,6 +52,7 @@ const TYPE_FILTERS: { value: string; label: string }[] = [
   { value: "all", label: "Todos" },
   { value: "menu", label: "Menu" },
   { value: "revenda", label: "Revenda" },
+  { value: "adicional", label: "Adicional" },
   { value: "arquivados", label: "Arquivados" },
 ];
 
@@ -169,9 +171,11 @@ export function ProdutosClient({
                 ? ChefHat
                 : opt.value === "revenda"
                   ? Tag
-                  : opt.value === "arquivados"
-                    ? Archive
-                    : List;
+                  : opt.value === "adicional"
+                    ? Blocks
+                    : opt.value === "arquivados"
+                      ? Archive
+                      : List;
             return (
               <DropdownMenuItem
                 key={opt.value}
@@ -184,9 +188,11 @@ export function ProdutosClient({
                       ? "bg-mist text-primary"
                       : opt.value === "revenda"
                         ? "bg-cat-bebidas-wash text-cat-bebidas"
-                        : opt.value === "arquivados"
-                          ? "bg-wash text-ink-faint"
-                          : undefined
+                        : opt.value === "adicional"
+                          ? "bg-violet-wash text-violet"
+                          : opt.value === "arquivados"
+                            ? "bg-wash text-ink-faint"
+                            : undefined
                   }
                 >
                   <Icon />
@@ -240,6 +246,7 @@ export function ProdutosClient({
         storeId={storeId}
         product={editing}
         stockItems={stockItems}
+        allProducts={products}
         open={formOpen}
         onOpenChange={setFormOpen}
       />
@@ -299,11 +306,14 @@ function ProductCard({
 }) {
   const meta = PRODUCT_CATEGORY_META[product.category];
   const isMenu = product.saleType === "menu";
+  // adicional is produced exactly like menu (recipe/stockManaged) — show the
+  // same Base/Produzir affordances, just under its own "Adicional" badge.
+  const usesRecipe = isMenu || product.saleType === "adicional";
   const tiers = [...product.tiers].sort((a, b) => a.qty - b.qty);
   const unitTier =
     tiers.find((t) => t.qty === 1) ?? tiers[0] ?? { qty: 1, price: product.price };
   const batches = tiers.filter((t) => t !== unitTier);
-  const canProduce = isMenu && product.stockManaged && product.active;
+  const canProduce = usesRecipe && product.stockManaged && product.active;
 
   return (
     <div
@@ -333,10 +343,10 @@ function ProductCard({
             )}
           </h3>
         </div>
-        <TypeBadge isMenu={isMenu} />
+        <TypeBadge saleType={product.saleType} />
       </div>
 
-      {isMenu && product.recipe.length > 0 && (
+      {usesRecipe && product.recipe.length > 0 && (
         <div className="mt-3.5">
           <SectionLabel>Base</SectionLabel>
           <div className="mt-2 flex flex-col gap-1.5">
@@ -439,16 +449,25 @@ function ProductCard({
   );
 }
 
-function TypeBadge({ isMenu }: { isMenu: boolean }) {
+function TypeBadge({ saleType }: { saleType: Product["saleType"] }) {
+  const style =
+    saleType === "menu"
+      ? "bg-mist text-primary"
+      : saleType === "adicional"
+        ? "bg-violet-wash text-violet"
+        : "bg-cat-bebidas-wash text-cat-bebidas";
+  const Icon = saleType === "menu" ? ChefHat : saleType === "adicional" ? Blocks : Tag;
+  const label =
+    saleType === "menu" ? "Menu" : saleType === "adicional" ? "Adicional" : "Revenda";
   return (
     <span
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold",
-        isMenu ? "bg-mist text-primary" : "bg-cat-bebidas-wash text-cat-bebidas",
+        style,
       )}
     >
-      {isMenu ? <ChefHat className="size-3" /> : <Tag className="size-3" />}
-      {isMenu ? "Menu" : "Revenda"}
+      <Icon className="size-3" />
+      {label}
     </span>
   );
 }

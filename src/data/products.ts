@@ -30,7 +30,8 @@ function stockItemRef(storeId: string, itemId: string) {
 }
 
 function toProduct(id: string, d: FirebaseFirestore.DocumentData): Product {
-  const saleType = d.saleType === "revenda" ? "revenda" : "menu";
+  const saleType: ProductSaleType =
+    d.saleType === "revenda" || d.saleType === "adicional" ? d.saleType : "menu";
   const price = d.price ?? 0;
   return {
     id,

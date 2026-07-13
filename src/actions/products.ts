@@ -29,6 +29,7 @@ const recipeItemSchema = z.object({
 });
 
 const addonSchema = z.object({
+  productId: z.string().optional(),
   stockItemId: z.string().optional(),
   name: z.string().trim().min(1),
   price: z.number().int().nonnegative(),

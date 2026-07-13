@@ -82,6 +82,31 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
     expect(await listProducts(storeId)).toHaveLength(0);
   });
 
+  it("round-trips a saleType:adicional product (recipe-based, not revenda)", async () => {
+    const id = await createProduct(storeId, {
+      name: "Calda Quente",
+      price: 300,
+      category: "adicionais",
+      typeTags: [],
+      active: true,
+      saleType: "adicional",
+      recipe: [{ stockItemId: "calda-insumo", name: "Calda", qty: 1, unit: "un" }],
+      adicionais: [],
+      tiers: [{ qty: 1, price: 300 }],
+      stockManaged: false,
+    });
+
+    const product = await getProduct(storeId, id);
+    expect(product).toMatchObject({
+      name: "Calda Quente",
+      saleType: "adicional",
+      recipe: [{ stockItemId: "calda-insumo", name: "Calda", qty: 1, unit: "un" }],
+      insumoId: undefined,
+    });
+
+    await deleteProduct(storeId, id);
+  });
+
   it("scopes products by store (multi-tenant isolation)", async () => {
     const otherStore = `${storeId}-other`;
     await createProduct(storeId, {

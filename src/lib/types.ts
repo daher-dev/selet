@@ -188,8 +188,10 @@ export const PRODUCT_TYPE_TAGS = [
 export type ProductTypeTag = (typeof PRODUCT_TYPE_TAGS)[number];
 
 // How a catalog item is sold. "menu" = prepared in-store from a recipe (BASE)
-// that consumes stock; "revenda" = a stock item resold directly.
-export const PRODUCT_SALE_TYPES = ["menu", "revenda"] as const;
+// that consumes stock; "revenda" = a stock item resold directly; "adicional"
+// = not independently orderable, only offered as a live-linked add-on inside
+// other products (stock behaves like revenda: a single optional insumo link).
+export const PRODUCT_SALE_TYPES = ["menu", "revenda", "adicional"] as const;
 export type ProductSaleType = (typeof PRODUCT_SALE_TYPES)[number];
 
 /**
@@ -207,6 +209,9 @@ export interface RecipeItem {
 
 /** An optional add-on for a menu item — also a consumed item, with an extra price. */
 export interface ProductAddon {
+  /** Live reference to a saleType:"adicional" Product; when set, name/price
+   *  should be resolved from that product rather than trusted from below. */
+  productId?: string;
   stockItemId?: string;
   name: string;
   price: number; // centavos, extra charge

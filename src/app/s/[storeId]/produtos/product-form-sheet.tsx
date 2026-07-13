@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import {
+  Blocks,
   Boxes,
   ChefHat,
   Clock,
@@ -54,6 +55,7 @@ interface ProductFormSheetProps {
   storeId: string;
   product: Product | null;
   stockItems: StockItem[];
+  allProducts: Product[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -62,6 +64,7 @@ export function ProductFormSheet({
   storeId,
   product,
   stockItems,
+  allProducts,
   open,
   onOpenChange,
 }: ProductFormSheetProps) {
@@ -82,6 +85,7 @@ export function ProductFormSheet({
           storeId={storeId}
           product={product}
           stockItems={stockItems}
+          allProducts={allProducts}
           onClose={() => onOpenChange(false)}
         />
       </SheetContent>
@@ -105,11 +109,13 @@ function ProductForm({
   storeId,
   product,
   stockItems,
+  allProducts,
   onClose,
 }: {
   storeId: string;
   product: Product | null;
   stockItems: StockItem[];
+  allProducts: Product[];
   onClose: () => void;
 }) {
   const { byId, byName } = useMemo(() => {
@@ -171,7 +177,24 @@ function ProductForm({
   const [pending, startTransition] = useTransition();
 
   const isMenu = saleType === "menu";
+  const isAdicional = saleType === "adicional";
+  // "adicional" is produced exactly like "menu" (BASE recipe, optionally
+  // batch/stockManaged) — it only differs in orderability: not independently
+  // orderable, offered as a live add-on inside other products instead.
+  const usesRecipe = isMenu || isAdicional;
   const selectedInsumo = insumoId ? byId.get(insumoId) : undefined;
+
+  const adicionalProducts = useMemo(
+    () =>
+      allProducts.filter(
+        (p) => p.saleType === "adicional" && p.active && p.id !== product?.id,
+      ),
+    [allProducts, product?.id],
+  );
+  const adicionalById = useMemo(
+    () => new Map(allProducts.map((p) => [p.id, p])),
+    [allProducts],
+  );
 
   const usedStockIds = useMemo(
     () =>
@@ -212,6 +235,20 @@ function ProductForm({
       },
     ]);
   }
+  function addAddonFromProduct(item: Product) {
+    setAdicionais((rs) => [
+      ...rs,
+      {
+        _id: nextId(),
+        productId: item.id,
+        name: item.name,
+        price: item.price,
+        qty: null,
+        unit: undefined,
+        continuo: false,
+      },
+    ]);
+  }
 
   function submit() {
     // Parse the unified tier list.
@@ -245,7 +282,7 @@ function ProductForm({
       return;
     }
 
-    const cleanRecipe: RecipeItem[] = isMenu
+    const cleanRecipe: RecipeItem[] = usesRecipe
       ? recipe
           .filter((r) => r.name.trim())
           .map((r) => ({
@@ -259,6 +296,7 @@ function ProductForm({
       ? adicionais
           .filter((a) => a.name.trim())
           .map((a) => ({
+            ...(a.productId ? { productId: a.productId } : {}),
             ...(a.stockItemId ? { stockItemId: a.stockItemId } : {}),
             name: a.name.trim(),
             price: a.price,
@@ -281,8 +319,8 @@ function ProductForm({
         adicionais: cleanAddons,
         tiers: parsedTiers,
         insumoId: saleType === "revenda" ? insumoId : undefined,
-        stockManaged: isMenu ? stockManaged : false,
-        prep: isMenu ? (stockManaged ? "lote" : "sob demanda") : undefined,
+        stockManaged: usesRecipe ? stockManaged : false,
+        prep: usesRecipe ? (stockManaged ? "lote" : "sob demanda") : undefined,
         duration: product?.duration,
       } as const;
       const result = product
@@ -353,7 +391,7 @@ function ProductForm({
 
         <div className="space-y-1.5">
           <Label>Tipo de venda</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <SaleTypeButton
               active={saleType === "menu"}
               onClick={() => setSaleType("menu")}
@@ -366,16 +404,24 @@ function ProductForm({
               icon={<Tag className="size-4" />}
               label="Revenda"
             />
+            <SaleTypeButton
+              active={saleType === "adicional"}
+              onClick={() => setSaleType("adicional")}
+              icon={<Blocks className="size-4" />}
+              label="Adicional"
+            />
           </div>
           <p className="text-[11.5px] text-ink-faint">
             {isMenu
               ? "Preparado na loja: consome insumos da base e aceita adicionais."
-              : "Um item do estoque vendido diretamente por um novo preço."}
+              : isAdicional
+                ? "Preparado na loja como a base, mas não aparece sozinho no pedido — só como opcional dentro de outros itens."
+                : "Um item do estoque vendido diretamente por um novo preço."}
           </p>
         </div>
 
-        {/* -------------------------------------------------- REVENDA insumo */}
-        {!isMenu && (
+        {/* -------------------------------------------------------- REVENDA insumo */}
+        {saleType === "revenda" && (
           <div className="space-y-1.5">
             <Label>Produto do estoque</Label>
             <InsumoTriggerPicker
@@ -399,29 +445,32 @@ function ProductForm({
           </div>
         )}
 
-        {/* ------------------------------------------------------- MENU base */}
+        {/* ---------------------------------------------- MENU/ADICIONAL base */}
+        {usesRecipe && (
+          <InsumoSection
+            title="Base"
+            rows={recipe}
+            stockItems={stockItems}
+            usedStockIds={usedStockIds}
+            addLabel="Adicionar insumo"
+            onAdd={addRecipeRow}
+            onRemove={(id) => setRecipe((rs) => rs.filter((r) => r._id !== id))}
+            renderRow={(row) => (
+              <RecipeRowFields
+                row={row}
+                onQty={(qty) =>
+                  setRecipe((rs) =>
+                    rs.map((r) => (r._id === row._id ? { ...r, qty } : r)),
+                  )
+                }
+              />
+            )}
+          />
+        )}
+
+        {/* --------------------------------------------------------- MENU adicionais */}
         {isMenu && (
           <>
-            <InsumoSection
-              title="Base"
-              rows={recipe}
-              stockItems={stockItems}
-              usedStockIds={usedStockIds}
-              addLabel="Adicionar insumo"
-              onAdd={addRecipeRow}
-              onRemove={(id) => setRecipe((rs) => rs.filter((r) => r._id !== id))}
-              renderRow={(row) => (
-                <RecipeRowFields
-                  row={row}
-                  onQty={(qty) =>
-                    setRecipe((rs) =>
-                      rs.map((r) => (r._id === row._id ? { ...r, qty } : r)),
-                    )
-                  }
-                />
-              )}
-            />
-
             <InsumoSection
               title="Adicionais"
               rows={adicionais}
@@ -435,6 +484,7 @@ function ProductForm({
               renderRow={(row) => (
                 <AddonRowFields
                   row={row}
+                  liveProduct={row.productId ? adicionalById.get(row.productId) : undefined}
                   onQty={(qty) =>
                     setAdicionais((rs) =>
                       rs.map((r) => (r._id === row._id ? { ...r, qty } : r)),
@@ -449,26 +499,43 @@ function ProductForm({
               )}
             />
 
-            <div className="space-y-1.5">
-              <Label>Produção</Label>
-              <div className="grid grid-cols-2 gap-2.5">
-                <ProducaoCard
-                  active={!stockManaged}
-                  onClick={() => setStockManaged(false)}
-                  icon={<Clock className="size-[17px]" strokeWidth={1.8} />}
-                  title="Sob demanda"
-                  desc="Produzido na hora"
-                />
-                <ProducaoCard
-                  active={stockManaged}
-                  onClick={() => setStockManaged(true)}
-                  icon={<Boxes className="size-[17px]" strokeWidth={1.8} />}
-                  title="No estoque"
-                  desc="Armazenado no estoque"
-                />
-              </div>
-            </div>
+            {adicionalProducts.length > 0 && (
+              <AdicionalProductSection
+                products={adicionalProducts}
+                exclude={
+                  new Set(
+                    adicionais
+                      .map((a) => a.productId)
+                      .filter((x): x is string => Boolean(x)),
+                  )
+                }
+                onAdd={addAddonFromProduct}
+              />
+            )}
           </>
+        )}
+
+        {/* ---------------------------------------------------- MENU/ADICIONAL produção */}
+        {usesRecipe && (
+          <div className="space-y-1.5">
+            <Label>Produção</Label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <ProducaoCard
+                active={!stockManaged}
+                onClick={() => setStockManaged(false)}
+                icon={<Clock className="size-[17px]" strokeWidth={1.8} />}
+                title="Sob demanda"
+                desc="Produzido na hora"
+              />
+              <ProducaoCard
+                active={stockManaged}
+                onClick={() => setStockManaged(true)}
+                icon={<Boxes className="size-[17px]" strokeWidth={1.8} />}
+                title="No estoque"
+                desc="Armazenado no estoque"
+              />
+            </div>
+          </div>
         )}
 
         {/* ----------------------------------------------------- price tiers */}
@@ -767,16 +834,25 @@ function RecipeRowFields({
 
 function AddonRowFields({
   row,
+  liveProduct,
   onQty,
   onPrice,
 }: {
   row: AddonRow;
+  /** Set when row.productId resolves to a live "adicional" catalog product. */
+  liveProduct?: Product;
   onQty: (qty: number | null) => void;
   onPrice: (price: number) => void;
 }) {
+  const livePrice = liveProduct?.price;
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {row.continuo ? (
+      {liveProduct ? (
+        <span className="inline-flex items-center gap-1.5 self-start rounded-lg bg-mist px-2.5 py-1.5 text-[11.5px] font-semibold text-primary">
+          <Blocks className="size-3" strokeWidth={1.8} />
+          do catálogo
+        </span>
+      ) : row.continuo ? (
         <SemMedicaoChip />
       ) : (
         <>
@@ -798,22 +874,31 @@ function AddonRowFields({
         </>
       )}
       <span className="flex-1" />
-      <div className="flex h-9 items-center rounded-lg border border-border bg-card px-2.5">
-        <span className="text-[12px] text-ink-faint">+ R$</span>
-        <Input
-          value={row.price ? formatBRL(row.price).replace(/R\$\s?/, "") : ""}
-          onChange={(e) => {
-            try {
-              onPrice(parseBRL(e.target.value || "0"));
-            } catch {
-              onPrice(0);
-            }
-          }}
-          inputMode="decimal"
-          placeholder="0"
-          className="h-8 w-14 border-0 bg-transparent p-0 text-right tabular text-[13.5px] font-bold text-primary shadow-none focus-visible:ring-0"
-        />
-      </div>
+      {liveProduct ? (
+        <div className="flex h-9 items-center rounded-lg border border-border bg-paper px-2.5">
+          <span className="text-[12px] text-ink-faint">+ R$</span>
+          <span className="tabular text-[13.5px] font-bold text-primary">
+            {formatBRL(livePrice ?? row.price).replace(/R\$\s?/, "")}
+          </span>
+        </div>
+      ) : (
+        <div className="flex h-9 items-center rounded-lg border border-border bg-card px-2.5">
+          <span className="text-[12px] text-ink-faint">+ R$</span>
+          <Input
+            value={row.price ? formatBRL(row.price).replace(/R\$\s?/, "") : ""}
+            onChange={(e) => {
+              try {
+                onPrice(parseBRL(e.target.value || "0"));
+              } catch {
+                onPrice(0);
+              }
+            }}
+            inputMode="decimal"
+            placeholder="0"
+            className="h-8 w-14 border-0 bg-transparent p-0 text-right tabular text-[13.5px] font-bold text-primary shadow-none focus-visible:ring-0"
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -889,6 +974,101 @@ function InsumoPicker({
               </button>
             );
           })
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Lets a product link an existing "adicional" catalog product as a live add-on. */
+function AdicionalProductSection({
+  products,
+  exclude,
+  onAdd,
+}: {
+  products: Product[];
+  exclude: Set<string>;
+  onAdd: (item: Product) => void;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const options = products.filter((p) => !exclude.has(p.id));
+
+  return (
+    <div className="space-y-2">
+      <Label>Adicionais do catálogo</Label>
+      <p className="text-[11.5px] text-ink-faint">
+        Vincule um item cadastrado como &ldquo;Adicional&rdquo; — nome e preço
+        ficam sempre sincronizados com o catálogo.
+      </p>
+      <DashedAddButton
+        onClick={() => setPickerOpen((v) => !v)}
+        label="Vincular adicional do catálogo"
+      />
+      {pickerOpen && options.length > 0 && (
+        <AdicionalProductPicker
+          products={options}
+          onPick={(item) => {
+            onAdd(item);
+            setPickerOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Inline searchable list of saleType:"adicional" catalog products. */
+function AdicionalProductPicker({
+  products,
+  onPick,
+}: {
+  products: Product[];
+  onPick: (item: Product) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const options = products.filter(
+    (p) => !q || p.name.toLowerCase().includes(q),
+  );
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border">
+      <div className="flex items-center gap-2 border-b border-border bg-paper px-3 py-2">
+        <Search className="size-4 text-ink-faint" />
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar adicional…"
+          className="w-full min-w-0 bg-transparent text-[13px] outline-none placeholder:text-ink-faint"
+        />
+      </div>
+      <div className="max-h-52 overflow-y-auto">
+        {options.length === 0 ? (
+          <div className="px-3 py-4 text-center text-[12px] text-ink-faint">
+            Nenhum adicional encontrado
+          </div>
+        ) : (
+          options.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onPick(item)}
+              className="flex w-full items-center gap-2.5 border-b border-border/60 px-3 py-2 text-left transition-colors last:border-0 hover:bg-accent"
+            >
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-mist text-primary">
+                <Blocks className="size-3.5" strokeWidth={1.8} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-semibold text-ink">
+                  {item.name}
+                </span>
+              </span>
+              <span className="tabular shrink-0 text-[12.5px] font-bold text-primary">
+                {formatBRL(item.price)}
+              </span>
+            </button>
+          ))
         )}
       </div>
     </div>
