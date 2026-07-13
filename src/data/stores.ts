@@ -7,7 +7,13 @@ export async function listStores(): Promise<Store[]> {
   const snap = await getDb().collection("stores").orderBy("name").get();
   return snap.docs.map((doc) => {
     const d = doc.data();
-    return { id: doc.id, name: d.name, sub: d.sub, initial: d.initial };
+    return {
+      id: doc.id,
+      name: d.name,
+      sub: d.sub,
+      initial: d.initial,
+      defaultDDD: d.defaultDDD,
+    };
   });
 }
 

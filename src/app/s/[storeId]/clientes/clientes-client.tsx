@@ -81,12 +81,14 @@ function isSegment(v: string | undefined): v is Segment {
 export function ClientesClient({
   storeId,
   storeName,
+  defaultDDD,
   customers,
   orders = [],
   initialSegment,
 }: {
   storeId: string;
   storeName: string;
+  defaultDDD?: string;
   customers: Customer[];
   orders?: Order[];
   initialSegment?: string;
@@ -330,6 +332,7 @@ export function ClientesClient({
       <CustomerFormSheet
         storeId={storeId}
         storeName={storeName}
+        defaultDDD={defaultDDD}
         customer={editing}
         open={formOpen}
         onOpenChange={setFormOpen}

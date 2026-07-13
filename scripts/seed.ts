@@ -23,8 +23,8 @@ const app = getApps()[0] ?? initializeApp({ projectId: "selet-prod" });
 const db = getFirestore(app);
 
 const STORES = [
-  { id: "vila-velha", name: "Vila Velha/ES", sub: "Loja matriz", initial: "V" },
-  { id: "passos", name: "Passos/MG", sub: "Filial", initial: "P" },
+  { id: "vila-velha", name: "Vila Velha/ES", sub: "Loja matriz", initial: "V", defaultDDD: "27" },
+  { id: "passos", name: "Passos/MG", sub: "Filial", initial: "P", defaultDDD: "35" },
 ];
 
 async function seed() {

@@ -99,6 +99,8 @@ export interface Store {
   name: string;
   sub: string;
   initial: string;
+  /** Area code prefilled on new-client phone inputs (e.g. "35" for Passos/MG). */
+  defaultDDD?: string;
 }
 
 export interface OrderItem {

@@ -26,6 +26,7 @@ import { TAG_CATALOG, maskPhone } from "./customer-logic";
 interface CustomerFormSheetProps {
   storeId: string;
   storeName: string;
+  defaultDDD?: string;
   customer: Customer | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -34,6 +35,7 @@ interface CustomerFormSheetProps {
 export function CustomerFormSheet({
   storeId,
   storeName,
+  defaultDDD,
   customer,
   open,
   onOpenChange,
@@ -56,6 +58,7 @@ export function CustomerFormSheet({
           key={customer?.id ?? "new"}
           storeId={storeId}
           storeName={storeName}
+          defaultDDD={defaultDDD}
           customer={customer}
           onClose={() => onOpenChange(false)}
         />
@@ -76,25 +79,34 @@ function sinceToMonth(iso: string): { year: number; month: number } | undefined 
   return { year: d.getFullYear(), month: d.getMonth() };
 }
 
+function thisMonth(): { year: number; month: number } {
+  const d = new Date();
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
 function CustomerForm({
   storeId,
   storeName,
+  defaultDDD,
   customer,
   onClose,
 }: {
   storeId: string;
   storeName: string;
+  defaultDDD?: string;
   customer: Customer | null;
   onClose: () => void;
 }) {
   const [name, setName] = useState(customer?.name ?? "");
-  const [phone, setPhone] = useState(customer ? maskPhone(customer.phone ?? "") : "");
+  const [phone, setPhone] = useState(
+    customer ? maskPhone(customer.phone ?? "") : maskPhone(defaultDDD ?? ""),
+  );
   const [instagram, setInstagram] = useState(customer?.instagram ?? "");
   const [birthday, setBirthday] = useState<Customer["birthday"]>(
     customer?.birthday,
   );
   const [since, setSince] = useState<{ year: number; month: number } | undefined>(
-    customer ? sinceToMonth(customer.since) : undefined,
+    customer ? sinceToMonth(customer.since) : thisMonth(),
   );
   const [tags, setTags] = useState<string[]>(customer?.tags ?? []);
   const [notes, setNotes] = useState(customer?.notes ?? "");

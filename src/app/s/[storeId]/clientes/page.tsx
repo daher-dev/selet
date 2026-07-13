@@ -23,12 +23,13 @@ export default async function ClientesPage({
     listOrders(storeId),
     listStores(),
   ]);
-  const storeName = stores.find((s) => s.id === storeId)?.name ?? "";
+  const store = stores.find((s) => s.id === storeId);
 
   return (
     <ClientesClient
       storeId={storeId}
-      storeName={storeName}
+      storeName={store?.name ?? ""}
+      defaultDDD={store?.defaultDDD}
       customers={customers}
       orders={orders}
       initialSegment={seg}
