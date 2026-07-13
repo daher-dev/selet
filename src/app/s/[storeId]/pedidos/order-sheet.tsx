@@ -717,7 +717,7 @@ function ProductPickerDialog({
         if (!next) reset();
       }}
     >
-      <DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] max-w-md gap-0 overflow-hidden rounded-2xl p-0">
+      <DialogContent className="flex max-h-[85dvh] w-[calc(100%-2rem)] max-w-md flex-col gap-0 overflow-hidden rounded-2xl p-0">
         {config ? (
           <ProductConfig
             product={config}
@@ -731,7 +731,7 @@ function ProductPickerDialog({
           />
         ) : (
           <>
-            <DialogHeader className="border-b border-border p-4 pb-3">
+            <DialogHeader className="shrink-0 border-b border-border p-4 pb-3">
               <DialogTitle className="text-[15px] font-bold">
                 Adicionar ao pedido
               </DialogTitle>
@@ -745,7 +745,7 @@ function ProductPickerDialog({
                 />
               </div>
             </DialogHeader>
-            <div className="overflow-y-auto p-3">
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {filtered.length === 0 ? (
                 <p className="px-2 py-8 text-center text-[12.5px] text-ink-faint">
                   {products.length === 0
@@ -851,7 +851,7 @@ function ProductConfig({
 
   return (
     <>
-      <DialogHeader className="border-b border-border p-4 pb-3">
+      <DialogHeader className="shrink-0 border-b border-border p-4 pb-3">
         <div className="flex items-center gap-2.5">
           <button
             type="button"
@@ -866,7 +866,7 @@ function ProductConfig({
         </div>
       </DialogHeader>
 
-      <div className="space-y-5 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
         <div className="flex items-center gap-3 rounded-xl border border-border bg-paper p-3">
           <CategoryTile meta={meta} className="size-11" />
           <span className="min-w-0 flex-1">
@@ -936,7 +936,7 @@ function ProductConfig({
         )}
       </div>
 
-      <div className="flex items-center gap-3 border-t border-border p-4">
+      <div className="flex shrink-0 items-center gap-3 border-t border-border p-4">
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-semibold text-ink-faint">
             Subtotal
