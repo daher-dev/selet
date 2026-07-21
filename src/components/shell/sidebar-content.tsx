@@ -44,7 +44,7 @@ export function SidebarContent({
       {/* Brand: wordmark + inline kicker (no leaf tile, per design) */}
       <div className="flex items-baseline gap-2.5 px-2 pt-1 pb-0.5">
         <SeletWordmark className="text-[30px]" />
-        <span className="text-[9px] font-semibold uppercase tracking-[0.25em] text-leaf">
+        <span className="whitespace-nowrap text-[9px] font-semibold uppercase leading-none tracking-[0.16em] text-leaf">
           Painel de controle
         </span>
       </div>
