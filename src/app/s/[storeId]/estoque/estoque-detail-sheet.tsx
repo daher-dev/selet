@@ -41,6 +41,7 @@ import {
   deleteStockItemAction,
 } from "@/actions/stock";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -307,6 +308,7 @@ function EditPanel({
   onToggle: () => void;
   onClose: () => void;
 }) {
+  const [name, setName] = useState(item.name);
   const [category, setCategory] = useState<StockCategory>(item.category);
   const [unit, setUnit] = useState<StockUnit>(item.unit);
   const [pkgSize, setPkgSize] = useState(item.pkgSize ? String(item.pkgSize) : "");
@@ -319,10 +321,11 @@ function EditPanel({
   const reorderUnit = item.tracked ? `${item.pkgLabel ?? "emb."}s` : unit;
 
   function save() {
+    if (!name.trim()) return toast.error("Informe o nome do item.");
     startTransition(async () => {
       const r = await updateStockItemAction(item.id, {
         storeId,
-        name: item.name,
+        name: name.trim(),
         category,
         unit,
         tracked: item.tracked,
@@ -395,6 +398,16 @@ function EditPanel({
       {open && (
         <div className="flex flex-col gap-4 border-t border-border p-3.5">
           <div>
+            <FieldLabel>Nome do item</FieldLabel>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Leite de coco"
+              className="h-[42px] rounded-lg bg-paper"
+            />
+          </div>
+
+          <div>
             <FieldLabel>Categoria</FieldLabel>
             <div className="flex flex-wrap gap-1.5">
               {STOCK_CATEGORIES.map((key) => {
@@ -462,7 +475,11 @@ function EditPanel({
             />
           </div>
 
-          <Button onClick={save} disabled={pending} className="w-full rounded-lg font-semibold">
+          <Button
+            onClick={save}
+            disabled={pending || !name.trim()}
+            className="w-full rounded-lg font-semibold"
+          >
             {pending && <Loader2 className="size-4 animate-spin" />}
             Salvar alterações
           </Button>
