@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Albert+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  doc-page:not(:defined) { visibility: hidden; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  a { color: #186B41; }
+  a:hover { color: #0F5233; }
+  @media print { .page-sep { display: none !important; } }
+</style>
+</helmet>
+<x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0in" hint-size="100%,100%">
+
+<div style="font-family:'Albert Sans',system-ui,sans-serif; color:#15231C; line-height:1.55; font-size:14px;">
+
+  <!-- ============ PÁGINA 1 · CAPA ============ -->
+  <section data-screen-label="Capa" style="height:1122px; padding:64px 64px 56px; background:linear-gradient(160deg,#1C7A4A 0%,#186B41 46%,#0F5233 100%); position:relative; overflow:hidden; display:flex; flex-direction:column; break-after:page;">
+    <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0,rgba(255,255,255,.045) 1px,transparent 1px,transparent 12px); pointer-events:none;"></div>
+    <div style="position:absolute; top:-80px; left:-70px; width:340px; height:340px; border-radius:50%; background:rgba(146,193,125,.14);"></div>
+    <div style="position:relative; display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="width:48px; height:48px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"></path><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"></path></svg>
+        </span>
+        <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:34px; color:#fff; letter-spacing:.5px;">Selet</span>
+      </div>
+      <span style="font-size:11px; font-weight:600; letter-spacing:3px; color:#92C17D; text-transform:uppercase;">Nutrição premium · Passos, MG</span>
+    </div>
+    <div style="position:relative; margin-top:52px;">
+      <h1 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:96px; line-height:.96; color:#92C17D; margin:0; letter-spacing:.5px;">Cardápio <em style="font-style:italic; color:#fff;">Selet</em></h1>
+      <p style="font-size:15px; color:rgba(255,255,255,.74); max-width:430px; margin:18px 0 0;">Shakes, refeições e lanches proteicos, com sabor de verdade e sem peso na consciência.</p>
+    </div>
+    <div style="position:relative; flex:1; margin-top:36px; border-radius:20px; overflow:hidden; box-shadow:0 24px 60px -24px rgba(0,0,0,.55);">
+      <img src="assets/menu/p1-01.jpg" alt="Shake Selet" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;">
+    </div>
+    <div style="position:relative; margin-top:32px; display:flex; gap:40px; font-size:12.5px; color:rgba(255,255,255,.72); border-top:1px solid rgba(255,255,255,.16); padding-top:18px;">
+      <span><strong style="color:#fff; font-weight:600;">Instagram</strong>&nbsp;&nbsp;@espaco_selet_passos</span>
+      <span><strong style="color:#fff; font-weight:600;">WhatsApp</strong>&nbsp;&nbsp;35 99751-4718</span>
+      <span style="margin-left:auto;"><strong style="color:#fff; font-weight:600;">Atualizado</strong>&nbsp;&nbsp;Junho 2026</span>
+    </div>
+  </section>
+
+  <div class="page-sep" style="display:flex; align-items:center; gap:12px; padding:10px 40px; background:#F1EEE4;">
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+    <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#8A968D; letter-spacing:1.5px;">QUEBRA DE PÁGINA · A4</span>
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+  </div>
+
+  <!-- ============ PÁGINA 2 · SHAKES GOURMET ============ -->
+  <section data-screen-label="Shakes Gourmet" style="height:1122px; padding:44px 48px; overflow:hidden; break-after:page; border:10px solid #186B41;">
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px;">
+      <div>
+        <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">Shakes</span>
+        <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:42px; line-height:1.05; margin:10px 0 0; color:#15231C;">Shakes Gourmet</h2>
+      </div>
+      <p style="font-size:13px; color:#5C6B61; max-width:280px; margin:0 0 6px; text-align:right;">Bordas, caldas e coberturas generosas.</p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:26px;">
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">01</span>&nbsp; Frutas Vermelhas</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 33,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Shake de morango com baunilha, borda de morango e calda de fibra de uva.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">02</span>&nbsp; Frutas Cítricas</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 37,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Refrescante combinação de abacaxi e baunilha, borda de manga e proteína crocante de chocolate.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">03</span>&nbsp; Oreo</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 33,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">O mais crocante: cookies e baunilha com borda de cookies e dupla dose de chocolate crocante.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">04</span>&nbsp; Floresta Negra</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 33,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Chocolate e baunilha com o cítrico da fibra de uva, trufado com chocolate.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">05</span>&nbsp; Ovomaltine</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 33,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Chocolate com doce de leite, borda de chocolate e dupla dose crocante.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">06</span>&nbsp; Tiramisú</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 39,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Café com doce de leite, dupla borda de café cremoso e proteína crocante de chocolate.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">07</span>&nbsp; Bombom Serenata</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 31,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Chocolate e doce de leite com borda de chocolate e waffle proteico de chocolate.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">08</span>&nbsp; Sensação</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 38,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Morango e chocolate, borda de chocolate, calda cítrica de fibra de uva e crispy de chocolate.</p>
+      </div>
+
+      <div style="grid-row:span 3; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; background:#FBFDF9;">
+        <div style="flex:1; position:relative; min-height:170px;">
+          <img src="assets/menu/p3-22.jpg" alt="Shake Bubaloo com Kit Kat" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;">
+        </div>
+        <div style="padding:12px 16px 14px; border-top:1px solid #E7EEE6;">
+          <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; color:#186B41; text-transform:uppercase;">Combo da casa</div>
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:5px;">
+            <span style="font-weight:600; font-size:13px;">Bubaloo + Crunch + 2 Kit Kats</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 51,00</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">09</span>&nbsp; Bubaloo</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 40,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Morango e baunilha batidos com fibra de uva e uma deliciosa borda de uva.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">10</span>&nbsp; Bolo de Banana</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 37,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Banana com doce de leite, borda dupla de banana com canela e waffle de chocolate.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">11</span>&nbsp; Kit Kat</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 39,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Cookies com doce de leite, borda de chocolate, 4 Kit Kats proteicos de Oreo e crispy de chocolate.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">12</span>&nbsp; Pavê de Côco</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 38,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Doce de leite e côco com borda dupla de chocolate e crispy de chocolate.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">13</span>&nbsp; Frutas Amarelas</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 39,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Banana e baunilha com calda levemente cítrica de fibra de manga e borda de ninho.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="page-sep" style="display:flex; align-items:center; gap:12px; padding:10px 40px; background:#F1EEE4;">
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+    <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#8A968D; letter-spacing:1.5px;">QUEBRA DE PÁGINA · A4</span>
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+  </div>
+
+  <!-- ============ PÁGINA 3 · GOURMET (CONT.) + TRADICIONAIS ============ -->
+  <section data-screen-label="Gourmet cont. e Tradicionais" style="height:1122px; padding:44px 48px; overflow:hidden; break-after:page; border:10px solid #186B41;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#8A968D; text-transform:uppercase;">Shakes Gourmet · continuação</span>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px;">
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">14</span>&nbsp; Shake de Goiaba</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 39,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Morango com fibra de manga e deliciosa borda de baunilha.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">15</span>&nbsp; Shake da Beleza</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 43,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Morango e baunilha com colágeno Verisol de frutas vermelhas e borda de morango.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">16</span>&nbsp; Petit Gateau</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 36,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Shake quentinho de chocolate com waffle e camada gelada e cremosa de baunilha.</p>
+      </div>
+
+      <div style="grid-row:span 3; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; background:#FBFDF9;">
+        <div style="flex:1; position:relative; min-height:170px;">
+          <img src="assets/menu/p3-24.jpg" alt="Shake Petit Gateau" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;">
+        </div>
+        <div style="padding:12px 16px 14px; border-top:1px solid #E7EEE6;">
+          <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; color:#186B41; text-transform:uppercase;">Queridinho da casa</div>
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:5px;">
+            <span style="font-weight:600; font-size:13px;">Petit Gateau</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 36,00</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:16px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">17</span>&nbsp; Cocada de Abacaxi</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 33,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Abacaxi geladinho com côco, borda de côco e calda de fibra de manga.</p>
+      </div>
+
+      <div style="padding:16px 18px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:14px; display:flex; flex-direction:column; justify-content:center;">
+        <div style="font-size:10.5px; font-weight:700; letter-spacing:1.5px; color:#186B41; text-transform:uppercase;">Bom saber</div>
+        <p style="font-size:12.5px; color:#3F4E45; margin:6px 0 0;">Todos os shakes são proteicos e de baixa caloria. Turbine o seu com os extras da <a href="#extras" style="font-weight:600;">página de adicionais</a>.</p>
+      </div>
+
+    </div>
+
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-top:26px;">
+      <div>
+        <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">Shakes</span>
+        <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:42px; line-height:1.05; margin:10px 0 0; color:#15231C;">Shakes Tradicionais</h2>
+      </div>
+      <div style="padding:16px 28px; background:#186B41; border-radius:14px; color:#fff; text-align:center;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.5px; color:#92C17D; text-transform:uppercase;">Preço único</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600; margin-top:4px;">R$ 26,00</div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:24px;">
+      <div style="padding:14px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:13px;">
+        <div style="font-weight:700; font-size:14.5px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">18</span>&nbsp; Danoninho</div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:5px 0 0;">Banana + morango + borda de morango</p>
+      </div>
+      <div style="padding:14px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:13px;">
+        <div style="font-weight:700; font-size:14.5px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">19</span>&nbsp; Bombom Branco</div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:5px 0 0;">Baunilha + cookies + borda de cookies</p>
+      </div>
+      <div style="padding:14px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:13px;">
+        <div style="font-weight:700; font-size:14.5px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">20</span>&nbsp; Doce de Morango</div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:5px 0 0;">Doce de leite + morango + borda de doce de leite</p>
+      </div>
+      <div style="padding:14px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:13px;">
+        <div style="font-weight:700; font-size:14.5px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">21</span>&nbsp; Sonho</div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:5px 0 0;">Doce de leite + chocolate + baunilha + borda de chocolate</p>
+      </div>
+      <div style="padding:14px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:13px;">
+        <div style="font-weight:700; font-size:14.5px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">22</span>&nbsp; Capuccino <span style="font-size:10px; font-weight:700; letter-spacing:1px; color:#B7791F; text-transform:uppercase; vertical-align:2px;">temporário</span></div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:5px 0 0;">Café + chocolate + borda de doce de leite</p>
+      </div>
+      <div style="padding:14px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:13px;">
+        <div style="font-weight:700; font-size:14.5px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">23</span>&nbsp; Abacaxi com Côco</div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:5px 0 0;">Abacaxi + côco + borda de côco</p>
+      </div>
+      <div style="padding:14px 18px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:13px;">
+        <div style="font-weight:700; font-size:14.5px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">24</span>&nbsp; Cocada de Morango</div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:5px 0 0;">Côco + morango + borda de morango</p>
+      </div>
+      <div style="padding:14px 18px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:13px; display:flex; align-items:center;">
+        <p style="font-size:12.5px; color:#3F4E45; margin:0;">Sabor comum, tradicional ou gourmet: você escolhe a base e nós caprichamos.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="page-sep" style="display:flex; align-items:center; gap:12px; padding:10px 40px; background:#F1EEE4;">
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+    <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#8A968D; letter-spacing:1.5px;">QUEBRA DE PÁGINA · A4</span>
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+  </div>
+
+  <!-- ============ PÁGINA 4 · EXTRAS + WAFFLE ============ -->
+  <section data-screen-label="Extras e Waffle" style="height:1122px; padding:44px 48px; overflow:hidden; break-after:page; border:10px solid #186B41;">
+    <span id="extras" style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">Adicionais</span>
+    <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:42px; line-height:1.05; margin:10px 0 24px; color:#15231C;">Extras para o seu shake</h2>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div style="padding:24px 26px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:16px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1.5px; color:#186B41; text-transform:uppercase; border-bottom:1px solid #EEF3EA; padding-bottom:12px; margin-bottom:14px;">Mais proteína</div>
+        <div style="display:grid; gap:10px; font-size:13px;">
+          <div style="display:flex; align-items:baseline; gap:8px;"><span>Crunch (1 colher)</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 4,00</span></div>
+          <div style="display:flex; align-items:baseline; gap:8px;"><span>Crunch (2 colheres)</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 7,00</span></div>
+          <div style="display:flex; align-items:baseline; gap:8px;"><span>Waffle proteico 1/4</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 6,00</span></div>
+          <div style="display:flex; align-items:baseline; gap:8px;"><span>2 Kit Kats proteicos</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 5,00</span></div>
+          <div style="display:flex; align-items:baseline; gap:8px;"><span>4 Kit Kats proteicos</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 8,00</span></div>
+          <div style="display:flex; align-items:baseline; gap:8px;"><span>Borda dupla</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 6,00</span></div>
+          <div style="display:flex; align-items:baseline; gap:8px;"><span>Calda quente</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 6,00</span></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="padding:24px 26px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:16px;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.5px; color:#186B41; text-transform:uppercase; border-bottom:1px solid #EEF3EA; padding-bottom:12px; margin-bottom:14px;">Mais fibra</div>
+          <div style="display:flex; align-items:baseline; gap:8px; font-size:13px;"><span>Fibra solúvel: uva, manga ou limão com mel</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 7,00</span></div>
+        </div>
+        <div style="flex:1; padding:24px 26px; background:#186B41; border-radius:16px; display:flex; flex-direction:column; justify-content:center;">
+          <div style="font-size:10.5px; font-weight:700; letter-spacing:1.5px; color:#92C17D; text-transform:uppercase;">Dica da casa</div>
+          <p style="font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:500; font-size:21px; line-height:1.3; color:#fff; margin:10px 0 0;">"Fibra de uva deixa qualquer sabor mais refrescante. Vale nos gourmet e nos tradicionais."</p>
+        </div>
+      </div>
+    </div>
+
+    <span style="display:block; font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase; margin-top:44px;">Waffle</span>
+    <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:42px; line-height:1.05; margin:10px 0 24px; color:#15231C;">Waffle sem farinha</h2>
+
+    <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:12px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="padding:22px 24px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:16px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+            <span style="font-weight:700; font-size:15px;">Monte o seu: escolha uma massa e uma calda</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 29,00</span>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:7px; margin-top:14px;">
+            <span style="padding:5px 12px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:99px; font-size:12px; color:#3F4E45;">Doce de leite</span>
+            <span style="padding:5px 12px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:99px; font-size:12px; color:#3F4E45;">Baunilha</span>
+            <span style="padding:5px 12px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:99px; font-size:12px; color:#3F4E45;">Banana</span>
+            <span style="padding:5px 12px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:99px; font-size:12px; color:#3F4E45;">Milho</span>
+            <span style="padding:5px 12px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:99px; font-size:12px; color:#3F4E45;">Abacaxi</span>
+            <span style="padding:5px 12px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:99px; font-size:12px; color:#3F4E45;">Cookies</span>
+            <span style="padding:5px 12px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:99px; font-size:12px; color:#3F4E45;">Café</span>
+            <span style="padding:5px 12px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:99px; font-size:12px; color:#3F4E45;">Morango</span>
+            <span style="padding:5px 12px; background:#F3F8EF; border:1px solid #D6E7CC; border-radius:99px; font-size:12px; color:#3F4E45;">Chocolate</span>
+          </div>
+        </div>
+        <div style="flex:1; padding:22px 24px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:16px;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:1.5px; color:#186B41; text-transform:uppercase; margin-bottom:14px;">Turbine o seu waffle</div>
+          <div style="display:grid; gap:10px; font-size:13px;">
+            <div style="display:flex; align-items:baseline; gap:8px;"><span>Calda de fibra de uva ou manga</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 7,00</span></div>
+            <div style="display:flex; align-items:baseline; gap:8px;"><span>Calda dupla</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 6,00</span></div>
+            <div style="display:flex; align-items:baseline; gap:8px;"><span>Proteína crocante de chocolate (1 dose)</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 4,00</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="border:1px solid #E7EEE6; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; background:#FBFDF9; min-height:320px;">
+        <div style="flex:1; position:relative; min-height:280px;">
+          <img src="assets/menu/p7-32.jpg" alt="Waffle de chocolate com fibra de uva" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;">
+        </div>
+        <div style="padding:12px 16px 14px; border-top:1px solid #E7EEE6;">
+          <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; color:#186B41; text-transform:uppercase;">Sugestão</div>
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:5px;">
+            <span style="font-weight:600; font-size:13px;">Waffle de chocolate + fibra de uva + crunch</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 40,00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="page-sep" style="display:flex; align-items:center; gap:12px; padding:10px 40px; background:#F1EEE4;">
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+    <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#8A968D; letter-spacing:1.5px;">QUEBRA DE PÁGINA · A4</span>
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+  </div>
+
+  <!-- ============ PÁGINA 5 · REFEIÇÕES SALGADAS ============ -->
+  <section data-screen-label="Refeições Salgadas" style="height:1122px; padding:44px 48px; overflow:hidden; break-after:page; border:10px solid #186B41; display:flex; flex-direction:column;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">Salgados</span>
+    <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:42px; line-height:1.05; margin:10px 0 24px; color:#15231C;">Refeições Salgadas</h2>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div style="padding:18px 20px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">01</span>&nbsp; Pizza Proteica</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 31,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Massa proteica sem farinha feita com Nutrisoup, recheada com molho de tomate, queijo, tomate cereja e tempero da casa.</p>
+      </div>
+      <div style="padding:18px 20px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">02</span>&nbsp; Pizza de Frango</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 35,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">A deliciosa pizza ainda mais turbinada, com frango desfiado por cima.</p>
+      </div>
+      <div style="padding:18px 20px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">03</span>&nbsp; Escondidinho de Frango</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 35,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">O escondidinho de sempre, saudável e com calorias reduzidas, sem peso na consciência.</p>
+      </div>
+      <div style="padding:18px 20px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:14px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:10px;">
+          <div style="font-weight:700; font-size:15px;"><span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; color:#A9B5AB; letter-spacing:.5px;">04</span>&nbsp; Trio de Coxinhas</div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 37,00</span>
+        </div>
+        <p style="font-size:12.5px; color:#5C6B61; margin:7px 0 0;">Coxinha sem massa, altamente proteica e de baixa caloria.</p>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1.2fr 1fr; grid-template-rows:170px 170px; gap:10px; margin-top:14px;">
+      <img src="assets/menu/coxinhas-basket.jpg" alt="Trio de coxinhas" style="width:100%; height:100%; object-fit:cover; border-radius:13px; display:block;">
+      <img src="assets/menu/escondidinho.jpg" alt="Escondidinho de frango" style="grid-row:span 2; width:100%; height:100%; object-fit:cover; border-radius:13px; display:block;">
+      <img src="assets/menu/pizza-plate.jpg" alt="Pizza proteica" style="width:100%; height:100%; object-fit:cover; border-radius:13px; display:block;">
+      <img src="assets/menu/coxinha-hand.jpg" alt="Coxinha proteica" style="width:100%; height:100%; object-fit:cover; border-radius:13px; display:block;">
+      <img src="assets/menu/pizza-slice.jpg" alt="Fatia de pizza de frango" style="width:100%; height:100%; object-fit:cover; border-radius:13px; display:block;">
+    </div>
+  </section>
+
+  <div class="page-sep" style="display:flex; align-items:center; gap:12px; padding:10px 40px; background:#F1EEE4;">
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+    <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#8A968D; letter-spacing:1.5px;">QUEBRA DE PÁGINA · A4</span>
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+  </div>
+
+  <!-- ============ PÁGINA 6 · BEBIDAS ============ -->
+  <section data-screen-label="Bebidas" style="height:1122px; padding:44px 48px; overflow:hidden; break-after:page; border:10px solid #186B41; display:flex; flex-direction:column;">
+    <div style="display:grid; grid-template-columns:1fr; gap:12px; flex:1; min-height:0; width:100%; max-width:480px; margin:0 auto;">
+      <div style="display:flex; flex-direction:column;">
+        <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#186B41; text-transform:uppercase;">Bebidas</span>
+        <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:36px; line-height:1.05; margin:10px 0 20px; color:#15231C;">Bebidas e Chás</h2>
+        <div style="padding:22px 24px; background:#FBFDF9; border:1px solid #E7EEE6; border-radius:16px;">
+          <div style="display:grid; gap:11px; font-size:13px;">
+            <div style="display:flex; align-items:baseline; gap:8px;"><span>Sunset</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 26,00</span></div>
+            <div style="display:flex; align-items:baseline; gap:8px;"><span>Refrigerante saudável</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 16,00</span></div>
+            <div style="display:flex; align-items:baseline; gap:8px;"><span>Hype Drink</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 26,00</span></div>
+            <div style="display:flex; align-items:baseline; gap:8px;"><span>Seca Barriga</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 17,00</span></div>
+            <div style="display:flex; align-items:baseline; gap:8px;"><span>Colágeno Drink</span><span style="flex:1; border-bottom:1px dotted #C9D6C9;"></span><span style="font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; color:#186B41; white-space:nowrap;">R$ 20,00</span></div>
+          </div>
+        </div>
+        <div style="height:300px; margin-top:12px; border:1px solid #E7EEE6; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; background:#FBFDF9;">
+          <div style="flex:1; position:relative; min-height:0;">
+            <img src="assets/menu/p7-30.jpg" alt="Refrigerante saudável" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;">
+          </div>
+          <div style="padding:12px 16px 14px; border-top:1px solid #E7EEE6;">
+            <div style="font-size:10px; font-weight:700; letter-spacing:1.5px; color:#186B41; text-transform:uppercase;">Para refrescar</div>
+            <span style="display:block; font-weight:600; font-size:13px; margin-top:5px;">Refrigerante saudável</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; border-top:1px solid #E7EEE6; padding-top:20px; margin-top:28px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="width:28px; height:28px; border-radius:8px; background:#186B41; display:flex; align-items:center; justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"></path><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"></path></svg>
+        </span>
+        <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:20px; color:#186B41;">Selet</span>
+      </div>
+      <div style="display:flex; gap:28px; font-size:12px; color:#5C6B61;">
+        <span>@espaco_selet_passos</span>
+        <span>35 99751-4718</span>
+      </div>
+    </div>
+  </section>
+
+  <sc-if value="{{ mostrarOportunidade }}" hint-placeholder-val="{{ true }}">
+  <div class="page-sep" style="display:flex; align-items:center; gap:12px; padding:10px 40px; background:#F1EEE4;">
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+    <span style="font-family:'JetBrains Mono',monospace; font-size:10px; color:#8A968D; letter-spacing:1.5px;">QUEBRA DE PÁGINA · A4</span>
+    <span style="flex:1; border-top:1px dashed #C8C2B2;"></span>
+  </div>
+
+  <!-- ============ PÁGINA 7 · OPORTUNIDADE ============ -->
+  <section data-screen-label="Oportunidade" style="height:1122px; padding:72px 72px 60px; background:linear-gradient(160deg,#1C7A4A 0%,#186B41 46%,#0F5233 100%); position:relative; overflow:hidden; display:flex; flex-direction:column;">
+    <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0,rgba(255,255,255,.045) 1px,transparent 1px,transparent 12px); pointer-events:none;"></div>
+    <div style="position:relative;">
+      <span style="font-size:11px; font-weight:700; letter-spacing:2px; color:#92C17D; text-transform:uppercase;">Espaços de Vida Saudável</span>
+      <h2 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:52px; line-height:1.02; margin:12px 0 0; color:#fff;">Monte o seu espaço</h2>
+      <p style="font-size:14px; color:rgba(255,255,255,.75); max-width:520px; margin:16px 0 0;">Conheça a proposta de negócio de um espaço Herbalife Nutrition: baixo investimento, fácil operação, sem taxa de franquia e com suporte e treinamentos vitalícios.</p>
+    </div>
+    <div style="position:relative; display:flex; flex-direction:column; gap:12px; margin-top:40px; flex:1;">
+      <div data-comment-anchor="c344340e:448" style="flex:1.6; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:28px 32px; background:#fff; border:1px solid #fff; border-radius:18px; box-shadow:0 18px 44px -18px rgba(0,0,0,.5);">
+        <span style="display:flex; flex-direction:column; gap:4px;">
+          <span style="font-family:'JetBrains Mono',monospace; font-size:17px; font-weight:600; letter-spacing:1.5px; color:#186B41; text-transform:uppercase;">75 consumos/dia</span>
+          <span style="font-size:11px; font-weight:700; letter-spacing:1.5px; color:#B7791F; text-transform:uppercase;">Potencial máximo</span>
+        </span>
+        <span style="font-family:'Albert Sans',system-ui,sans-serif; font-weight:700; font-size:66px; letter-spacing:-1px; line-height:1; color:#186B41;">R$ 26.325<span style="font-size:26px; color:#8A968D;">/mês</span></span>
+      </div>
+      <div style="flex:1; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px 28px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); border-radius:16px;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; letter-spacing:1.5px; color:#92C17D; text-transform:uppercase;">50 consumos/dia</span>
+        <span style="font-family:'Albert Sans',system-ui,sans-serif; font-weight:700; font-size:32px; letter-spacing:-.5px; line-height:1; color:#fff;">R$ 17.550<span style="font-size:17px; color:rgba(255,255,255,.55);">/mês</span></span>
+      </div>
+      <div style="flex:1; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px 28px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); border-radius:16px;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; letter-spacing:1.5px; color:#92C17D; text-transform:uppercase;">35 consumos/dia</span>
+        <span style="font-family:'Albert Sans',system-ui,sans-serif; font-weight:700; font-size:32px; letter-spacing:-.5px; line-height:1; color:#fff;">R$ 12.285<span style="font-size:17px; color:rgba(255,255,255,.55);">/mês</span></span>
+      </div>
+      <div style="flex:1; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px 28px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); border-radius:16px;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; letter-spacing:1.5px; color:#92C17D; text-transform:uppercase;">25 consumos/dia</span>
+        <span style="font-family:'Albert Sans',system-ui,sans-serif; font-weight:700; font-size:32px; letter-spacing:-.5px; line-height:1; color:#fff;">R$ 8.775<span style="font-size:17px; color:rgba(255,255,255,.55);">/mês</span></span>
+      </div>
+      <div style="flex:1; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px 28px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14); border-radius:16px;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; letter-spacing:1.5px; color:#92C17D; text-transform:uppercase;">15 consumos/dia</span>
+        <span style="font-family:'Albert Sans',system-ui,sans-serif; font-weight:700; font-size:32px; letter-spacing:-.5px; line-height:1; color:#fff;">R$ 5.265<span style="font-size:17px; color:rgba(255,255,255,.55);">/mês</span></span>
+      </div>
+    </div>
+    <div style="position:relative; display:flex; align-items:center; justify-content:space-between; gap:20px; margin-top:32px; border-top:1px solid rgba(255,255,255,.16); padding-top:20px;">
+      <span style="font-size:11.5px; color:rgba(255,255,255,.6);">Lucro médio mensal estimado, base de 26 dias.</span>
+      <span style="font-size:13px; font-weight:600; color:#fff;">Se interessou? Fale conosco: 35 99751-4718</span>
+    </div>
+  </section>
+  </sc-if>
+
+</div>
+
+</x-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;mostrarOportunidade&quot;: {
+    &quot;editor&quot;: &quot;boolean&quot;,
+    &quot;default&quot;: false,
+    &quot;tsType&quot;: &quot;boolean&quot;,
+    &quot;section&quot;: &quot;Conteúdo&quot;
+  }
+}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      mostrarOportunidade: this.props.mostrarOportunidade ?? false,
+    };
+  }
+}
+</script>
+</body>
+</html>
