@@ -306,9 +306,9 @@ function ProductCard({
 }) {
   const meta = PRODUCT_CATEGORY_META[product.category];
   const isMenu = product.saleType === "menu";
-  // adicional is produced exactly like menu (recipe/stockManaged) — show the
-  // same Base/Produzir affordances, just under its own "Adicional" badge.
-  const usesRecipe = isMenu || product.saleType === "adicional";
+  // Only "menu" items have a BASE recipe/Opcionais/Produção — revenda and
+  // adicional both just link a single insumo (see product-form-sheet).
+  const usesRecipe = isMenu;
   const tiers = [...product.tiers].sort((a, b) => a.qty - b.qty);
   const unitTier =
     tiers.find((t) => t.qty === 1) ?? tiers[0] ?? { qty: 1, price: product.price };
@@ -382,17 +382,35 @@ function ProductCard({
 
       {isMenu && product.adicionais.length > 0 && (
         <div className="mt-3">
-          <SectionLabel>Adicionais</SectionLabel>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {product.adicionais.map((add, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper px-2.5 py-1 text-[11.5px] text-ink-soft"
-              >
-                {add.name}
-                <span className="font-bold text-primary">+ {formatBRL(add.price)}</span>
-              </span>
-            ))}
+          <SectionLabel>Opcionais</SectionLabel>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {product.adicionais.map((add, i) => {
+              const addonTiers = [...(add.tiers ?? [])].sort((a, b) => a.qty - b.qty);
+              const addonBatches = addonTiers.filter((t) => t.qty !== 1);
+              return (
+                <div key={i} className="flex flex-wrap items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper px-2.5 py-1 text-[11.5px] text-ink-soft">
+                    {add.name}
+                    <span className="font-bold text-primary">
+                      + {formatBRL(add.price)}
+                    </span>
+                  </span>
+                  {addonBatches.map((b, bi) => (
+                    <span
+                      key={bi}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border bg-paper px-2 py-0.5 text-[10.5px] text-ink-faint"
+                    >
+                      <span className="font-semibold text-ink">
+                        {formatQty(b.qty, "un")}
+                      </span>
+                      <span className="font-bold text-primary">
+                        {formatBRL(b.price)}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

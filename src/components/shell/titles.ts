@@ -15,7 +15,7 @@ const TITLES: Record<
     subtitle: "Acompanhe vendas do Instagram, WhatsApp e loja",
   },
   clientes: { title: "Clientes", subtitle: "Retenção, histórico e engajamento" },
-  produtos: { title: "Catálogo", subtitle: "Itens à venda · revenda e menu" },
+  produtos: { title: "Cardápio", subtitle: "Itens à venda · revenda e menu" },
   estoque: { title: "Estoque", subtitle: "Embalagens, fracionamento e rendimento" },
   financeiro: { title: "Financeiro", subtitle: "Saldo, entradas e saídas" },
   equipe: { title: "Equipe", subtitle: "Gestão de funcionários por loja" },

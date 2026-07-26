@@ -209,14 +209,14 @@ export interface RecipeItem {
 
 /** An optional add-on for a menu item — also a consumed item, with an extra price. */
 export interface ProductAddon {
-  /** Live reference to a saleType:"adicional" Product; when set, name/price
-   *  should be resolved from that product rather than trusted from below. */
-  productId?: string;
   stockItemId?: string;
   name: string;
-  price: number; // centavos, extra charge
+  price: number; // centavos, extra charge (mirrors the qty:1 tier below)
   qty?: number | null;
   unit?: string;
+  /** Optional price tiers (e.g. "2 doses" costs more than 1) — lets an addon
+   *  carry its own price list without promoting it to a full catalog product. */
+  tiers?: PriceTier[];
 }
 
 /** Price-by-quantity row. The `qty: 1` tier is the unit price; higher tiers are lote/batches. */
@@ -236,19 +236,19 @@ export interface Product {
   createdAt: string;
   /** Sale type — defaults to "menu" for legacy docs without the field. */
   saleType: ProductSaleType;
-  /** BASE recipe (menu items). Empty for revenda. */
+  /** BASE recipe (menu items). Empty for revenda/adicional. */
   recipe: RecipeItem[];
-  /** Optional add-ons (menu items). Empty for revenda. */
+  /** Optional add-ons (menu items). Empty for revenda/adicional. */
   adicionais: ProductAddon[];
   /** Price tiers; always includes the unit (qty:1) tier. */
   tiers: PriceTier[];
-  /** Linked stock item slug (revenda items resell one insumo). */
+  /** Linked stock item slug (revenda/adicional items link one insumo). */
   insumoId?: string;
   /** Whether a menu item is produced in batches and kept in stock (drives "Produzir"). */
   stockManaged: boolean;
   /** Finished units on hand (only meaningful for stockManaged menu items; default 0). */
   producedStock: number;
-  /** Production mode: on-demand vs batch/lote (e.g. Coxinha). undefined for revenda. */
+  /** Production mode: on-demand vs batch/lote (e.g. Coxinha). undefined for revenda/adicional. */
   prep?: "sob demanda" | "lote" | null;
   /** Prep/shelf duration in minutes (metadata shown on the catalog card). */
   duration?: number;

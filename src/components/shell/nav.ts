@@ -37,7 +37,7 @@ export const NAV_ITEMS: NavItem[] = [
     badge: "openOrders",
   },
   { label: "Clientes", segment: "clientes", icon: User, section: "clientes" },
-  { label: "Catálogo", segment: "produtos", icon: Box, section: "produtos" },
+  { label: "Cardápio", segment: "produtos", icon: Box, section: "produtos" },
   {
     label: "Estoque",
     segment: "estoque",

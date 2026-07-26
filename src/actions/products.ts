@@ -28,18 +28,18 @@ const recipeItemSchema = z.object({
   unit: z.string().trim().default(""),
 });
 
+const tierSchema = z.object({
+  qty: z.number().int().positive(),
+  price: z.number().int().nonnegative(),
+});
+
 const addonSchema = z.object({
-  productId: z.string().optional(),
   stockItemId: z.string().optional(),
   name: z.string().trim().min(1),
   price: z.number().int().nonnegative(),
   qty: z.number().nonnegative().nullable().optional(),
   unit: z.string().trim().optional(),
-});
-
-const tierSchema = z.object({
-  qty: z.number().int().positive(),
-  price: z.number().int().nonnegative(),
+  tiers: z.array(tierSchema).optional(),
 });
 
 const productSchema = z.object({

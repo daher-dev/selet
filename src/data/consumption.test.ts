@@ -35,6 +35,19 @@ describe("buildConsumptionRequests", () => {
     expect(insumos.get("ins-1")).toEqual({ amount: 3, uses: 3 });
   });
 
+  it("adicional line decrements its linked insumo like revenda", () => {
+    const caldaQuente = product({
+      id: "calda-quente",
+      saleType: "adicional",
+      insumoId: "ins-calda",
+    });
+    const { insumos } = buildConsumptionRequests(
+      [line({ productId: "calda-quente", qty: 3 })],
+      new Map([["calda-quente", caldaQuente]]),
+    );
+    expect(insumos.get("ins-calda")).toEqual({ amount: 3, uses: 3 });
+  });
+
   it("sob-demanda menu line consumes its recipe scaled by lineQty", () => {
     const waffle = product({
       id: "waffle",
@@ -63,7 +76,7 @@ describe("buildConsumptionRequests", () => {
     expect(insumos.size).toBe(0);
   });
 
-  it("legacy manual add-on (stockItemId, no productId) consumes its own insumo", () => {
+  it("add-on with stockItemId consumes its own insumo", () => {
     const shake = product({
       id: "shake",
       adicionais: [{ name: "Crunch", price: 500, stockItemId: "ins-crunch", qty: 1 }],
@@ -75,56 +88,13 @@ describe("buildConsumptionRequests", () => {
     expect(insumos.get("ins-crunch")).toEqual({ amount: 2, uses: 2 });
   });
 
-  it("catalog-linked (productId) add-on draws for the referenced adicional product, sob-demanda recipe", () => {
-    const caldaQuente = product({
-      id: "calda-quente",
-      saleType: "adicional",
-      recipe: [{ stockItemId: "ins-calda", name: "Calda", qty: 1, unit: "un" }],
-    });
+  it("add-on without a stockItemId (freeform pantry item) consumes nothing", () => {
     const shake = product({
       id: "shake",
-      adicionais: [{ name: "Calda Quente", price: 300, productId: "calda-quente" }],
-    });
-    const { insumos } = buildConsumptionRequests(
-      [line({ productId: "shake", qty: 3, addons: ["Calda Quente"] })],
-      new Map([
-        ["shake", shake],
-        ["calda-quente", caldaQuente],
-      ]),
-    );
-    // 1 unit of Calda Quente's own recipe (qty:1) per shake sold.
-    expect(insumos.get("ins-calda")).toEqual({ amount: 3, uses: 3 });
-  });
-
-  it("catalog-linked add-on to a stockManaged adicional product draws from its producedStock", () => {
-    const chantilly = product({
-      id: "chantilly",
-      saleType: "adicional",
-      stockManaged: true,
-      recipe: [{ stockItemId: "ins-cream", name: "Creme", qty: 1, unit: "un" }],
-    });
-    const shake = product({
-      id: "shake",
-      adicionais: [{ name: "Chantilly", price: 200, productId: "chantilly" }],
+      adicionais: [{ name: "Sem estoque", price: 100 }],
     });
     const { insumos, produced } = buildConsumptionRequests(
-      [line({ productId: "shake", qty: 2, addons: ["Chantilly"] })],
-      new Map([
-        ["shake", shake],
-        ["chantilly", chantilly],
-      ]),
-    );
-    expect(produced.get("chantilly")).toBe(2);
-    expect(insumos.size).toBe(0);
-  });
-
-  it("catalog-linked add-on whose referenced product is missing from the map is skipped, not thrown", () => {
-    const shake = product({
-      id: "shake",
-      adicionais: [{ name: "Sumiu", price: 100, productId: "deleted-product" }],
-    });
-    const { insumos, produced } = buildConsumptionRequests(
-      [line({ productId: "shake", qty: 1, addons: ["Sumiu"] })],
+      [line({ productId: "shake", qty: 1, addons: ["Sem estoque"] })],
       new Map([["shake", shake]]),
     );
     expect(insumos.size).toBe(0);

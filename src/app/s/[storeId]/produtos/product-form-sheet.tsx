@@ -98,12 +98,50 @@ interface RecipeRow extends RecipeItem {
   _id: string;
   continuo: boolean;
 }
+/** An editable price-tier row (string inputs; parsed to PriceTier on submit). */
+interface TierRowState {
+  _id: string;
+  qty: string;
+  price: string;
+}
 interface AddonRow extends ProductAddon {
   _id: string;
   continuo: boolean;
+  /** Empty = single flat price (row.price). Non-empty = tiered pricing UI active. */
+  tierRows: TierRowState[];
 }
 let rowSeq = 0;
 const nextId = () => `row-${rowSeq++}`;
+
+function tiersToRows(tiers: PriceTier[] | undefined): TierRowState[] {
+  if (!tiers?.length) return [];
+  return [...tiers]
+    .sort((a, b) => a.qty - b.qty)
+    .map((t) => ({
+      _id: nextId(),
+      qty: String(t.qty),
+      price: t.price ? formatBRL(t.price).replace(/R\$\s?/, "") : "",
+    }));
+}
+
+/** Parses tier rows the same way the top-level product tier list is parsed. */
+function parseTierRows(rows: TierRowState[]): PriceTier[] {
+  return rows
+    .map((t) => {
+      const qty = parseInt(t.qty, 10);
+      let price = 0;
+      if (t.price.trim()) {
+        try {
+          price = parseBRL(t.price);
+        } catch {
+          price = -1;
+        }
+      }
+      return { qty, price };
+    })
+    .filter((t) => t.qty >= 1 && t.price > 0)
+    .sort((a, b) => a.qty - b.qty);
+}
 
 function ProductForm({
   storeId,
@@ -158,32 +196,30 @@ function ProductForm({
       ...a,
       _id: nextId(),
       continuo: resolveItem(a)?.consumptionMode === "continuo",
+      tierRows: tiersToRows(a.tiers),
     })),
   );
   // Unified tier list — the qty:1 row is the unit price and is removable, so a
   // product can be sold in lote (batch) only.
-  const [tiers, setTiers] = useState<{ _id: string; qty: string; price: string }[]>(
-    () => {
-      const src = product?.tiers?.length
-        ? [...product.tiers].sort((a, b) => a.qty - b.qty)
-        : [{ qty: 1, price: 0 }];
-      return src.map((t) => ({
-        _id: nextId(),
-        qty: String(t.qty),
-        price: t.price ? formatBRL(t.price).replace(/R\$\s?/, "") : "",
-      }));
-    },
+  const [tiers, setTiers] = useState<TierRowState[]>(() =>
+    product?.tiers?.length
+      ? tiersToRows(product.tiers)
+      : [{ _id: nextId(), qty: "1", price: "" }],
   );
   const [pending, startTransition] = useTransition();
 
+  const [opcionalPickerOpen, setOpcionalPickerOpen] = useState(false);
+
   const isMenu = saleType === "menu";
   const isAdicional = saleType === "adicional";
-  // "adicional" is produced exactly like "menu" (BASE recipe, optionally
-  // batch/stockManaged) — it only differs in orderability: not independently
-  // orderable, offered as a live add-on inside other products instead.
-  const usesRecipe = isMenu || isAdicional;
+  // Only "menu" items are prepared from a BASE recipe and carry opcionais —
+  // revenda and adicional both just link a single insumo from the estoque.
+  const usesRecipe = isMenu;
+  const linksInsumo = saleType === "revenda" || isAdicional;
   const selectedInsumo = insumoId ? byId.get(insumoId) : undefined;
 
+  // Existing "adicional" catalog products double as quick-fill templates in
+  // the opcional picker below — picking one seeds name+price, no live link.
   const adicionalProducts = useMemo(
     () =>
       allProducts.filter(
@@ -191,19 +227,15 @@ function ProductForm({
       ),
     [allProducts, product?.id],
   );
-  const adicionalById = useMemo(
-    () => new Map(allProducts.map((p) => [p.id, p])),
-    [allProducts],
-  );
 
-  const usedStockIds = useMemo(
+  const usedInRecipe = useMemo(
     () =>
-      new Set(
-        [...recipe, ...adicionais]
-          .map((r) => r.stockItemId)
-          .filter((x): x is string => Boolean(x)),
-      ),
-    [recipe, adicionais],
+      new Set(recipe.map((r) => r.stockItemId).filter((x): x is string => Boolean(x))),
+    [recipe],
+  );
+  const usedAdicionalNames = useMemo(
+    () => new Set(adicionais.map((a) => a.name.trim().toLowerCase())),
+    [adicionais],
   );
 
   function addRecipeRow(item: StockItem) {
@@ -220,53 +252,36 @@ function ProductForm({
       },
     ]);
   }
-  function addAddonRow(item: StockItem) {
-    const continuo = item.consumptionMode === "continuo";
+  /** Adds an opcional row — either from a raw estoque item (measured/contínuo
+   *  consumption wired up) or as a quick-fill template from an existing
+   *  "adicional" catalog product (name+price copied once, no live link). */
+  function addAddonRow(name: string, opts: { stockItemId?: string; price?: number } = {}) {
+    const item = resolveItem({ stockItemId: opts.stockItemId, name });
+    const continuo = item?.consumptionMode === "continuo";
     setAdicionais((rs) => [
       ...rs,
       {
         _id: nextId(),
-        stockItemId: item.id,
-        name: item.name,
+        ...(item ? { stockItemId: item.id } : {}),
+        name,
         price: 0,
         qty: continuo ? null : 1,
-        unit: item.unit,
+        unit: item?.unit ?? "un",
         continuo,
-      },
-    ]);
-  }
-  function addAddonFromProduct(item: Product) {
-    setAdicionais((rs) => [
-      ...rs,
-      {
-        _id: nextId(),
-        productId: item.id,
-        name: item.name,
-        price: item.price,
-        qty: null,
-        unit: undefined,
-        continuo: false,
+        tierRows: [
+          {
+            _id: nextId(),
+            qty: "1",
+            price: opts.price ? formatBRL(opts.price).replace(/R\$\s?/, "") : "",
+          },
+        ],
       },
     ]);
   }
 
   function submit() {
     // Parse the unified tier list.
-    const parsedTiers: PriceTier[] = tiers
-      .map((t) => {
-        const qty = parseInt(t.qty, 10);
-        let price = 0;
-        if (t.price.trim()) {
-          try {
-            price = parseBRL(t.price);
-          } catch {
-            price = -1;
-          }
-        }
-        return { qty, price };
-      })
-      .filter((t) => t.qty >= 1 && t.price > 0)
-      .sort((a, b) => a.qty - b.qty);
+    const parsedTiers = parseTierRows(tiers);
 
     if (parsedTiers.length === 0) {
       toast.error("Informe ao menos uma faixa de preço válida.");
@@ -277,8 +292,8 @@ function ProductForm({
       ? unitTier.price
       : Math.round(parsedTiers[0].price / parsedTiers[0].qty);
 
-    if (saleType === "revenda" && !insumoId) {
-      toast.error("Selecione o item do estoque a ser revendido.");
+    if (linksInsumo && !insumoId) {
+      toast.error("Selecione o item do estoque.");
       return;
     }
 
@@ -295,14 +310,22 @@ function ProductForm({
     const cleanAddons: ProductAddon[] = isMenu
       ? adicionais
           .filter((a) => a.name.trim())
-          .map((a) => ({
-            ...(a.productId ? { productId: a.productId } : {}),
-            ...(a.stockItemId ? { stockItemId: a.stockItemId } : {}),
-            name: a.name.trim(),
-            price: a.price,
-            qty: a.continuo ? null : (a.qty ?? null),
-            unit: a.unit?.trim() || undefined,
-          }))
+          .map((a) => {
+            const addonTiers = parseTierRows(a.tierRows);
+            const addonUnitTier = addonTiers.find((t) => t.qty === 1);
+            const price = addonTiers.length
+              ? (addonUnitTier?.price ??
+                Math.round(addonTiers[0].price / addonTiers[0].qty))
+              : a.price;
+            return {
+              ...(a.stockItemId ? { stockItemId: a.stockItemId } : {}),
+              name: a.name.trim(),
+              price,
+              qty: a.continuo ? null : (a.qty ?? null),
+              unit: a.unit?.trim() || undefined,
+              ...(addonTiers.length ? { tiers: addonTiers } : {}),
+            };
+          })
       : [];
 
     startTransition(async () => {
@@ -318,7 +341,7 @@ function ProductForm({
         recipe: cleanRecipe,
         adicionais: cleanAddons,
         tiers: parsedTiers,
-        insumoId: saleType === "revenda" ? insumoId : undefined,
+        insumoId: linksInsumo ? insumoId : undefined,
         stockManaged: usesRecipe ? stockManaged : false,
         prep: usesRecipe ? (stockManaged ? "lote" : "sob demanda") : undefined,
         duration: product?.duration,
@@ -415,15 +438,15 @@ function ProductForm({
             {isMenu
               ? "Preparado na loja: consome insumos da base e aceita adicionais."
               : isAdicional
-                ? "Preparado na loja como a base, mas não aparece sozinho no pedido — só como opcional dentro de outros itens."
+                ? "Não vendido sozinho — aparece como opção adicional dentro de outros itens do menu."
                 : "Um item do estoque vendido diretamente por um novo preço."}
           </p>
         </div>
 
-        {/* -------------------------------------------------------- REVENDA insumo */}
-        {saleType === "revenda" && (
+        {/* ---------------------------------------------- REVENDA/ADICIONAL insumo */}
+        {linksInsumo && (
           <div className="space-y-1.5">
-            <Label>Produto do estoque</Label>
+            <Label>Produto</Label>
             <InsumoTriggerPicker
               stockItems={stockItems}
               selected={selectedInsumo}
@@ -445,14 +468,14 @@ function ProductForm({
           </div>
         )}
 
-        {/* ---------------------------------------------- MENU/ADICIONAL base */}
+        {/* ---------------------------------------------------------- MENU base */}
         {usesRecipe && (
           <InsumoSection
             title="Base"
             rows={recipe}
             stockItems={stockItems}
-            usedStockIds={usedStockIds}
-            addLabel="Adicionar insumo"
+            usedStockIds={usedInRecipe}
+            addLabel="Adicionar Base"
             onAdd={addRecipeRow}
             onRemove={(id) => setRecipe((rs) => rs.filter((r) => r._id !== id))}
             renderRow={(row) => (
@@ -468,54 +491,81 @@ function ProductForm({
           />
         )}
 
-        {/* --------------------------------------------------------- MENU adicionais */}
+        {/* ------------------------------------------------------ MENU opcionais */}
         {isMenu && (
-          <>
-            <InsumoSection
-              title="Adicionais"
-              rows={adicionais}
-              stockItems={stockItems}
-              usedStockIds={usedStockIds}
-              addLabel="Adicionar opcional"
-              onAdd={addAddonRow}
-              onRemove={(id) =>
-                setAdicionais((rs) => rs.filter((r) => r._id !== id))
-              }
-              renderRow={(row) => (
-                <AddonRowFields
-                  row={row}
-                  liveProduct={row.productId ? adicionalById.get(row.productId) : undefined}
-                  onQty={(qty) =>
-                    setAdicionais((rs) =>
-                      rs.map((r) => (r._id === row._id ? { ...r, qty } : r)),
-                    )
-                  }
-                  onPrice={(price) =>
-                    setAdicionais((rs) =>
-                      rs.map((r) => (r._id === row._id ? { ...r, price } : r)),
-                    )
-                  }
-                />
-              )}
-            />
+          <div className="space-y-2">
+            <Label>Opcionais</Label>
+            <div className="space-y-2">
+              {adicionais.map((row) => {
+                const cat = findCategory(stockItems, row);
+                const meta = cat ? STOCK_CATEGORY_META[cat] : null;
+                return (
+                  <div
+                    key={row._id}
+                    className="space-y-2.5 rounded-xl border border-border bg-paper p-3"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      {meta ? (
+                        <CategoryTile meta={meta} className="size-8" />
+                      ) : (
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-mist text-primary">
+                          <Package className="size-4" strokeWidth={1.7} />
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-ink">
+                        {row.name}
+                      </span>
+                      <IconRemove
+                        onClick={() =>
+                          setAdicionais((rs) => rs.filter((r) => r._id !== row._id))
+                        }
+                      />
+                    </div>
+                    <AddonRowFields
+                      row={row}
+                      onQty={(qty) =>
+                        setAdicionais((rs) =>
+                          rs.map((r) => (r._id === row._id ? { ...r, qty } : r)),
+                        )
+                      }
+                      onTierRows={(updater) =>
+                        setAdicionais((rs) =>
+                          rs.map((r) =>
+                            r._id === row._id
+                              ? { ...r, tierRows: updater(r.tierRows) }
+                              : r,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
 
-            {adicionalProducts.length > 0 && (
-              <AdicionalProductSection
-                products={adicionalProducts}
-                exclude={
-                  new Set(
-                    adicionais
-                      .map((a) => a.productId)
-                      .filter((x): x is string => Boolean(x)),
-                  )
-                }
-                onAdd={addAddonFromProduct}
+            <DashedAddButton
+              onClick={() => setOpcionalPickerOpen((v) => !v)}
+              label="Adicionar opcional"
+            />
+            {opcionalPickerOpen && (
+              <OpcionalPicker
+                stockItems={stockItems}
+                adicionalProducts={adicionalProducts}
+                excludeNames={usedAdicionalNames}
+                onPickStock={(item) => {
+                  addAddonRow(item.name, { stockItemId: item.id });
+                  setOpcionalPickerOpen(false);
+                }}
+                onPickProduct={(item) => {
+                  addAddonRow(item.name, { price: item.price });
+                  setOpcionalPickerOpen(false);
+                }}
               />
             )}
-          </>
+          </div>
         )}
 
-        {/* ---------------------------------------------------- MENU/ADICIONAL produção */}
+        {/* -------------------------------------------------------------- MENU produção */}
         {usesRecipe && (
           <div className="space-y-1.5">
             <Label>Produção</Label>
@@ -722,8 +772,8 @@ function ProducaoCard({
   );
 }
 
-/** A titled section (Base / Adicionais) with rows + a toggleable insumo picker. */
-function InsumoSection<T extends RecipeRow | AddonRow>({
+/** The Base (recipe) section: rows + a toggleable insumo picker. */
+function InsumoSection({
   title,
   rows,
   stockItems,
@@ -734,13 +784,13 @@ function InsumoSection<T extends RecipeRow | AddonRow>({
   renderRow,
 }: {
   title: string;
-  rows: T[];
+  rows: RecipeRow[];
   stockItems: StockItem[];
   usedStockIds: Set<string>;
   addLabel: string;
   onAdd: (item: StockItem) => void;
   onRemove: (id: string) => void;
-  renderRow: (row: T) => React.ReactNode;
+  renderRow: (row: RecipeRow) => React.ReactNode;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -834,71 +884,114 @@ function RecipeRowFields({
 
 function AddonRowFields({
   row,
-  liveProduct,
   onQty,
-  onPrice,
+  onTierRows,
 }: {
   row: AddonRow;
-  /** Set when row.productId resolves to a live "adicional" catalog product. */
-  liveProduct?: Product;
   onQty: (qty: number | null) => void;
-  onPrice: (price: number) => void;
+  onTierRows: (updater: (rows: TierRowState[]) => TierRowState[]) => void;
 }) {
-  const livePrice = liveProduct?.price;
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {liveProduct ? (
-        <span className="inline-flex items-center gap-1.5 self-start rounded-lg bg-mist px-2.5 py-1.5 text-[11.5px] font-semibold text-primary">
-          <Blocks className="size-3" strokeWidth={1.8} />
-          do catálogo
-        </span>
-      ) : row.continuo ? (
-        <SemMedicaoChip />
-      ) : (
-        <>
-          <span className="text-[11.5px] text-ink-faint">Consumo</span>
-          <div className="flex h-9 items-center rounded-lg border border-border bg-card px-2.5">
-            <Input
-              value={row.qty == null ? "" : String(row.qty)}
-              onChange={(e) => {
-                const n = Number(e.target.value.replace(",", "."));
-                onQty(Number.isFinite(n) ? n : 0);
-              }}
-              inputMode="decimal"
-              className="h-8 w-12 border-0 bg-transparent p-0 text-right tabular text-[13px] font-bold text-ink shadow-none focus-visible:ring-0"
-            />
-            <span className="ml-1 whitespace-nowrap text-[12px] text-ink-faint">
-              {row.unit}
-            </span>
-          </div>
-        </>
-      )}
-      <span className="flex-1" />
-      {liveProduct ? (
-        <div className="flex h-9 items-center rounded-lg border border-border bg-paper px-2.5">
-          <span className="text-[12px] text-ink-faint">+ R$</span>
-          <span className="tabular text-[13.5px] font-bold text-primary">
-            {formatBRL(livePrice ?? row.price).replace(/R\$\s?/, "")}
-          </span>
-        </div>
-      ) : (
-        <div className="flex h-9 items-center rounded-lg border border-border bg-card px-2.5">
-          <span className="text-[12px] text-ink-faint">+ R$</span>
-          <Input
-            value={row.price ? formatBRL(row.price).replace(/R\$\s?/, "") : ""}
-            onChange={(e) => {
-              try {
-                onPrice(parseBRL(e.target.value || "0"));
-              } catch {
-                onPrice(0);
-              }
-            }}
-            inputMode="decimal"
-            placeholder="0"
-            className="h-8 w-14 border-0 bg-transparent p-0 text-right tabular text-[13.5px] font-bold text-primary shadow-none focus-visible:ring-0"
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        {row.continuo ? (
+          <SemMedicaoChip />
+        ) : (
+          <>
+            <span className="text-[11.5px] text-ink-faint">Consumo</span>
+            <div className="flex h-9 items-center rounded-lg border border-border bg-card px-2.5">
+              <Input
+                value={row.qty == null ? "" : String(row.qty)}
+                onChange={(e) => {
+                  const n = Number(e.target.value.replace(",", "."));
+                  onQty(Number.isFinite(n) ? n : 0);
+                }}
+                inputMode="decimal"
+                className="h-8 w-12 border-0 bg-transparent p-0 text-right tabular text-[13px] font-bold text-ink shadow-none focus-visible:ring-0"
+              />
+              <span className="ml-1 whitespace-nowrap text-[12px] text-ink-faint">
+                {row.unit}
+              </span>
+            </div>
+          </>
+        )}
+        <span className="flex-1" />
+      </div>
+
+      <div className="flex flex-col gap-1.5 border-t border-dashed border-border pt-2">
+        {row.tierRows.map((tier) => (
+          <AddonTierRow
+            key={tier._id}
+            qty={tier.qty}
+            price={tier.price}
+            onQty={(qty) =>
+              onTierRows((ts) =>
+                ts.map((t) => (t._id === tier._id ? { ...t, qty } : t)),
+              )
+            }
+            onPrice={(price) =>
+              onTierRows((ts) =>
+                ts.map((t) => (t._id === tier._id ? { ...t, price } : t)),
+              )
+            }
+            onRemove={() =>
+              onTierRows((ts) => ts.filter((t) => t._id !== tier._id))
+            }
           />
-        </div>
-      )}
+        ))}
+        <button
+          type="button"
+          onClick={() =>
+            onTierRows((ts) => [...ts, { _id: nextId(), qty: "", price: "" }])
+          }
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-card py-1.5 text-[11.5px] font-semibold text-ink-faint transition-colors hover:border-primary/50 hover:text-primary"
+        >
+          <Plus className="size-3.5" />
+          Faixa de preço
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** One qty×price row inside an opcional's own price-tier list. */
+function AddonTierRow({
+  qty,
+  price,
+  onQty,
+  onPrice,
+  onRemove,
+}: {
+  qty: string;
+  price: string;
+  onQty: (v: string) => void;
+  onPrice: (v: string) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="flex h-9 w-[68px] shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2.5">
+        <Input
+          value={qty}
+          onChange={(e) => onQty(e.target.value)}
+          inputMode="numeric"
+          placeholder="1"
+          className="h-8 w-full border-0 bg-transparent p-0 text-right tabular text-[13.5px] font-bold text-ink shadow-none focus-visible:ring-0"
+        />
+        <span className="text-[11px] text-ink-faint">un</span>
+      </div>
+      <span className="shrink-0 text-[11.5px] text-ink-faint">por</span>
+      <div className="flex h-9 flex-1 items-center rounded-lg border border-border bg-card px-2.5">
+        <span className="mr-1 text-[11.5px] font-semibold text-ink-faint">+ R$</span>
+        <Input
+          value={price}
+          onChange={(e) => onPrice(e.target.value)}
+          inputMode="decimal"
+          placeholder="0,00"
+          className="h-8 flex-1 border-0 bg-transparent p-0 text-right tabular text-[14px] font-extrabold text-primary shadow-none focus-visible:ring-0"
+        />
+      </div>
+      <IconRemove onClick={onRemove} />
     </div>
   );
 }
@@ -980,56 +1073,42 @@ function InsumoPicker({
   );
 }
 
-/** Lets a product link an existing "adicional" catalog product as a live add-on. */
-function AdicionalProductSection({
-  products,
-  exclude,
-  onAdd,
+/**
+ * Merged searchable picker for an opcional row: existing "adicional" catalog
+ * products (quick-fill template — name+price copied once, no live link) plus
+ * raw estoque items, matching how the mockup unifies both into one list.
+ */
+function OpcionalPicker({
+  stockItems,
+  adicionalProducts,
+  excludeNames,
+  onPickStock,
+  onPickProduct,
 }: {
-  products: Product[];
-  exclude: Set<string>;
-  onAdd: (item: Product) => void;
-}) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const options = products.filter((p) => !exclude.has(p.id));
-
-  return (
-    <div className="space-y-2">
-      <Label>Adicionais do catálogo</Label>
-      <p className="text-[11.5px] text-ink-faint">
-        Vincule um item cadastrado como &ldquo;Adicional&rdquo; — nome e preço
-        ficam sempre sincronizados com o catálogo.
-      </p>
-      <DashedAddButton
-        onClick={() => setPickerOpen((v) => !v)}
-        label="Vincular adicional do catálogo"
-      />
-      {pickerOpen && options.length > 0 && (
-        <AdicionalProductPicker
-          products={options}
-          onPick={(item) => {
-            onAdd(item);
-            setPickerOpen(false);
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-/** Inline searchable list of saleType:"adicional" catalog products. */
-function AdicionalProductPicker({
-  products,
-  onPick,
-}: {
-  products: Product[];
-  onPick: (item: Product) => void;
+  stockItems: StockItem[];
+  adicionalProducts: Product[];
+  excludeNames: Set<string>;
+  onPickStock: (item: StockItem) => void;
+  onPickProduct: (item: Product) => void;
 }) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
-  const options = products.filter(
-    (p) => !q || p.name.toLowerCase().includes(q),
+  const productOptions = adicionalProducts.filter(
+    (p) =>
+      !excludeNames.has(p.name.trim().toLowerCase()) &&
+      (!q || p.name.toLowerCase().includes(q)),
   );
+  const stockOptions = stockItems.filter(
+    (s) =>
+      !s.archived &&
+      !excludeNames.has(s.name.trim().toLowerCase()) &&
+      (!q ||
+        s.name.toLowerCase().includes(q) ||
+        (STOCK_CATEGORY_META[s.category]?.label ?? s.category)
+          .toLowerCase()
+          .includes(q)),
+  );
+  const empty = productOptions.length === 0 && stockOptions.length === 0;
 
   return (
     <div className="overflow-hidden rounded-xl border border-border">
@@ -1039,36 +1118,63 @@ function AdicionalProductPicker({
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar adicional…"
+          placeholder="Buscar item…"
           className="w-full min-w-0 bg-transparent text-[13px] outline-none placeholder:text-ink-faint"
         />
       </div>
       <div className="max-h-52 overflow-y-auto">
-        {options.length === 0 ? (
+        {empty ? (
           <div className="px-3 py-4 text-center text-[12px] text-ink-faint">
-            Nenhum adicional encontrado
+            Nenhum item encontrado
           </div>
         ) : (
-          options.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onPick(item)}
-              className="flex w-full items-center gap-2.5 border-b border-border/60 px-3 py-2 text-left transition-colors last:border-0 hover:bg-accent"
-            >
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-mist text-primary">
-                <Blocks className="size-3.5" strokeWidth={1.8} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-semibold text-ink">
-                  {item.name}
+          <>
+            {productOptions.map((item) => (
+              <button
+                key={`adicional-${item.id}`}
+                type="button"
+                onClick={() => onPickProduct(item)}
+                className="flex w-full items-center gap-2.5 border-b border-border/60 px-3 py-2 text-left transition-colors last:border-0 hover:bg-accent"
+              >
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-mist text-primary">
+                  <Blocks className="size-3.5" strokeWidth={1.8} />
                 </span>
-              </span>
-              <span className="tabular shrink-0 text-[12.5px] font-bold text-primary">
-                {formatBRL(item.price)}
-              </span>
-            </button>
-          ))
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-semibold text-ink">
+                    {item.name}
+                  </span>
+                  <span className="block truncate text-[11px] text-ink-faint">
+                    {PRODUCT_CATEGORY_META[item.category]?.label ?? item.category} ·
+                    adicional
+                  </span>
+                </span>
+                <span className="tabular shrink-0 text-[12.5px] font-bold text-primary">
+                  {formatBRL(item.price)}
+                </span>
+              </button>
+            ))}
+            {stockOptions.map((item) => {
+              const meta = STOCK_CATEGORY_META[item.category];
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onPickStock(item)}
+                  className="flex w-full items-center gap-2.5 border-b border-border/60 px-3 py-2 text-left transition-colors last:border-0 hover:bg-accent"
+                >
+                  {meta && <CategoryTile meta={meta} className="size-7" />}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-semibold text-ink">
+                      {item.name}
+                    </span>
+                    <span className="block truncate text-[11px] text-ink-faint">
+                      {meta?.label ?? item.category}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </>
         )}
       </div>
     </div>

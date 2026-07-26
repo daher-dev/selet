@@ -21,10 +21,9 @@ function addInsumo(map: Map<string, InsumoNeed>, id: string, amount: number, use
 }
 
 /**
- * Draws `qty` units of `product`'s own stock — revenda decrements its linked
- * insumo; menu/adicional (produced the same way) draws from producedStock
- * when batch-managed, else consumes the BASE recipe. Shared by the top-level
- * per-line draw and by a catalog-linked add-on resolving its own product.
+ * Draws `qty` units of `product`'s own stock — revenda/adicional decrements
+ * its linked insumo; menu draws from producedStock when batch-managed, else
+ * consumes the BASE recipe.
  */
 function drawForProduct(
   product: Product,
@@ -32,7 +31,7 @@ function drawForProduct(
   insumos: Map<string, InsumoNeed>,
   produced: Map<string, number>,
 ) {
-  if (product.saleType === "revenda") {
+  if (product.saleType === "revenda" || product.saleType === "adicional") {
     if (product.insumoId) addInsumo(insumos, product.insumoId, qty, qty);
     return;
   }
@@ -49,14 +48,11 @@ function drawForProduct(
 /**
  * Resolves an order's lines into the stock draws they should make, per the
  * confirmed café semantics:
- *  - revenda line → decrement its linked insumo by lineQty.
- *  - stockManaged menu/adicional line → draw lineQty from producedStock.
- *  - sob-demanda menu/adicional line → consume each recipe insumo (medido:
- *    qty×lineQty). adicional is produced exactly like menu — it's only
- *    reachable here via another line's add-ons, never as its own line.
- *  - adicionais (any menu line) → consume each add-on's linked insumo: either
- *    the add-on's own stockItemId, or — for a catalog-linked add-on — draw
- *    for the referenced adicional product the same way its own line would.
+ *  - revenda/adicional line → decrement its linked insumo by lineQty (adicional
+ *    is never independently orderable, but the draw logic is shared).
+ *  - stockManaged menu line → draw lineQty from producedStock.
+ *  - sob-demanda menu line → consume each recipe insumo (medido: qty×lineQty).
+ *  - adicionais (any menu line) → consume each add-on's own stockItemId.
  * Only entries carrying a stockItemId are tracked; name-only pantry rows skip.
  * The per-insumo mode (medido vs continuo) is decided later, by the item.
  */
@@ -77,13 +73,8 @@ export function buildConsumptionRequests(
     // Add-ons are consumed at sale time regardless of production mode.
     for (const name of line.addons ?? []) {
       const addon = product.adicionais.find((a) => a.name === name);
-      if (!addon) continue;
-      if (addon.productId) {
-        const linked = products.get(addon.productId);
-        if (linked) drawForProduct(linked, lineQty, insumos, produced);
-      } else if (addon.stockItemId) {
-        addInsumo(insumos, addon.stockItemId, (addon.qty ?? 0) * lineQty, lineQty);
-      }
+      if (!addon?.stockItemId) continue;
+      addInsumo(insumos, addon.stockItemId, (addon.qty ?? 0) * lineQty, lineQty);
     }
   }
 

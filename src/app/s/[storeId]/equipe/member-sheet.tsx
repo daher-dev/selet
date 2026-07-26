@@ -74,7 +74,7 @@ const ACCESS_MODULES: {
 }[] = [
   { key: "pedidos", label: "Pedidos", icon: Inbox },
   { key: "clientes", label: "Clientes", icon: Users },
-  { key: "produtos", label: "Catálogo", icon: Tag },
+  { key: "produtos", label: "Cardápio", icon: Tag },
   { key: "estoque", label: "Estoque", icon: Package },
   { key: "financeiro", label: "Financeiro", icon: CircleDollarSign },
 ];

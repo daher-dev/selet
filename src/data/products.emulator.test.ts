@@ -27,7 +27,16 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
         { stockItemId: "shake-baunilha", name: "Shake Baunilha", qty: null, unit: "g" },
         { name: "Leite em pó", qty: 15, unit: "g" },
       ],
-      adicionais: [{ name: "Protein Crunch", price: 500 }],
+      adicionais: [
+        {
+          name: "Protein Crunch",
+          price: 500,
+          tiers: [
+            { qty: 1, price: 500 },
+            { qty: 2, price: 900 },
+          ],
+        },
+      ],
       tiers: [{ qty: 1, price: 3600 }],
       stockManaged: false,
     });
@@ -41,7 +50,16 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
       description: "Morango com Baunilha e borda de Morango.",
       active: true,
       saleType: "menu",
-      adicionais: [{ name: "Protein Crunch", price: 500 }],
+      adicionais: [
+        {
+          name: "Protein Crunch",
+          price: 500,
+          tiers: [
+            { qty: 1, price: 500 },
+            { qty: 2, price: 900 },
+          ],
+        },
+      ],
       tiers: [{ qty: 1, price: 3600 }],
     });
     // The BASE recipe round-trips, including the "sem medição" (null qty) row.
@@ -82,7 +100,7 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
     expect(await listProducts(storeId)).toHaveLength(0);
   });
 
-  it("round-trips a saleType:adicional product (recipe-based, not revenda)", async () => {
+  it("round-trips a saleType:adicional product (single insumo link, like revenda)", async () => {
     const id = await createProduct(storeId, {
       name: "Calda Quente",
       price: 300,
@@ -90,9 +108,10 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
       typeTags: [],
       active: true,
       saleType: "adicional",
-      recipe: [{ stockItemId: "calda-insumo", name: "Calda", qty: 1, unit: "un" }],
+      recipe: [],
       adicionais: [],
       tiers: [{ qty: 1, price: 300 }],
+      insumoId: "calda-insumo",
       stockManaged: false,
     });
 
@@ -100,8 +119,8 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
     expect(product).toMatchObject({
       name: "Calda Quente",
       saleType: "adicional",
-      recipe: [{ stockItemId: "calda-insumo", name: "Calda", qty: 1, unit: "un" }],
-      insumoId: undefined,
+      recipe: [],
+      insumoId: "calda-insumo",
     });
 
     await deleteProduct(storeId, id);

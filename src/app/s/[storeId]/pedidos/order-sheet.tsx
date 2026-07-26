@@ -724,7 +724,6 @@ function ProductPickerDialog({
         {config ? (
           <ProductConfig
             product={config}
-            allProducts={products}
             onBack={() => setConfig(null)}
             onConfirm={(item) => {
               onAdd(item);
@@ -753,7 +752,7 @@ function ProductPickerDialog({
               {filtered.length === 0 ? (
                 <p className="px-2 py-8 text-center text-[12.5px] text-ink-faint">
                   {orderable.length === 0
-                    ? "Cadastre produtos no Catálogo primeiro."
+                    ? "Cadastre produtos no Cardápio primeiro."
                     : "Nenhum produto encontrado"}
                 </p>
               ) : (
@@ -820,38 +819,23 @@ function SaleTypeBadge({ saleType }: { saleType: Product["saleType"] }) {
 }
 
 /**
- * Config step for a picked product: quantity + optional adicionais. Selected
+ * Config step for a picked product: quantity + optional opcionais. Selected
  * add-on prices fold into the item's unitPrice so downstream order math is
  * untouched; their names ride along on OrderItem.addons.
  */
 function ProductConfig({
   product,
-  allProducts,
   onBack,
   onConfirm,
 }: {
   product: Product;
-  /** Full catalog, used to resolve current price/name for productId-linked addons. */
-  allProducts: Product[];
   onBack: () => void;
   onConfirm: (item: OrderItem) => void;
 }) {
   const [qty, setQty] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const meta = PRODUCT_CATEGORY_META[product.category] ?? NEUTRAL_TILE;
-  // Resolve live price/display-name for addons linked to a catalog
-  // "adicional" product. `name` (used for selection + the consumption
-  // engine's name-based lookup against the saved product) stays the cached
-  // value so it keeps matching after a rename — only the label shown here
-  // and the price folded into the total are live.
-  const addons = (product.adicionais ?? []).map((a) => {
-    const linked = a.productId ? allProducts.find((p) => p.id === a.productId) : undefined;
-    return {
-      ...a,
-      price: linked?.price ?? a.price,
-      displayName: linked?.name as string | undefined,
-    };
-  });
+  const addons = product.adicionais ?? [];
 
   function toggleAddon(name: string) {
     setSelected((prev) =>
@@ -922,7 +906,7 @@ function ProductConfig({
 
         {addons.length > 0 && (
           <div className="space-y-2">
-            <Label>Adicionais</Label>
+            <Label>Opcionais</Label>
             <div className="space-y-2">
               {addons.map((addon) => {
                 const active = selected.includes(addon.name);
@@ -949,7 +933,7 @@ function ProductConfig({
                       <Check className="size-3.5" strokeWidth={3} />
                     </span>
                     <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
-                      {addon.displayName ?? addon.name}
+                      {addon.name}
                     </span>
                     <span className="tabular shrink-0 text-[12.5px] font-bold text-primary">
                       + {formatBRL(addon.price)}
