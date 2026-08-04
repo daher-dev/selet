@@ -79,3 +79,24 @@ export function formatQty(qty: number, unit: string): string {
     : qty.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
   return `${n} ${unit}`;
 }
+
+/**
+ * A "Montar shake" order line's display name, e.g.
+ * "Shake · Frutas Amarelas / NutreV / Borda Nutella / +2× Fibra Ativa".
+ */
+export function formatShakeLineName(parts: {
+  flavor: string;
+  base?: string | null;
+  rims: { name: string; qty: number }[];
+  mixins: { name: string; qty: number }[];
+}): string {
+  const segments = [parts.flavor];
+  if (parts.base) segments.push(parts.base);
+  for (const r of parts.rims) {
+    segments.push(`Borda ${r.name}${r.qty > 1 ? ` ×${r.qty}` : ""}`);
+  }
+  for (const m of parts.mixins) {
+    segments.push(`+${m.qty > 1 ? `${m.qty}× ` : ""}${m.name}`);
+  }
+  return `Shake · ${segments.join(" / ")}`;
+}

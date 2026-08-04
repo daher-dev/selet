@@ -20,7 +20,17 @@ import {
   Truck,
   Wallet,
 } from "lucide-react";
-import type { Customer, Order, OrderChannel, Product } from "@/lib/types";
+import type {
+  Customer,
+  Order,
+  OrderChannel,
+  Product,
+  ShakeBase,
+  ShakeFlavor,
+  ShakeMixin,
+  ShakeRim,
+  ShakeUtensil,
+} from "@/lib/types";
 import { formatBRL, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -103,6 +113,11 @@ interface PedidosClientProps {
   orders: Order[];
   customers: Customer[];
   products: Product[];
+  shakeFlavors: ShakeFlavor[];
+  shakeBases: ShakeBase[];
+  shakeRims: ShakeRim[];
+  shakeMixins: ShakeMixin[];
+  shakeUtensils: ShakeUtensil[];
 }
 
 export function PedidosClient({
@@ -110,6 +125,11 @@ export function PedidosClient({
   orders,
   customers,
   products,
+  shakeFlavors,
+  shakeBases,
+  shakeRims,
+  shakeMixins,
+  shakeUtensils,
 }: PedidosClientProps) {
   const [query, setQuery] = useState("");
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("todos");
@@ -164,8 +184,9 @@ export function PedidosClient({
     return { visible, hidden };
   }
 
-  function tileMeta(productId: string): CategoryMeta {
-    return PRODUCT_CATEGORY_META[categoryById.get(productId) ?? ""] ?? NEUTRAL_TILE;
+  function tileMeta(item: { productId: string; shake?: unknown }): CategoryMeta {
+    if (item.shake) return PRODUCT_CATEGORY_META.shakes ?? NEUTRAL_TILE;
+    return PRODUCT_CATEGORY_META[categoryById.get(item.productId) ?? ""] ?? NEUTRAL_TILE;
   }
 
   return (
@@ -302,7 +323,7 @@ export function PedidosClient({
                         className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-paper py-0.5 pl-0.5 pr-2.5"
                       >
                         <CategoryTile
-                          meta={tileMeta(item.productId)}
+                          meta={tileMeta(item)}
                           className="size-6 rounded-lg"
                         />
                         <span className="tabular text-[12px] font-bold text-ink-soft">
@@ -363,7 +384,7 @@ export function PedidosClient({
                           className="flex min-w-0 items-center gap-1.5 rounded-full border border-border bg-paper py-1 pl-1 pr-2.5"
                         >
                           <CategoryTile
-                            meta={tileMeta(item.productId)}
+                            meta={tileMeta(item)}
                             className="size-7 rounded-lg"
                           />
                           <span className="min-w-0 truncate text-[12px] text-ink-soft">
@@ -405,6 +426,11 @@ export function PedidosClient({
         order={creating ? null : selected}
         customers={customers}
         products={products}
+        shakeFlavors={shakeFlavors}
+        shakeBases={shakeBases}
+        shakeRims={shakeRims}
+        shakeMixins={shakeMixins}
+        shakeUtensils={shakeUtensils}
         open={creating || selectedId !== null}
         onOpenChange={(open) => {
           if (!open) {

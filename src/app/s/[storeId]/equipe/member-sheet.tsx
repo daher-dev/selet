@@ -10,6 +10,7 @@ import {
   Check,
   CircleCheck,
   CircleDollarSign,
+  CupSoda,
   Inbox,
   LogIn,
   Loader2,
@@ -22,6 +23,7 @@ import {
   ShieldUser,
   SlidersHorizontal,
   Tag,
+  Ticket,
   Truck,
   UserPlus,
   Users,
@@ -64,9 +66,9 @@ const STATUS_META: Record<
   inativo: { label: "Inativo", fg: "text-ink-faint", bg: "bg-wash", dot: "bg-ink-faint" },
 };
 
-// The exactly-five modules a funcionário can be granted (design aclSections,
-// Selet Admin.dc.html:2415-2423). "equipe" is deliberately absent — team
-// management is admin-only.
+// The modules a funcionário can be granted (design aclSections, Selet
+// Admin.dc.html:2415-2423, extended with Vouchers). "equipe" is deliberately
+// absent — team management is admin-only.
 const ACCESS_MODULES: {
   key: GrantableSection;
   label: string;
@@ -77,6 +79,7 @@ const ACCESS_MODULES: {
   { key: "produtos", label: "Cardápio", icon: Tag },
   { key: "estoque", label: "Estoque", icon: Package },
   { key: "financeiro", label: "Financeiro", icon: CircleDollarSign },
+  { key: "vouchers", label: "Vouchers", icon: Ticket },
 ];
 
 const ROLE_DESC = {
@@ -102,6 +105,8 @@ const ACTIVITY_ICONS: Record<string, LucideIcon> = {
   "shield-check": ShieldCheck,
   "circle-dollar": CircleDollarSign,
   truck: Truck,
+  ticket: Ticket,
+  "cup-soda": CupSoda,
 };
 
 interface MemberSheetProps {

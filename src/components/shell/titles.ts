@@ -16,6 +16,14 @@ const TITLES: Record<
   },
   clientes: { title: "Clientes", subtitle: "Retenção, histórico e engajamento" },
   produtos: { title: "Cardápio", subtitle: "Itens à venda · revenda e menu" },
+  shakes: {
+    title: "Shakes",
+    subtitle: "Sabores, bases, bordas, adicionais e utensílios",
+  },
+  vouchers: {
+    title: "Vouchers",
+    subtitle: "Pacotes pagos adiantados e saldo dos clientes",
+  },
   estoque: { title: "Estoque", subtitle: "Embalagens, fracionamento e rendimento" },
   financeiro: { title: "Financeiro", subtitle: "Saldo, entradas e saídas" },
   equipe: { title: "Equipe", subtitle: "Gestão de funcionários por loja" },

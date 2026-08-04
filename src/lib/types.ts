@@ -10,13 +10,15 @@ export const SECTIONS = [
   "produtos",
   "estoque",
   "financeiro",
+  "vouchers",
+  "shakes",
   "equipe",
 ] as const;
 export type Section = (typeof SECTIONS)[number];
 
 // The modules a funcionário can be granted access to. Team management
 // ("equipe") is admin-only by design — its access catalog is exactly these
-// five modules (design aclSections, Selet Admin.dc.html:2415-2423). "equipe"
+// six modules (design aclSections, Selet Admin.dc.html:2415-2423). "equipe"
 // stays in SECTIONS so nav gating keeps working (admins see the Equipe item via
 // their role), but it is intentionally NOT grantable: a funcionário can never
 // be given team-management rights through the member form or a server action.
@@ -26,6 +28,7 @@ export const GRANTABLE_SECTIONS = [
   "produtos",
   "estoque",
   "financeiro",
+  "vouchers",
 ] as const;
 export type GrantableSection = (typeof GRANTABLE_SECTIONS)[number];
 
@@ -109,6 +112,8 @@ export interface OrderItem {
   qty: number;
   unitPrice: number; // centavos
   addons?: string[];
+  /** Present only for "Montar shake" lines; mutually exclusive with `addons`. */
+  shake?: ShakeSelection;
 }
 
 /**
@@ -336,10 +341,66 @@ export interface FinanceTx {
   category: string;
   amount: number; // centavos, always positive
   direction: "in" | "out";
-  source: "order" | "manual" | "stock";
+  source: "order" | "manual" | "stock" | "voucher";
   orderId?: string;
+  voucherId?: string;
   payMethod?: PayMethod;
   date: string;
+}
+
+// --- Vouchers: prepaid packages sold to a customer and redeemed over time. ---
+
+/** One line of a voucher package: a catalog product + how many were bought. */
+export interface VoucherTemplateItem {
+  productId: string;
+  name: string; // snapshot at template-save-time
+  unitPrice: number; // centavos, snapshot at template-save-time
+  qty: number;
+}
+
+export interface VoucherTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  items: VoucherTemplateItem[];
+  packagePrice: number; // centavos
+  validityDays: number | null; // null → no expiry ("Sem validade")
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * One sold line item. `redeemedCount` is the ONLY source of truth for how much
+ * of this line has been used — remaining count and any punch-bar/label display
+ * are always derived from `redeemedCount` vs `qty` (see src/lib/vouchers.ts),
+ * never persisted separately.
+ */
+export interface VoucherLineItem {
+  productId: string;
+  name: string; // snapshot from the template at sale time
+  unitPrice: number; // centavos, snapshot from the template at sale time
+  qty: number; // total purchased
+  redeemedCount: number; // used so far
+}
+
+export interface Voucher {
+  id: string;
+  code: string; // short display code derived from id, e.g. "V3F8" (mirrors Order.code)
+  templateId: string;
+  templateName: string; // snapshot — survives template edits/deactivation
+  customerId: string;
+  customerName: string;
+  items: VoucherLineItem[];
+  packagePrice: number; // centavos
+  purchasedAt: string;
+  expiresAt: string | null; // computed from template.validityDays at sale time
+  paid: boolean;
+  payMethod: PayMethod | null;
+  /** Denormalized: true when any line still has redeemedCount < qty. */
+  hasBalance: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TeamMember extends SessionUser {
@@ -358,4 +419,74 @@ export interface ActivityEntry {
   at: string;
   /** The module the event belongs to (for filtering/metadata). */
   section?: Section;
+}
+
+// --- Shakes: a shared, store-wide modifier catalog for build-a-shake orders,
+// replacing the old per-flavor duplicated ProductAddon lists. A "Sabor" is a
+// slimmed, standalone entity (not a Product) — see src/data/shakes.ts. ---
+
+/** A flavor's own insumo list — reuses RecipeItem verbatim ("insumos do sabor"). */
+export interface ShakeFlavor {
+  id: string;
+  name: string;
+  price: number; // centavos, "R$ X / copo"
+  recipe: RecipeItem[];
+  archived: boolean;
+  createdAt: string;
+}
+
+/** Single-choice modifier (picked once per order), usually free with an optional flat surcharge. */
+export interface ShakeBase {
+  id: string;
+  name: string;
+  insumo: RecipeItem;
+  price: number; // centavos, "Acréscimo"; 0 = incluso no preço do sabor
+  archived: boolean;
+  createdAt: string;
+}
+
+/** "Borda" — charged separately, quantity-tiered (supports dose dupla via PriceTier). */
+export interface ShakeRim {
+  id: string;
+  name: string;
+  insumo: RecipeItem;
+  tiers: PriceTier[];
+  archived: boolean;
+  createdAt: string;
+}
+
+/**
+ * Shake-scoped "Adicional" — unlimited multi-select, quantity-tiered, shared
+ * across all flavors. Named ShakeMixin (not ShakeAddon) to avoid colliding
+ * with ProductAddon (a Product's own list) and ProductSaleType's "adicional"
+ * (standalone catalog SKUs) — the Portuguese UI copy still says "Adicionais".
+ */
+export interface ShakeMixin {
+  id: string;
+  name: string;
+  insumo: RecipeItem;
+  tiers: PriceTier[];
+  archived: boolean;
+  createdAt: string;
+}
+
+/** Never priced/shown on the order — pure stock draw, opt-in/out per order line. */
+export interface ShakeUtensil {
+  id: string;
+  name: string;
+  insumo: RecipeItem;
+  /** "Padrão em todo shake" — auto-applies unless overridden per order line. */
+  defaultIncluded: boolean;
+  archived: boolean;
+  createdAt: string;
+}
+
+/** A "Montar shake" order line's picks, embedded on OrderItem.shake. */
+export interface ShakeSelection {
+  flavorId: string;
+  baseId: string | null;
+  rims: { modifierId: string; qty: number }[];
+  mixins: { modifierId: string; qty: number }[];
+  /** Per-order overrides against each utensílio's catalog default. Absent id = use current default. */
+  utensilOverrides?: { utensilId: string; included: boolean }[];
 }

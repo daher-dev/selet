@@ -14,6 +14,7 @@ import type {
 import { orderCode } from "@/lib/format";
 import { buildConsumptionRequests } from "./consumption";
 import { getProduct } from "./products";
+import { loadShakeCatalogsForItems, type ShakeCatalogs } from "./shakes";
 import { consumeWork, readStockWork, reverseWork, stockPatch } from "./stock";
 import {
   customerKey,
@@ -208,10 +209,11 @@ async function planConsumption(
   products: Map<string, Product> | null,
   /** Shared working summary — commit() folds low-stock flips into it. */
   summary: SummaryData,
+  shakeCatalogs?: ShakeCatalogs,
 ): Promise<{ draws: ConsumptionDraw[]; commit: () => void }> {
   const req =
     newItems && products
-      ? buildConsumptionRequests(newItems, products)
+      ? buildConsumptionRequests(newItems, products, shakeCatalogs)
       : { insumos: new Map<string, { amount: number; uses: number }>(), produced: new Map<string, number>() };
 
   const stockIds = new Set<string>();
@@ -331,6 +333,7 @@ export async function createOrder(
   const now = Timestamp.now();
   const total = orderTotal(input.items);
   const products = await fetchLineProducts(storeId, input.items);
+  const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
 
   let stockConsumed: ConsumptionDraw[] = [];
   await db.runTransaction(async (tx) => {
@@ -345,6 +348,7 @@ export async function createOrder(
       input.items,
       products,
       summary,
+      shakeCatalogs,
     );
     stockConsumed = plan.draws;
     const commitAggregates = input.customerId
@@ -408,6 +412,7 @@ export async function updateOrder(
   const db = getDb();
   const ref = ordersCol(storeId).doc(orderId);
   const products = await fetchLineProducts(storeId, input.items);
+  const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -437,6 +442,7 @@ export async function updateOrder(
       cancelled ? null : input.items,
       cancelled ? null : products,
       summary,
+      cancelled ? undefined : shakeCatalogs,
     );
 
     const affected = new Set<string>();
@@ -518,6 +524,9 @@ export async function setOrderStatus(
   const products = existing
     ? await fetchLineProducts(storeId, existing.items)
     : new Map<string, Product>();
+  const shakeCatalogs = existing
+    ? await loadShakeCatalogsForItems(storeId, existing.items)
+    : undefined;
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -542,6 +551,7 @@ export async function setOrderStatus(
         (current.items ?? []) as OrderItem[],
         products,
         summary,
+        shakeCatalogs,
       );
     }
 

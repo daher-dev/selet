@@ -12,6 +12,7 @@ import { AppShellProvider } from "./app-shell-context";
 export interface NavBadges {
   openOrders: number;
   lowStock: number;
+  vouchersExpiring: number;
 }
 
 interface AppShellProps {

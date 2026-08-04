@@ -4,14 +4,16 @@ import {
   ShoppingBag,
   User,
   Box,
+  CupSoda,
   Layers,
   CreditCard,
+  Ticket,
   Users,
 } from "lucide-react";
 import type { Section } from "@/lib/types";
 
 /** Live counters the shell can surface on a nav item. */
-export type NavBadge = "openOrders";
+export type NavBadge = "openOrders" | "vouchersExpiring";
 export type NavDot = "lowStock";
 
 export interface NavItem {
@@ -38,6 +40,22 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { label: "Clientes", segment: "clientes", icon: User, section: "clientes" },
   { label: "Cardápio", segment: "produtos", icon: Box, section: "produtos" },
+  {
+    label: "Shakes",
+    segment: "shakes",
+    icon: CupSoda,
+    // Admin-only: "shakes" is in SECTIONS but deliberately not in
+    // GRANTABLE_SECTIONS, same treatment as "equipe" — no extra gating needed
+    // here, canAccessSection()/the sidebar filter already handle it.
+    section: "shakes",
+  },
+  {
+    label: "Vouchers",
+    segment: "vouchers",
+    icon: Ticket,
+    section: "vouchers",
+    badge: "vouchersExpiring",
+  },
   {
     label: "Estoque",
     segment: "estoque",

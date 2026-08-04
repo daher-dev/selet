@@ -125,7 +125,11 @@ export function SidebarContent({
               : pathname.startsWith(`${base}/${item.segment}`);
           const Icon = item.icon;
           const badgeCount =
-            item.badge === "openOrders" ? badges.openOrders : 0;
+            item.badge === "openOrders"
+              ? badges.openOrders
+              : item.badge === "vouchersExpiring"
+                ? badges.vouchersExpiring
+                : 0;
           const showDot = item.dot === "lowStock" && badges.lowStock > 0;
           return (
             <Link

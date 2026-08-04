@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { OrderItem, Product } from "@/lib/types";
+import type {
+  OrderItem,
+  Product,
+  ShakeBase,
+  ShakeFlavor,
+  ShakeMixin,
+  ShakeRim,
+  ShakeUtensil,
+} from "@/lib/types";
+import type { ShakeCatalogs } from "./shakes";
 import { buildConsumptionRequests } from "./consumption";
 
 function product(overrides: Partial<Product> & { id: string }): Product {
@@ -99,5 +108,223 @@ describe("buildConsumptionRequests", () => {
     );
     expect(insumos.size).toBe(0);
     expect(produced.size).toBe(0);
+  });
+});
+
+describe("buildConsumptionRequests · Montar shake lines", () => {
+  function flavor(overrides: Partial<ShakeFlavor> & { id: string }): ShakeFlavor {
+    return { name: overrides.id, price: 3000, recipe: [], archived: false, createdAt: "", ...overrides };
+  }
+  function base(overrides: Partial<ShakeBase> & { id: string }): ShakeBase {
+    return {
+      name: overrides.id,
+      insumo: { name: "Insumo", qty: 1, unit: "un" },
+      price: 0,
+      archived: false,
+      createdAt: "",
+      ...overrides,
+    };
+  }
+  function tiered(
+    overrides: Partial<ShakeRim> & { id: string },
+  ): ShakeRim | ShakeMixin {
+    return {
+      name: overrides.id,
+      insumo: { name: "Insumo", qty: 1, unit: "un" },
+      tiers: [{ qty: 1, price: 500 }],
+      archived: false,
+      createdAt: "",
+      ...overrides,
+    };
+  }
+  function utensil(overrides: Partial<ShakeUtensil> & { id: string }): ShakeUtensil {
+    return {
+      name: overrides.id,
+      insumo: { name: "Insumo", qty: 1, unit: "un" },
+      defaultIncluded: true,
+      archived: false,
+      createdAt: "",
+      ...overrides,
+    };
+  }
+
+  function catalogs(over: Partial<ShakeCatalogs> = {}): ShakeCatalogs {
+    return {
+      flavors: new Map(),
+      bases: new Map(),
+      rims: new Map(),
+      mixins: new Map(),
+      utensils: [],
+      ...over,
+    };
+  }
+
+  function shakeLine(overrides: Partial<OrderItem> = {}): OrderItem {
+    return {
+      productId: "sabor-1",
+      name: "Shake",
+      qty: 1,
+      unitPrice: 3000,
+      shake: {
+        flavorId: "sabor-1",
+        baseId: null,
+        rims: [],
+        mixins: [],
+      },
+      ...overrides,
+    };
+  }
+
+  it("consumes the flavor's own recipe, scaled by lineQty", () => {
+    const f = flavor({
+      id: "sabor-1",
+      recipe: [{ stockItemId: "ins-shake", name: "Shake base", qty: 26, unit: "g" }],
+    });
+    const { insumos } = buildConsumptionRequests(
+      [shakeLine({ qty: 2 })],
+      new Map(),
+      catalogs({ flavors: new Map([["sabor-1", f]]) }),
+    );
+    expect(insumos.get("ins-shake")).toEqual({ amount: 52, uses: 2 });
+  });
+
+  it("consumes the chosen base's insumo", () => {
+    const f = flavor({ id: "sabor-1" });
+    const b = base({ id: "base-1", insumo: { stockItemId: "ins-leite", name: "Leite", qty: 150, unit: "ml" } });
+    const { insumos } = buildConsumptionRequests(
+      [shakeLine({ shake: { flavorId: "sabor-1", baseId: "base-1", rims: [], mixins: [] } })],
+      new Map(),
+      catalogs({ flavors: new Map([["sabor-1", f]]), bases: new Map([["base-1", b]]) }),
+    );
+    expect(insumos.get("ins-leite")).toEqual({ amount: 150, uses: 1 });
+  });
+
+  it("rim/mixin quantity scales the insumo draw (dose dupla)", () => {
+    const f = flavor({ id: "sabor-1" });
+    const rim = tiered({
+      id: "rim-1",
+      insumo: { stockItemId: "ins-nutella", name: "Nutella", qty: 20, unit: "g" },
+    }) as ShakeRim;
+    const mixin = tiered({
+      id: "mix-1",
+      insumo: { stockItemId: "ins-fibra", name: "Fibra", qty: 1, unit: "dose" },
+    }) as ShakeMixin;
+    const { insumos } = buildConsumptionRequests(
+      [
+        shakeLine({
+          qty: 2, // 2 shakes ordered
+          shake: {
+            flavorId: "sabor-1",
+            baseId: null,
+            rims: [{ modifierId: "rim-1", qty: 2 }], // dose dupla
+            mixins: [{ modifierId: "mix-1", qty: 1 }],
+          },
+        }),
+      ],
+      new Map(),
+      catalogs({
+        flavors: new Map([["sabor-1", f]]),
+        rims: new Map([["rim-1", rim]]),
+        mixins: new Map([["mix-1", mixin]]),
+      }),
+    );
+    // rim: 20g × 2 (dose dupla) × 2 (lineQty) = 80g, uses = 2×2 = 4
+    expect(insumos.get("ins-nutella")).toEqual({ amount: 80, uses: 4 });
+    // mixin: 1 dose × 1 × 2 (lineQty) = 2, uses = 1×2 = 2
+    expect(insumos.get("ins-fibra")).toEqual({ amount: 2, uses: 2 });
+  });
+
+  it("utensílio with defaultIncluded=true is drawn automatically", () => {
+    const f = flavor({ id: "sabor-1" });
+    const u = utensil({
+      id: "copo",
+      defaultIncluded: true,
+      insumo: { stockItemId: "ins-copo", name: "Copo", qty: 1, unit: "un" },
+    });
+    const { insumos } = buildConsumptionRequests(
+      [shakeLine()],
+      new Map(),
+      catalogs({ flavors: new Map([["sabor-1", f]]), utensils: [u] }),
+    );
+    expect(insumos.get("ins-copo")).toEqual({ amount: 1, uses: 1 });
+  });
+
+  it("utensílio with defaultIncluded=false is NOT drawn unless overridden to true", () => {
+    const f = flavor({ id: "sabor-1" });
+    const u = utensil({
+      id: "canudo",
+      defaultIncluded: false,
+      insumo: { stockItemId: "ins-canudo", name: "Canudo", qty: 1, unit: "un" },
+    });
+    const cat = catalogs({ flavors: new Map([["sabor-1", f]]), utensils: [u] });
+
+    const skipped = buildConsumptionRequests([shakeLine()], new Map(), cat);
+    expect(skipped.insumos.has("ins-canudo")).toBe(false);
+
+    const included = buildConsumptionRequests(
+      [
+        shakeLine({
+          shake: {
+            flavorId: "sabor-1",
+            baseId: null,
+            rims: [],
+            mixins: [],
+            utensilOverrides: [{ utensilId: "canudo", included: true }],
+          },
+        }),
+      ],
+      new Map(),
+      cat,
+    );
+    expect(included.insumos.get("ins-canudo")).toEqual({ amount: 1, uses: 1 });
+  });
+
+  it("a per-line override can also OPT OUT of a default-included utensílio", () => {
+    const f = flavor({ id: "sabor-1" });
+    const u = utensil({
+      id: "guardanapo",
+      defaultIncluded: true,
+      insumo: { stockItemId: "ins-guardanapo", name: "Guardanapo", qty: 2, unit: "un" },
+    });
+    const { insumos } = buildConsumptionRequests(
+      [
+        shakeLine({
+          shake: {
+            flavorId: "sabor-1",
+            baseId: null,
+            rims: [],
+            mixins: [],
+            utensilOverrides: [{ utensilId: "guardanapo", included: false }],
+          },
+        }),
+      ],
+      new Map(),
+      catalogs({ flavors: new Map([["sabor-1", f]]), utensils: [u] }),
+    );
+    expect(insumos.has("ins-guardanapo")).toBe(false);
+  });
+
+  it("missing catalogs (undefined) is a best-effort no-op, never throws", () => {
+    expect(() => buildConsumptionRequests([shakeLine()], new Map())).not.toThrow();
+    const { insumos } = buildConsumptionRequests([shakeLine()], new Map());
+    expect(insumos.size).toBe(0);
+  });
+
+  it("a shake line referencing a deleted flavor/modifier is skipped, not thrown", () => {
+    const { insumos } = buildConsumptionRequests(
+      [
+        shakeLine({
+          shake: {
+            flavorId: "gone",
+            baseId: "also-gone",
+            rims: [{ modifierId: "gone-too", qty: 1 }],
+            mixins: [],
+          },
+        }),
+      ],
+      new Map(),
+      catalogs(),
+    );
+    expect(insumos.size).toBe(0);
   });
 });

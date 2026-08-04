@@ -31,6 +31,14 @@
         { "fieldPath": "archived", "order": "ASCENDING" },
         { "fieldPath": "lowStock", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "vouchers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hasBalance", "order": "ASCENDING" },
+        { "fieldPath": "expiresAt", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

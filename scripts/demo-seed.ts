@@ -33,6 +33,10 @@ function minutesAgo(n: number): Timestamp {
   return Timestamp.fromMillis(Date.now() - n * 60_000);
 }
 
+function daysFromNow(n: number): Timestamp {
+  return Timestamp.fromMillis(Date.now() + n * 86_400_000);
+}
+
 /** First day of the given month/year (customer "since"). */
 function monthDate(month: number, year: number): Timestamp {
   return Timestamp.fromDate(new Date(year, month - 1, 1));
@@ -149,6 +153,336 @@ const MANUAL_FINANCE: DemoFinance[] = [
   { slug: "marketing", label: "Tráfego pago · Instagram/Meta", category: "marketing", amount: 45000, direction: "out", days: 10 },
   { slug: "venda-balcao", label: "Venda avulsa no balcão", category: "vendas", amount: 5400, direction: "in", days: 1 },
 ];
+
+// ---------------------------------------------------------------------------
+// Vouchers (design Mock Vouchers.dc.html) — vila-velha only, matching the
+// mock's example roster (#V001, #V002, #V003, #V005 — no #V004, by design).
+// Doc ids are the literal codes so voucherCode(id) reproduces them exactly,
+// mirroring the ORDERS trick above.
+// ---------------------------------------------------------------------------
+
+interface DemoTemplateItem {
+  productId: string;
+  name: string;
+  unitPrice: number; // centavos
+  qty: number;
+}
+
+interface DemoTemplate {
+  slug: string;
+  name: string;
+  description: string;
+  items: DemoTemplateItem[];
+  packagePrice: number; // centavos
+  validityDays: number | null;
+  active: boolean;
+}
+
+const VOUCHER_TEMPLATES: DemoTemplate[] = [
+  {
+    slug: "semana-fit",
+    name: "Semana Fit",
+    description: "Cinco shakes e cinco drinks para a semana.",
+    items: [
+      { productId: "shake-shake-da-beleza", name: "Shake da Beleza", unitPrice: 4400, qty: 5 },
+      { productId: "bebida-hype-drink", name: "Hype Drink", unitPrice: 2800, qty: 5 },
+    ],
+    packagePrice: 30000,
+    validityDays: 30,
+    active: true,
+  },
+  {
+    slug: "cartela-coxinha",
+    name: "Cartela Coxinha",
+    description: "Dez coxinhas proteicas para retirar quando quiser.",
+    items: [
+      { productId: "lanche-coxinha-proteica", name: "Coxinha Proteica", unitPrice: 1200, qty: 10 },
+    ],
+    packagePrice: 11000,
+    validityDays: null,
+    active: true,
+  },
+  {
+    slug: "detox-10-dias",
+    name: "Detox 10 dias",
+    description: "Um suco verde por dia, dez dias seguidos.",
+    items: [
+      { productId: "bebida-seca-barriga", name: "Seca Barriga", unitPrice: 1900, qty: 10 },
+    ],
+    packagePrice: 16500,
+    validityDays: 60,
+    active: true,
+  },
+  {
+    slug: "combo-shakes",
+    name: "Combo Shakes",
+    description: "Oito shakes Ovomaltine. Não aparece para venda.",
+    items: [
+      { productId: "shake-ovomaltine", name: "Shake Ovomaltine", unitPrice: 4100, qty: 8 },
+    ],
+    packagePrice: 29000,
+    validityDays: null,
+    active: false,
+  },
+];
+
+interface DemoVoucher {
+  code: string; // "V001" — also the doc id
+  templateSlug: string;
+  customerName: string;
+  purchasedDaysAgo: number;
+  expiresInDays: number | null; // relative to now; null = "Sem validade"
+  paid: boolean;
+  payMethod: "pix" | "cartao" | "dinheiro" | null;
+  /** Per-item redeemed count, by index into the template's items array. */
+  redeemed: number[];
+}
+
+const VOUCHERS: DemoVoucher[] = [
+  // Active, mostly redeemed.
+  { code: "V005", templateSlug: "semana-fit", customerName: "Mariana Lopes", purchasedDaysAgo: 6, expiresInDays: 24, paid: true, payMethod: "pix", redeemed: [1, 0] },
+  // Expiring soon, partially redeemed.
+  { code: "V002", templateSlug: "cartela-coxinha", customerName: "Beatriz Almeida", purchasedDaysAgo: 12, expiresInDays: 5, paid: true, payMethod: "dinheiro", redeemed: [4] },
+  // Unpaid, no expiry, partially redeemed.
+  { code: "V003", templateSlug: "cartela-coxinha", customerName: "Carla Menezes", purchasedDaysAgo: 20, expiresInDays: null, paid: false, payMethod: null, redeemed: [3] },
+  // Expired, with leftover balance.
+  { code: "V001", templateSlug: "detox-10-dias", customerName: "Luiza Castro", purchasedDaysAgo: 70, expiresInDays: -10, paid: true, payMethod: "cartao", redeemed: [6] },
+];
+
+async function seedVouchers(
+  store: FirebaseFirestore.DocumentReference,
+  customers: DemoCustomer[],
+) {
+  const idByName = new Map(customers.map((c) => [c.name, slug(c.name)]));
+  const templateBySlug = new Map(VOUCHER_TEMPLATES.map((t) => [t.slug, t]));
+
+  for (const t of VOUCHER_TEMPLATES) {
+    const now = minutesAgo(0);
+    await store.collection("voucherTemplates").doc(t.slug).set({
+      name: t.name,
+      description: t.description,
+      items: t.items,
+      packagePrice: t.packagePrice,
+      validityDays: t.validityDays,
+      active: t.active,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  for (const v of VOUCHERS) {
+    const template = templateBySlug.get(v.templateSlug);
+    if (!template) continue;
+    const customerId = idByName.get(v.customerName) ?? null;
+    if (!customerId) continue;
+    const purchasedAt = daysAgo(v.purchasedDaysAgo);
+    const expiresAt =
+      v.expiresInDays === null
+        ? null
+        : v.expiresInDays >= 0
+          ? daysFromNow(v.expiresInDays)
+          : daysAgo(-v.expiresInDays);
+    const items = template.items.map((item, i) => ({
+      productId: item.productId,
+      name: item.name,
+      unitPrice: item.unitPrice,
+      qty: item.qty,
+      redeemedCount: v.redeemed[i] ?? 0,
+    }));
+    const hasBalance = items.some((i) => i.redeemedCount < i.qty);
+
+    await store.collection("vouchers").doc(v.code).set({
+      templateId: template.slug,
+      templateName: template.name,
+      customerId,
+      customerName: v.customerName,
+      items,
+      packagePrice: template.packagePrice,
+      purchasedAt,
+      expiresAt,
+      paid: v.paid,
+      payMethod: v.paid ? v.payMethod : null,
+      hasBalance,
+      createdAt: purchasedAt,
+      updatedAt: purchasedAt,
+    });
+    if (v.paid) {
+      await store.collection("finance").doc(`voucher-${v.code}`).set({
+        label: `Voucher #${v.code} · ${v.customerName}`,
+        category: "vendas",
+        amount: template.packagePrice,
+        direction: "in",
+        source: "voucher",
+        voucherId: v.code,
+        payMethod: v.payMethod,
+        date: purchasedAt,
+      });
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shakes (Mock Shakes.dc.html) — vila-velha only, matching the mock's numbers.
+// Reuses existing seeded HBL stockItems so insumo links resolve; "Copo"/
+// "Tampa" are new minimal untracked stockItems since the seeded catalog has
+// no packaging SKUs (café insumos only).
+// ---------------------------------------------------------------------------
+
+interface DemoInsumoRef {
+  stockItemId: string;
+  name: string;
+  qty: number;
+  unit: string;
+}
+
+const SHAKE_FLAVORS: {
+  slug: string;
+  name: string;
+  price: number;
+  recipe: DemoInsumoRef[];
+}[] = [
+  {
+    slug: "frutas-amarelas",
+    name: "Frutas Amarelas",
+    price: 3200,
+    recipe: [
+      { stockItemId: "shake-todos-os-sabores", name: "Shake Herbalife Baunilha", qty: 26, unit: "g" },
+      { stockItemId: "leite-em-po-ninho", name: "Leite em pó (Ninho)", qty: 15, unit: "g" },
+    ],
+  },
+  {
+    slug: "ovomaltine",
+    name: "Ovomaltine",
+    price: 3600,
+    recipe: [
+      { stockItemId: "shake-todos-os-sabores", name: "Shake Herbalife Baunilha", qty: 26, unit: "g" },
+      { stockItemId: "leite-em-po-ninho", name: "Leite em pó (Ninho)", qty: 15, unit: "g" },
+    ],
+  },
+  {
+    slug: "chocolate",
+    name: "Chocolate",
+    price: 3000,
+    recipe: [{ stockItemId: "shake-todos-os-sabores", name: "Shake Herbalife Baunilha", qty: 26, unit: "g" }],
+  },
+];
+
+const SHAKE_BASES: {
+  slug: string;
+  name: string;
+  insumo: DemoInsumoRef;
+  price: number;
+}[] = [
+  { slug: "leite", name: "Leite", insumo: { stockItemId: "leite-em-po-ninho", name: "Leite em pó (Ninho)", qty: 300, unit: "g" }, price: 0 },
+  { slug: "nutrev", name: "NutreV", insumo: { stockItemId: "nutrev-672g-21-porcoes", name: "NutreV 672g", qty: 2, unit: "un" }, price: 0 },
+  { slug: "leite-nutrev", name: "Leite + NutreV", insumo: { stockItemId: "leite-em-po-ninho", name: "Leite em pó (Ninho)", qty: 150, unit: "g" }, price: 200 },
+];
+
+const SHAKE_RIMS: {
+  slug: string;
+  name: string;
+  insumo: DemoInsumoRef;
+  tiers: { qty: number; price: number }[];
+}[] = [
+  { slug: "crunch", name: "Crunch", insumo: { stockItemId: "protein-crunch", name: "Protein Crunch", qty: 15, unit: "g" }, tiers: [{ qty: 1, price: 600 }, { qty: 2, price: 1000 }] },
+  { slug: "kit-kat", name: "Kit Kat", insumo: { stockItemId: "kit-kat-proteico", name: "Kit Kat Proteico", qty: 1, unit: "un" }, tiers: [{ qty: 1, price: 600 }, { qty: 2, price: 1000 }] },
+];
+
+const SHAKE_MIXINS: {
+  slug: string;
+  name: string;
+  insumo: DemoInsumoRef;
+  tiers: { qty: number; price: number }[];
+}[] = [
+  { slug: "fibra-ativa", name: "Fibra Ativa", insumo: { stockItemId: "fiber-concentrate-manga-uva-limao-30-cs", name: "Fiber Concentrate", qty: 5, unit: "g" }, tiers: [{ qty: 1, price: 500 }, { qty: 2, price: 800 }] },
+  { slug: "whey-extra", name: "Whey extra", insumo: { stockItemId: "whey-protein-3w", name: "Whey Protein 3W", qty: 1, unit: "un" }, tiers: [{ qty: 1, price: 700 }, { qty: 2, price: 1200 }] },
+  { slug: "colageno", name: "Colágeno", insumo: { stockItemId: "beauty-drink-colageno-frutas-vermelhas", name: "Beauty Drink Colágeno", qty: 1, unit: "sache" }, tiers: [{ qty: 1, price: 800 }, { qty: 2, price: 1400 }] },
+];
+
+const SHAKE_UTENSILS: { slug: string; name: string; insumo: DemoInsumoRef; defaultIncluded: boolean }[] = [
+  { slug: "copo", name: "Copo 500 ml", insumo: { stockItemId: "demo-copo-500ml", name: "Copo 500 ml", qty: 1, unit: "un" }, defaultIncluded: true },
+  { slug: "tampa", name: "Tampa", insumo: { stockItemId: "demo-tampa-copo", name: "Tampa", qty: 1, unit: "un" }, defaultIncluded: true },
+];
+
+async function seedShakeCatalog(store: FirebaseFirestore.DocumentReference) {
+  const now = Timestamp.now();
+
+  // New minimal untracked stockItems for the utensílios (no packaging SKUs
+  // exist in the seeded HBL catalog — these are demo-only, "un" → medido).
+  for (const [id, name] of [
+    ["demo-copo-500ml", "Copo 500 ml"],
+    ["demo-tampa-copo", "Tampa"],
+  ]) {
+    await store.collection("stockItems").doc(id).set({
+      name,
+      category: "secos",
+      unit: "un",
+      tracked: false,
+      sealed: 0,
+      open: 200,
+      qty: 200,
+      continuousUse: false,
+      consumptionMode: "medido",
+      openPkg: false,
+      usos: 0,
+      resellable: false,
+      reorderAt: 20,
+      lowStock: false,
+      archived: false,
+      updatedAt: now,
+    });
+  }
+
+  for (const f of SHAKE_FLAVORS) {
+    await store.collection("shakeFlavors").doc(f.slug).set({
+      name: f.name,
+      price: f.price,
+      recipe: f.recipe,
+      archived: false,
+      createdAt: now,
+    });
+  }
+  for (const b of SHAKE_BASES) {
+    await store.collection("shakeBases").doc(b.slug).set({
+      name: b.name,
+      insumo: b.insumo,
+      price: b.price,
+      archived: false,
+      createdAt: now,
+    });
+  }
+  for (const r of SHAKE_RIMS) {
+    await store.collection("shakeRims").doc(r.slug).set({
+      name: r.name,
+      insumo: r.insumo,
+      tiers: r.tiers,
+      archived: false,
+      createdAt: now,
+    });
+  }
+  for (const m of SHAKE_MIXINS) {
+    await store.collection("shakeMixins").doc(m.slug).set({
+      name: m.name,
+      insumo: m.insumo,
+      tiers: m.tiers,
+      archived: false,
+      createdAt: now,
+    });
+  }
+  for (const u of SHAKE_UTENSILS) {
+    await store.collection("shakeUtensils").doc(u.slug).set({
+      name: u.name,
+      insumo: u.insumo,
+      defaultIncluded: u.defaultIncluded,
+      archived: false,
+      createdAt: now,
+    });
+  }
+
+  console.log(
+    `  shakes: ${SHAKE_FLAVORS.length} sabores, ${SHAKE_BASES.length} bases, ${SHAKE_RIMS.length} bordas, ${SHAKE_MIXINS.length} adicionais, ${SHAKE_UTENSILS.length} utensílios`,
+  );
+}
 
 // Which menu item each insumo is typically consumed for (design seedHist ref map).
 const CONSUMO_REF: Record<string, string> = {
@@ -336,13 +670,21 @@ async function seedStore(db: Firestore, storeId: StoreId) {
 
   await seedStockHistory(store, orders);
 
+  // Voucher/Shakes demo data lives only in vila-velha (matches the mock's
+  // example roster — no need to duplicate templates/catalogs across stores).
+  if (storeId === "vila-velha") {
+    await seedVouchers(store, customers);
+    await seedShakeCatalog(store);
+  }
+
   // Backfill the pre-computed summary now that all orders/finance/stock docs for
   // this store exist (matches what the app maintains incrementally on writes).
   await refreshStoreSummary(db, storeId);
 
   const paid = orders.filter((o) => o.paid).length;
+  const voucherNote = storeId === "vila-velha" ? `, ${VOUCHERS.length} vouchers` : "";
   console.log(
-    `Demo seed ok em ${storeId}: ${customers.length} clientes, ${orders.length} pedidos (${paid} pagos), ${MANUAL_FINANCE.length} lançamentos manuais`,
+    `Demo seed ok em ${storeId}: ${customers.length} clientes, ${orders.length} pedidos (${paid} pagos), ${MANUAL_FINANCE.length} lançamentos manuais${voucherNote}`,
   );
 }
 

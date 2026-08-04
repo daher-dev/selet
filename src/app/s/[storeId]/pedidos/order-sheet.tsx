@@ -3,18 +3,13 @@
 import { useMemo, useState, useTransition } from "react";
 import {
   Check,
-  ChevronDown,
   ChevronLeft,
-  Crown,
   Loader2,
   Minus,
   Plus,
   Search,
   ShoppingBag,
-  User,
-  UserPlus,
 } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 import type {
   Customer,
@@ -23,16 +18,24 @@ import type {
   OrderItem,
   PayMethod,
   Product,
+  ShakeBase,
+  ShakeFlavor,
+  ShakeMixin,
+  ShakeRim,
+  ShakeUtensil,
 } from "@/lib/types";
 import { ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
-import { formatBRL, formatRelative, initials } from "@/lib/format";
+import { formatBRL, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { CustomerPicker } from "@/components/customer-picker";
 import {
   createOrderAction,
   setOrderPaymentAction,
   setOrderStatusAction,
   updateOrderAction,
 } from "@/actions/orders";
+import { VoucherBalanceBanner } from "./voucher-balance-banner";
+import { ShakeBuilder } from "./shake-builder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +45,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -70,11 +72,27 @@ function addonSignature(addons?: string[]): string {
   return [...(addons ?? [])].sort().join("|");
 }
 
+/** Order-independent signature of a "Montar shake" line's picks, for merging lines. */
+function shakeSignature(shake?: OrderItem["shake"]): string {
+  if (!shake) return "";
+  const rims = [...shake.rims].sort((a, b) => a.modifierId.localeCompare(b.modifierId));
+  const mixins = [...shake.mixins].sort((a, b) => a.modifierId.localeCompare(b.modifierId));
+  const overrides = [...(shake.utensilOverrides ?? [])].sort((a, b) =>
+    a.utensilId.localeCompare(b.utensilId),
+  );
+  return JSON.stringify({ f: shake.flavorId, b: shake.baseId, rims, mixins, overrides });
+}
+
 interface OrderSheetProps {
   storeId: string;
   order: Order | null;
   customers: Customer[];
   products: Product[];
+  shakeFlavors: ShakeFlavor[];
+  shakeBases: ShakeBase[];
+  shakeRims: ShakeRim[];
+  shakeMixins: ShakeMixin[];
+  shakeUtensils: ShakeUtensil[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -84,6 +102,11 @@ export function OrderSheet({
   order,
   customers,
   products,
+  shakeFlavors,
+  shakeBases,
+  shakeRims,
+  shakeMixins,
+  shakeUtensils,
   open,
   onOpenChange,
 }: OrderSheetProps) {
@@ -115,6 +138,11 @@ export function OrderSheet({
           order={order}
           customers={customers}
           products={products}
+          shakeFlavors={shakeFlavors}
+          shakeBases={shakeBases}
+          shakeRims={shakeRims}
+          shakeMixins={shakeMixins}
+          shakeUtensils={shakeUtensils}
           onClose={() => onOpenChange(false)}
         />
       </SheetContent>
@@ -127,12 +155,22 @@ function OrderForm({
   order,
   customers,
   products,
+  shakeFlavors,
+  shakeBases,
+  shakeRims,
+  shakeMixins,
+  shakeUtensils,
   onClose,
 }: {
   storeId: string;
   order: Order | null;
   customers: Customer[];
   products: Product[];
+  shakeFlavors: ShakeFlavor[];
+  shakeBases: ShakeBase[];
+  shakeRims: ShakeRim[];
+  shakeMixins: ShakeMixin[];
+  shakeUtensils: ShakeUtensil[];
   onClose: () => void;
 }) {
   const [customerId, setCustomerId] = useState<string>(
@@ -161,8 +199,9 @@ function OrderForm({
     return map;
   }, [products]);
 
-  function lineMeta(productId: string): CategoryMeta {
-    const cat = productById.get(productId)?.category ?? "";
+  function lineMeta(item: OrderItem): CategoryMeta {
+    if (item.shake) return PRODUCT_CATEGORY_META.shakes ?? NEUTRAL_TILE;
+    const cat = productById.get(item.productId)?.category ?? "";
     return PRODUCT_CATEGORY_META[cat] ?? NEUTRAL_TILE;
   }
 
@@ -170,15 +209,19 @@ function OrderForm({
     return customers.find((c) => c.id === customerId)?.name ?? "";
   }
 
-  // A configured line (product + qty + chosen adicionais, price already folded
-  // into unitPrice). Merges into an identical existing line — same product AND
-  // same set of adicionais — otherwise becomes its own line.
+  // A configured line (product + qty + chosen adicionais/shake picks, price
+  // already folded into unitPrice). Merges into an identical existing line —
+  // same product AND same adicionais (or same shake picks) — otherwise
+  // becomes its own line.
   function addConfiguredItem(item: OrderItem) {
     setItems((prev) => {
-      const sig = addonSignature(item.addons);
-      const idx = prev.findIndex(
-        (i) => i.productId === item.productId && addonSignature(i.addons) === sig,
-      );
+      const sig = item.shake ? shakeSignature(item.shake) : addonSignature(item.addons);
+      const idx = prev.findIndex((i) => {
+        if (i.productId !== item.productId) return false;
+        return item.shake
+          ? shakeSignature(i.shake) === sig
+          : addonSignature(i.addons) === sig;
+      });
       if (idx >= 0) {
         return prev.map((i, j) =>
           j === idx ? { ...i, qty: i.qty + item.qty } : i,
@@ -271,6 +314,16 @@ function OrderForm({
           )}
         </div>
 
+        {customerId && (
+          <VoucherBalanceBanner
+            key={customerId}
+            storeId={storeId}
+            customerId={customerId}
+            customerName={customerName()}
+            onRedeemed={addConfiguredItem}
+          />
+        )}
+
         <div className="space-y-1.5">
           <Label>Canal de venda</Label>
           <div className="grid grid-cols-3 gap-2">
@@ -342,7 +395,7 @@ function OrderForm({
           ) : (
             <ul className="space-y-2.5">
               {items.map((item, index) => {
-                const meta = lineMeta(item.productId);
+                const meta = lineMeta(item);
                 return (
                   <li
                     key={`${item.productId}-${index}`}
@@ -504,161 +557,16 @@ function OrderForm({
 
       <ProductPickerDialog
         products={products}
+        shakeFlavors={shakeFlavors}
+        shakeBases={shakeBases}
+        shakeRims={shakeRims}
+        shakeMixins={shakeMixins}
+        shakeUtensils={shakeUtensils}
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         onAdd={addConfiguredItem}
       />
     </>
-  );
-}
-
-/**
- * Searchable customer picker (design 383-411): a Popover listing each
- * registered customer as avatar + name + phone with a VIP crown, plus a
- * "Nenhum cliente encontrado" empty state. Customer selection is mandatory —
- * there is no walk-in option; the empty/no-results state links to Clientes so
- * staff can register a customer without leaving the flow stuck.
- */
-function CustomerPicker({
-  storeId,
-  customers,
-  value,
-  onChange,
-}: {
-  storeId: string;
-  customers: Customer[];
-  value: string;
-  onChange: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-
-  const selected = customers.find((c) => c.id === value) ?? null;
-
-  const q = query.trim().toLowerCase();
-  const filtered = q
-    ? customers.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          c.phone?.toLowerCase().includes(q) ||
-          c.instagram?.toLowerCase().includes(q),
-      )
-    : customers;
-
-  function pick(id: string) {
-    onChange(id);
-    setOpen(false);
-    setQuery("");
-  }
-
-  return (
-    <Popover
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) setQuery("");
-      }}
-    >
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="flex h-12 w-full items-center gap-3 rounded-xl border border-border bg-paper px-3 text-left transition-colors hover:border-primary/40"
-        >
-          {selected ? (
-            <Avatar name={selected.name} vip={selected.tags.includes("vip")} />
-          ) : (
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-mist text-ink-faint">
-              <User className="size-4" />
-            </span>
-          )}
-          <span
-            className={cn(
-              "min-w-0 flex-1 truncate text-[14px] font-semibold",
-              selected ? "text-ink" : "text-ink-faint",
-            )}
-          >
-            {selected ? selected.name : "Selecione um cliente"}
-          </span>
-          <ChevronDown className="size-4 shrink-0 text-ink-faint" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-(--radix-popover-trigger-width) p-0"
-      >
-        <div className="flex items-center gap-2 border-b border-border bg-paper px-3 py-2.5">
-          <Search className="size-4 shrink-0 text-ink-faint" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar cliente…"
-            autoFocus
-            className="min-w-0 flex-1 bg-transparent text-[13.5px] text-ink outline-none placeholder:text-ink-faint"
-          />
-        </div>
-        <div className="max-h-60 overflow-y-auto p-1.5">
-          {filtered.map((c) => {
-            const vip = c.tags.includes("vip");
-            return (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => pick(c.id)}
-                className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-wash"
-              >
-                <Avatar name={c.name} vip={vip} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13.5px] font-semibold text-ink">
-                    {c.name}
-                  </span>
-                  {(c.phone || c.instagram) && (
-                    <span className="block truncate text-[11px] text-ink-faint">
-                      {c.phone ?? c.instagram}
-                    </span>
-                  )}
-                </span>
-                {vip && (
-                  <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-wash px-2 py-0.5 text-[10px] font-bold text-amber">
-                    <Crown className="size-3" />
-                    VIP
-                  </span>
-                )}
-                {value === c.id && (
-                  <Check className="size-4 shrink-0 text-primary" />
-                )}
-              </button>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div className="px-3 py-4 text-center text-[12.5px] text-ink-faint">
-              {q ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
-            </div>
-          )}
-        </div>
-        <div className="border-t border-border p-1.5">
-          <Link
-            href={`/s/${storeId}/clientes`}
-            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-primary transition-colors hover:bg-mist"
-          >
-            <UserPlus className="size-4 shrink-0" />
-            Cadastrar cliente
-          </Link>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function Avatar({ name, vip }: { name: string; vip: boolean }) {
-  return (
-    <span
-      className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-        vip ? "bg-amber-wash text-amber" : "bg-mist text-primary",
-      )}
-    >
-      {initials(name)}
-    </span>
   );
 }
 
@@ -682,11 +590,21 @@ function QtyButton({
 
 function ProductPickerDialog({
   products,
+  shakeFlavors,
+  shakeBases,
+  shakeRims,
+  shakeMixins,
+  shakeUtensils,
   open,
   onOpenChange,
   onAdd,
 }: {
   products: Product[];
+  shakeFlavors: ShakeFlavor[];
+  shakeBases: ShakeBase[];
+  shakeRims: ShakeRim[];
+  shakeMixins: ShakeMixin[];
+  shakeUtensils: ShakeUtensil[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (item: OrderItem) => void;
@@ -694,10 +612,12 @@ function ProductPickerDialog({
   const [query, setQuery] = useState("");
   // A picked product moves us from the catalog list to the config step.
   const [config, setConfig] = useState<Product | null>(null);
+  const [mode, setMode] = useState<"catalogo" | "shake">("catalogo");
 
   function reset() {
     setQuery("");
     setConfig(null);
+    setMode("catalogo");
   }
 
   function close() {
@@ -732,12 +652,45 @@ function ProductPickerDialog({
               reset();
             }}
           />
+        ) : mode === "shake" ? (
+          <ShakeBuilder
+            flavors={shakeFlavors}
+            bases={shakeBases}
+            rims={shakeRims}
+            mixins={shakeMixins}
+            utensils={shakeUtensils}
+            onBack={() => setMode("catalogo")}
+            onConfirm={(item) => {
+              onAdd(item);
+              toast.success(`${item.name} adicionado.`);
+              close();
+              reset();
+            }}
+          />
         ) : (
           <>
             <DialogHeader className="shrink-0 border-b border-border p-4 pb-3">
               <DialogTitle className="text-[15px] font-bold">
                 Adicionar ao pedido
               </DialogTitle>
+              {shakeFlavors.length > 0 && (
+                <div className="mt-1 inline-flex w-fit items-center gap-0.5 rounded-lg bg-wash p-1">
+                  <button
+                    type="button"
+                    onClick={() => setMode("catalogo")}
+                    className="rounded-md bg-white px-3 py-1 text-[12px] font-semibold text-ink shadow-sm"
+                  >
+                    Catálogo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("shake")}
+                    className="rounded-md px-3 py-1 text-[12px] font-semibold text-ink-faint hover:text-ink-soft"
+                  >
+                    Montar shake
+                  </button>
+                </div>
+              )}
               <div className="relative mt-2">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
                 <Input

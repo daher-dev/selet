@@ -32,12 +32,27 @@ const PAY_METHOD_LABEL: Record<PayMethod, string> = {
   dinheiro: "Dinheiro",
 };
 
+const shakeSelectionSchema = z.object({
+  flavorId: z.string().min(1),
+  baseId: z.string().nullable(),
+  rims: z.array(z.object({ modifierId: z.string().min(1), qty: z.number().int().positive() })),
+  mixins: z.array(z.object({ modifierId: z.string().min(1), qty: z.number().int().positive() })),
+  utensilOverrides: z
+    .array(z.object({ utensilId: z.string().min(1), included: z.boolean() }))
+    .optional(),
+});
+
 const orderItemSchema = z.object({
   productId: z.string().min(1),
   name: z.string().min(1),
   qty: z.number().int().min(1),
   unitPrice: z.number().int().min(0),
   addons: z.array(z.string()).optional(),
+  // "Montar shake" lines carry their picks here instead of addons — without
+  // this, z.object() silently strips the field (unrecognized keys are
+  // dropped, not rejected), so the order would save with no shake data and
+  // the consumption engine would never draw the flavor/modifier stock.
+  shake: shakeSelectionSchema.optional(),
 });
 
 const orderSchema = z.object({
