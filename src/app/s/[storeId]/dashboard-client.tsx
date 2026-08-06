@@ -26,7 +26,7 @@ interface LowStockChip {
 interface DashboardClientProps {
   storeId: string;
   kpis: KpiCard[];
-  byChannel: { instagram: number; whatsapp: number; loja: number };
+  byChannel: { instagram: number; whatsapp: number; loja: number; interno: number };
   topSellers: { name: string; qty: number }[];
   lowStock: LowStockChip[];
   canEstoque: boolean;

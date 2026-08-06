@@ -2,6 +2,7 @@ const CHANNELS = [
   { key: "instagram", label: "Instagram", color: "#C2407E" },
   { key: "whatsapp", label: "WhatsApp", color: "#1E9E54" },
   { key: "loja", label: "Loja física", color: "#9DB394" },
+  { key: "interno", label: "Interno", color: "#3D4A42" },
 ] as const;
 
 const R = 48;
@@ -10,9 +11,10 @@ const C = 2 * Math.PI * R; // circumference ≈ 301.6
 export function ChannelDonut({
   byChannel,
 }: {
-  byChannel: { instagram: number; whatsapp: number; loja: number };
+  byChannel: { instagram: number; whatsapp: number; loja: number; interno: number };
 }) {
-  const total = byChannel.instagram + byChannel.whatsapp + byChannel.loja;
+  const total =
+    byChannel.instagram + byChannel.whatsapp + byChannel.loja + byChannel.interno;
 
   if (total === 0) {
     return (

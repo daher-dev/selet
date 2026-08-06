@@ -55,7 +55,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(s.months[mk].unpaidTotal).toBe(4000);
     expect(s.months[mk].in).toBe(0);
     expect(s.months[mk].newCustomers).toBe(2);
-    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1, interno: 0 });
     expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 2 } });
 
     // advance status among open states → still open
@@ -89,7 +89,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(Object.keys(s.months[mk].customers)).toEqual([`id_${custB}`]);
     // sellers/channels re-stated by the edit (qty 2 → 3, still loja).
     expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 3 } });
-    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1, interno: 0 });
 
     // cancel → removed from month aggregates (paid mirror stays as income)
     await setOrderStatus(storeId, orderId, "cancelado");
@@ -97,7 +97,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(s.months[mk].orderCount).toBe(0);
     expect(s.months[mk].in).toBe(6000);
     // channels/sellers drop to nothing while cancelled.
-    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 0 });
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 0, interno: 0 });
     expect(s.months[mk].sellers).toEqual({});
 
     // uncancel → back in
@@ -105,7 +105,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     s = await expectConsistent(storeId);
     expect(s.months[mk].orderCount).toBe(1);
     expect(s.openOrders).toBe(1);
-    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1, interno: 0 });
     expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 3 } });
   });
 
@@ -270,7 +270,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     // The whole promise of the pre-computation: identical dashboard either way.
     expect(fast).toEqual(slow);
     // Spot-check the summary-derived widgets carry the seeded signal.
-    expect(fast.byChannel).toEqual({ instagram: 1, whatsapp: 1, loja: 0 });
+    expect(fast.byChannel).toEqual({ instagram: 1, whatsapp: 1, loja: 0, interno: 0 });
     expect(fast.topSellers).toEqual([
       { name: "Shake", qty: 5 },
       { name: "Barra", qty: 1 },
@@ -315,5 +315,97 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     });
     s = await expectConsistent(storeId);
     expect(s.lowStock).toBe(0);
+  });
+
+  it("a free-discounted (R$0) order never counts as an outstanding receivable", async () => {
+    const storeId = `test-summary-free-discount-${Date.now()}`;
+    const cust = await createCustomer(storeId, { name: "Cortesia", tags: [] });
+    const items = [{ productId: "p1", name: "Shake", qty: 1, unitPrice: 3000 }];
+
+    await createOrder(storeId, {
+      customerId: cust,
+      customerName: "Cortesia",
+      channel: "interno", // exercises the new 4th channel too
+      items,
+      discount: { kind: "free", value: 0, reason: "cortesia" },
+    });
+
+    const s = await expectConsistent(storeId);
+    const mk = Object.keys(s.months)[0];
+    expect(s.months[mk].unpaidCount).toBe(0);
+    expect(s.months[mk].unpaidTotal).toBe(0);
+    expect(s.months[mk].ticketSum).toBe(0);
+    expect(s.months[mk].channels.interno).toBe(1);
+  });
+
+  it("a discount that demotes a paid order to nothing-to-charge clears the finance mirror (stored == recomputed)", async () => {
+    const storeId = `test-summary-demote-${Date.now()}`;
+    const cust = await createCustomer(storeId, { name: "Demote", tags: [] });
+    const items = [{ productId: "p1", name: "Shake", qty: 1, unitPrice: 3000 }];
+
+    const orderId = await createOrder(
+      storeId,
+      { customerId: cust, customerName: "Demote", channel: "loja", items },
+      { paid: true, payMethod: "pix" },
+    );
+    let s = await expectConsistent(storeId);
+    const mk = Object.keys(s.months)[0];
+    expect(s.months[mk].in).toBe(3000);
+    expect(s.months[mk].unpaidCount).toBe(0);
+
+    // A full ("Grátis") discount zeroes the total → the order flips back to
+    // unpaid/nothing-to-charge, and the finance mirror is deleted, not left
+    // stale. It still must NOT become a receivable (total is 0).
+    await updateOrder(storeId, orderId, {
+      customerId: cust,
+      customerName: "Demote",
+      channel: "loja",
+      items,
+      discount: { kind: "free", value: 0 },
+    });
+    s = await expectConsistent(storeId);
+    expect(s.months[mk].in).toBe(0);
+    expect(s.months[mk].ticketSum).toBe(0);
+    expect(s.months[mk].unpaidCount).toBe(0);
+    expect(s.months[mk].unpaidTotal).toBe(0);
+  });
+
+  it("a cross-month updateOrder edit correctly MOVES the aggregates (old month decrements, new month increments)", async () => {
+    const storeId = `test-summary-crossmonth-${Date.now()}`;
+    const cust = await createCustomer(storeId, { name: "Cross", tags: [] });
+    const items = [{ productId: "p1", name: "Shake", qty: 2, unitPrice: 2000 }];
+
+    const orderId = await createOrder(storeId, {
+      customerId: cust,
+      customerName: "Cross",
+      channel: "whatsapp",
+      items,
+    });
+    let s = await expectConsistent(storeId);
+    const oldMk = Object.keys(s.months)[0];
+    expect(s.months[oldMk].orderCount).toBe(1);
+    expect(s.months[oldMk].ticketSum).toBe(4000);
+
+    const moved = new Date();
+    moved.setMonth(moved.getMonth() - 4);
+    const newMk = monthKey(moved);
+    await updateOrder(storeId, orderId, {
+      customerId: cust,
+      customerName: "Cross",
+      channel: "whatsapp",
+      items,
+      createdAt: moved.toISOString(),
+    });
+
+    // expectConsistent is the whole point: a stored-vs-recomputed mismatch
+    // means some write path forgot to move BOTH sides of the bucket.
+    s = await expectConsistent(storeId);
+    expect(newMk).not.toBe(oldMk);
+    expect(s.months[oldMk]?.orderCount ?? 0).toBe(0);
+    expect(s.months[oldMk]?.ticketSum ?? 0).toBe(0);
+    expect(s.months[oldMk]?.channels.whatsapp ?? 0).toBe(0);
+    expect(s.months[newMk].orderCount).toBe(1);
+    expect(s.months[newMk].ticketSum).toBe(4000);
+    expect(s.months[newMk].channels.whatsapp).toBe(1);
   });
 });

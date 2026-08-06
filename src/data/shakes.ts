@@ -462,7 +462,10 @@ export async function loadShakeCatalogsForItems(
   for (const line of items) {
     const shake = line.shake;
     if (!shake) continue;
-    flavorIds.add(shake.flavorId);
+    // Multi-flavor: iterate the whole array, not a singular `flavorId` — every
+    // shake line after the first selected flavor would otherwise silently lose
+    // its recipe (no error, just a wrong stock draw).
+    shake.flavorIds.forEach((id) => flavorIds.add(id));
     if (shake.baseId) baseIds.add(shake.baseId);
     for (const r of shake.rims) rimIds.add(r.modifierId);
     for (const m of shake.mixins) mixinIds.add(m.modifierId);

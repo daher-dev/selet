@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderItemSchema } from "./order-schema";
+import { discountSchema, orderItemSchema } from "./order-schema";
 
 /**
  * Regression guard for Zod's silent-unknown-key-strip: this schema has
@@ -26,7 +26,7 @@ describe("orderItemSchema", () => {
       productId: "sabor-1",
       unitPrice: 500,
       shake: {
-        flavorId: "sabor-1",
+        flavorIds: ["sabor-1"],
         baseId: null,
         rims: [],
         mixins: [],
@@ -46,9 +46,65 @@ describe("orderItemSchema", () => {
     const parsed = orderItemSchema.parse({
       ...base,
       productId: "sabor-1",
-      shake: { flavorId: "sabor-1", baseId: null, rims: [], mixins: [] },
+      shake: { flavorIds: ["sabor-1"], baseId: null, rims: [], mixins: [] },
     });
     expect(parsed.shake?.brinde).toBeUndefined();
+  });
+
+  it("round-trips a shake line with 2-3 flavorIds", () => {
+    const two = orderItemSchema.parse({
+      ...base,
+      productId: "sabor-1",
+      shake: { flavorIds: ["sabor-1", "sabor-2"], baseId: null, rims: [], mixins: [] },
+    });
+    expect(two.shake?.flavorIds).toEqual(["sabor-1", "sabor-2"]);
+
+    const three = orderItemSchema.parse({
+      ...base,
+      productId: "sabor-1",
+      shake: {
+        flavorIds: ["sabor-1", "sabor-2", "sabor-3"],
+        baseId: null,
+        rims: [],
+        mixins: [],
+      },
+    });
+    expect(three.shake?.flavorIds).toEqual(["sabor-1", "sabor-2", "sabor-3"]);
+  });
+
+  it("rejects a shake line with duplicate flavorIds", () => {
+    expect(() =>
+      orderItemSchema.parse({
+        ...base,
+        productId: "sabor-1",
+        shake: { flavorIds: ["sabor-1", "sabor-1"], baseId: null, rims: [], mixins: [] },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a shake line with more than MAX_SHAKE_FLAVORS", () => {
+    expect(() =>
+      orderItemSchema.parse({
+        ...base,
+        productId: "sabor-1",
+        shake: {
+          flavorIds: ["sabor-1", "sabor-2", "sabor-3", "sabor-4"],
+          baseId: null,
+          rims: [],
+          mixins: [],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a shake line with zero flavorIds", () => {
+    expect(() =>
+      orderItemSchema.parse({
+        ...base,
+        productId: "sabor-1",
+        shake: { flavorIds: [], baseId: null, rims: [], mixins: [] },
+      }),
+    ).toThrow();
   });
 
   it("round-trips a cartela-sale line", () => {
@@ -94,9 +150,44 @@ describe("orderItemSchema", () => {
     expect(() =>
       orderItemSchema.parse({
         ...base,
-        shake: { flavorId: "sabor-1", baseId: null, rims: [], mixins: [] },
+        shake: { flavorIds: ["sabor-1"], baseId: null, rims: [], mixins: [] },
         cartelaSale: { paidUses: 10, totalUses: 11, unitValue: 3000 },
       }),
     ).toThrow();
+  });
+});
+
+/**
+ * discountSchema round-trips, one per kind — `value`'s valid range depends on
+ * `kind` (centavos for flat, 1-100 for percent, always 0 for free), so each
+ * kind gets its own accept + reject pair.
+ */
+describe("discountSchema", () => {
+  it("round-trips a flat discount (centavos)", () => {
+    const input = { kind: "flat" as const, value: 500, reason: "combinado" as const };
+    expect(discountSchema.parse(input)).toEqual(input);
+  });
+
+  it("rejects a flat discount with value <= 0", () => {
+    expect(() => discountSchema.parse({ kind: "flat", value: 0 })).toThrow();
+  });
+
+  it("round-trips a percent discount (1-100, reason optional)", () => {
+    const input = { kind: "percent" as const, value: 50 };
+    expect(discountSchema.parse(input)).toEqual(input);
+  });
+
+  it("rejects a percent discount outside 1-100", () => {
+    expect(() => discountSchema.parse({ kind: "percent", value: 0 })).toThrow();
+    expect(() => discountSchema.parse({ kind: "percent", value: 101 })).toThrow();
+  });
+
+  it("round-trips a free discount (value always 0)", () => {
+    const input = { kind: "free" as const, value: 0, reason: "cortesia" as const };
+    expect(discountSchema.parse(input)).toEqual(input);
+  });
+
+  it("rejects a free discount with a non-zero value", () => {
+    expect(() => discountSchema.parse({ kind: "free", value: 100 })).toThrow();
   });
 });

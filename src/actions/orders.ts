@@ -11,7 +11,8 @@ import {
 } from "@/data/orders";
 import { logActivity } from "@/data/activity";
 import { orderCode } from "@/lib/format";
-import { orderItemSchema } from "@/lib/order-schema";
+import { orderMoney } from "@/lib/order-money";
+import { discountSchema, orderItemSchema } from "@/lib/order-schema";
 import {
   ORDER_CHANNELS,
   ORDER_STATUSES,
@@ -25,7 +26,60 @@ const CHANNEL_LABEL: Record<OrderChannel, string> = {
   instagram: "Instagram",
   whatsapp: "WhatsApp",
   loja: "Loja",
+  interno: "Interno",
 };
+
+// "Data da venda" backdating window (Part A point 2). Past bound is a real
+// correctness constraint, not an arbitrary UX limit: src/data/orders.ts's
+// summary system prunes to the 18 most recent non-empty months on write but
+// NOT on a fresh recompute (see summary.emulator.test.ts's expectConsistent),
+// so a single order can touch at most `current month + 12 back` = 13 monthly
+// buckets and stay inside that window on both sides. The future bound only
+// needs to absorb clock skew — nobody is legitimately backdating INTO the
+// future.
+const MAX_BACKDATE_MONTHS = 12;
+const CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+function subtractMonths(date: Date, months: number): Date {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() - months);
+  return d;
+}
+
+/** Shared by orderSchema and createOrderSchema (see the ZodObject/ZodEffects
+ *  split below — a superRefine'd schema loses `.extend()`, so this refine is
+ *  applied separately to each, after createOrderSchema's own `.extend()`). */
+function refineCreatedAtWindow(
+  data: { createdAt?: string },
+  ctx: z.RefinementCtx,
+): void {
+  if (!data.createdAt) return;
+  const dt = new Date(data.createdAt);
+  if (Number.isNaN(dt.getTime())) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Data da venda inválida.",
+      path: ["createdAt"],
+    });
+    return;
+  }
+  const now = new Date();
+  const minDate = subtractMonths(now, MAX_BACKDATE_MONTHS);
+  const maxDate = new Date(now.getTime() + CLOCK_SKEW_MS);
+  if (dt.getTime() < minDate.getTime()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "A data da venda não pode ser mais de 12 meses no passado.",
+      path: ["createdAt"],
+    });
+  } else if (dt.getTime() > maxDate.getTime()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "A data da venda não pode estar no futuro.",
+      path: ["createdAt"],
+    });
+  }
+}
 
 const PAY_METHOD_LABEL: Record<PayMethod, string> = {
   pix: "Pix",
@@ -33,18 +87,38 @@ const PAY_METHOD_LABEL: Record<PayMethod, string> = {
   dinheiro: "Dinheiro",
 };
 
-const orderSchema = z.object({
+// Plain ZodObject (no superRefine yet) so createOrderSchema below can still
+// `.extend()` it with paid/payMethod — z.object(...).superRefine(...) returns
+// a ZodEffects, which has no `.extend()`. Both orderSchema and
+// createOrderSchema apply refineCreatedAtWindow themselves, after their own
+// shape is final.
+const orderShape = z.object({
   storeId: z.string().min(1),
   customerId: z.string().trim().min(1, "Selecione um cliente."),
   customerName: z.string().trim().min(1, "Selecione um cliente."),
   channel: z.enum(ORDER_CHANNELS),
   items: z.array(orderItemSchema).min(1, "Adicione ao menos um item."),
+  // Manual order-level discount (Part A) — spelled out via discountSchema
+  // (never z.record/passthrough), null clears an existing discount on edit,
+  // undefined leaves it as "no discount". `amount` is never a client input
+  // key here: it's always server-computed by orderMoney().
+  discount: discountSchema.nullable().optional(),
+  // Free-text order note — team-only, never shown in the Pedidos list rows.
+  notes: z.string().trim().max(500, "A nota pode ter no máximo 500 caracteres.").optional(),
+  // ISO datetime "Data da venda". Create mode's "Agora" toggle omits this
+  // entirely (server defaults to now()); edit mode always sends the current
+  // (possibly moved) value. Window-checked by refineCreatedAtWindow below.
+  createdAt: z.string().trim().min(1).optional(),
 });
 
-const createOrderSchema = orderSchema.extend({
-  paid: z.boolean().default(false),
-  payMethod: z.enum(PAY_METHODS).nullable().default(null),
-});
+const orderSchema = orderShape.superRefine(refineCreatedAtWindow);
+
+const createOrderSchema = orderShape
+  .extend({
+    paid: z.boolean().default(false),
+    payMethod: z.enum(PAY_METHODS).nullable().default(null),
+  })
+  .superRefine(refineCreatedAtWindow);
 
 export type OrderFormInput = z.input<typeof orderSchema>;
 export type CreateOrderInput = z.input<typeof createOrderSchema>;
@@ -77,6 +151,16 @@ export async function createOrderAction(
   return run(async () => {
     const { storeId, paid, payMethod, ...data } = createOrderSchema.parse(input);
     if (paid && !payMethod) throw new Error("Selecione a forma de pagamento.");
+    // Same zero-total guard src/data/orders.ts's createOrder enforces inside
+    // its transaction — checked here too so it surfaces as a clean
+    // ActionResult (via `run`'s catch) before any Firestore work starts,
+    // rather than only failing deep inside the transaction.
+    const { total } = orderMoney(data.items, data.discount);
+    if (paid && total === 0) {
+      throw new Error(
+        'Pedido sem valor não pode ser marcado como pago — use "Nada a cobrar".',
+      );
+    }
     const user = await requireAccess(storeId, "pedidos");
     const orderId = await createOrder(storeId, data, { paid, payMethod }, user.email);
     const code = orderCode(orderId);

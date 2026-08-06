@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatBRL,
   formatQty,
+  formatShakeLineName,
   initials,
   orderCode,
   parseBRL,
@@ -51,5 +52,45 @@ describe("formatQty", () => {
   it("formats with pt-BR decimals", () => {
     expect(formatQty(1500, "g")).toBe("1.500 g");
     expect(formatQty(1.5, "kg")).toBe("1,5 kg");
+  });
+});
+
+describe("formatShakeLineName", () => {
+  it("formats a single-flavor line", () => {
+    expect(
+      formatShakeLineName({
+        flavors: ["Frutas Amarelas"],
+        base: "NutreV",
+        rims: [{ name: "Nutella", qty: 1 }],
+        mixins: [],
+      }),
+    ).toBe("Shake · Frutas Amarelas / NutreV / Borda Nutella");
+  });
+
+  it("joins multiple flavors with ' + '", () => {
+    expect(
+      formatShakeLineName({
+        flavors: ["Frutas Amarelas", "Frutas Vermelhas"],
+        base: "NutreV",
+        rims: [{ name: "Nutella", qty: 1 }],
+        mixins: [],
+      }),
+    ).toBe("Shake · Frutas Amarelas + Frutas Vermelhas / NutreV / Borda Nutella");
+  });
+
+  it("handles no base/rims/mixins", () => {
+    expect(
+      formatShakeLineName({ flavors: ["Morango"], rims: [], mixins: [] }),
+    ).toBe("Shake · Morango");
+  });
+
+  it("includes tiered rims and mixins with quantities", () => {
+    expect(
+      formatShakeLineName({
+        flavors: ["Frutas Amarelas"],
+        rims: [],
+        mixins: [{ name: "Fibra Ativa", qty: 2 }],
+      }),
+    ).toBe("Shake · Frutas Amarelas / +2× Fibra Ativa");
   });
 });

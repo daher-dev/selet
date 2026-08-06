@@ -100,7 +100,7 @@ export function lowStockContribution(lowStock: boolean, archived: boolean): numb
 }
 
 export function emptyChannels(): ChannelCounts {
-  return { instagram: 0, whatsapp: 0, loja: 0 };
+  return { instagram: 0, whatsapp: 0, loja: 0, interno: 0 };
 }
 
 export function emptyMonth(): MonthAgg {
@@ -192,7 +192,7 @@ export function summaryAddOrder(s: SummaryData, o: OrderAggInput): void {
   b.channels[o.channel] += 1;
   addSellers(b, o.items);
   if (o.open) s.openOrders += 1;
-  if (!o.paid) {
+  if (!o.paid && o.total > 0) {
     b.unpaidTotal += o.total;
     b.unpaidCount += 1;
   }
@@ -207,7 +207,7 @@ export function summaryRemoveOrder(s: SummaryData, o: OrderAggInput): void {
   b.channels[o.channel] = Math.max(0, b.channels[o.channel] - 1);
   removeSellers(b, o.items);
   if (o.open) s.openOrders = Math.max(0, s.openOrders - 1);
-  if (!o.paid) {
+  if (!o.paid && o.total > 0) {
     b.unpaidTotal = Math.max(0, b.unpaidTotal - o.total);
     b.unpaidCount = Math.max(0, b.unpaidCount - 1);
   }
@@ -340,7 +340,8 @@ export function isEmptyMonth(b: MonthAgg): boolean {
     Object.keys(b.sellers).length === 0 &&
     b.channels.instagram === 0 &&
     b.channels.whatsapp === 0 &&
-    b.channels.loja === 0
+    b.channels.loja === 0 &&
+    b.channels.interno === 0
   );
 }
 

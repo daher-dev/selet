@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
+  Calendar,
   Check,
   ChevronLeft,
+  Clock,
   Loader2,
   Minus,
   Plus,
@@ -16,6 +18,8 @@ import type {
   Cartela,
   CartelaUse,
   Customer,
+  DiscountKind,
+  DiscountReason,
   Order,
   OrderChannel,
   OrderItem,
@@ -28,9 +32,10 @@ import type {
   ShakeRim,
   ShakeUtensil,
 } from "@/lib/types";
-import { ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
-import { formatBRL, formatRelative } from "@/lib/format";
+import { DISCOUNT_REASONS, ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
+import { formatBRL } from "@/lib/format";
 import { balanceValue, cartelaCode, coverageFor, remainingUses } from "@/lib/cartelas";
+import { orderMoney, type DiscountInput } from "@/lib/order-money";
 import { cn } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customer-picker";
 import { CartelaPunchDots } from "@/components/cartela-punch-dots";
@@ -46,6 +51,7 @@ import { CartelaBuilder } from "./cartela-builder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -112,7 +118,64 @@ function shakeSignature(shake?: OrderItem["shake"]): string {
         addons: [...(shake.brinde.addons ?? [])].map((a) => a.name).sort(),
       }
     : null;
-  return JSON.stringify({ f: shake.flavorId, b: shake.baseId, rims, mixins, overrides, brinde });
+  // A sorted COPY — never sort in place, `shake.flavorIds` may belong to a
+  // live cart item — consistent with rims/mixins/overrides already being
+  // sorted by a copy above.
+  const flavorIds = [...shake.flavorIds].sort();
+  return JSON.stringify({ f: flavorIds, b: shake.baseId, rims, mixins, overrides, brinde });
+}
+
+/** "2026-08-05" (input[type=date] value) from an ISO datetime, in local time. */
+function isoToDateInput(iso: string): string {
+  const d = new Date(iso);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/** "15:12" (input[type=time] value) from an ISO datetime, in local time. */
+function isoToTimeInput(iso: string): string {
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mi}`;
+}
+
+/** Combines the date+time inputs (local time) into an ISO datetime string,
+ *  or null while either half is empty/invalid (the picker was cleared). */
+function saleDateTimeToISO(date: string, time: string): string | null {
+  if (!date || !time) return null;
+  const d = new Date(`${date}T${time}`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/** "2026-07-28" -> "28/07", for the "Lançar em {dd/MM}" footer label. */
+function formatDDMM(dateInput: string): string {
+  const [, mm, dd] = dateInput.split("-");
+  return `${dd}/${mm}`;
+}
+
+const DISCOUNT_KIND_OPTIONS: { value: DiscountKind; label: string }[] = [
+  { value: "flat", label: "R$" },
+  { value: "percent", label: "%" },
+  { value: "free", label: "Grátis" },
+];
+
+const DISCOUNT_REASON_LABEL: Record<DiscountReason, string> = {
+  cortesia: "Cortesia",
+  "consumo-interno": "Consumo interno",
+  combinado: "Combinado",
+  "erro-preparo": "Erro no preparo",
+};
+
+/** Parses the discount value input against `kind`'s unit: whole 1-100 for
+ *  percent, reais (converted to centavos) for flat, always 0 for free. */
+function parseDiscountValue(kind: DiscountKind, raw: string): number {
+  if (kind === "free") return 0;
+  const n = Number(raw.replace(",", "."));
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return kind === "percent" ? Math.round(n) : Math.round(n * 100);
 }
 
 interface OrderSheetProps {
@@ -151,20 +214,12 @@ export function OrderSheet({
         className="w-full gap-0 overflow-y-auto sm:max-w-md"
       >
         <SheetHeader className="border-b border-border">
-          <SheetTitle className="flex items-baseline gap-2 text-[17px] font-bold">
-            {order ? (
-              <>
-                Pedido <span className="font-mono text-ink-faint">#{order.code}</span>
-              </>
-            ) : (
-              "Novo pedido"
-            )}
+          <span className="block font-mono text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+            {order ? `Pedido #${order.code}` : "Novo pedido"}
+          </span>
+          <SheetTitle className="text-[19px] font-bold">
+            {order ? "Editar pedido" : "Lançar venda"}
           </SheetTitle>
-          {order && (
-            <p className="text-[11.5px] text-ink-faint">
-              Criado {formatRelative(order.createdAt)}
-            </p>
-          )}
         </SheetHeader>
         <OrderForm
           key={order?.id ?? "new"}
@@ -225,6 +280,49 @@ function OrderForm({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Manual order-level discount (Part A.3) — collapsed/expanded UI state kept
+  // separate from the resolved DiscountInput so the segmented control and
+  // value input can hold half-typed state without constantly reformatting.
+  const [discountOpen, setDiscountOpen] = useState(!!order?.discount);
+  const [discountKind, setDiscountKind] = useState<DiscountKind>(
+    order?.discount?.kind ?? "percent",
+  );
+  const [discountValueInput, setDiscountValueInput] = useState<string>(
+    order?.discount
+      ? order.discount.kind === "flat"
+        ? String(order.discount.value / 100)
+        : order.discount.kind === "percent"
+          ? String(order.discount.value)
+          : ""
+      : "",
+  );
+  const [discountReason, setDiscountReason] = useState<DiscountReason | undefined>(
+    order?.discount?.reason,
+  );
+  const discountInput: DiscountInput | null = discountOpen
+    ? {
+        kind: discountKind,
+        value: parseDiscountValue(discountKind, discountValueInput),
+        reason: discountReason,
+      }
+    : null;
+
+  // Free-text order note (Part A.5) — team-only, never shown in list rows.
+  const [notes, setNotes] = useState(order?.notes ?? "");
+
+  // "Data da venda" (Part A.2). Create mode defaults to "Agora" (no createdAt
+  // sent, server uses now()); edit mode always shows the date+time row,
+  // prefilled from the order's current createdAt and editable.
+  const [saleDateMode, setSaleDateMode] = useState<"agora" | "outra">("agora");
+  const [saleDate, setSaleDate] = useState<string>(
+    isoToDateInput(order?.createdAt ?? new Date().toISOString()),
+  );
+  const [saleTime, setSaleTime] = useState<string>(
+    isoToTimeInput(order?.createdAt ?? new Date().toISOString()),
+  );
+  const showSaleDateRow = !!order || saleDateMode === "outra";
+  const createdAtISO = showSaleDateRow ? saleDateTimeToISO(saleDate, saleTime) : null;
+
   // Every cartela belonging to the order's customer — fetched lazily
   // (re-fetched whenever the selected customer changes), then
   // filtered/combined client-side for the offer strips below. Unfiltered by
@@ -264,14 +362,27 @@ function OrderForm({
     setDismissedOffers((prev) => new Set(prev).add(index));
   }
 
-  const total = items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
+  // Shared order-money.ts computation (Part A, load-bearing): the exact same
+  // function the server uses for the persisted total, so this live preview
+  // can never diverge from what gets saved.
+  const money = orderMoney(items, discountInput);
   const itemCount = items.reduce((s, i) => s + i.qty, 0);
-  const coveredByCartela = items.reduce(
-    (s, i) => (i.cartelaUse ? s + i.qty * i.cartelaUse.covered : s),
-    0,
-  );
   const coveredUses = items.reduce((s, i) => (i.cartelaUse ? s + i.qty : s), 0);
   const cancelled = order?.status === "cancelado";
+
+  // "Nada a cobrar" (Part A.4) — never a persisted field, always derived from
+  // the live total. Pago/A receber are disabled once the total hits zero;
+  // Nada a cobrar is disabled everywhere else and is the only valid state at
+  // zero — `effectivePaid`/`effectivePayMethod` force that even if the local
+  // `paid` toggle still holds a stale "Pago" from before a discount zeroed it.
+  const isZeroTotal = money.total === 0;
+  const effectivePaid = paid && !isZeroTotal;
+  const effectivePayMethod = effectivePaid ? payMethod : null;
+
+  function actionVerb(): string {
+    if (order) return "Salvar pedido";
+    return saleDateMode === "outra" ? `Lançar em ${formatDDMM(saleDate)}` : "Lançar venda";
+  }
 
   // How many uses of `cartelaId` this order already holds server-side (only
   // relevant when editing — planCartelas reverses this before reapplying).
@@ -425,10 +536,17 @@ function OrderForm({
         customerName: customerName(),
         channel,
         items: finalItems,
+        // null explicitly clears an existing discount on edit (and is a no-op
+        // "no discount" on create) — see order-money.ts's shared computation,
+        // this is exactly the DiscountInput the live preview above was built
+        // from, so the persisted total can never diverge from what was shown.
+        discount: discountInput,
+        notes: notes.trim(),
+        ...(createdAtISO ? { createdAt: createdAtISO } : {}),
       };
       const result = order
         ? await updateOrderAction(order.id, base)
-        : await createOrderAction({ ...base, paid, payMethod });
+        : await createOrderAction({ ...base, paid: effectivePaid, payMethod: effectivePayMethod });
       if (result.ok) {
         toast.success(order ? "Pedido atualizado." : "Pedido criado.");
         onClose();
@@ -500,6 +618,8 @@ function OrderForm({
           order={order}
           items={items}
           cartelas={customerCartelas}
+          discount={discountInput}
+          actionLabel={actionVerb()}
           pending={pending}
           onBack={() => setConfirmingCartela(false)}
           onSkip={skipCartela}
@@ -529,7 +649,7 @@ function OrderForm({
 
         <div className="space-y-1.5">
           <Label>Canal de venda</Label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {ORDER_CHANNELS.map((key) => {
               const meta = CHANNEL_META[key];
               const Icon = meta.icon;
@@ -552,6 +672,58 @@ function OrderForm({
               );
             })}
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Data da venda</Label>
+          {!order && (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setSaleDateMode("agora")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors",
+                  saleDateMode === "agora"
+                    ? "border-primary bg-mist text-primary"
+                    : "border-border bg-card text-ink-soft hover:border-primary/40",
+                )}
+              >
+                <Clock className="size-3.5" strokeWidth={2.1} />
+                Agora
+              </button>
+              <button
+                type="button"
+                onClick={() => setSaleDateMode("outra")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors",
+                  saleDateMode === "outra"
+                    ? "border-primary bg-mist text-primary"
+                    : "border-border bg-card text-ink-soft hover:border-primary/40",
+                )}
+              >
+                <Calendar className="size-3.5" strokeWidth={2} />
+                Outra data
+              </button>
+            </div>
+          )}
+          {showSaleDateRow && (
+            <div className="flex h-[46px] items-center gap-2.5 rounded-xl border border-primary/40 bg-card px-3">
+              <Calendar className="size-4 shrink-0 text-primary" strokeWidth={1.9} />
+              <input
+                type="date"
+                value={saleDate}
+                onChange={(e) => setSaleDate(e.target.value)}
+                className="tabular min-w-0 flex-1 bg-transparent text-[14px] font-semibold text-ink outline-none"
+              />
+              <span className="h-5 w-px shrink-0 bg-border" />
+              <input
+                type="time"
+                value={saleTime}
+                onChange={(e) => setSaleTime(e.target.value)}
+                className="tabular w-[78px] shrink-0 bg-transparent text-right text-[14px] font-semibold text-ink outline-none"
+              />
+            </div>
+          )}
         </div>
 
         {order && (
@@ -717,49 +889,89 @@ function OrderForm({
             </Button>
           )}
 
-          <div className="space-y-2 rounded-xl border border-mint-wash bg-mist px-4 py-3">
-            {coveredByCartela > 0 && (
-              <>
-                <div className="flex items-center justify-between text-[12.5px] text-ink-soft">
-                  <span>Subtotal dos itens</span>
-                  <span className="tabular font-semibold">
-                    {formatBRL(total + coveredByCartela)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[12.5px] text-primary">
-                  <span>
-                    Coberto pela cartela · {coveredUses} uso{coveredUses === 1 ? "" : "s"}
-                  </span>
-                  <span className="tabular font-semibold">
-                    − {formatBRL(coveredByCartela)}
-                  </span>
-                </div>
-                <div className="border-t border-mint-wash/70 pt-2" />
-              </>
+          <div className="space-y-3 rounded-xl border border-mint-wash bg-mist px-4 py-3.5">
+            <Label>Valores</Label>
+            <div className="flex items-center justify-between text-[12.5px] text-ink-soft">
+              <span>Subtotal dos itens</span>
+              <span className="tabular font-semibold">{formatBRL(money.subtotal)}</span>
+            </div>
+            {money.covered > 0 && (
+              <div className="flex items-center justify-between text-[12.5px] text-primary">
+                <span>
+                  Coberto pela cartela · {coveredUses} uso{coveredUses === 1 ? "" : "s"}
+                </span>
+                <span className="tabular font-semibold">− {formatBRL(money.covered)}</span>
+              </div>
             )}
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-ink-soft">
-                Valor total
+            <DiscountRow
+              open={discountOpen}
+              kind={discountKind}
+              valueInput={discountValueInput}
+              reason={discountReason}
+              amount={money.discount?.amount ?? 0}
+              onOpen={() => setDiscountOpen(true)}
+              onRemove={() => {
+                setDiscountOpen(false);
+                setDiscountValueInput("");
+                setDiscountReason(undefined);
+              }}
+              onKindChange={(kind) => {
+                // Only clear the value when the unit actually changes (a
+                // typed value means something different per kind) — clicking
+                // the already-active segment must not wipe what's typed.
+                if (kind !== discountKind) setDiscountValueInput("");
+                setDiscountKind(kind);
+              }}
+              onValueChange={setDiscountValueInput}
+              onReasonChange={setDiscountReason}
+            />
+            <div className="flex items-center gap-2 border-t border-mint-wash/70 pt-2.5">
+              <span className="flex-1 text-[13px] font-semibold text-ink-soft">
+                Total a pagar
               </span>
+              {(money.discount?.amount ?? 0) > 0 && (
+                <span className="tabular text-[12px] text-ink-faint line-through">
+                  {formatBRL(money.afterCartela)}
+                </span>
+              )}
               <span className="tabular text-[22px] font-bold text-primary">
-                {formatBRL(total)}
+                {formatBRL(money.total)}
               </span>
             </div>
           </div>
         </div>
 
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <Label>Notas</Label>
+            <span className="text-[11.5px] text-ink-faint">
+              opcional · visível para a equipe
+            </span>
+          </div>
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            maxLength={500}
+            placeholder="Alguma observação sobre este pedido…"
+            className="min-h-[78px] resize-none rounded-xl border-border bg-paper text-[13px] placeholder:text-ink-faint/70"
+          />
+        </div>
+
         {!cancelled && (
           <div className="space-y-2">
             <Label>Pagamento</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
+                disabled={isZeroTotal}
                 onClick={() => changePayment(true, payMethod ?? "pix")}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors",
-                  paid
-                    ? "border-primary bg-mint-wash text-primary"
-                    : "border-border bg-card text-ink-soft",
+                  "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed",
+                  isZeroTotal
+                    ? "border-dashed border-border bg-card text-ink-faint/70"
+                    : effectivePaid
+                      ? "border-primary bg-mint-wash text-primary"
+                      : "border-border bg-card text-ink-soft",
                 )}
               >
                 <Check className="size-4" strokeWidth={2.2} />
@@ -767,18 +979,33 @@ function OrderForm({
               </button>
               <button
                 type="button"
+                disabled={isZeroTotal}
                 onClick={() => changePayment(false, null)}
                 className={cn(
-                  "rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors",
-                  !paid
-                    ? "border-amber bg-amber-wash text-amber"
-                    : "border-border bg-card text-ink-soft",
+                  "rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed",
+                  isZeroTotal
+                    ? "border-dashed border-border bg-card text-ink-faint/70"
+                    : !effectivePaid
+                      ? "border-amber bg-amber-wash text-amber"
+                      : "border-border bg-card text-ink-soft",
                 )}
               >
-                A pagar
+                A receber
+              </button>
+              <button
+                type="button"
+                disabled={!isZeroTotal}
+                className={cn(
+                  "rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed",
+                  isZeroTotal
+                    ? "border-primary/50 bg-mist text-primary"
+                    : "border-dashed border-border bg-card text-ink-faint/70",
+                )}
+              >
+                Nada a cobrar
               </button>
             </div>
-            {paid && (
+            {effectivePaid && (
               <div className="grid grid-cols-3 gap-2">
                 {PAY_METHODS.map((key) => {
                   const meta = PAY_METHOD_META[key];
@@ -822,12 +1049,13 @@ function OrderForm({
             pending ||
             items.length === 0 ||
             !customerId ||
-            (!order && paid && !payMethod)
+            (!order && effectivePaid && !effectivePayMethod) ||
+            (showSaleDateRow && !createdAtISO)
           }
           className="flex-1 rounded-xl font-semibold"
         >
           {pending && <Loader2 className="size-4 animate-spin" />}
-          {order ? "Salvar alterações" : "Criar pedido"}
+          {order ? actionVerb() : `${actionVerb()} · ${formatBRL(money.total)}`}
         </Button>
       </SheetFooter>
 
@@ -952,6 +1180,125 @@ function CartelaAppliedStrip({
 }
 
 /**
+ * Manual order-level discount row (Part A.3), living in the Valores block
+ * after the cartela-coverage row and before the Total divider. Collapsed:
+ * a dashed "+ Adicionar desconto" row. Expanded: a R$/%/Grátis segmented
+ * control, a value input (hidden for "Grátis"), the live computed amount,
+ * and single-select reason chips (all optional, even for "Grátis").
+ */
+function DiscountRow({
+  open,
+  kind,
+  valueInput,
+  reason,
+  amount,
+  onOpen,
+  onRemove,
+  onKindChange,
+  onValueChange,
+  onReasonChange,
+}: {
+  open: boolean;
+  kind: DiscountKind;
+  valueInput: string;
+  reason: DiscountReason | undefined;
+  amount: number;
+  onOpen: () => void;
+  onRemove: () => void;
+  onKindChange: (kind: DiscountKind) => void;
+  onValueChange: (value: string) => void;
+  onReasonChange: (reason: DiscountReason | undefined) => void;
+}) {
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex items-center gap-2.5 rounded-[10px] border border-dashed border-mint-wash bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/50"
+      >
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-mist text-primary">
+          <Plus className="size-3.5" strokeWidth={2.2} />
+        </span>
+        <span className="flex-1 text-[12.5px] font-semibold text-primary">
+          Adicionar desconto
+        </span>
+        <span className="text-[11.5px] text-ink-faint">R$, % ou grátis</span>
+      </button>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-3">
+      <div className="flex items-center gap-2">
+        <span className="flex-1 text-[12.5px] font-bold text-ink">Desconto</span>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-[11.5px] font-semibold text-primary"
+        >
+          Remover
+        </button>
+      </div>
+      <div className="flex gap-2">
+        <div className="flex shrink-0 items-center gap-0.5 rounded-[10px] bg-wash p-[3px]">
+          {DISCOUNT_KIND_OPTIONS.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onKindChange(value)}
+              className={cn(
+                "rounded-lg px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors",
+                kind === value ? "bg-white text-ink shadow-sm" : "text-ink-soft",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {kind !== "free" && (
+          <div className="flex flex-1 items-center gap-2 rounded-[10px] border border-primary/40 px-3 py-1.5">
+            <input
+              type="number"
+              inputMode="decimal"
+              min={kind === "percent" ? 1 : 0.01}
+              max={kind === "percent" ? 100 : undefined}
+              step={kind === "percent" ? 1 : 0.01}
+              value={valueInput}
+              onChange={(e) => onValueChange(e.target.value)}
+              placeholder="0"
+              className="w-full min-w-0 flex-1 bg-transparent text-[14.5px] font-bold text-ink outline-none tabular"
+            />
+            <span className="shrink-0 text-[12.5px] text-ink-faint">
+              {kind === "percent" ? "%" : "R$"}
+            </span>
+            <span className="h-5 w-px shrink-0 bg-border" />
+            <span className="tabular shrink-0 text-[12.5px] font-semibold text-primary">
+              − {formatBRL(amount)}
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {DISCOUNT_REASONS.map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => onReasonChange(reason === r ? undefined : r)}
+            className={cn(
+              "rounded-full border px-2.5 py-1.5 text-[11.5px] font-semibold transition-colors",
+              reason === r
+                ? "border-primary/60 bg-mist text-primary"
+                : "border-border bg-paper text-ink-soft",
+            )}
+          >
+            {DISCOUNT_REASON_LABEL[r]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Decision #2's "Cartela aplicada" confirmation, shown in place of the
  * normal form/footer once ≥1 line in the draft has a cartelaUse and Save is
  * pressed. Mirrors docs/design/Mock Pedidos.dc.html frame 3f: a summary of
@@ -963,6 +1310,8 @@ function CartelaConfirmStep({
   order,
   items,
   cartelas,
+  discount,
+  actionLabel,
   pending,
   onBack,
   onSkip,
@@ -971,6 +1320,8 @@ function CartelaConfirmStep({
   order: Order | null;
   items: OrderItem[];
   cartelas: Cartela[];
+  discount: DiscountInput | null;
+  actionLabel: string;
   pending: boolean;
   onBack: () => void;
   onSkip: () => void;
@@ -978,15 +1329,13 @@ function CartelaConfirmStep({
 }) {
   const cartelaItems = items.filter((i) => i.cartelaUse);
   const totalUsesApplied = cartelaItems.reduce((s, i) => s + i.qty, 0);
-  const coveredByCartela = cartelaItems.reduce(
-    (s, i) => s + i.qty * (i.cartelaUse?.covered ?? 0),
-    0,
-  );
-  const subtotal = items.reduce(
-    (s, i) => s + i.qty * (i.cartelaUse ? i.cartelaUse.listPrice : i.unitPrice),
-    0,
-  );
-  const totalToPay = subtotal - coveredByCartela;
+  // Shared order-money.ts computation (Part A) instead of hand-rolled math —
+  // the exact same function the main form's live preview and the server use,
+  // so this confirmation step can never disagree with either of them.
+  const money = orderMoney(items, discount);
+  const subtotal = money.subtotal;
+  const coveredByCartela = money.covered;
+  const totalToPay = money.total;
 
   function consumedByOrder(cartelaId: string): number {
     return order?.cartelaConsumed.find((c) => c.cartelaId === cartelaId)?.uses ?? 0;
@@ -1068,6 +1417,14 @@ function CartelaConfirmStep({
             <span>Cartela · {totalUsesApplied} usos</span>
             <span className="tabular">− {formatBRL(coveredByCartela)}</span>
           </div>
+          {money.discount && money.discount.amount > 0 && (
+            <div className="flex items-center justify-between text-[13px] font-semibold text-primary">
+              <span>
+                Desconto{money.discount.kind === "percent" ? ` · ${money.discount.value}%` : ""}
+              </span>
+              <span className="tabular">− {formatBRL(money.discount.amount)}</span>
+            </div>
+          )}
           <div className="flex items-baseline justify-between border-t border-border pt-2.5">
             <span className="text-[13.5px] font-bold text-ink">A pagar agora</span>
             <span className="tabular text-[22px] font-bold text-ink">
@@ -1108,7 +1465,7 @@ function CartelaConfirmStep({
         </Button>
         <Button onClick={onConfirm} disabled={pending} className="flex-1 rounded-xl font-semibold">
           {pending && <Loader2 className="size-4 animate-spin" />}
-          {order ? "Salvar alterações" : "Criar pedido"} · {formatBRL(totalToPay)}
+          {actionLabel} · {formatBRL(totalToPay)}
         </Button>
       </SheetFooter>
     </>

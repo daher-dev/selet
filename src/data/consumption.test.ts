@@ -166,7 +166,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
       qty: 1,
       unitPrice: 3000,
       shake: {
-        flavorId: "sabor-1",
+        flavorIds: ["sabor-1"],
         baseId: null,
         rims: [],
         mixins: [],
@@ -192,7 +192,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
     const f = flavor({ id: "sabor-1" });
     const b = base({ id: "base-1", insumo: { stockItemId: "ins-leite", name: "Leite", qty: 150, unit: "ml" } });
     const { insumos } = buildConsumptionRequests(
-      [shakeLine({ shake: { flavorId: "sabor-1", baseId: "base-1", rims: [], mixins: [] } })],
+      [shakeLine({ shake: { flavorIds: ["sabor-1"], baseId: "base-1", rims: [], mixins: [] } })],
       new Map(),
       catalogs({ flavors: new Map([["sabor-1", f]]), bases: new Map([["base-1", b]]) }),
     );
@@ -214,7 +214,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
         shakeLine({
           qty: 2, // 2 shakes ordered
           shake: {
-            flavorId: "sabor-1",
+            flavorIds: ["sabor-1"],
             baseId: null,
             rims: [{ modifierId: "rim-1", qty: 2 }], // dose dupla
             mixins: [{ modifierId: "mix-1", qty: 1 }],
@@ -265,7 +265,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
       [
         shakeLine({
           shake: {
-            flavorId: "sabor-1",
+            flavorIds: ["sabor-1"],
             baseId: null,
             rims: [],
             mixins: [],
@@ -290,7 +290,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
       [
         shakeLine({
           shake: {
-            flavorId: "sabor-1",
+            flavorIds: ["sabor-1"],
             baseId: null,
             rims: [],
             mixins: [],
@@ -315,7 +315,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
       [
         shakeLine({
           shake: {
-            flavorId: "gone",
+            flavorIds: ["gone"],
             baseId: "also-gone",
             rims: [{ modifierId: "gone-too", qty: 1 }],
             mixins: [],
@@ -326,6 +326,96 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
       catalogs(),
     );
     expect(insumos.size).toBe(0);
+  });
+
+  describe("multi-flavor shakes (até 3 sabores)", () => {
+    it("draws the FULL recipe of EVERY selected flavor, summed across distinct insumos", () => {
+      const f1 = flavor({
+        id: "sabor-1",
+        recipe: [{ stockItemId: "ins-shake", name: "Shake base", qty: 26, unit: "g" }],
+      });
+      const f2 = flavor({
+        id: "sabor-2",
+        recipe: [{ stockItemId: "ins-morango", name: "Morango", qty: 40, unit: "g" }],
+      });
+      const { insumos } = buildConsumptionRequests(
+        [
+          shakeLine({
+            qty: 2, // 2 shakes ordered
+            shake: { flavorIds: ["sabor-1", "sabor-2"], baseId: null, rims: [], mixins: [] },
+          }),
+        ],
+        new Map(),
+        catalogs({ flavors: new Map([["sabor-1", f1], ["sabor-2", f2]]) }),
+      );
+      // Each flavor's FULL recipe is drawn (not divided by flavor count),
+      // scaled by lineQty — a deliberate approximation.
+      expect(insumos.get("ins-shake")).toEqual({ amount: 52, uses: 2 }); // 26 × 2
+      expect(insumos.get("ins-morango")).toEqual({ amount: 80, uses: 2 }); // 40 × 2
+    });
+
+    it("accumulates onto a SHARED insumo between two selected flavors (addInsumo merges, not overwrites)", () => {
+      const f1 = flavor({
+        id: "sabor-1",
+        recipe: [{ stockItemId: "ins-leite", name: "Leite", qty: 100, unit: "ml" }],
+      });
+      const f2 = flavor({
+        id: "sabor-2",
+        recipe: [{ stockItemId: "ins-leite", name: "Leite", qty: 60, unit: "ml" }],
+      });
+      const { insumos } = buildConsumptionRequests(
+        [shakeLine({ shake: { flavorIds: ["sabor-1", "sabor-2"], baseId: null, rims: [], mixins: [] } })],
+        new Map(),
+        catalogs({ flavors: new Map([["sabor-1", f1], ["sabor-2", f2]]) }),
+      );
+      // 100ml + 60ml summed onto the same insumo, uses accumulate too (1 + 1).
+      expect(insumos.get("ins-leite")).toEqual({ amount: 160, uses: 2 });
+    });
+
+    it("three selected flavors all contribute, plus rims/mixins/utensílios still resolve once per line", () => {
+      const f1 = flavor({ id: "sabor-1", recipe: [{ stockItemId: "ins-a", name: "A", qty: 10, unit: "g" }] });
+      const f2 = flavor({ id: "sabor-2", recipe: [{ stockItemId: "ins-b", name: "B", qty: 20, unit: "g" }] });
+      const f3 = flavor({ id: "sabor-3", recipe: [{ stockItemId: "ins-c", name: "C", qty: 30, unit: "g" }] });
+      const rim = tiered({
+        id: "rim-1",
+        insumo: { stockItemId: "ins-nutella", name: "Nutella", qty: 20, unit: "g" },
+      }) as ShakeRim;
+      const { insumos } = buildConsumptionRequests(
+        [
+          shakeLine({
+            shake: {
+              flavorIds: ["sabor-1", "sabor-2", "sabor-3"],
+              baseId: null,
+              rims: [{ modifierId: "rim-1", qty: 1 }],
+              mixins: [],
+            },
+          }),
+        ],
+        new Map(),
+        catalogs({
+          flavors: new Map([["sabor-1", f1], ["sabor-2", f2], ["sabor-3", f3]]),
+          rims: new Map([["rim-1", rim]]),
+        }),
+      );
+      expect(insumos.get("ins-a")).toEqual({ amount: 10, uses: 1 });
+      expect(insumos.get("ins-b")).toEqual({ amount: 20, uses: 1 });
+      expect(insumos.get("ins-c")).toEqual({ amount: 30, uses: 1 });
+      // The rim isn't per-flavor — it resolves exactly once per line either way.
+      expect(insumos.get("ins-nutella")).toEqual({ amount: 20, uses: 1 });
+    });
+
+    it("a partially-deleted flavor set still draws the surviving flavors' recipes", () => {
+      const f1 = flavor({
+        id: "sabor-1",
+        recipe: [{ stockItemId: "ins-shake", name: "Shake base", qty: 26, unit: "g" }],
+      });
+      const { insumos } = buildConsumptionRequests(
+        [shakeLine({ shake: { flavorIds: ["sabor-1", "gone"], baseId: null, rims: [], mixins: [] } })],
+        new Map(),
+        catalogs({ flavors: new Map([["sabor-1", f1]]) }),
+      );
+      expect(insumos.get("ins-shake")).toEqual({ amount: 26, uses: 1 });
+    });
   });
 
   describe("brinde (free Product riding a shake line)", () => {
@@ -340,7 +430,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
           shakeLine({
             unitPrice: 0,
             shake: {
-              flavorId: "sabor-1",
+              flavorIds: ["sabor-1"],
               baseId: null,
               rims: [],
               mixins: [],
@@ -364,7 +454,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
         [
           shakeLine({
             shake: {
-              flavorId: "sabor-1",
+              flavorIds: ["sabor-1"],
               baseId: null,
               rims: [],
               mixins: [],
@@ -394,7 +484,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
         [
           shakeLine({
             shake: {
-              flavorId: "sabor-1",
+              flavorIds: ["sabor-1"],
               baseId: null,
               rims: [],
               mixins: [],
@@ -421,7 +511,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
           shakeLine({
             qty: 3,
             shake: {
-              flavorId: "sabor-1",
+              flavorIds: ["sabor-1"],
               baseId: null,
               rims: [],
               mixins: [],
@@ -447,7 +537,7 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
         [
           shakeLine({
             shake: {
-              flavorId: "sabor-1",
+              flavorIds: ["sabor-1"],
               baseId: null,
               rims: [],
               mixins: [],

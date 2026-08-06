@@ -105,20 +105,37 @@ interface DemoOrderItem {
   unitPrice: number; // centavos
 }
 
+interface DemoOrderDiscount {
+  kind: "flat" | "percent" | "free";
+  value: number; // centavos (flat), 1-100 (percent), always 0 (free)
+  amount: number; // centavos, server-computed in the real app — precomputed here to match
+  reason?: "cortesia" | "consumo-interno" | "combinado" | "erro-preparo";
+}
+
 interface DemoOrder {
   code: string; // "1048" — also the doc id
   store: StoreId;
   customerName: string;
-  channel: "instagram" | "whatsapp" | "loja";
+  channel: "instagram" | "whatsapp" | "loja" | "interno";
   status: "novo" | "preparando" | "entrega" | "concluido" | "cancelado";
   items: DemoOrderItem[];
-  total: number; // centavos (authoritative)
+  total: number; // centavos (authoritative, post-discount)
   paid: boolean;
   payMethod: "pix" | "cartao" | "dinheiro" | null;
   minutesAgo: number;
+  /** Overrides `minutesAgo` when set — for the backdated cross-month demo order. */
+  daysAgo?: number;
+  /** Manual order-level discount (Parte A) — e.g. the "nada a cobrar" demo. */
+  discount?: DemoOrderDiscount;
+  /** Free-text order note (drawer-only, never shown in list rows). */
+  notes?: string;
 }
 
 const ORDERS: DemoOrder[] = [
+  // "Interno" channel + "Grátis" discount (reason consumo-interno) → total 0,
+  // demonstrating "nada a cobrar" end to end (paid:false, payMethod:null forced
+  // by the zero total). Notes is drawer-only, never shown in the Pedidos rows.
+  { code: "1049", store: "vila-velha", customerName: "Aline Ferreira", channel: "interno", status: "concluido", total: 0, paid: false, payMethod: null, minutesAgo: 3, discount: { kind: "free", value: 0, amount: 3600, reason: "consumo-interno" }, notes: "Lote de teste do fornecedor — consumo interno da equipe, sem cobrança.", items: [ { productId: "shake-frutas-vermelhas", name: "Shake Frutas Vermelhas", qty: 1, unitPrice: 3600 } ] },
   { code: "1048", store: "vila-velha", customerName: "Mariana Lopes", channel: "instagram", status: "preparando", total: 7200, paid: false, payMethod: null, minutesAgo: 6, items: [ { productId: "shake-shake-da-beleza", name: "Shake da Beleza", qty: 1, unitPrice: 4400 }, { productId: "bebida-hype-drink", name: "Hype Drink", qty: 1, unitPrice: 2800 } ] },
   { code: "1047", store: "passos", customerName: "Rafael Souza", channel: "whatsapp", status: "novo", total: 3700, paid: false, payMethod: null, minutesAgo: 12, items: [ { productId: "lanche-coxinha-proteica", name: "Coxinha Proteica", qty: 3, unitPrice: 1233 } ] },
   { code: "1046", store: "vila-velha", customerName: "Beatriz Almeida", channel: "loja", status: "concluido", total: 6100, paid: true, payMethod: "pix", minutesAgo: 20, items: [ { productId: "salgado-pizza-proteica", name: "Pizza Proteica", qty: 1, unitPrice: 3300 }, { productId: "bebida-hype-drink", name: "Hype Drink", qty: 1, unitPrice: 2800 } ] },
@@ -129,6 +146,10 @@ const ORDERS: DemoOrder[] = [
   { code: "1041", store: "vila-velha", customerName: "Patrícia Gomes", channel: "whatsapp", status: "cancelado", total: 3600, paid: false, payMethod: null, minutesAgo: 120, items: [ { productId: "salgado-escondidinho-de-frango", name: "Escondidinho de Frango", qty: 1, unitPrice: 3600 } ] },
   { code: "1040", store: "passos", customerName: "Tiago Ramos", channel: "instagram", status: "concluido", total: 7400, paid: false, payMethod: null, minutesAgo: 125, items: [ { productId: "lanche-coxinha-proteica", name: "Coxinha Proteica", qty: 6, unitPrice: 1233 } ] },
   { code: "1039", store: "vila-velha", customerName: "Aline Ferreira", channel: "whatsapp", status: "concluido", total: 6400, paid: true, payMethod: "pix", minutesAgo: 180, items: [ { productId: "shake-frutas-vermelhas", name: "Shake Frutas Vermelhas", qty: 1, unitPrice: 3600 }, { productId: "bebida-hype-drink", name: "Hype Drink", qty: 1, unitPrice: 2800 } ] },
+  // Backdated ~2 months (within the 12-month cap) — demonstrates cross-month
+  // bucketing in both the summary (byMonth) and the Financeiro mirror, whose
+  // `date` must land in the SAME month as this order's createdAt.
+  { code: "1038", store: "passos", customerName: "Tiago Ramos", channel: "whatsapp", status: "concluido", total: 3700, paid: true, payMethod: "pix", minutesAgo: 0, daysAgo: 61, items: [ { productId: "lanche-coxinha-proteica", name: "Coxinha Proteica", qty: 3, unitPrice: 1233 } ] },
 ];
 
 // Recurring / manual finance rows per store. Categories are restricted to
@@ -621,7 +642,7 @@ async function seedStore(db: Firestore, storeId: StoreId) {
 
   for (const o of orders) {
     const ref = store.collection("orders").doc(o.code);
-    const when = minutesAgo(o.minutesAgo);
+    const when = o.daysAgo != null ? daysAgo(o.daysAgo) : minutesAgo(o.minutesAgo);
     const customerId = idByName.get(o.customerName) ?? null;
     await ref.set({
       customerId,
@@ -632,6 +653,8 @@ async function seedStore(db: Firestore, storeId: StoreId) {
       status: o.status,
       paid: o.paid,
       payMethod: o.paid ? o.payMethod : null,
+      discount: o.discount ?? null,
+      notes: o.notes ?? null,
       createdAt: when,
       updatedAt: when,
     });

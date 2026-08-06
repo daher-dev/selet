@@ -1,9 +1,10 @@
 import { z } from "zod";
+import { DISCOUNT_KINDS, DISCOUNT_REASONS, MAX_SHAKE_FLAVORS } from "./types";
 
 /**
- * Pure Zod schema for one order line — split out from src/actions/orders.ts
+ * Pure Zod schemas for order data — split out from src/actions/orders.ts
  * (a "use server" file, not directly importable from a plain vitest test)
- * so it can be unit-tested on its own. This codebase has already lost a
+ * so they can be unit-tested on their own. This codebase has already lost a
  * field to Zod's silent-unknown-key-strip more than once (OrderItem.shake,
  * then shake.brinde) — every field here must be spelled out explicitly,
  * never z.record/passthrough, or a new one will vanish silently again.
@@ -16,16 +17,26 @@ const shakeBrindeSelectionSchema = z.object({
   addons: z.array(z.object({ name: z.string().min(1), price: z.number().int().min(0) })).optional(),
 });
 
-const shakeSelectionSchema = z.object({
-  flavorId: z.string().min(1),
-  baseId: z.string().nullable(),
-  rims: z.array(z.object({ modifierId: z.string().min(1), qty: z.number().int().positive() })),
-  mixins: z.array(z.object({ modifierId: z.string().min(1), qty: z.number().int().positive() })),
-  utensilOverrides: z
-    .array(z.object({ utensilId: z.string().min(1), included: z.boolean() }))
-    .optional(),
-  brinde: shakeBrindeSelectionSchema.optional(),
-});
+const shakeSelectionSchema = z
+  .object({
+    flavorIds: z.array(z.string().min(1)).min(1).max(MAX_SHAKE_FLAVORS),
+    baseId: z.string().nullable(),
+    rims: z.array(z.object({ modifierId: z.string().min(1), qty: z.number().int().positive() })),
+    mixins: z.array(z.object({ modifierId: z.string().min(1), qty: z.number().int().positive() })),
+    utensilOverrides: z
+      .array(z.object({ utensilId: z.string().min(1), included: z.boolean() }))
+      .optional(),
+    brinde: shakeBrindeSelectionSchema.optional(),
+  })
+  .superRefine((sel, ctx) => {
+    if (new Set(sel.flavorIds).size !== sel.flavorIds.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Um shake não pode repetir o mesmo sabor.",
+        path: ["flavorIds"],
+      });
+    }
+  });
 
 // The line that SELLS a brand-new cartela — qty is always 1 (enforced below).
 const cartelaSaleSchema = z.object({
@@ -108,3 +119,44 @@ export const orderItemSchema = z
   });
 
 export type OrderItemInput = z.input<typeof orderItemSchema>;
+
+/**
+ * Manual, order-level discount (Part A). `value`'s meaning depends on `kind`
+ * — centavos for "flat", a whole 1-100 for "percent", always 0 for "free" —
+ * so the range check has to branch on `kind` inside a superRefine rather than
+ * a single flat z.number() bound. `amount` is deliberately NOT part of this
+ * input schema: it's always server-computed (src/lib/order-money.ts), never
+ * trusted from the client, so there's no key here for a client-sent amount
+ * to hide behind.
+ */
+export const discountSchema = z
+  .object({
+    kind: z.enum(DISCOUNT_KINDS),
+    value: z.number().int(),
+    reason: z.enum(DISCOUNT_REASONS).optional(),
+  })
+  .superRefine((d, ctx) => {
+    if (d.kind === "flat" && d.value < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Informe um valor de desconto maior que zero.",
+        path: ["value"],
+      });
+    }
+    if (d.kind === "percent" && (d.value < 1 || d.value > 100)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Informe uma porcentagem entre 1 e 100.",
+        path: ["value"],
+      });
+    }
+    if (d.kind === "free" && d.value !== 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Desconto grátis não deve informar um valor.",
+        path: ["value"],
+      });
+    }
+  });
+
+export type DiscountFormInput = z.input<typeof discountSchema>;

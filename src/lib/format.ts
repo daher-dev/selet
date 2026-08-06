@@ -82,15 +82,18 @@ export function formatQty(qty: number, unit: string): string {
 
 /**
  * A "Montar shake" order line's display name, e.g.
- * "Shake · Frutas Amarelas / NutreV / Borda Nutella / +2× Fibra Ativa".
+ * "Shake · Frutas Amarelas + Frutas Vermelhas / NutreV / Borda Nutella / +2× Fibra Ativa".
+ * Multiple sabores (up to MAX_SHAKE_FLAVORS) are joined with " + " — a
+ * deliberate, documented separator (the mockup has no real multi-flavor
+ * example to copy verbatim).
  */
 export function formatShakeLineName(parts: {
-  flavor: string;
+  flavors: string[];
   base?: string | null;
   rims: { name: string; qty: number }[];
   mixins: { name: string; qty: number }[];
 }): string {
-  const segments = [parts.flavor];
+  const segments = [parts.flavors.join(" + ")];
   if (parts.base) segments.push(parts.base);
   for (const r of parts.rims) {
     segments.push(`Borda ${r.name}${r.qty > 1 ? ` ×${r.qty}` : ""}`);

@@ -82,7 +82,7 @@ export default async function FinanceiroPage({
     for (const order of orders) {
       if (order.status === "cancelado") continue;
       const key = monthKey(new Date(order.createdAt));
-      if (!order.paid) {
+      if (!order.paid && order.total > 0) {
         const r = (receivablesByMonth[key] ??= { total: 0, count: 0 });
         r.total += order.total;
         r.count += 1;

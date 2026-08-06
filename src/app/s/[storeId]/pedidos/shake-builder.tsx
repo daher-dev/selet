@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import { Check, ChevronLeft, Plus, X } from "lucide-react";
-import type {
-  OrderItem,
-  Product,
-  ShakeBase,
-  ShakeFlavor,
-  ShakeMixin,
-  ShakeRim,
-  ShakeUtensil,
+import {
+  MAX_SHAKE_FLAVORS,
+  type OrderItem,
+  type Product,
+  type ShakeBase,
+  type ShakeFlavor,
+  type ShakeMixin,
+  type ShakeRim,
+  type ShakeUtensil,
 } from "@/lib/types";
 import { formatBRL, formatShakeLineName } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,26 @@ import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 /** Price for a given tier quantity, or 0 if that exact quantity has no tier. */
 function tierPrice(tiers: { qty: number; price: number }[], qty: number): number {
   return tiers.find((t) => t.qty === qty)?.price ?? 0;
+}
+
+/**
+ * The "primary" flavor of a multi-select shake — the MOST EXPENSIVE selected
+ * flavor, tie-broken by lowest id. This is the single shared source of truth
+ * for both `unitPrice` and the line's `productId`: pricing must be a pure
+ * function of the selected flavor SET (not click-order-dependent), because
+ * `shakeSignature`'s line-merge key is also set-based, and if pricing
+ * depended on click order two identical-looking merged lines could have
+ * been priced differently before merging. Returns null when nothing (or
+ * nothing resolvable) is selected.
+ */
+function primaryFlavor(flavors: ShakeFlavor[], flavorIds: string[]): ShakeFlavor | null {
+  const selected = flavorIds
+    .map((id) => flavors.find((f) => f.id === id))
+    .filter((f): f is ShakeFlavor => f !== undefined);
+  if (selected.length === 0) return null;
+  return selected.reduce((best, f) =>
+    f.price > best.price || (f.price === best.price && f.id < best.id) ? f : best,
+  );
 }
 
 /**
@@ -57,7 +78,7 @@ export function ShakeBuilder({
   onBack,
   onConfirm,
 }: ShakeBuilderProps) {
-  const [flavorId, setFlavorId] = useState<string | null>(null);
+  const [flavorIds, setFlavorIds] = useState<string[]>([]);
   const [baseId, setBaseId] = useState<string | null>(null);
   const [rimQty, setRimQty] = useState<Map<string, number>>(new Map());
   const [mixinQty, setMixinQty] = useState<Map<string, number>>(new Map());
@@ -69,9 +90,18 @@ export function ShakeBuilder({
   const [brindeProductId, setBrindeProductId] = useState<string | null>(null);
   const [brindeAddonNames, setBrindeAddonNames] = useState<string[]>([]);
 
-  const flavor = flavors.find((f) => f.id === flavorId) ?? null;
+  const primary = primaryFlavor(flavors, flavorIds);
+  const atFlavorCap = flavorIds.length >= MAX_SHAKE_FLAVORS;
   const base = baseId ? (bases.find((b) => b.id === baseId) ?? null) : null;
   const selectedBrinde = brindes.find((b) => b.productId === brindeProductId) ?? null;
+
+  function toggleFlavor(id: string) {
+    setFlavorIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= MAX_SHAKE_FLAVORS) return prev;
+      return [...prev, id];
+    });
+  }
 
   const rimsTotal = [...rimQty.entries()].reduce((s, [id, qty]) => {
     const rim = rims.find((r) => r.id === id);
@@ -86,7 +116,7 @@ export function ShakeBuilder({
     .filter((a) => brindeAddonNames.includes(a.name))
     .reduce((s, a) => s + a.price, 0);
   const unitPrice =
-    (flavor?.price ?? 0) + (base?.price ?? 0) + rimsTotal + mixinsTotal + brindeAddonsTotal;
+    (primary?.price ?? 0) + (base?.price ?? 0) + rimsTotal + mixinsTotal + brindeAddonsTotal;
 
   // Selecting a different brinde (or "Sem brinde") always clears its addons.
   function selectBrinde(productId: string | null) {
@@ -122,7 +152,7 @@ export function ShakeBuilder({
   }
 
   function confirm() {
-    if (!flavor) return;
+    if (flavorIds.length === 0 || !primary) return;
     const rimSel = [...rimQty.entries()].map(([modifierId, qty]) => ({ modifierId, qty }));
     const mixinSel = [...mixinQty.entries()].map(([modifierId, qty]) => ({
       modifierId,
@@ -135,8 +165,12 @@ export function ShakeBuilder({
       })
       .map(([utensilId, included]) => ({ utensilId, included }));
 
+    const flavorNames = flavorIds
+      .map((id) => flavors.find((f) => f.id === id)?.name)
+      .filter((n): n is string => n !== undefined);
+
     const name = formatShakeLineName({
-      flavor: flavor.name,
+      flavors: flavorNames,
       base: base?.name,
       rims: rimSel.map(({ modifierId, qty }) => ({
         name: rims.find((r) => r.id === modifierId)?.name ?? "",
@@ -164,12 +198,12 @@ export function ShakeBuilder({
       : undefined;
 
     onConfirm({
-      productId: flavor.id,
+      productId: primary.id,
       name,
       qty: 1,
       unitPrice,
       shake: {
-        flavorId: flavor.id,
+        flavorIds,
         baseId,
         rims: rimSel,
         mixins: mixinSel,
@@ -196,20 +230,33 @@ export function ShakeBuilder({
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
         <div className="space-y-2">
-          <Label>Sabor</Label>
+          <div className="flex items-center gap-2">
+            <Label>Sabor</Label>
+            <span className="text-[11px] text-ink-faint">até {MAX_SHAKE_FLAVORS}</span>
+            <span className="h-px flex-1 bg-border" />
+            {flavorIds.length > 0 && (
+              <span className="shrink-0 rounded-full bg-mint-wash px-2 py-0.5 text-[10.5px] font-bold text-primary">
+                {flavorIds.length} de {MAX_SHAKE_FLAVORS}
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-2">
             {flavors.map((f) => {
-              const active = f.id === flavorId;
+              const active = flavorIds.includes(f.id);
+              const disabled = !active && atFlavorCap;
               return (
                 <button
                   key={f.id}
                   type="button"
-                  onClick={() => setFlavorId(f.id)}
+                  disabled={disabled}
+                  onClick={() => toggleFlavor(f.id)}
                   className={cn(
                     "flex flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-colors",
                     active
                       ? "border-primary bg-mist"
-                      : "border-border bg-card hover:border-primary/40",
+                      : disabled
+                        ? "cursor-not-allowed border-border bg-card opacity-50"
+                        : "border-border bg-card hover:border-primary/40",
                   )}
                 >
                   <span className="truncate text-[13px] font-semibold text-ink">
@@ -426,7 +473,7 @@ export function ShakeBuilder({
         </span>
         <Button
           onClick={confirm}
-          disabled={!flavor}
+          disabled={flavorIds.length === 0}
           className="h-11 gap-1.5 rounded-xl px-5 font-semibold"
         >
           <Plus className="size-4" />

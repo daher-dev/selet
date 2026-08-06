@@ -12,6 +12,7 @@ import type {
   Product,
 } from "@/lib/types";
 import { orderCode } from "@/lib/format";
+import { orderMoney, type DiscountInput } from "@/lib/order-money";
 import {
   cancelSoldCartelas,
   planCartelas,
@@ -46,6 +47,24 @@ function ordersCol(storeId: string) {
   return storeRef(storeId).collection("orders");
 }
 
+/**
+ * Back-compat read-time normalization for "Montar shake" lines: older docs
+ * (seed data, historical orders) stored `shake.flavorId: string` (singular).
+ * Placed orders are immutable financial records — their stockConsumed/
+ * cartelaConsumed reversal manifests were computed against that old shape, so
+ * the source doc is NEVER rewritten. Instead every reader goes through this
+ * single choke point, which normalizes to `flavorIds: string[]`. An order
+ * re-saved through the normal edit path is lazily upgraded for free.
+ */
+function normalizeItem(raw: FirebaseFirestore.DocumentData): OrderItem {
+  if (!raw.shake) return raw as OrderItem;
+  const rawShake = raw.shake as Record<string, unknown>;
+  const flavorIds =
+    (rawShake.flavorIds as string[] | undefined) ??
+    (rawShake.flavorId ? [rawShake.flavorId as string] : []);
+  return { ...raw, shake: { ...rawShake, flavorIds } } as OrderItem;
+}
+
 function toOrder(id: string, d: FirebaseFirestore.DocumentData): Order {
   return {
     id,
@@ -53,7 +72,7 @@ function toOrder(id: string, d: FirebaseFirestore.DocumentData): Order {
     customerId: d.customerId ?? null,
     customerName: d.customerName,
     channel: d.channel,
-    items: d.items ?? [],
+    items: ((d.items ?? []) as FirebaseFirestore.DocumentData[]).map(normalizeItem),
     total: d.total ?? 0,
     status: d.status,
     paid: d.paid ?? false,
@@ -61,13 +80,17 @@ function toOrder(id: string, d: FirebaseFirestore.DocumentData): Order {
     stockConsumed: d.stockConsumed ?? [],
     cartelaConsumed: d.cartelaConsumed ?? [],
     cartelaSold: d.cartelaSold ?? [],
+    discount: d.discount ?? null,
+    notes: d.notes ?? undefined,
     createdAt: d.createdAt?.toDate().toISOString() ?? "",
     updatedAt: d.updatedAt?.toDate().toISOString() ?? "",
   };
 }
 
-export function orderTotal(items: OrderItem[]): number {
-  return items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0);
+/** Thin wrapper around order-money's shared computation — kept name/signature
+ *  compatible (existing tests import it), with an optional discount added. */
+export function orderTotal(items: OrderItem[], discount?: DiscountInput | null): number {
+  return orderMoney(items, discount).total;
 }
 
 /** A cartela-sale line isn't a real product — never let it pollute "Mais vendidos" seller tallies. */
@@ -127,6 +150,14 @@ export interface OrderInput {
   customerName: string;
   channel: OrderChannel;
   items: OrderItem[];
+  /** Manual order-level discount; server recomputes `amount`, never trusts a client-sent one. */
+  discount?: DiscountInput | null;
+  /** Free-text order note (trim, max length enforced by the caller's zod schema). */
+  notes?: string;
+  /** ISO datetime; retroactive "Data da venda" (create: defaults to now when absent;
+   *  edit: moves the order's month bucket — see updateOrder). Mirrors the customer
+   *  creation `since` precedent — never spread raw into the doc. */
+  createdAt?: string;
 }
 
 /**
@@ -354,8 +385,23 @@ export async function createOrder(
 ): Promise<string> {
   const db = getDb();
   const ref = ordersCol(storeId).doc();
-  const now = Timestamp.now();
-  const total = orderTotal(input.items);
+  // Destructure the three new fields out — never spread them raw into the doc
+  // (createdAt is an ISO string, not a Timestamp; discount must be the
+  // server-computed shape, never a client-sent `amount`).
+  const { discount: discountInput, notes, createdAt: createdAtISO, ...rest } = input;
+  const money = orderMoney(input.items, discountInput);
+  const total = money.total;
+  // A R$0 order can never be marked paid — only "nada a cobrar" (paid:false).
+  if (payment.paid && total === 0) {
+    throw new Error(
+      "Pedido sem valor não pode ser marcado como pago — use \"Nada a cobrar\".",
+    );
+  }
+  // Concrete Timestamp (never serverTimestamp()) so every "when this happened"
+  // derivation below — doc createdAt/updatedAt, recomputeAggregates, monthKey,
+  // and the finance mirror's own date — uses the SAME instant, letting a
+  // backdated sale land in the right month everywhere, including Financeiro.
+  const now = createdAtISO ? Timestamp.fromDate(new Date(createdAtISO)) : Timestamp.now();
   const products = await fetchLineProducts(storeId, input.items);
   const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
 
@@ -415,11 +461,13 @@ export async function createOrder(
     commitAggregates?.();
     writeSummaryTx(tx, storeId, summary);
     tx.set(ref, {
-      ...input,
+      ...rest,
       total,
       status: "novo",
       paid: payment.paid,
       payMethod: payment.paid ? payment.payMethod : null,
+      discount: money.discount ?? null,
+      notes: notes?.trim() || null,
       stockConsumed,
       cartelaConsumed,
       cartelaSold,
@@ -451,6 +499,8 @@ export async function updateOrder(
 ): Promise<void> {
   const db = getDb();
   const ref = ordersCol(storeId).doc(orderId);
+  // Same discipline as createOrder: never spread these three raw into the doc.
+  const { discount: discountInput, notes, createdAt: createdAtISO, ...rest } = input;
   const products = await fetchLineProducts(storeId, input.items);
   const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
 
@@ -460,7 +510,8 @@ export async function updateOrder(
     const current = snap.data()!;
     const summary = await readSummaryTx(tx, storeId);
     const cancelled = current.status === "cancelado";
-    const total = orderTotal(input.items);
+    const money = orderMoney(input.items, discountInput);
+    const total = money.total;
     const oldTotal = current.total ?? 0;
     const oldDraws = (current.stockConsumed ?? []) as ConsumptionDraw[];
     const oldCartelaConsumed = (current.cartelaConsumed ?? []) as CartelaConsumedEntry[];
@@ -499,6 +550,20 @@ export async function updateOrder(
       cancelled ? null : input.items,
     );
 
+    // (a) paidBefore/paidAfter tracked SEPARATELY — an edit can DEMOTE payment
+    // (e.g. a "Grátis" discount dropping the total to 0), which the old code's
+    // single `paid` var couldn't express.
+    const paidBefore = current.paid ?? false;
+    const paidAfter = paidBefore && total > 0;
+
+    // (b) the order's month is no longer immutable — `createdAt` can move on
+    // edit ("Data da venda" is editable). oldMk from the CURRENTLY STORED
+    // createdAt, newMk from the (possibly updated) createdAt.
+    const oldCreatedAt = current.createdAt as Timestamp;
+    const newCreatedAt = createdAtISO
+      ? Timestamp.fromDate(new Date(createdAtISO))
+      : oldCreatedAt;
+
     const affected = new Set<string>();
     if (current.customerId) affected.add(current.customerId);
     if (input.customerId) affected.add(input.customerId);
@@ -510,64 +575,84 @@ export async function updateOrder(
           // The updated order counts toward its (new) customer unless cancelled.
           total: !cancelled && customerId === input.customerId ? total : null,
           createdAt:
-            !cancelled && customerId === input.customerId
-              ? current.createdAt
-              : null,
+            !cancelled && customerId === input.customerId ? newCreatedAt : null,
         }),
       );
     }
 
-    // Summary: the order's month is immutable (createdAt). An active order is
-    // re-stated (remove old totals/customer, add new); the finance mirror amount
-    // shift is applied when paid. A cancelled order isn't in the buckets, but its
-    // (still-present) paid mirror amount does change.
-    const mk = monthKey((current.createdAt as Timestamp).toDate());
-    const paid = current.paid ?? false;
+    // Summary: an active order is re-stated — removed from its OLD month
+    // bucket (with paidBefore) and re-added to its NEW month bucket (with
+    // paidAfter) — so a cross-month edit correctly MOVES the aggregates
+    // instead of corrupting one month or leaving stale numbers in the other.
+    // A cancelled order isn't in the buckets, but its (still-present) paid
+    // mirror amount does change below.
+    const oldMk = monthKey(oldCreatedAt.toDate());
+    const newMk = monthKey(newCreatedAt.toDate());
     if (!cancelled) {
       const open = isOpenStatus(current.status);
       summaryRemoveOrder(summary, {
-        mk,
+        mk: oldMk,
         total: oldTotal,
         custKey: customerKey(current.customerId ?? null, current.customerName),
         open,
-        paid,
+        paid: paidBefore,
         channel: current.channel,
         items: sellerItems((current.items ?? []) as OrderItem[]),
       });
       summaryAddOrder(summary, {
-        mk,
+        mk: newMk,
         total,
         custKey: customerKey(input.customerId, input.customerName),
         open,
-        paid,
+        paid: paidAfter,
         channel: input.channel,
         items: sellerItems(input.items),
       });
     }
-    if (paid && total !== oldTotal) {
-      const mirrorDate = financeMirrorSnap?.data()?.date as Timestamp | undefined;
-      const financeMk = mirrorDate ? monthKey(mirrorDate.toDate()) : mk;
-      summaryFinance(summary, {
-        mk: financeMk,
-        direction: "in",
-        amount: total - oldTotal,
-      });
+
+    // (c) Finance mirror: exists iff paid (the existing invariant). A discount
+    // demoting an already-paid order to "nada a cobrar" DELETES the mirror and
+    // reverses its amount out of the month it was posted in — never leave a
+    // stale mirror, and never write a R$0 mirror for a comped order. Staying
+    // paid with a changed total just updates the amount and shifts the delta.
+    const mirrorDate = financeMirrorSnap?.data()?.date as Timestamp | undefined;
+    const mirrorAmount = financeMirrorSnap?.data()?.amount as number | undefined;
+    const financeMk = mirrorDate ? monthKey(mirrorDate.toDate()) : oldMk;
+    if (paidBefore && !paidAfter) {
+      if (mirrorAmount) {
+        summaryFinance(summary, { mk: financeMk, direction: "in", amount: -mirrorAmount });
+      }
+    } else if (paidAfter && total !== oldTotal) {
+      summaryFinance(summary, { mk: financeMk, direction: "in", amount: total - oldTotal });
     }
 
     plan.commit();
     cartelaPlan.commit();
     for (const commit of aggregateCommits) commit();
     writeSummaryTx(tx, storeId, summary);
+    // (d) ignoreUndefinedProperties trap: tx.update(ref, {...input}) with
+    // discount: undefined would SILENTLY KEEP the old stored discount instead
+    // of clearing it. discount/notes are always written explicitly so "no
+    // discount"/"no notes" persists as null, never a silent no-op.
     tx.update(ref, {
-      ...input,
+      ...rest,
       total,
+      // paidAfter reflects the demotion computed above (a) — a "Grátis"
+      // discount zeroing the total flips the order's own paid/payMethod back
+      // to unpaid/nothing-to-charge, not just the summary bucket.
+      paid: paidAfter,
+      payMethod: paidAfter ? (current.payMethod ?? null) : null,
+      discount: money.discount ?? null,
+      notes: notes?.trim() || null,
       stockConsumed: plan.draws,
       cartelaConsumed: cartelaPlan.consumed,
       cartelaSold: [...oldCartelaSold, ...cartelaPlan.soldIds],
+      createdAt: newCreatedAt,
       updatedAt: Timestamp.now(),
     });
-    // Keep the finance mirror in sync with the new total.
-    if (current.paid) {
+    if (paidBefore && !paidAfter) {
+      tx.delete(financeMirrorRef);
+    } else if (paidAfter) {
       tx.update(financeMirrorRef, { amount: total });
     }
   });
@@ -733,6 +818,12 @@ export async function setOrderPayment(
     const wasPaid = current.paid ?? false;
     const cancelled = current.status === "cancelado";
     const total = current.total ?? 0;
+    // A R$0 order can never be marked paid — only "nada a cobrar" (paid:false).
+    if (paid && total === 0) {
+      throw new Error(
+        "Pedido sem valor não pode ser marcado como pago — use \"Nada a cobrar\".",
+      );
+    }
     const orderMk = monthKey((current.createdAt as Timestamp).toDate());
     const now = Timestamp.now();
 
@@ -753,8 +844,10 @@ export async function setOrderPayment(
     if (paid) {
       summaryFinance(summary, { mk: monthKey(now.toDate()), direction: "in", amount: total });
     }
-    // "A receber": an order is a receivable exactly when non-cancelled and unpaid.
-    if (!cancelled && wasPaid !== paid) {
+    // "A receber": an order is a receivable exactly when non-cancelled, unpaid,
+    // AND has a non-zero total (a comped/nada-a-cobrar order is never a
+    // receivable — mirrors the summary-core unpaid-tally rule).
+    if (!cancelled && wasPaid !== paid && total > 0) {
       summaryReceivable(summary, { mk: orderMk, total, sign: paid ? -1 : 1 });
     }
     writeSummaryTx(tx, storeId, summary);

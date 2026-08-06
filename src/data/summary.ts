@@ -55,6 +55,7 @@ function mapSummary(d: FirebaseFirestore.DocumentData): SummaryData {
         instagram: ch.instagram ?? 0,
         whatsapp: ch.whatsapp ?? 0,
         loja: ch.loja ?? 0,
+        interno: ch.interno ?? 0,
       },
       sellers: v.sellers ?? {},
       newCustomers: v.newCustomers ?? 0,

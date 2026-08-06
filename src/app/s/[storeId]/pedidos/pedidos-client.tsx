@@ -11,6 +11,7 @@ import {
   CircleX,
   Clock,
   Filter,
+  Gift,
   Inbox,
   List,
   MessageCircle,
@@ -20,6 +21,7 @@ import {
   Store,
   Ticket,
   Truck,
+  Users,
   Wallet,
 } from "lucide-react";
 import type {
@@ -94,6 +96,7 @@ const CHANNEL_OPTIONS: FilterOption<ChannelFilter>[] = [
   { value: "instagram", label: "Instagram", icon: AtSign, tile: "bg-channel-instagram/10 text-channel-instagram" },
   { value: "whatsapp", label: "WhatsApp", icon: MessageCircle, tile: "bg-channel-whatsapp/10 text-channel-whatsapp" },
   { value: "loja", label: "Loja física", icon: Store, tile: "bg-channel-loja/15 text-ink-soft" },
+  { value: "interno", label: "Interno", icon: Users, tile: "bg-channel-interno/10 text-channel-interno" },
 ];
 
 const STATUS_OPTIONS: FilterOption<StatusFilter>[] = [
@@ -167,7 +170,7 @@ export function PedidosClient({
   }, [products]);
 
   const receivables = useMemo(
-    () => orders.filter((o) => !o.paid && o.status !== "cancelado"),
+    () => orders.filter((o) => !o.paid && o.total > 0 && o.status !== "cancelado"),
     [orders],
   );
   const receivablesTotal = receivables.reduce((s, o) => s + o.total, 0);
@@ -184,7 +187,10 @@ export function PedidosClient({
       if (channelFilter !== "todos" && o.channel !== channelFilter) return false;
       if (statusFilter !== "todos" && o.status !== statusFilter) return false;
       if (payFilter === "pago" && (!o.paid || o.status === "cancelado")) return false;
-      if (payFilter === "pendente" && (o.paid || o.status === "cancelado"))
+      if (
+        payFilter === "pendente" &&
+        (o.paid || o.total === 0 || o.status === "cancelado")
+      )
         return false;
       return terms.every((term) => matches(o, term));
     });
@@ -323,7 +329,10 @@ export function PedidosClient({
             </DataListHeader>
             {filtered.map((order) => {
               const { visible, hidden } = itemChips(order);
-              const unpaid = !order.paid && order.status !== "cancelado";
+              const unpaid =
+                !order.paid && order.total > 0 && order.status !== "cancelado";
+              const nadaACobrar =
+                !order.paid && order.total === 0 && order.status !== "cancelado";
               const covered = cartelaCovered(order);
               return (
                 <DataListRow
@@ -372,6 +381,7 @@ export function PedidosClient({
                   <span className="flex items-center justify-end gap-2">
                     {covered > 0 && <CartelaCoverageChip amount={covered} />}
                     {unpaid && <ReceberChip />}
+                    {nadaACobrar && <NadaACobrarChip />}
                     <span className="tabular text-[14px] font-bold text-ink">
                       {formatBRL(order.total)}
                     </span>
@@ -385,7 +395,10 @@ export function PedidosClient({
           <ul className="space-y-3 min-[820px]:hidden">
             {filtered.map((order) => {
               const { visible, hidden } = itemChips(order);
-              const unpaid = !order.paid && order.status !== "cancelado";
+              const unpaid =
+                !order.paid && order.total > 0 && order.status !== "cancelado";
+              const nadaACobrar =
+                !order.paid && order.total === 0 && order.status !== "cancelado";
               const covered = cartelaCovered(order);
               return (
                 <li key={order.id}>
@@ -437,6 +450,7 @@ export function PedidosClient({
                       <span className="flex items-center gap-2">
                         {covered > 0 && <CartelaCoverageChip amount={covered} />}
                         {unpaid && <ReceberChip />}
+                        {nadaACobrar && <NadaACobrarChip />}
                         <span className="tabular text-[19px] font-bold text-ink">
                           {formatBRL(order.total)}
                         </span>
@@ -521,6 +535,18 @@ function CartelaCoverageChip({ amount }: { amount: number }) {
   return (
     <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-wash px-2 py-0.5 text-[10.5px] font-bold text-ink-soft">
       <Ticket className="size-3" strokeWidth={2.2} />− {formatBRL(amount)}
+    </span>
+  );
+}
+
+// Muted "Nada a cobrar" chip — shown in place of ReceberChip when an order's
+// total is 0 (fully discounted/comped) and it's still unpaid: a $0 order can
+// never be a receivable, so it gets its own neutral chip instead of amber.
+function NadaACobrarChip() {
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-wash px-2 py-0.5 text-[10.5px] font-bold text-ink-soft">
+      <Gift className="size-3" strokeWidth={2.2} />
+      Nada a cobrar
     </span>
   );
 }

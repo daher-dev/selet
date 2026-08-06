@@ -32,7 +32,7 @@ export const GRANTABLE_SECTIONS = [
 ] as const;
 export type GrantableSection = (typeof GRANTABLE_SECTIONS)[number];
 
-export const ORDER_CHANNELS = ["instagram", "whatsapp", "loja"] as const;
+export const ORDER_CHANNELS = ["instagram", "whatsapp", "loja", "interno"] as const;
 export type OrderChannel = (typeof ORDER_CHANNELS)[number];
 
 export const ORDER_STATUSES = [
@@ -46,6 +46,30 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const PAY_METHODS = ["pix", "cartao", "dinheiro"] as const;
 export type PayMethod = (typeof PAY_METHODS)[number];
+
+export const DISCOUNT_KINDS = ["flat", "percent", "free"] as const;
+export type DiscountKind = (typeof DISCOUNT_KINDS)[number];
+
+export const DISCOUNT_REASONS = [
+  "cortesia",
+  "consumo-interno",
+  "combinado",
+  "erro-preparo",
+] as const;
+export type DiscountReason = (typeof DISCOUNT_REASONS)[number];
+
+/**
+ * Manual, order-level discount (orthogonal to per-line cartela coverage).
+ * `value` is centavos for "flat", whole 1-100 for "percent", always 0 for
+ * "free". `amount` is server-computed centavos — never trust a client-sent
+ * amount (see src/lib/order-money.ts). `reason` is optional even for "free".
+ */
+export interface OrderDiscount {
+  kind: DiscountKind;
+  value: number;
+  amount: number; // centavos, server-computed
+  reason?: DiscountReason;
+}
 
 // Stock categories. The first four are the café working-insumo food groups the
 // design uses (Secos, Proteínas, Bebidas, Hortifrúti). "suplementos" and
@@ -160,6 +184,10 @@ export interface Order {
   cartelaConsumed: { cartelaId: string; uses: number }[];
   /** Cartela ids created (sold) by this order — used by the cancel cascade. */
   cartelaSold: string[];
+  /** Manual order-level discount (applied after cartela coverage, before total). */
+  discount?: OrderDiscount | null;
+  /** Free-text order note, visible to the team only (never shown in list rows). */
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -421,6 +449,9 @@ export interface ActivityEntry {
 // replacing the old per-flavor duplicated ProductAddon lists. A "Sabor" is a
 // slimmed, standalone entity (not a Product) — see src/data/shakes.ts. ---
 
+/** Max number of sabores a single "Montar shake" line may select ("até 3"). */
+export const MAX_SHAKE_FLAVORS = 3;
+
 /** A flavor's own insumo list — reuses RecipeItem verbatim ("insumos do sabor"). */
 export interface ShakeFlavor {
   id: string;
@@ -505,7 +536,8 @@ export interface ShakeBrindeSelection {
 
 /** A "Montar shake" order line's picks, embedded on OrderItem.shake. */
 export interface ShakeSelection {
-  flavorId: string;
+  /** 1 to MAX_SHAKE_FLAVORS sabor ids; pricing/productId use the primary (max-price) flavor. */
+  flavorIds: string[];
   baseId: string | null;
   rims: { modifierId: string; qty: number }[];
   mixins: { modifierId: string; qty: number }[];
