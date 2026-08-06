@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Ticket } from "lucide-react";
+import { Check, Minus, Ticket } from "lucide-react";
 import type { Cartela } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
 import { balanceValue, remainingUses } from "@/lib/cartelas";
@@ -137,6 +137,12 @@ export function CartelasClient({ storeId, cartelas }: CartelasClientProps) {
         <span className="flex items-center gap-1.5 text-[11.5px] text-ink-soft">
           <span className="size-[13px] shrink-0 rounded-full bg-[#D9A11B]" />
           brinde
+        </span>
+        <span className="flex items-center gap-1.5 text-[11.5px] text-ink-soft">
+          <span className="flex size-[13px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-[#B6A4D8] text-[#7A63B8]">
+            <Minus className="size-1.5" strokeWidth={4} />
+          </span>
+          ajuste manual (sem produto)
         </span>
       </div>
 

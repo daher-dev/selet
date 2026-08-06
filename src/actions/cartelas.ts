@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAccess } from "@/lib/access";
-import { cancelCartela, listCartelasByCustomer } from "@/data/cartelas";
+import { cancelCartela, listCartelasByCustomer, markManualCartelaUse } from "@/data/cartelas";
 import { logActivity } from "@/data/activity";
 import { cartelaCode } from "@/lib/cartelas";
-import type { Cartela } from "@/lib/types";
+import { CARTELA_MANUAL_REASONS, type Cartela } from "@/lib/types";
 import type { ActionResult } from "./products";
 
 async function run(fn: () => Promise<void>): Promise<ActionResult> {
@@ -45,6 +45,32 @@ export async function cancelCartelaAction(
     await logActivity(storeId, {
       icon: "ban",
       label: `Cancelou cartela #${cartelaCode(cartelaId)}`,
+      detail: "Cartelas",
+      by: user.email,
+      section: "cartelas",
+    });
+    revalidate(storeId);
+  });
+}
+
+const manualUseSchema = z.object({
+  storeId: z.string().min(1),
+  cartelaId: z.string().min(1),
+  count: z.number().int().positive(),
+  reason: z.enum(CARTELA_MANUAL_REASONS),
+  note: z.string().trim().max(280).optional(),
+});
+
+export async function markManualCartelaUseAction(
+  input: z.input<typeof manualUseSchema>,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { storeId, cartelaId, count, reason, note } = manualUseSchema.parse(input);
+    const user = await requireAccess(storeId, "cartelas");
+    await markManualCartelaUse(storeId, cartelaId, { count, reason, note, by: user.name });
+    await logActivity(storeId, {
+      icon: "minus",
+      label: `Ajuste manual · ${count} uso${count === 1 ? "" : "s"} · Cartela #${cartelaCode(cartelaId)}`,
       detail: "Cartelas",
       by: user.email,
       section: "cartelas",

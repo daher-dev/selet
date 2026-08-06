@@ -85,6 +85,7 @@ const CARTELA_TILE: CategoryMeta = {
 /** Placeholder CartelaUse — only `.length` of the array it's filled into ever
  *  matters to the pure helpers, so its own field values are never read. */
 const PLACEHOLDER_USE: CartelaUse = {
+  kind: "order",
   orderId: "",
   orderCode: "",
   productName: "",

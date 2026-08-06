@@ -189,11 +189,15 @@ const MANUAL_FINANCE: DemoFinance[] = [
 // figures pixel-for-pixel, only its shape (3 active cartelas, one exhausted).
 // ---------------------------------------------------------------------------
 
-interface DemoCartelaUse {
-  orderCode: string;
-  productName: string;
-  daysAgo: number;
-}
+type DemoCartelaUse =
+  | { kind: "order"; orderCode: string; productName: string; daysAgo: number }
+  | {
+      kind: "manual";
+      reason: "NAO_REGISTRADO" | "CORTESIA" | "CORRECAO";
+      note?: string;
+      by: string;
+      daysAgo: number;
+    };
 
 interface DemoCartela {
   code: string; // "C012" — also the doc id
@@ -215,11 +219,20 @@ const CARTELAS: DemoCartela[] = [
     unitValue: 3000,
     purchasedDaysAgo: 4,
     uses: [
-      { orderCode: "4066", productName: "Shake da Beleza", daysAgo: 4 }, // brinde
-      { orderCode: "4102", productName: "Shake Ovomaltine", daysAgo: 3 },
-      { orderCode: "4187", productName: "Shake da Beleza", daysAgo: 1 },
-      { orderCode: "4187", productName: "Shake Ovomaltine", daysAgo: 1 },
-      { orderCode: "4187", productName: "Shake Bombom Serenata", daysAgo: 1 },
+      { kind: "order", orderCode: "4066", productName: "Shake da Beleza", daysAgo: 4 }, // brinde
+      { kind: "order", orderCode: "4102", productName: "Shake Ovomaltine", daysAgo: 3 },
+      { kind: "order", orderCode: "4187", productName: "Shake da Beleza", daysAgo: 1 },
+      { kind: "order", orderCode: "4187", productName: "Shake Ovomaltine", daysAgo: 1 },
+      { kind: "order", orderCode: "4187", productName: "Shake Bombom Serenata", daysAgo: 1 },
+      // Mirrors docs/design/Mock Cartelas.dc.html frames 2a/3a verbatim — this
+      // is the exact "Ajuste manual" history entry + "5 usos restantes" example.
+      {
+        kind: "manual",
+        reason: "NAO_REGISTRADO",
+        note: "Cliente resgatou na loja sem registro no caixa",
+        by: "Camila",
+        daysAgo: 0,
+      },
     ],
     status: "ativa",
   },
@@ -231,13 +244,15 @@ const CARTELAS: DemoCartela[] = [
     unitValue: 2200,
     purchasedDaysAgo: 10,
     uses: [
-      { orderCode: "4058", productName: "Coxinha Proteica", daysAgo: 10 }, // brinde
-      { orderCode: "4071", productName: "Coxinha Proteica", daysAgo: 8 },
-      { orderCode: "4071", productName: "Coxinha Proteica", daysAgo: 8 },
-      { orderCode: "4098", productName: "Coxinha Proteica", daysAgo: 5 },
-      { orderCode: "4098", productName: "Coxinha Proteica", daysAgo: 5 },
-      { orderCode: "4140", productName: "Coxinha Proteica", daysAgo: 2 },
-      { orderCode: "4140", productName: "Coxinha Proteica", daysAgo: 2 },
+      { kind: "order", orderCode: "4058", productName: "Coxinha Proteica", daysAgo: 10 }, // brinde
+      { kind: "order", orderCode: "4071", productName: "Coxinha Proteica", daysAgo: 8 },
+      { kind: "order", orderCode: "4071", productName: "Coxinha Proteica", daysAgo: 8 },
+      { kind: "order", orderCode: "4098", productName: "Coxinha Proteica", daysAgo: 5 },
+      { kind: "order", orderCode: "4098", productName: "Coxinha Proteica", daysAgo: 5 },
+      // Mirrors frame 1a's list-row example (dashed dot mid-sequence).
+      { kind: "manual", reason: "CORTESIA", by: "Camila", daysAgo: 3 },
+      { kind: "order", orderCode: "4140", productName: "Coxinha Proteica", daysAgo: 2 },
+      { kind: "order", orderCode: "4140", productName: "Coxinha Proteica", daysAgo: 2 },
     ],
     status: "ativa",
   },
@@ -259,17 +274,17 @@ const CARTELAS: DemoCartela[] = [
     unitValue: 1500,
     purchasedDaysAgo: 95,
     uses: [
-      { orderCode: "3312", productName: "Escondidinho de Frango", daysAgo: 95 }, // brinde
-      { orderCode: "3350", productName: "Escondidinho de Frango", daysAgo: 85 },
-      { orderCode: "3390", productName: "Escondidinho de Frango", daysAgo: 76 },
-      { orderCode: "3430", productName: "Escondidinho de Frango", daysAgo: 67 },
-      { orderCode: "3470", productName: "Escondidinho de Frango", daysAgo: 58 },
-      { orderCode: "3512", productName: "Escondidinho de Frango", daysAgo: 49 },
-      { orderCode: "3560", productName: "Escondidinho de Frango", daysAgo: 40 },
-      { orderCode: "3610", productName: "Escondidinho de Frango", daysAgo: 31 },
-      { orderCode: "3670", productName: "Escondidinho de Frango", daysAgo: 22 },
-      { orderCode: "3740", productName: "Escondidinho de Frango", daysAgo: 13 },
-      { orderCode: "3820", productName: "Escondidinho de Frango", daysAgo: 4 },
+      { kind: "order", orderCode: "3312", productName: "Escondidinho de Frango", daysAgo: 95 }, // brinde
+      { kind: "order", orderCode: "3350", productName: "Escondidinho de Frango", daysAgo: 85 },
+      { kind: "order", orderCode: "3390", productName: "Escondidinho de Frango", daysAgo: 76 },
+      { kind: "order", orderCode: "3430", productName: "Escondidinho de Frango", daysAgo: 67 },
+      { kind: "order", orderCode: "3470", productName: "Escondidinho de Frango", daysAgo: 58 },
+      { kind: "order", orderCode: "3512", productName: "Escondidinho de Frango", daysAgo: 49 },
+      { kind: "order", orderCode: "3560", productName: "Escondidinho de Frango", daysAgo: 40 },
+      { kind: "order", orderCode: "3610", productName: "Escondidinho de Frango", daysAgo: 31 },
+      { kind: "order", orderCode: "3670", productName: "Escondidinho de Frango", daysAgo: 22 },
+      { kind: "order", orderCode: "3740", productName: "Escondidinho de Frango", daysAgo: 13 },
+      { kind: "order", orderCode: "3820", productName: "Escondidinho de Frango", daysAgo: 4 },
     ],
     status: "esgotada",
   },
@@ -294,12 +309,23 @@ async function seedCartelas(
     // purchasedAt/createdAt/updatedAt, it does no Timestamp→ISO conversion),
     // so a raw Timestamp here breaks RSC serialization of the whole cartela
     // the moment the Pedidos order drawer fetches it client-side.
-    const uses = c.uses.map((u) => ({
-      orderId: `demo-order-${u.orderCode}`,
-      orderCode: u.orderCode,
-      productName: u.productName,
-      at: daysAgo(u.daysAgo).toDate().toISOString(),
-    }));
+    const uses = c.uses.map((u) =>
+      u.kind === "manual"
+        ? {
+            kind: "manual" as const,
+            reason: u.reason,
+            note: u.note,
+            by: u.by,
+            at: daysAgo(u.daysAgo).toDate().toISOString(),
+          }
+        : {
+            kind: "order" as const,
+            orderId: `demo-order-${u.orderCode}`,
+            orderCode: u.orderCode,
+            productName: u.productName,
+            at: daysAgo(u.daysAgo).toDate().toISOString(),
+          },
+    );
 
     await store.collection("cartelas").doc(c.code).set({
       customerId,

@@ -3,7 +3,14 @@ import "server-only";
 import { Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
 import { cartelaCode, computeStatus, coverageFor } from "@/lib/cartelas";
-import type { Cartela, CartelaStatus, CartelaUse, OrderItem } from "@/lib/types";
+import type {
+  Cartela,
+  CartelaManualReason,
+  CartelaManualUse,
+  CartelaStatus,
+  CartelaUse,
+  OrderItem,
+} from "@/lib/types";
 
 function storeRef(storeId: string) {
   return getDb().collection("stores").doc(storeId);
@@ -30,6 +37,16 @@ function toIsoUseAt(at: unknown): string {
   return "";
 }
 
+// Existing docs predate the manual-adjustment feature and have no `kind`
+// field on their `uses[]` entries at all — normalize to "order" on read, the
+// same way toIsoUseAt() normalizes a legacy Timestamp `at`. Never a
+// migration: Firestore is schemaless, so old docs simply lack the field.
+function normalizeUse(u: CartelaUse): CartelaUse {
+  return u.kind === "manual"
+    ? { ...u, at: toIsoUseAt(u.at) }
+    : { ...u, kind: "order", at: toIsoUseAt(u.at) };
+}
+
 function toCartela(id: string, d: FirebaseFirestore.DocumentData): Cartela {
   return {
     id,
@@ -40,7 +57,7 @@ function toCartela(id: string, d: FirebaseFirestore.DocumentData): Cartela {
     totalUses: d.totalUses ?? 0,
     unitValue: d.unitValue ?? 0,
     amount: d.amount ?? 0,
-    uses: ((d.uses ?? []) as CartelaUse[]).map((u) => ({ ...u, at: toIsoUseAt(u.at) })),
+    uses: ((d.uses ?? []) as CartelaUse[]).map(normalizeUse),
     status: (d.status ?? "ativa") as CartelaStatus,
     soldOnOrderId: d.soldOnOrderId,
     purchasedAt: d.purchasedAt?.toDate().toISOString() ?? "",
@@ -92,6 +109,54 @@ export async function cancelCartela(storeId: string, cartelaId: string): Promise
   await cartelasCol(storeId)
     .doc(cartelaId)
     .update({ status: "cancelada" satisfies CartelaStatus, updatedAt: Timestamp.now() });
+}
+
+export interface ManualCartelaUseInput {
+  count: number;
+  reason: CartelaManualReason;
+  note?: string;
+  /** Acting user's display name — see CartelaManualUse.by. */
+  by: string;
+}
+
+/**
+ * Marks `count` uses as consumed with no order/product behind them — staff
+ * flagging a redemption that happened without going through a sale. A single
+ * doc read/validate/write transaction, same shape as markPackageEmpty in
+ * data/stock.ts: no plan/commit split needed since only one cartela doc is
+ * touched. Status is re-derived via computeStatus(), so an adjustment that
+ * exhausts the last uses flips the cartela to "esgotada" for free.
+ */
+export async function markManualCartelaUse(
+  storeId: string,
+  cartelaId: string,
+  input: ManualCartelaUseInput,
+): Promise<void> {
+  const ref = cartelasCol(storeId).doc(cartelaId);
+  await getDb().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error("Cartela não encontrada.");
+    const data = snap.data()!;
+    if ((data.status ?? "ativa") === "cancelada") {
+      throw new Error("Esta cartela foi cancelada e não pode ser ajustada.");
+    }
+    const cartela = toCartela(cartelaId, data);
+    const remaining = cartela.totalUses - cartela.uses.length;
+    if (input.count > remaining) {
+      throw new Error(`Saldo insuficiente: restam ${remaining} uso${remaining === 1 ? "" : "s"}.`);
+    }
+    const nowIso = new Date().toISOString();
+    const newUses: CartelaManualUse[] = Array.from({ length: input.count }, () => ({
+      kind: "manual",
+      reason: input.reason,
+      note: input.note,
+      by: input.by,
+      at: nowIso,
+    }));
+    const nextUses = [...cartela.uses, ...newUses];
+    const candidate: Cartela = { ...cartela, uses: nextUses };
+    tx.update(ref, { uses: nextUses, status: computeStatus(candidate), updatedAt: Timestamp.now() });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -185,11 +250,15 @@ export async function planCartelas(
     working.set(id, [...((data.uses ?? []) as CartelaUse[])]);
   }
 
-  // 1) Reverse: drop every use entry this order previously appended.
+  // 1) Reverse: drop every use entry this order previously appended. Manual
+  // adjustments have no orderId and must never be touched by this reversal.
   for (const { cartelaId } of oldManifest.consumed) {
     const uses = working.get(cartelaId);
     if (!uses) continue;
-    working.set(cartelaId, uses.filter((u) => u.orderId !== orderId));
+    working.set(
+      cartelaId,
+      uses.filter((u) => u.kind === "manual" || u.orderId !== orderId),
+    );
   }
 
   // 2) Validate the new request against the reversed (clean) balances.
@@ -228,7 +297,7 @@ export async function planCartelas(
   for (const line of useLines) {
     const uses = working.get(line.cartelaUse.cartelaId)!;
     for (let i = 0; i < line.cartelaUse.uses; i++) {
-      uses.push({ orderId, orderCode, productName: line.name, at: nowIso });
+      uses.push({ kind: "order", orderId, orderCode, productName: line.name, at: nowIso });
     }
   }
 
@@ -270,7 +339,7 @@ export async function planCartelas(
   // all lines) it holds on each touched cartela, after reverse+apply. ----
   const consumed: CartelaConsumedEntry[] = [];
   for (const [cartelaId, uses] of working) {
-    const mine = uses.filter((u) => u.orderId === orderId).length;
+    const mine = uses.filter((u) => u.kind === "order" && u.orderId === orderId).length;
     if (mine > 0) consumed.push({ cartelaId, uses: mine });
   }
 

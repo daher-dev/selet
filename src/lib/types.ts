@@ -402,13 +402,39 @@ export interface FinanceTx {
 
 export type CartelaStatus = "ativa" | "esgotada" | "cancelada";
 
-/** One redemption event, appended to Cartela.uses in the order it happened. */
-export interface CartelaUse {
+/** One redemption event tied to an order/product line. */
+export interface CartelaOrderUse {
+  kind: "order";
   orderId: string;
   orderCode: string;
   productName: string;
   at: string;
 }
+
+// The semantic reason for a manual (order-less) adjustment — staff marking a
+// use as consumed without it going through a sale (e.g. redeemed in-store but
+// never rung up at the register).
+export const CARTELA_MANUAL_REASONS = ["NAO_REGISTRADO", "CORTESIA", "CORRECAO"] as const;
+export type CartelaManualReason = (typeof CARTELA_MANUAL_REASONS)[number];
+
+/**
+ * One redemption event marked by staff directly, with no order/product
+ * behind it. `by` snapshots the acting user's DISPLAY NAME (not email, unlike
+ * StockMovement.by/ActivityInput.by) — this is the one place in the app that
+ * renders a "who did this" name straight into the UI, and there's no
+ * email→name resolver to join against later, so it's denormalized at write
+ * time like Cartela.customerName / CartelaOrderUse.productName already are.
+ */
+export interface CartelaManualUse {
+  kind: "manual";
+  reason: CartelaManualReason;
+  note?: string;
+  by: string;
+  at: string;
+}
+
+/** One redemption event, appended to Cartela.uses in the order it happened. */
+export type CartelaUse = CartelaOrderUse | CartelaManualUse;
 
 /**
  * A punch card. `uses` is the ONLY source of truth for how much has been

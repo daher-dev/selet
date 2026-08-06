@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 import type { Cartela } from "@/lib/types";
 import { punchStates, type PunchState } from "@/lib/cartelas";
 import { cn } from "@/lib/utils";
@@ -15,9 +15,10 @@ type CartelaPunchDotsProps = {
  * Shared punch-dot row — the single place that turns lib/cartelas'
  * punchStates() into pixels. A solid dot is a free/unused slot (amber for
  * the brinde, green for a paid one); an outlined dot with a checkmark is one
- * already consumed. Used by the Cartelas list, the cartela history drawer,
- * the customer detail card, and the Pedidos cartela builder + "Cartela
- * aplicada" confirmation preview.
+ * consumed by an order; a dashed outline with a minus is one consumed by a
+ * manual adjustment (no order/product behind it). Used by the Cartelas list,
+ * the cartela history drawer, the customer detail card, and the Pedidos
+ * cartela builder + "Cartela aplicada" confirmation preview.
  *
  * Accepts either a live `cartela` (most callers — the dots are derived here
  * via punchStates()) or precomputed `states` directly, for callers that
@@ -40,6 +41,19 @@ export function CartelaPunchDots(props: CartelaPunchDotsProps) {
         if (state === "livre") {
           return (
             <span key={i} className={cn(dim, "shrink-0 rounded-full bg-primary")} />
+          );
+        }
+        if (state === "ajuste") {
+          return (
+            <span
+              key={i}
+              className={cn(
+                dim,
+                "flex shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-[#B6A4D8] bg-card text-[#7A63B8]",
+              )}
+            >
+              <Minus className={iconDim} strokeWidth={4} />
+            </span>
           );
         }
         const isBrinde = state === "brinde-usado";

@@ -1,21 +1,33 @@
 import { describe, expect, it } from "vitest";
-import type { Cartela, CartelaUse } from "./types";
+import type { Cartela, CartelaManualUse, CartelaOrderUse, CartelaUse } from "./types";
 import {
   balanceValue,
   cartelaCode,
   computeStatus,
   coverageFor,
+  manualUseGroups,
   punchStates,
   remainingUses,
   usesByOrder,
 } from "./cartelas";
 
-function use(over: Partial<CartelaUse> = {}): CartelaUse {
+function use(over: Partial<CartelaOrderUse> = {}): CartelaUse {
   return {
+    kind: "order",
     orderId: "o1",
     orderCode: "O001",
     productName: "Shake da Beleza",
     at: "2026-08-01T10:00:00.000Z",
+    ...over,
+  };
+}
+
+function manualUse(over: Partial<CartelaManualUse> = {}): CartelaUse {
+  return {
+    kind: "manual",
+    reason: "NAO_REGISTRADO",
+    by: "Camila",
+    at: "2026-08-03T10:00:00.000Z",
     ...over,
   };
 }
@@ -90,6 +102,18 @@ describe("punchStates", () => {
     expect(punchStates(cartela({ paidUses: 1, uses: [] }))).toEqual(["brinde-livre", "livre"]);
     expect(punchStates(cartela({ paidUses: 1, uses: [use()] }))).toEqual([
       "brinde-usado",
+      "livre",
+    ]);
+  });
+
+  it("renders a manual adjustment as 'ajuste' regardless of position", () => {
+    expect(
+      punchStates(cartela({ paidUses: 2, uses: [use(), manualUse(), use()] })),
+    ).toEqual(["brinde-usado", "ajuste", "usado"]);
+    // even when the manual entry happens to be the brinde slot
+    expect(punchStates(cartela({ paidUses: 2, uses: [manualUse()] }))).toEqual([
+      "ajuste",
+      "livre",
       "livre",
     ]);
   });
@@ -186,5 +210,60 @@ describe("usesByOrder", () => {
 
   it("returns an empty array for a never-used cartela", () => {
     expect(usesByOrder(cartela({ paidUses: 2, uses: [] }))).toEqual([]);
+  });
+
+  it("excludes manual adjustments — they have no order to group by", () => {
+    const c = cartela({
+      paidUses: 2,
+      uses: [
+        use({ orderId: "o1", orderCode: "O001", at: "2026-08-01T10:00:00.000Z" }),
+        manualUse({ at: "2026-08-02T10:00:00.000Z" }),
+      ],
+    });
+    const groups = usesByOrder(c);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].orderId).toBe("o1");
+  });
+});
+
+describe("manualUseGroups", () => {
+  it("groups uses sharing the same `at` into one batch with a count", () => {
+    const c = cartela({
+      paidUses: 3,
+      uses: [
+        manualUse({ at: "2026-08-03T10:00:00.000Z", note: "Cliente resgatou na loja" }),
+        manualUse({ at: "2026-08-03T10:00:00.000Z", note: "Cliente resgatou na loja" }),
+      ],
+    });
+    const groups = manualUseGroups(c);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({ count: 2, note: "Cliente resgatou na loja", by: "Camila" });
+  });
+
+  it("excludes order-backed uses", () => {
+    const c = cartela({ paidUses: 2, uses: [use()] });
+    expect(manualUseGroups(c)).toEqual([]);
+  });
+
+  it("orders batches newest-first and flags isBrinde only when the batch includes uses[0]", () => {
+    const c = cartela({
+      paidUses: 3,
+      uses: [
+        manualUse({ at: "2026-08-01T10:00:00.000Z" }),
+        use({ at: "2026-08-02T10:00:00.000Z" }),
+        manualUse({ at: "2026-08-03T10:00:00.000Z" }),
+      ],
+    });
+    const groups = manualUseGroups(c);
+    expect(groups.map((g) => g.at)).toEqual([
+      "2026-08-03T10:00:00.000Z",
+      "2026-08-01T10:00:00.000Z",
+    ]);
+    expect(groups.find((g) => g.at === "2026-08-01T10:00:00.000Z")?.isBrinde).toBe(true);
+    expect(groups.find((g) => g.at === "2026-08-03T10:00:00.000Z")?.isBrinde).toBe(false);
+  });
+
+  it("returns an empty array for a never-used cartela", () => {
+    expect(manualUseGroups(cartela({ paidUses: 2, uses: [] }))).toEqual([]);
   });
 });
