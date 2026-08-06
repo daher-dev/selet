@@ -78,6 +78,7 @@ const ACCESS_MODULES: {
   { key: "pedidos", label: "Pedidos", icon: Inbox },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "produtos", label: "Cardápio", icon: Tag },
+  { key: "shakes", label: "Shakes", icon: CupSoda },
   { key: "cartelas", label: "Cartelas", icon: Ticket },
   { key: "estoque", label: "Estoque", icon: Package },
   { key: "financeiro", label: "Financeiro", icon: CircleDollarSign },

@@ -48,9 +48,10 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Shakes",
     segment: "shakes",
     icon: CupSoda,
-    // Admin-only: "shakes" is in SECTIONS but deliberately not in
-    // GRANTABLE_SECTIONS, same treatment as "equipe" — no extra gating needed
-    // here, canAccessSection()/the sidebar filter already handle it.
+    // Grantable like every other operational module (see GRANTABLE_SECTIONS
+    // in src/lib/types.ts) — a funcionário sees this once an admin toggles
+    // it on for them. No extra gating needed here, canAccessSection()/the
+    // sidebar filter already handle it.
     section: "shakes",
   },
   {

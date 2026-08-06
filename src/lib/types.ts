@@ -16,12 +16,18 @@ export const SECTIONS = [
 ] as const;
 export type Section = (typeof SECTIONS)[number];
 
-// The modules a funcionário can be granted access to. Team management
-// ("equipe") is admin-only by design — its access catalog is exactly these
-// six modules (design aclSections, Selet Admin.dc.html:2415-2423). "equipe"
-// stays in SECTIONS so nav gating keeps working (admins see the Equipe item via
-// their role), but it is intentionally NOT grantable: a funcionário can never
-// be given team-management rights through the member form or a server action.
+// The modules a funcionário can be granted access to. Only "equipe" (team
+// management) is admin-only by design — it stays in SECTIONS so nav gating
+// keeps working (admins see the Equipe item via their role), but it is
+// intentionally NOT grantable: a funcionário can never be given
+// team-management rights through the member form or a server action, since
+// that would let staff manage other staff's own access.
+//
+// "shakes" was excluded here until a bug report surfaced that some
+// funcionários genuinely need it (staff building shakes at the counter) but
+// had no way to be granted it — there was no toggle for it anywhere, and
+// the server action rejected it even if one existed (z.enum(GRANTABLE_SECTIONS)
+// below). It's now grantable like every other operational module.
 export const GRANTABLE_SECTIONS = [
   "pedidos",
   "clientes",
@@ -29,6 +35,7 @@ export const GRANTABLE_SECTIONS = [
   "estoque",
   "financeiro",
   "cartelas",
+  "shakes",
 ] as const;
 export type GrantableSection = (typeof GRANTABLE_SECTIONS)[number];
 
