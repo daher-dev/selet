@@ -33,7 +33,7 @@ interface CartelaBuilderProps {
  * built-in brinde become `totalUses`; the line's price is paidUses × unitValue.
  */
 export function CartelaBuilder({ hasCustomer, onConfirm }: CartelaBuilderProps) {
-  const [paidUses, setPaidUses] = useState(1);
+  const [paidUses, setPaidUses] = useState(10);
   const [valueInput, setValueInput] = useState("");
 
   const unitValue = safeParseBRL(valueInput);
