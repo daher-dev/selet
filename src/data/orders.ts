@@ -189,16 +189,27 @@ function productRef(storeId: string, productId: string) {
   return storeRef(storeId).collection("products").doc(productId);
 }
 
-/** Loads the products referenced by an order's lines, keyed by id (misses skipped). */
+/**
+ * Loads the products referenced by an order's lines, keyed by id (misses
+ * skipped). A shake line's brinde is also a Product join (line.shake.brinde.
+ * productId) — included here so both order-item display (its live name/price)
+ * and buildConsumptionRequests (its recipe draw) can resolve it from this
+ * same map without a second fetch.
+ */
 async function fetchLineProducts(
   storeId: string,
   items: OrderItem[],
 ): Promise<Map<string, Product>> {
-  const ids = [...new Set(items.map((i) => i.productId))];
-  const loaded = await Promise.all(ids.map((id) => getProduct(storeId, id)));
+  const ids = new Set(items.map((i) => i.productId));
+  for (const item of items) {
+    const brindeId = item.shake?.brinde?.productId;
+    if (brindeId) ids.add(brindeId);
+  }
+  const idList = [...ids];
+  const loaded = await Promise.all(idList.map((id) => getProduct(storeId, id)));
   const map = new Map<string, Product>();
   loaded.forEach((p, i) => {
-    if (p) map.set(ids[i], p);
+    if (p) map.set(idList[i], p);
   });
   return map;
 }

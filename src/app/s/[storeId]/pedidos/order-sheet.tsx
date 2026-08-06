@@ -22,6 +22,7 @@ import type {
   PayMethod,
   Product,
   ShakeBase,
+  ShakeBrinde,
   ShakeFlavor,
   ShakeMixin,
   ShakeRim,
@@ -40,7 +41,7 @@ import {
   updateOrderAction,
 } from "@/actions/orders";
 import { listCartelasByCustomerAction } from "@/actions/cartelas";
-import { ShakeBuilder } from "./shake-builder";
+import { ShakeBuilder, type ShakeBrindeOption } from "./shake-builder";
 import { CartelaBuilder } from "./cartela-builder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,7 +103,16 @@ function shakeSignature(shake?: OrderItem["shake"]): string {
   const overrides = [...(shake.utensilOverrides ?? [])].sort((a, b) =>
     a.utensilId.localeCompare(b.utensilId),
   );
-  return JSON.stringify({ f: shake.flavorId, b: shake.baseId, rims, mixins, overrides });
+  // The chosen brinde (and its own selected addons) is part of what makes a
+  // shake line unique — two otherwise-identical shakes with different
+  // brindes must NOT collapse into one qty:N line.
+  const brinde = shake.brinde
+    ? {
+        productId: shake.brinde.productId,
+        addons: [...(shake.brinde.addons ?? [])].map((a) => a.name).sort(),
+      }
+    : null;
+  return JSON.stringify({ f: shake.flavorId, b: shake.baseId, rims, mixins, overrides, brinde });
 }
 
 interface OrderSheetProps {
@@ -115,6 +125,7 @@ interface OrderSheetProps {
   shakeRims: ShakeRim[];
   shakeMixins: ShakeMixin[];
   shakeUtensils: ShakeUtensil[];
+  shakeBrindes: ShakeBrinde[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -129,6 +140,7 @@ export function OrderSheet({
   shakeRims,
   shakeMixins,
   shakeUtensils,
+  shakeBrindes,
   open,
   onOpenChange,
 }: OrderSheetProps) {
@@ -165,6 +177,7 @@ export function OrderSheet({
           shakeRims={shakeRims}
           shakeMixins={shakeMixins}
           shakeUtensils={shakeUtensils}
+          shakeBrindes={shakeBrindes}
           onClose={() => onOpenChange(false)}
         />
       </SheetContent>
@@ -182,6 +195,7 @@ function OrderForm({
   shakeRims,
   shakeMixins,
   shakeUtensils,
+  shakeBrindes,
   onClose,
 }: {
   storeId: string;
@@ -193,6 +207,7 @@ function OrderForm({
   shakeRims: ShakeRim[];
   shakeMixins: ShakeMixin[];
   shakeUtensils: ShakeUtensil[];
+  shakeBrindes: ShakeBrinde[];
   onClose: () => void;
 }) {
   const [customerId, setCustomerId] = useState<string>(
@@ -309,6 +324,26 @@ function OrderForm({
     for (const p of products) map.set(p.id, p);
     return map;
   }, [products]);
+
+  // The shake builder's brinde options: each ShakeBrinde catalog entry joined
+  // once with its LIVE Product (name/price/category/adicionais) — a brinde
+  // doc carries no price or recipe of its own. A brinde whose Product isn't
+  // in `products` (deleted/inactive) is silently dropped from the picker.
+  const brindeOptions = useMemo<ShakeBrindeOption[]>(() => {
+    const options: ShakeBrindeOption[] = [];
+    for (const b of shakeBrindes) {
+      const product = productById.get(b.productId);
+      if (!product) continue;
+      options.push({
+        productId: b.productId,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        adicionais: product.adicionais,
+      });
+    }
+    return options;
+  }, [shakeBrindes, productById]);
 
   function lineMeta(item: OrderItem): CategoryMeta {
     if (item.cartelaSale) return CARTELA_TILE;
@@ -572,6 +607,22 @@ function OrderForm({
                               {item.addons.join(", ")}
                             </span>
                           )}
+                          {item.shake?.brinde && (
+                            <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11.5px] text-ink-soft">
+                              <span className="shrink-0 rounded-full bg-mint-wash px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                                Brinde
+                              </span>
+                              {item.shake.brinde.name} · {formatBRL(0)}
+                            </span>
+                          )}
+                          {item.shake?.brinde?.addons?.map((addon) => (
+                            <span
+                              key={addon.name}
+                              className="mt-1 flex items-center gap-1 text-[11.5px] text-ink-soft"
+                            >
+                              + {addon.name} · {formatBRL(addon.price)}
+                            </span>
+                          ))}
                         </span>
                         <button
                           type="button"
@@ -753,6 +804,7 @@ function OrderForm({
         shakeRims={shakeRims}
         shakeMixins={shakeMixins}
         shakeUtensils={shakeUtensils}
+        shakeBrindes={brindeOptions}
         hasCustomer={!!customerId}
         open={pickerOpen}
         onOpenChange={setPickerOpen}
@@ -1040,6 +1092,7 @@ function ProductPickerDialog({
   shakeRims,
   shakeMixins,
   shakeUtensils,
+  shakeBrindes,
   hasCustomer,
   open,
   onOpenChange,
@@ -1051,6 +1104,7 @@ function ProductPickerDialog({
   shakeRims: ShakeRim[];
   shakeMixins: ShakeMixin[];
   shakeUtensils: ShakeUtensil[];
+  shakeBrindes: ShakeBrindeOption[];
   /** Gates the "Cartela" tab — a cartela is always sold to a specific customer. */
   hasCustomer: boolean;
   open: boolean;
@@ -1107,6 +1161,7 @@ function ProductPickerDialog({
             rims={shakeRims}
             mixins={shakeMixins}
             utensils={shakeUtensils}
+            brindes={shakeBrindes}
             onBack={() => setMode("catalogo")}
             onConfirm={(item) => {
               onAdd(item);

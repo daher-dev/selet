@@ -4,11 +4,13 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAccess } from "@/lib/access";
 import {
+  addShakeBrindes,
   createShakeBase,
   createShakeFlavor,
   createShakeMixin,
   createShakeRim,
   createShakeUtensil,
+  setShakeBrindeArchived,
   updateShakeBase,
   updateShakeFlavor,
   updateShakeMixin,
@@ -257,6 +259,61 @@ export async function updateShakeUtensilAction(
     await logActivity(storeId, {
       icon: "cup-soda",
       label: `Editou utensílio · ${data.name}`,
+      detail: "Shakes",
+      by: user.email,
+      section: "shakes",
+    });
+    revalidate(storeId);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Brindes
+// ---------------------------------------------------------------------------
+
+const addBrindesSchema = z.object({
+  storeId: z.string().min(1),
+  productIds: z.array(z.string().min(1)).min(1, "Selecione ao menos um produto."),
+});
+
+export type AddShakeBrindesInput = z.input<typeof addBrindesSchema>;
+
+export async function addShakeBrindesAction(
+  input: AddShakeBrindesInput,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { storeId, productIds } = addBrindesSchema.parse(input);
+    const user = await requireAccess(storeId, "shakes");
+    const count = await addShakeBrindes(storeId, productIds);
+    await logActivity(storeId, {
+      icon: "cup-soda",
+      label: `Adicionou ${count} brinde${count === 1 ? "" : "s"}`,
+      detail: "Shakes",
+      by: user.email,
+      section: "shakes",
+    });
+    revalidate(storeId);
+  });
+}
+
+const setBrindeArchivedSchema = z.object({
+  storeId: z.string().min(1),
+  productId: z.string().min(1),
+  archived: z.boolean(),
+});
+
+export type SetShakeBrindeArchivedInput = z.input<typeof setBrindeArchivedSchema>;
+
+export async function setShakeBrindeArchivedAction(
+  input: SetShakeBrindeArchivedInput,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { storeId, productId, archived } = setBrindeArchivedSchema.parse(input);
+    const user = await requireAccess(storeId, "shakes");
+    await setShakeBrindeArchived(storeId, productId, archived);
+    await logActivity(storeId, {
+      icon: "cup-soda",
+      label: `${archived ? "Arquivou" : "Restaurou"} brinde`,
       detail: "Shakes",
       by: user.email,
       section: "shakes",

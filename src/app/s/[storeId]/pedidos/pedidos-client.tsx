@@ -27,6 +27,7 @@ import type {
   OrderChannel,
   Product,
   ShakeBase,
+  ShakeBrinde,
   ShakeFlavor,
   ShakeMixin,
   ShakeRim,
@@ -119,6 +120,7 @@ interface PedidosClientProps {
   shakeRims: ShakeRim[];
   shakeMixins: ShakeMixin[];
   shakeUtensils: ShakeUtensil[];
+  shakeBrindes: ShakeBrinde[];
 }
 
 export function PedidosClient({
@@ -131,6 +133,7 @@ export function PedidosClient({
   shakeRims,
   shakeMixins,
   shakeUtensils,
+  shakeBrindes,
 }: PedidosClientProps) {
   const [query, setQuery] = useState("");
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("todos");
@@ -443,6 +446,7 @@ export function PedidosClient({
         shakeRims={shakeRims}
         shakeMixins={shakeMixins}
         shakeUtensils={shakeUtensils}
+        shakeBrindes={shakeBrindes}
         open={creating || selectedId !== null}
         onOpenChange={(open) => {
           if (!open) {

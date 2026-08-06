@@ -374,6 +374,16 @@ const SHAKE_UTENSILS: { slug: string; name: string; insumo: DemoInsumoRef; defau
   { slug: "tampa", name: "Tampa", insumo: { stockItemId: "demo-tampa-copo", name: "Tampa", qty: 1, unit: "un" }, defaultIncluded: true },
 ];
 
+// Brindes — real "bebidas" Products from scripts/data/menu-catalog.json (doc
+// id = productId, a pure join; the shakeBrindes doc itself only caches the
+// name as a fallback label). Reuses productIds already imported by
+// importCatalog and already referenced by DEMO_ORDERS above.
+const SHAKE_BRINDES: { productId: string; name: string }[] = [
+  { productId: "bebida-sunset", name: "Sunset" },
+  { productId: "bebida-refrigerante-saudavel", name: "Refrigerante Saudável" },
+  { productId: "bebida-colageno-drink", name: "Colágeno Drink" },
+];
+
 async function seedShakeCatalog(store: FirebaseFirestore.DocumentReference) {
   const now = Timestamp.now();
 
@@ -448,9 +458,16 @@ async function seedShakeCatalog(store: FirebaseFirestore.DocumentReference) {
       createdAt: now,
     });
   }
+  for (const b of SHAKE_BRINDES) {
+    await store.collection("shakeBrindes").doc(b.productId).set({
+      name: b.name,
+      archived: false,
+      createdAt: now,
+    });
+  }
 
   console.log(
-    `  shakes: ${SHAKE_FLAVORS.length} sabores, ${SHAKE_BASES.length} bases, ${SHAKE_RIMS.length} bordas, ${SHAKE_MIXINS.length} adicionais, ${SHAKE_UTENSILS.length} utensílios`,
+    `  shakes: ${SHAKE_FLAVORS.length} sabores, ${SHAKE_BASES.length} bases, ${SHAKE_RIMS.length} bordas, ${SHAKE_MIXINS.length} adicionais, ${SHAKE_BRINDES.length} brindes, ${SHAKE_UTENSILS.length} utensílios`,
   );
 }
 

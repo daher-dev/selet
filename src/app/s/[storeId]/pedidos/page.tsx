@@ -4,6 +4,7 @@ import { listCustomers } from "@/data/customers";
 import { listProducts } from "@/data/products";
 import {
   listShakeBases,
+  listShakeBrindes,
   listShakeFlavors,
   listShakeMixins,
   listShakeRims,
@@ -19,10 +20,12 @@ export default async function PedidosPage({
   const { storeId } = await params;
   await requireAccess(storeId, "pedidos");
 
-  // Shake catalogs are fetched here (not gated behind "shakes" access) since
-  // building a "Montar shake" order line is a Pedidos concern any funcionário
-  // with order access can do, even though editing the catalog is admin-only.
-  const [orders, customers, products, flavors, bases, rims, mixins, utensils] =
+  // Shake catalogs (including brindes) are fetched here (not gated behind
+  // "shakes" access) since building a "Montar shake" order line — brinde
+  // picked and all — is a Pedidos concern any funcionário with order access
+  // can do, even though editing the catalog (adding/archiving a brinde) is
+  // admin-only.
+  const [orders, customers, products, flavors, bases, rims, mixins, utensils, brindes] =
     await Promise.all([
       listOrders(storeId, { limit: 200 }),
       listCustomers(storeId),
@@ -32,6 +35,7 @@ export default async function PedidosPage({
       listShakeRims(storeId),
       listShakeMixins(storeId),
       listShakeUtensils(storeId),
+      listShakeBrindes(storeId),
     ]);
 
   return (
@@ -45,6 +49,7 @@ export default async function PedidosPage({
       shakeRims={rims.filter((r) => !r.archived)}
       shakeMixins={mixins.filter((m) => !m.archived)}
       shakeUtensils={utensils.filter((u) => !u.archived)}
+      shakeBrindes={brindes.filter((b) => !b.archived)}
     />
   );
 }

@@ -477,6 +477,32 @@ export interface ShakeUtensil {
   createdAt: string;
 }
 
+/**
+ * A café menu Product given away free alongside a "Montar shake" order line.
+ * `id === productId` — pure join against products, no recipe/price of its
+ * own; always read the LIVE Product for display (name/category/price).
+ */
+export interface ShakeBrinde {
+  id: string;
+  productId: string;
+  name: string;
+  archived: boolean;
+  createdAt: string;
+}
+
+/**
+ * A "Montar shake" order line's chosen brinde. `listPrice` is the struck-
+ * through menu price (charged as 0); `addons` are the brinde's own add-ons
+ * the customer still pays for, money-snapshotted at order time so a later
+ * menu re-price never rewrites a historical order's price.
+ */
+export interface ShakeBrindeSelection {
+  productId: string;
+  name: string;
+  listPrice: number; // centavos, struck-through; charged as 0
+  addons?: { name: string; price: number }[]; // still charged, snapshotted
+}
+
 /** A "Montar shake" order line's picks, embedded on OrderItem.shake. */
 export interface ShakeSelection {
   flavorId: string;
@@ -485,4 +511,5 @@ export interface ShakeSelection {
   mixins: { modifierId: string; qty: number }[];
   /** Per-order overrides against each utensílio's catalog default. Absent id = use current default. */
   utensilOverrides?: { utensilId: string; included: boolean }[];
+  brinde?: ShakeBrindeSelection;
 }

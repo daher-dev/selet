@@ -327,4 +327,141 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
     );
     expect(insumos.size).toBe(0);
   });
+
+  describe("brinde (free Product riding a shake line)", () => {
+    it("a unitPrice:0 brinde line still consumes its recipe (headline regression case)", () => {
+      const f = flavor({ id: "sabor-1" });
+      const brindeProduct = product({
+        id: "cha-limao",
+        recipe: [{ stockItemId: "ins-cha", name: "Chá", qty: 5, unit: "g" }],
+      });
+      const { insumos } = buildConsumptionRequests(
+        [
+          shakeLine({
+            unitPrice: 0,
+            shake: {
+              flavorId: "sabor-1",
+              baseId: null,
+              rims: [],
+              mixins: [],
+              brinde: { productId: "cha-limao", name: "Chá Limão", listPrice: 800 },
+            },
+          }),
+        ],
+        new Map([["cha-limao", brindeProduct]]),
+        catalogs({ flavors: new Map([["sabor-1", f]]) }),
+      );
+      expect(insumos.get("ins-cha")).toEqual({ amount: 5, uses: 1 });
+    });
+
+    it("a brinde addon with a stockItemId consumes its insumo", () => {
+      const f = flavor({ id: "sabor-1" });
+      const brindeProduct = product({
+        id: "cha-limao",
+        adicionais: [{ name: "Mel", price: 200, stockItemId: "ins-mel", qty: 10, unit: "ml" }],
+      });
+      const { insumos } = buildConsumptionRequests(
+        [
+          shakeLine({
+            shake: {
+              flavorId: "sabor-1",
+              baseId: null,
+              rims: [],
+              mixins: [],
+              brinde: {
+                productId: "cha-limao",
+                name: "Chá Limão",
+                listPrice: 800,
+                addons: [{ name: "Mel", price: 200 }],
+              },
+            },
+          }),
+        ],
+        new Map([["cha-limao", brindeProduct]]),
+        catalogs({ flavors: new Map([["sabor-1", f]]) }),
+      );
+      expect(insumos.get("ins-mel")).toEqual({ amount: 10, uses: 1 });
+    });
+
+    it("a stockManaged brinde draws producedStock, not insumos", () => {
+      const f = flavor({ id: "sabor-1" });
+      const brindeProduct = product({
+        id: "bolo-fatia",
+        stockManaged: true,
+        recipe: [{ stockItemId: "ins-farinha", name: "Farinha", qty: 50, unit: "g" }],
+      });
+      const { insumos, produced } = buildConsumptionRequests(
+        [
+          shakeLine({
+            shake: {
+              flavorId: "sabor-1",
+              baseId: null,
+              rims: [],
+              mixins: [],
+              brinde: { productId: "bolo-fatia", name: "Bolo", listPrice: 600 },
+            },
+          }),
+        ],
+        new Map([["bolo-fatia", brindeProduct]]),
+        catalogs({ flavors: new Map([["sabor-1", f]]) }),
+      );
+      expect(produced.get("bolo-fatia")).toBe(1);
+      expect(insumos.has("ins-farinha")).toBe(false);
+    });
+
+    it("brinde recipe AND addon draws scale by line.qty", () => {
+      const f = flavor({ id: "sabor-1" });
+      const brindeProduct = product({
+        id: "cha-limao",
+        recipe: [{ stockItemId: "ins-cha", name: "Chá", qty: 5, unit: "g" }],
+        adicionais: [{ name: "Mel", price: 200, stockItemId: "ins-mel", qty: 10, unit: "ml" }],
+      });
+      const { insumos } = buildConsumptionRequests(
+        [
+          shakeLine({
+            qty: 3,
+            shake: {
+              flavorId: "sabor-1",
+              baseId: null,
+              rims: [],
+              mixins: [],
+              brinde: {
+                productId: "cha-limao",
+                name: "Chá Limão",
+                listPrice: 800,
+                addons: [{ name: "Mel", price: 200 }],
+              },
+            },
+          }),
+        ],
+        new Map([["cha-limao", brindeProduct]]),
+        catalogs({ flavors: new Map([["sabor-1", f]]) }),
+      );
+      expect(insumos.get("ins-cha")).toEqual({ amount: 15, uses: 3 });
+      expect(insumos.get("ins-mel")).toEqual({ amount: 30, uses: 3 });
+    });
+
+    it("a brinde whose Product is absent from the map is skipped without throwing", () => {
+      const f = flavor({ id: "sabor-1" });
+      const args: Parameters<typeof buildConsumptionRequests> = [
+        [
+          shakeLine({
+            shake: {
+              flavorId: "sabor-1",
+              baseId: null,
+              rims: [],
+              mixins: [],
+              brinde: { productId: "gone", name: "Sumiu", listPrice: 500 },
+            },
+          }),
+        ],
+        new Map(),
+        catalogs({ flavors: new Map([["sabor-1", f]]) }),
+      ];
+      expect(() => buildConsumptionRequests(...args)).not.toThrow();
+      const { insumos, produced } = buildConsumptionRequests(...args);
+      expect(insumos.size).toBe(0);
+      expect(produced.size).toBe(0);
+    });
+  });
 });

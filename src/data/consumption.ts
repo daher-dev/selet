@@ -109,7 +109,11 @@ function resolveShakeLine(
  *  - adicionais (any menu line) → consume each add-on's own stockItemId.
  *  - "Montar shake" line (line.shake set) → resolveShakeLine (flavor recipe +
  *    base + rims + mixins + utensílios), an entirely separate resolution path
- *    from the Product-based one above.
+ *    from the Product-based one above. If the line also carries a brinde (a
+ *    free Product riding along), that brinde's own recipe/producedStock draws
+ *    via drawForProduct (same as an ordinary Cardápio line) PLUS its charged
+ *    add-ons' insumos — all scaled by lineQty, regardless of the line's
+ *    unitPrice (a brinde's price is 0, but that never gates its stock draw).
  * Only entries carrying a stockItemId are tracked; name-only pantry rows skip.
  * The per-insumo mode (medido vs continuo) is decided later, by the item.
  */
@@ -125,6 +129,29 @@ export function buildConsumptionRequests(
     if (line.cartelaSale) continue; // sells a punch card, not a real product — no stock draw.
     if (line.shake) {
       resolveShakeLine(line, shakeCatalogs, insumos);
+
+      // A brinde (free menu item riding on this shake line) still draws real
+      // stock — its own unitPrice contribution is 0, but price must never gate
+      // consumption. Looked up in the already-loaded products map (same one
+      // used for ordinary Cardápio lines below); missing/archived → best-effort
+      // skip, never throw.
+      const brinde = line.shake.brinde;
+      if (brinde) {
+        const brindeProduct = products.get(brinde.productId);
+        if (brindeProduct) {
+          drawForProduct(brindeProduct, line.qty, insumos, produced);
+          for (const addon of brinde.addons ?? []) {
+            const productAddon = brindeProduct.adicionais.find((a) => a.name === addon.name);
+            if (!productAddon?.stockItemId) continue;
+            addInsumo(
+              insumos,
+              productAddon.stockItemId,
+              (productAddon.qty ?? 0) * line.qty,
+              line.qty,
+            );
+          }
+        }
+      }
       continue;
     }
 

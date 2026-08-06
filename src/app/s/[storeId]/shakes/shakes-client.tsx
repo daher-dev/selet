@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Milk } from "lucide-react";
 import type {
+  Product,
   ShakeBase,
+  ShakeBrinde,
   ShakeFlavor,
   ShakeMixin,
   ShakeRim,
@@ -19,14 +21,17 @@ import { FlavorFormSheet } from "./flavor-form-sheet";
 import { BaseFormSheet } from "./base-form-sheet";
 import { TieredModifierFormSheet } from "./tiered-modifier-form-sheet";
 import { UtensilFormSheet } from "./utensil-form-sheet";
+import { BrindeGrid } from "./brinde-grid";
+import { BrindePickerDialog } from "./brinde-picker-dialog";
 
-type Tab = "sabores" | "bases" | "bordas" | "adicionais" | "utensilios";
+type Tab = "sabores" | "bases" | "bordas" | "adicionais" | "brindes" | "utensilios";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "sabores", label: "Sabores" },
   { key: "bases", label: "Bases" },
   { key: "bordas", label: "Bordas" },
   { key: "adicionais", label: "Adicionais" },
+  { key: "brindes", label: "Brindes" },
   { key: "utensilios", label: "Utensílios" },
 ];
 
@@ -35,6 +40,7 @@ const NEW_ACTION_LABEL: Record<Tab, string> = {
   bases: "Nova base",
   bordas: "Nova borda",
   adicionais: "Novo adicional",
+  brindes: "Adicionar brinde",
   utensilios: "Novo utensílio",
 };
 
@@ -45,6 +51,8 @@ interface ShakesClientProps {
   rims: ShakeRim[];
   mixins: ShakeMixin[];
   utensils: ShakeUtensil[];
+  brindes: ShakeBrinde[];
+  products: Product[];
   stockItems: StockItem[];
 }
 
@@ -55,6 +63,8 @@ export function ShakesClient({
   rims,
   mixins,
   utensils,
+  brindes,
+  products,
   stockItems,
 }: ShakesClientProps) {
   const [tab, setTab] = useState<Tab>("sabores");
@@ -68,8 +78,14 @@ export function ShakesClient({
   const [creatingMixin, setCreatingMixin] = useState(false);
   const [editingUtensil, setEditingUtensil] = useState<ShakeUtensil | null>(null);
   const [creatingUtensil, setCreatingUtensil] = useState(false);
+  const [pickingBrinde, setPickingBrinde] = useState(false);
 
   const stockById = new Map(stockItems.map((s) => [s.id, s]));
+  const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+  const activeBrindeProductIds = useMemo(
+    () => new Set(brindes.filter((b) => !b.archived).map((b) => b.productId)),
+    [brindes],
+  );
 
   usePageAction({
     label: NEW_ACTION_LABEL[tab],
@@ -78,6 +94,7 @@ export function ShakesClient({
       else if (tab === "bases") setCreatingBase(true);
       else if (tab === "bordas") setCreatingRim(true);
       else if (tab === "adicionais") setCreatingMixin(true);
+      else if (tab === "brindes") setPickingBrinde(true);
       else setCreatingUtensil(true);
     },
   });
@@ -97,7 +114,7 @@ export function ShakesClient({
                 : "text-ink-faint hover:text-ink-soft",
             )}
           >
-            {t.label} · {countFor(t.key, { flavors, bases, rims, mixins, utensils })}
+            {t.label} · {countFor(t.key, { flavors, bases, rims, mixins, utensils, brindes })}
           </button>
         ))}
       </div>
@@ -141,6 +158,14 @@ export function ShakesClient({
           onCreate={() => setCreatingMixin(true)}
           onEdit={setEditingMixin}
           renderPrice={(m) => tiersLabel(m.tiers)}
+        />
+      )}
+      {tab === "brindes" && (
+        <BrindeGrid
+          storeId={storeId}
+          brindes={brindes}
+          productById={productById}
+          onCreate={() => setPickingBrinde(true)}
         />
       )}
       {tab === "utensilios" && (
@@ -219,6 +244,13 @@ export function ShakesClient({
           }
         }}
       />
+      <BrindePickerDialog
+        storeId={storeId}
+        products={products}
+        activeBrindeProductIds={activeBrindeProductIds}
+        open={pickingBrinde}
+        onOpenChange={setPickingBrinde}
+      />
     </>
   );
 }
@@ -231,12 +263,14 @@ function countFor(
     rims: ShakeRim[];
     mixins: ShakeMixin[];
     utensils: ShakeUtensil[];
+    brindes: ShakeBrinde[];
   },
 ): number {
   if (tab === "sabores") return data.flavors.length;
   if (tab === "bases") return data.bases.length;
   if (tab === "bordas") return data.rims.length;
   if (tab === "adicionais") return data.mixins.length;
+  if (tab === "brindes") return data.brindes.length;
   return data.utensils.length;
 }
 
@@ -251,7 +285,7 @@ function tiersLabel(tiers: { qty: number; price: number }[]): string {
 // cards nest their own "Restaurar" button, and <button> can't contain
 // <button> (invalid HTML / hydration error). Mirrors DataListRow's
 // clickable-card convention.
-function ClickableCard({
+export function ClickableCard({
   active,
   onClick,
   children,
@@ -283,7 +317,7 @@ function ClickableCard({
   );
 }
 
-function StatusPill({ active }: { active: boolean }) {
+export function StatusPill({ active }: { active: boolean }) {
   return (
     <span
       className={cn(

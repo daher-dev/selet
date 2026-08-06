@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, ChevronLeft, Plus, X } from "lucide-react";
 import type {
   OrderItem,
+  Product,
   ShakeBase,
   ShakeFlavor,
   ShakeMixin,
@@ -21,12 +22,27 @@ function tierPrice(tiers: { qty: number; price: number }[], qty: number): number
   return tiers.find((t) => t.qty === qty)?.price ?? 0;
 }
 
+/**
+ * A brinde offered in the shake builder — the ShakeBrinde catalog entry
+ * joined with its LIVE Product (name/price/category/adicionais), since a
+ * ShakeBrinde doc itself carries no price or recipe of its own. `price` is
+ * the struck-through menu price; the shake line always charges 0 for it.
+ */
+export interface ShakeBrindeOption {
+  productId: string;
+  name: string;
+  price: number;
+  category: string;
+  adicionais: Product["adicionais"];
+}
+
 interface ShakeBuilderProps {
   flavors: ShakeFlavor[];
   bases: ShakeBase[];
   rims: ShakeRim[];
   mixins: ShakeMixin[];
   utensils: ShakeUtensil[];
+  brindes: ShakeBrindeOption[];
   onBack: () => void;
   onConfirm: (item: OrderItem) => void;
 }
@@ -37,6 +53,7 @@ export function ShakeBuilder({
   rims,
   mixins,
   utensils,
+  brindes,
   onBack,
   onConfirm,
 }: ShakeBuilderProps) {
@@ -48,9 +65,13 @@ export function ShakeBuilder({
     new Map(),
   );
   const [showUtensils, setShowUtensils] = useState(false);
+  // Decision #5: nothing pre-selected — defaults to "Sem brinde".
+  const [brindeProductId, setBrindeProductId] = useState<string | null>(null);
+  const [brindeAddonNames, setBrindeAddonNames] = useState<string[]>([]);
 
   const flavor = flavors.find((f) => f.id === flavorId) ?? null;
   const base = baseId ? (bases.find((b) => b.id === baseId) ?? null) : null;
+  const selectedBrinde = brindes.find((b) => b.productId === brindeProductId) ?? null;
 
   const rimsTotal = [...rimQty.entries()].reduce((s, [id, qty]) => {
     const rim = rims.find((r) => r.id === id);
@@ -60,7 +81,24 @@ export function ShakeBuilder({
     const mixin = mixins.find((m) => m.id === id);
     return s + (mixin ? tierPrice(mixin.tiers, qty) : 0);
   }, 0);
-  const unitPrice = (flavor?.price ?? 0) + (base?.price ?? 0) + rimsTotal + mixinsTotal;
+  // The brinde's own price is never charged — only its selected addons are.
+  const brindeAddonsTotal = (selectedBrinde?.adicionais ?? [])
+    .filter((a) => brindeAddonNames.includes(a.name))
+    .reduce((s, a) => s + a.price, 0);
+  const unitPrice =
+    (flavor?.price ?? 0) + (base?.price ?? 0) + rimsTotal + mixinsTotal + brindeAddonsTotal;
+
+  // Selecting a different brinde (or "Sem brinde") always clears its addons.
+  function selectBrinde(productId: string | null) {
+    setBrindeProductId(productId);
+    setBrindeAddonNames([]);
+  }
+
+  function toggleBrindeAddon(name: string) {
+    setBrindeAddonNames((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+    );
+  }
 
   function toggleTiered(
     id: string,
@@ -110,6 +148,21 @@ export function ShakeBuilder({
       })),
     });
 
+    const brinde = selectedBrinde
+      ? {
+          productId: selectedBrinde.productId,
+          name: selectedBrinde.name,
+          listPrice: selectedBrinde.price,
+          ...(brindeAddonNames.length > 0
+            ? {
+                addons: selectedBrinde.adicionais
+                  .filter((a) => brindeAddonNames.includes(a.name))
+                  .map((a) => ({ name: a.name, price: a.price })),
+              }
+            : {}),
+        }
+      : undefined;
+
     onConfirm({
       productId: flavor.id,
       name,
@@ -121,6 +174,7 @@ export function ShakeBuilder({
         rims: rimSel,
         mixins: mixinSel,
         ...(overrides.length > 0 ? { utensilOverrides: overrides } : {}),
+        ...(brinde ? { brinde } : {}),
       },
     });
   }
@@ -226,6 +280,91 @@ export function ShakeBuilder({
             }
             onQty={(id, qty) => setTieredQty(id, qty, mixinQty, setMixinQty)}
           />
+        )}
+
+        {brindes.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label>Brinde</Label>
+              <span className="text-[11px] text-ink-faint">incluso, escolha 1</span>
+              <span className="h-px flex-1 bg-border" />
+              <span className="shrink-0 rounded-full bg-mint-wash px-2 py-0.5 text-[10.5px] font-bold text-primary">
+                R$ 0,00
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {brindes.map((b) => {
+                const active = b.productId === brindeProductId;
+                return (
+                  <button
+                    key={b.productId}
+                    type="button"
+                    onClick={() => selectBrinde(b.productId)}
+                    className={cn(
+                      "flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[12.5px] font-semibold transition-colors",
+                      active
+                        ? "border-primary bg-mist text-primary"
+                        : "border-border bg-card text-ink hover:border-primary/40",
+                    )}
+                  >
+                    {b.name}
+                    <span
+                      className={cn(
+                        "tabular text-[11.5px] font-semibold line-through",
+                        active ? "text-ink-faint" : "text-ink-faint/80",
+                      )}
+                    >
+                      {formatBRL(b.price)}
+                    </span>
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => selectBrinde(null)}
+                className={cn(
+                  "flex h-9 items-center rounded-xl border px-3 text-[12.5px] font-semibold transition-colors",
+                  brindeProductId === null
+                    ? "border-primary bg-mist text-primary"
+                    : "border-border bg-card text-ink-faint hover:border-primary/40",
+                )}
+              >
+                Sem brinde
+              </button>
+            </div>
+
+            {selectedBrinde && selectedBrinde.adicionais.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 pt-1">
+                  <Label className="text-ink-faint">Adicionais do brinde</Label>
+                  <span className="text-[11px] text-ink-faint">cobrados</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedBrinde.adicionais.map((addon) => {
+                    const active = brindeAddonNames.includes(addon.name);
+                    return (
+                      <button
+                        key={addon.name}
+                        type="button"
+                        onClick={() => toggleBrindeAddon(addon.name)}
+                        className={cn(
+                          "flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[12.5px] font-semibold transition-colors",
+                          active
+                            ? "border-primary bg-mist text-primary"
+                            : "border-border bg-card text-ink hover:border-primary/40",
+                        )}
+                      >
+                        {addon.name}
+                        <span className="tabular text-[11.5px]">
+                          + {formatBRL(addon.price)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {utensils.length > 0 && (

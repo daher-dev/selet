@@ -5,13 +5,16 @@ import { getDb } from "@/lib/firebase-admin";
 import type {
   OrderItem,
   PriceTier,
+  Product,
   RecipeItem,
   ShakeBase,
+  ShakeBrinde,
   ShakeFlavor,
   ShakeMixin,
   ShakeRim,
   ShakeUtensil,
 } from "@/lib/types";
+import { getProduct } from "./products";
 import { getStockItem } from "./stock";
 
 function storeRef(storeId: string) {
@@ -32,6 +35,9 @@ function mixinsCol(storeId: string) {
 }
 function utensilsCol(storeId: string) {
   return storeRef(storeId).collection("shakeUtensils");
+}
+function brindesCol(storeId: string) {
+  return storeRef(storeId).collection("shakeBrindes");
 }
 
 // ---------------------------------------------------------------------------
@@ -336,6 +342,84 @@ export async function updateShakeUtensil(
       defaultIncluded: input.defaultIncluded,
       archived: input.archived ?? false,
     });
+}
+
+// ---------------------------------------------------------------------------
+// Brindes — a café menu Product given away free alongside a "Montar shake"
+// order line. `id === productId`: a pure join against products, no recipe or
+// price of its own here (always read the LIVE Product for display). Only the
+// name is cached on the doc, purely as a fallback label if the Product is
+// later deleted/archived (brinde-grid.tsx's muted-state rendering).
+// ---------------------------------------------------------------------------
+
+function toBrinde(id: string, d: FirebaseFirestore.DocumentData): ShakeBrinde {
+  return {
+    id,
+    productId: id,
+    name: d.name,
+    archived: d.archived ?? false,
+    createdAt: d.createdAt?.toDate().toISOString() ?? "",
+  };
+}
+
+export async function listShakeBrindes(storeId: string): Promise<ShakeBrinde[]> {
+  const snap = await brindesCol(storeId).orderBy("name").get();
+  return snap.docs.map((doc) => toBrinde(doc.id, doc.data()));
+}
+
+/**
+ * Adds (or re-activates) brindes from a set of product ids. Derive-don't-
+ * trust: each id is re-resolved against the LIVE Product server-side and
+ * rejected if the product is missing, inactive, or itself an "adicional"
+ * (not independently orderable — see PRODUCT_SALE_TYPES). Idempotent: an id
+ * that's already a (possibly archived) brinde just gets {name, archived:
+ * false} rewritten, WITHOUT resetting createdAt; a brand-new id gets
+ * createdAt via serverTimestamp. Returns the number of brindes written
+ * (rejected ids are silently skipped, best-effort).
+ */
+export async function addShakeBrindes(
+  storeId: string,
+  productIds: string[],
+): Promise<number> {
+  const uniqueIds = [...new Set(productIds)];
+  const products = await Promise.all(uniqueIds.map((id) => getProduct(storeId, id)));
+
+  const valid = uniqueIds
+    .map((id, i) => ({ id, product: products[i] }))
+    .filter(
+      (v): v is { id: string; product: Product } =>
+        !!v.product && v.product.active && v.product.saleType !== "adicional",
+    );
+  if (valid.length === 0) return 0;
+
+  const existingSnaps = await Promise.all(
+    valid.map(({ id }) => brindesCol(storeId).doc(id).get()),
+  );
+
+  const db = getDb();
+  const batch = db.batch();
+  valid.forEach(({ id, product }, i) => {
+    const ref = brindesCol(storeId).doc(id);
+    if (existingSnaps[i].exists) {
+      batch.update(ref, { name: product.name, archived: false });
+    } else {
+      batch.set(ref, {
+        name: product.name,
+        archived: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+  });
+  await batch.commit();
+  return valid.length;
+}
+
+export async function setShakeBrindeArchived(
+  storeId: string,
+  productId: string,
+  archived: boolean,
+): Promise<void> {
+  await brindesCol(storeId).doc(productId).update({ archived });
 }
 
 // ---------------------------------------------------------------------------
