@@ -519,10 +519,6 @@ function OrderForm({
     );
   }
 
-  function removeItem(index: number) {
-    setItems((prev) => prev.filter((_, j) => j !== index));
-  }
-
   function doSubmit(finalItems: OrderItem[]) {
     startTransition(async () => {
       const base = {
@@ -643,7 +639,7 @@ function OrderForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Canal de venda</Label>
+          <Label>Canal da venda</Label>
           <div className="grid grid-cols-4 gap-2">
             {ORDER_CHANNELS.map((key) => {
               const meta = CHANNEL_META[key];
@@ -655,13 +651,23 @@ function OrderForm({
                   type="button"
                   onClick={() => setChannel(key)}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-xl border px-2 py-2.5 text-[11.5px] font-semibold transition-colors",
+                    "flex h-[70px] flex-col items-center justify-center gap-1.5 rounded-xl border text-[12px] font-semibold transition-colors",
                     selected
                       ? "border-primary bg-mist text-primary"
                       : "border-border bg-card text-ink-soft hover:border-primary/40",
                   )}
                 >
-                  <Icon className="size-4" strokeWidth={1.8} />
+                  {/* Each channel keeps its own brand color for the icon chip
+                      regardless of selection — only the tile's own border/bg
+                      changes when active (Mock Pedidos.dc.html 3a:365-382). */}
+                  <span
+                    className={cn(
+                      "flex size-[26px] items-center justify-center rounded-lg",
+                      key === "loja" ? "bg-mint-wash text-primary" : cn(meta.bg, meta.fg),
+                    )}
+                  >
+                    <Icon className="size-3.5" strokeWidth={1.9} />
+                  </span>
                   {meta.label}
                 </button>
               );
@@ -769,70 +775,64 @@ function OrderForm({
                 // A cartela-sale line sells a new cartela — it isn't itself
                 // a product a cartela could pay down, so no offer/applied strip.
                 const cartelaEligible = !item.cartelaSale;
+                const appliedCartela = item.cartelaUse
+                  ? (customerCartelas.find((c) => c.id === item.cartelaUse!.cartelaId) ?? null)
+                  : null;
                 return (
                   <li
                     key={`${item.productId}-${index}`}
                     className="overflow-hidden rounded-xl border border-border bg-paper"
                   >
-                    <div className="flex flex-col gap-3 p-3">
-                      <div className="flex items-start gap-3">
-                        <CategoryTile meta={meta} className="size-10" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[14px] font-semibold leading-tight text-ink">
-                            {item.name}
-                          </span>
-                          <span className="mt-0.5 block text-[11.5px] text-ink-faint">
-                            {meta.label}
-                          </span>
-                          {item.addons && item.addons.length > 0 && (
-                            <span className="mt-1 flex items-center gap-1 text-[11.5px] text-ink-soft">
-                              <Plus className="size-3 text-primary" strokeWidth={2.4} />
-                              {item.addons.join(", ")}
-                            </span>
-                          )}
-                          {item.shake?.brinde && (
-                            <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11.5px] text-ink-soft">
-                              <span className="shrink-0 rounded-full bg-mint-wash px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                                Brinde
-                              </span>
-                              {item.shake.brinde.name} · {formatBRL(0)}
-                            </span>
-                          )}
-                          {item.shake?.brinde?.addons?.map((addon) => (
-                            <span
-                              key={addon.name}
-                              className="mt-1 flex items-center gap-1 text-[11.5px] text-ink-soft"
-                            >
-                              + {addon.name} · {formatBRL(addon.price)}
-                            </span>
-                          ))}
+                    {/* Single row — icon | name/meta/addons/brinde | qty+price
+                        stacked on the right — matches Mock Pedidos.dc.html 3a's
+                        item card exactly (no separate remove control: the qty
+                        stepper already removes the line at 0, per changeQty). */}
+                    <div className="flex items-start gap-3 p-3">
+                      <CategoryTile meta={meta} className="size-10 shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14px] font-semibold leading-tight text-ink">
+                          {item.name}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => removeItem(index)}
-                          aria-label="Remover item"
-                          className="flex size-7 shrink-0 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-danger-wash hover:text-destructive"
-                        >
-                          <Plus className="size-4 rotate-45" />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-3">
+                        <span className="mt-0.5 block text-[11.5px] text-ink-faint">
+                          {meta.label}
+                        </span>
+                        {item.addons && item.addons.length > 0 && (
+                          <span className="mt-1 flex items-center gap-1 text-[11.5px] text-ink-soft">
+                            <Plus className="size-3 text-primary" strokeWidth={2.4} />
+                            {item.addons.join(", ")}
+                          </span>
+                        )}
+                        {item.shake?.brinde && (
+                          <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11.5px] text-ink-soft">
+                            <span className="shrink-0 rounded-full bg-mint-wash px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                              Brinde
+                            </span>
+                            {item.shake.brinde.name} · {formatBRL(0)}
+                          </span>
+                        )}
+                        {item.shake?.brinde?.addons?.map((addon) => (
+                          <span
+                            key={addon.name}
+                            className="mt-1 flex items-center gap-1 text-[11.5px] text-ink-soft"
+                          >
+                            + {addon.name} · {formatBRL(addon.price)}
+                          </span>
+                        ))}
+                      </span>
+                      <span className="flex shrink-0 flex-col items-end gap-1.5">
                         <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-0.5">
                           <QtyButton onClick={() => changeQty(index, -1)}>
                             <Minus className="size-3.5" />
                           </QtyButton>
-                          <span className="tabular w-7 text-center text-[14px] font-bold text-ink">
+                          <span className="tabular w-6 text-center text-[13px] font-bold text-ink">
                             {item.qty}
                           </span>
                           <QtyButton onClick={() => changeQty(index, 1)}>
                             <Plus className="size-3.5" />
                           </QtyButton>
                         </div>
-                        <span className="tabular text-[11.5px] text-ink-faint">
-                          {formatBRL(item.unitPrice)} un.
-                        </span>
                         {item.cartelaUse ? (
-                          <span className="tabular ml-auto text-right">
+                          <span className="tabular text-right">
                             <span className="block text-[15px] font-bold text-primary">
                               {formatBRL(item.qty * item.unitPrice)}
                             </span>
@@ -841,15 +841,16 @@ function OrderForm({
                             </span>
                           </span>
                         ) : (
-                          <span className="tabular ml-auto text-[15px] font-bold text-ink">
+                          <span className="tabular text-[13.5px] font-bold text-ink">
                             {formatBRL(item.qty * item.unitPrice)}
                           </span>
                         )}
-                      </div>
+                      </span>
                     </div>
                     {cartelaEligible && item.cartelaUse && (
                       <CartelaAppliedStrip
                         cartelaUse={item.cartelaUse}
+                        available={appliedCartela ? availableCartelaUses(appliedCartela) : null}
                         onRemove={() => removeCartelaUse(index)}
                       />
                     )}
@@ -1034,7 +1035,7 @@ function OrderForm({
           variant="outline"
           onClick={onClose}
           disabled={pending}
-          className="flex-1 rounded-xl"
+          className="shrink-0 rounded-xl px-5"
         >
           {order ? "Fechar" : "Cancelar"}
         </Button>
@@ -1142,12 +1143,17 @@ function CartelaOfferStrip({
   );
 }
 
-/** Applied strip — the line is already covered by a cartela use. */
+/** Applied strip — the line is already covered by a cartela use. `available`
+ *  is the cartela's current draft balance (same figure the offer strip on
+ *  any other line shows) — null when the cartela couldn't be resolved
+ *  (deleted/foreign), in which case the "· N livres" suffix is just omitted. */
 function CartelaAppliedStrip({
   cartelaUse,
+  available,
   onRemove,
 }: {
   cartelaUse: NonNullable<OrderItem["cartelaUse"]>;
+  available: number | null;
   onRemove: () => void;
 }) {
   return (
@@ -1161,6 +1167,8 @@ function CartelaAppliedStrip({
         </span>
         <span className="mt-0.5 block text-[11.5px] text-ink-soft">
           Cobre {formatBRL(cartelaUse.covered * cartelaUse.uses)}
+          {available !== null &&
+            ` · ${available} livre${available === 1 ? "" : "s"}`}
         </span>
       </span>
       <button
