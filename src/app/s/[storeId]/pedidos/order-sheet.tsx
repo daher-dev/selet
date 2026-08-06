@@ -1513,7 +1513,10 @@ function ProductPickerDialog({
   shakeMixins: ShakeMixin[];
   shakeUtensils: ShakeUtensil[];
   shakeBrindes: ShakeBrindeOption[];
-  /** Gates the "Cartela" tab — a cartela is always sold to a specific customer. */
+  /** A cartela is always sold to a specific customer, but that's only
+   *  enforced at save time (the footer's Save button already requires one)
+   *  — passed through so CartelaBuilder can show a non-blocking reminder
+   *  rather than locking the whole tab before a customer is picked. */
   hasCustomer: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -1607,13 +1610,11 @@ function ProductPickerDialog({
                 <button
                   type="button"
                   onClick={() => setMode("cartela")}
-                  disabled={!hasCustomer}
-                  title={!hasCustomer ? "Selecione um cliente para montar uma cartela" : undefined}
                   className={cn(
-                    "rounded-md px-3 py-1 text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+                    "rounded-md px-3 py-1 text-[12px] font-semibold transition-colors",
                     mode === "cartela"
                       ? "bg-white text-ink shadow-sm"
-                      : "text-ink-faint hover:text-ink-soft disabled:hover:text-ink-faint",
+                      : "text-ink-faint hover:text-ink-soft",
                   )}
                 >
                   Cartela
@@ -1688,7 +1689,9 @@ function ProductPickerDialog({
               />
             )}
 
-            {mode === "cartela" && <CartelaBuilder onConfirm={handleAdd} />}
+            {mode === "cartela" && (
+              <CartelaBuilder hasCustomer={hasCustomer} onConfirm={handleAdd} />
+            )}
           </>
         )}
       </SheetContent>

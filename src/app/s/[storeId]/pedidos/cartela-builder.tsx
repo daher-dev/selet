@@ -21,6 +21,10 @@ function safeParseBRL(input: string): number {
 }
 
 interface CartelaBuilderProps {
+  /** A cartela is always sold to a specific customer, but that's only
+   *  needed at save time (the order's Save button already requires one) —
+   *  this just drives a non-blocking reminder, nothing here is disabled. */
+  hasCustomer: boolean;
   onConfirm: (item: OrderItem) => void;
 }
 
@@ -28,7 +32,7 @@ interface CartelaBuilderProps {
  * A cartela is sold ad hoc, right here — no template. `paidUses` + the one
  * built-in brinde become `totalUses`; the line's price is paidUses × unitValue.
  */
-export function CartelaBuilder({ onConfirm }: CartelaBuilderProps) {
+export function CartelaBuilder({ hasCustomer, onConfirm }: CartelaBuilderProps) {
   const [paidUses, setPaidUses] = useState(1);
   const [valueInput, setValueInput] = useState("");
 
@@ -107,6 +111,12 @@ export function CartelaBuilder({ onConfirm }: CartelaBuilderProps) {
             <CartelaPunchDots states={states} />
           </div>
         </div>
+
+        {!hasCustomer && (
+          <p className="text-[11.5px] text-ink-faint">
+            Um cliente ainda vai ser necessário para salvar o pedido.
+          </p>
+        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-3 border-t border-border p-4">
