@@ -94,6 +94,36 @@ export function lastOrderLabel(
   return `Último pedido há ${Math.floor(days / 30)} meses`;
 }
 
+/**
+ * List-row secondary line: recency + order count, e.g. "Último pedido hoje
+ * · 41 pedidos" (design Mock Clientes 1a). Skips the count when the customer
+ * has never ordered — "Sem pedidos ainda" already says as much.
+ */
+export function lastOrderSummary(
+  customer: Pick<Customer, "lastOrderAt" | "orderCount">,
+  now: Date = new Date(),
+): string {
+  const recency = lastOrderLabel(customer.lastOrderAt, now);
+  if (!customer.lastOrderAt) return recency;
+  const count =
+    customer.orderCount === 1 ? "1 pedido" : `${customer.orderCount} pedidos`;
+  return `${recency} · ${count}`;
+}
+
+/**
+ * Days until the customer's next birthday, but only when it's within the
+ * "upcoming" window (design Mock Clientes 1a shows the birthday badge on
+ * every segment, not just Aniversários — same ≤30-day threshold as the
+ * Aniversários segment filter). Null outside that window or when unknown.
+ */
+export function upcomingBirthdayDays(
+  birthday: { day: number; month: number } | undefined,
+  now: Date = new Date(),
+): number | null {
+  const d = daysToBirthday(birthday, now);
+  return d != null && d <= 30 ? d : null;
+}
+
 export interface UnpaidInfo {
   total: number; // centavos
   count: number;

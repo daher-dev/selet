@@ -8,6 +8,7 @@ import {
   CalendarClock,
   CheckCircle2,
   FileText,
+  Layers,
   MessageCircle,
   Pencil,
   Repeat,
@@ -185,8 +186,8 @@ export function CustomerDetailSheet({
                 </div>
               )}
 
-              {/* Contact block: instagram + aniversário (design 100-116) */}
-              {(customer.instagram || customer.birthday) && (
+              {/* Contact block: instagram + aniversário + cliente desde (design Mock Clientes 3a) */}
+              {(customer.instagram || customer.birthday || customer.since) && (
                 <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
                   {customer.instagram && (
                     <ContactRow
@@ -201,6 +202,13 @@ export function CustomerDetailSheet({
                       icon={<Cake className="size-4 text-ink-faint" />}
                       label="Aniversário"
                       value={birthdayLabel(customer.birthday)}
+                    />
+                  )}
+                  {customer.since && (
+                    <ContactRow
+                      icon={<Layers className="size-4 text-ink-faint" />}
+                      label="Cliente desde"
+                      value={sinceLabel(customer.since)}
                     />
                   )}
                 </div>

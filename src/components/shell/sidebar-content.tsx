@@ -190,8 +190,10 @@ export function SidebarContent({
               {badgeCount > 0 && (
                 <span
                   className={cn(
-                    "shrink-0 rounded-full px-[7px] py-px text-[10px] font-bold text-white tabular",
-                    item.badgeTone === "amber" ? "bg-amber" : "bg-primary",
+                    "shrink-0 rounded-full px-[7px] py-px text-[10px] font-bold tabular",
+                    item.badgeTone === "amber"
+                      ? "bg-amber-wash text-amber"
+                      : "bg-primary text-white",
                   )}
                 >
                   {badgeCount}

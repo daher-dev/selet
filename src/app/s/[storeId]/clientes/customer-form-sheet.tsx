@@ -101,6 +101,7 @@ function CustomerForm({
   const [phone, setPhone] = useState(
     customer ? maskPhone(customer.phone ?? "") : maskPhone(defaultDDD ?? ""),
   );
+  const [city, setCity] = useState(customer?.city ?? storeName ?? "");
   const [instagram, setInstagram] = useState(customer?.instagram ?? "");
   const [birthday, setBirthday] = useState<Customer["birthday"]>(
     customer?.birthday,
@@ -125,9 +126,9 @@ function CustomerForm({
         storeId,
         name,
         phone: phone || undefined,
-        // City is derived from the active store on create (design 2401); on
-        // edit we preserve whatever the customer already had.
-        city: customer?.city ?? storeName ?? undefined,
+        // Defaults to the active store's city on create, but stays editable
+        // (design Mock Clientes 3c "Endereço").
+        city: city || undefined,
         instagram: instagram || undefined,
         birthday,
         since: since
@@ -174,6 +175,9 @@ function CustomerForm({
               inputMode="numeric"
               className="rounded-xl"
             />
+            <p className="text-[11.5px] text-ink-faint">
+              Opcional — ajuda a achar o cliente ao registrar pedidos.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label>Aniversário</Label>
@@ -208,6 +212,17 @@ function CustomerForm({
               className="rounded-xl pl-8"
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="customer-city">Cidade</Label>
+          <Input
+            id="customer-city"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="Ex: Vila Velha"
+            className="rounded-xl"
+          />
         </div>
 
         <div className="space-y-1.5">
@@ -250,7 +265,7 @@ function CustomerForm({
             id="customer-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Preferências, restrições, observações…"
+            placeholder="Restrições, preferências, referências de entrega…"
             rows={3}
             className="rounded-xl"
           />

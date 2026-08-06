@@ -13,6 +13,23 @@ function cartelasCol(storeId: string) {
   return storeRef(storeId).collection("cartelas");
 }
 
+// `at` is written as a plain ISO string by the app's own consume path
+// (data/cartelas.ts's `uses.push({ ..., at: nowIso })`), matching CartelaUse's
+// `string` type. But it's read back verbatim here rather than normalized like
+// purchasedAt/createdAt/updatedAt — so any writer that stores a Firestore
+// Timestamp instead (a seed/migration script, say) leaves a class instance
+// sitting in the array. That doesn't fail here; it fails later, opaquely, the
+// moment this Cartela crosses a Server Action boundary to a Client Component
+// (React's "Only plain objects... can be passed" error) — which silently
+// empties the Pedidos order drawer's cartela offer strip since the caller's
+// fetch has no `.catch`. Normalizing on read closes off that whole class of
+// bug at the source, the same way the other three timestamp fields already do.
+function toIsoUseAt(at: unknown): string {
+  if (typeof at === "string") return at;
+  if (at instanceof Timestamp) return at.toDate().toISOString();
+  return "";
+}
+
 function toCartela(id: string, d: FirebaseFirestore.DocumentData): Cartela {
   return {
     id,
@@ -23,7 +40,7 @@ function toCartela(id: string, d: FirebaseFirestore.DocumentData): Cartela {
     totalUses: d.totalUses ?? 0,
     unitValue: d.unitValue ?? 0,
     amount: d.amount ?? 0,
-    uses: (d.uses ?? []) as CartelaUse[],
+    uses: ((d.uses ?? []) as CartelaUse[]).map((u) => ({ ...u, at: toIsoUseAt(u.at) })),
     status: (d.status ?? "ativa") as CartelaStatus,
     soldOnOrderId: d.soldOnOrderId,
     purchasedAt: d.purchasedAt?.toDate().toISOString() ?? "",

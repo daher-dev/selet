@@ -18,6 +18,7 @@ import {
   Search,
   ShoppingBag,
   Store,
+  Ticket,
   Truck,
   Wallet,
 } from "lucide-react";
@@ -204,6 +205,15 @@ export function PedidosClient({
     return PRODUCT_CATEGORY_META[categoryById.get(item.productId) ?? ""] ?? NEUTRAL_TILE;
   }
 
+  // Total this order's items had knocked off by a cartela redemption — shown
+  // as its own chip next to the total, alongside (not instead of) "A receber".
+  function cartelaCovered(order: Order): number {
+    return order.items.reduce(
+      (s, i) => (i.cartelaUse ? s + i.qty * i.cartelaUse.covered : s),
+      0,
+    );
+  }
+
   return (
     <>
       {receivables.length > 0 && (
@@ -300,7 +310,7 @@ export function PedidosClient({
         <>
           {/* Desktop: responsive data table (design lines 296-329). */}
           <DataList
-            columns="60px 1.4fr 1.3fr 96px 108px 148px"
+            columns="60px 1.3fr 1.15fr 96px 108px 200px"
             className="hidden min-[820px]:block"
           >
             <DataListHeader>
@@ -314,6 +324,7 @@ export function PedidosClient({
             {filtered.map((order) => {
               const { visible, hidden } = itemChips(order);
               const unpaid = !order.paid && order.status !== "cancelado";
+              const covered = cartelaCovered(order);
               return (
                 <DataListRow
                   key={order.id}
@@ -359,6 +370,7 @@ export function PedidosClient({
                     <StatusBadge status={order.status} />
                   </span>
                   <span className="flex items-center justify-end gap-2">
+                    {covered > 0 && <CartelaCoverageChip amount={covered} />}
                     {unpaid && <ReceberChip />}
                     <span className="tabular text-[14px] font-bold text-ink">
                       {formatBRL(order.total)}
@@ -374,6 +386,7 @@ export function PedidosClient({
             {filtered.map((order) => {
               const { visible, hidden } = itemChips(order);
               const unpaid = !order.paid && order.status !== "cancelado";
+              const covered = cartelaCovered(order);
               return (
                 <li key={order.id}>
                   <button
@@ -422,6 +435,7 @@ export function PedidosClient({
                         {formatRelative(order.createdAt)}
                       </span>
                       <span className="flex items-center gap-2">
+                        {covered > 0 && <CartelaCoverageChip amount={covered} />}
                         {unpaid && <ReceberChip />}
                         <span className="tabular text-[19px] font-bold text-ink">
                           {formatBRL(order.total)}
@@ -497,6 +511,16 @@ function ReceberChip() {
     <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-wash px-2 py-0.5 text-[10.5px] font-bold text-amber">
       <Clock className="size-3" strokeWidth={2.2} />
       A receber
+    </span>
+  );
+}
+
+// Ticket chip — how much of this order's total a cartela redemption knocked
+// off, shown alongside (not instead of) ReceberChip when both apply.
+function CartelaCoverageChip({ amount }: { amount: number }) {
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-wash px-2 py-0.5 text-[10.5px] font-bold text-ink-soft">
+      <Ticket className="size-3" strokeWidth={2.2} />− {formatBRL(amount)}
     </span>
   );
 }

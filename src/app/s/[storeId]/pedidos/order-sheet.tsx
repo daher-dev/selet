@@ -234,9 +234,16 @@ function OrderForm({
   useEffect(() => {
     if (!customerId) return;
     let active = true;
-    listCartelasByCustomerAction(storeId, customerId).then((list) => {
-      if (active) setFetchedCartelas(list);
-    });
+    listCartelasByCustomerAction(storeId, customerId)
+      .then((list) => {
+        if (active) setFetchedCartelas(list);
+      })
+      // A malformed cartela doc (bad seed/migration data, say) shouldn't take
+      // the whole offer strip down silently — same spirit as the action's own
+      // "swallow access errors, just hide the strip" contract.
+      .catch(() => {
+        if (active) setFetchedCartelas([]);
+      });
     return () => {
       active = false;
     };
@@ -249,12 +256,21 @@ function OrderForm({
   // a confirmation step instead of saving immediately.
   const [confirmingCartela, setConfirmingCartela] = useState(false);
 
+  // Per-line "Agora não" dismissals of the cartela offer strip — index-based
+  // like every other per-line action here (changeQty, removeItem…), so a
+  // dismissal is a soft, session-only hint rather than persisted state.
+  const [dismissedOffers, setDismissedOffers] = useState<Set<number>>(new Set());
+  function dismissOffer(index: number) {
+    setDismissedOffers((prev) => new Set(prev).add(index));
+  }
+
   const total = items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
   const itemCount = items.reduce((s, i) => s + i.qty, 0);
   const coveredByCartela = items.reduce(
     (s, i) => (i.cartelaUse ? s + i.qty * i.cartelaUse.covered : s),
     0,
   );
+  const coveredUses = items.reduce((s, i) => (i.cartelaUse ? s + i.qty : s), 0);
   const cancelled = order?.status === "cancelado";
 
   // How many uses of `cartelaId` this order already holds server-side (only
@@ -648,9 +664,20 @@ function OrderForm({
                         <span className="tabular text-[11.5px] text-ink-faint">
                           {formatBRL(item.unitPrice)} un.
                         </span>
-                        <span className="tabular ml-auto text-[15px] font-bold text-ink">
-                          {formatBRL(item.qty * item.unitPrice)}
-                        </span>
+                        {item.cartelaUse ? (
+                          <span className="tabular ml-auto text-right">
+                            <span className="block text-[15px] font-bold text-primary">
+                              {formatBRL(item.qty * item.unitPrice)}
+                            </span>
+                            <span className="block text-[11.5px] text-ink-faint line-through">
+                              {formatBRL(item.qty * item.cartelaUse.listPrice)}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="tabular ml-auto text-[15px] font-bold text-ink">
+                            {formatBRL(item.qty * item.unitPrice)}
+                          </span>
+                        )}
                       </div>
                     </div>
                     {cartelaEligible && item.cartelaUse && (
@@ -659,15 +686,20 @@ function OrderForm({
                         onRemove={() => removeCartelaUse(index)}
                       />
                     )}
-                    {cartelaEligible && !item.cartelaUse && offerCartela && (
-                      <CartelaOfferStrip
-                        cartela={offerCartela}
-                        qty={item.qty}
-                        unitPrice={item.unitPrice}
-                        available={availableCartelaUses(offerCartela)}
-                        onApply={() => applyCartelaUse(index, offerCartela)}
-                      />
-                    )}
+                    {cartelaEligible &&
+                      !item.cartelaUse &&
+                      offerCartela &&
+                      !cancelled &&
+                      !dismissedOffers.has(index) && (
+                        <CartelaOfferStrip
+                          cartela={offerCartela}
+                          qty={item.qty}
+                          unitPrice={item.unitPrice}
+                          available={availableCartelaUses(offerCartela)}
+                          onApply={() => applyCartelaUse(index, offerCartela)}
+                          onDismiss={() => dismissOffer(index)}
+                        />
+                      )}
                   </li>
                 );
               })}
@@ -695,7 +727,9 @@ function OrderForm({
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[12.5px] text-primary">
-                  <span>Coberto pela cartela</span>
+                  <span>
+                    Coberto pela cartela · {coveredUses} uso{coveredUses === 1 ? "" : "s"}
+                  </span>
                   <span className="tabular font-semibold">
                     − {formatBRL(coveredByCartela)}
                   </span>
@@ -817,19 +851,22 @@ function OrderForm({
 /** Per-item strip offering to apply `cartela` to this line — shown on any
  *  line without a cartelaUse yet. Disabled (decision #1) when the line's
  *  price is below the cartela's unitValue, or when the draft has already
- *  spent the available balance elsewhere. */
+ *  spent the available balance elsewhere. "Agora não" only dismisses the
+ *  strip for this line (session-only) without touching the cartela itself. */
 function CartelaOfferStrip({
   cartela,
   qty,
   unitPrice,
   available,
   onApply,
+  onDismiss,
 }: {
   cartela: Cartela;
   qty: number;
   unitPrice: number;
   available: number;
   onApply: () => void;
+  onDismiss: () => void;
 }) {
   const coverage = coverageFor(unitPrice, cartela.unitValue);
   const enoughBalance = available >= qty;
@@ -858,15 +895,26 @@ function CartelaOfferStrip({
               : `Saldo insuficiente · restam ${available} uso${available === 1 ? "" : "s"} na cartela`}
         </span>
       </span>
-      <Button
-        type="button"
-        size="sm"
-        onClick={onApply}
-        disabled={!eligible}
-        className="shrink-0 rounded-lg font-semibold"
-      >
-        Usar cartela
-      </Button>
+      <div className="flex shrink-0 items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onDismiss}
+          className="rounded-lg font-semibold"
+        >
+          Agora não
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          onClick={onApply}
+          disabled={!eligible}
+          className="rounded-lg font-semibold"
+        >
+          Usar cartela
+        </Button>
+      </div>
     </div>
   );
 }

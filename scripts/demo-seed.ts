@@ -266,12 +266,18 @@ async function seedCartelas(
     const totalUses = c.paidUses + 1;
     const purchasedAt = daysAgo(c.purchasedDaysAgo);
     // Brinde-vs-paid is derived from array position (index 0 = brinde), not
-    // stored per-use — see lib/cartelas' punchStates()/usesByOrder().
+    // stored per-use — see lib/cartelas' punchStates()/usesByOrder(). `at` is
+    // an ISO string here (not a Timestamp) to match the real write path in
+    // data/cartelas.ts (`uses.push({ ..., at: nowIso })`) — CartelaUse.at is
+    // typed as `string`, and toCartela() reads it back verbatim (unlike
+    // purchasedAt/createdAt/updatedAt, it does no Timestamp→ISO conversion),
+    // so a raw Timestamp here breaks RSC serialization of the whole cartela
+    // the moment the Pedidos order drawer fetches it client-side.
     const uses = c.uses.map((u) => ({
       orderId: `demo-order-${u.orderCode}`,
       orderCode: u.orderCode,
       productName: u.productName,
-      at: daysAgo(u.daysAgo),
+      at: daysAgo(u.daysAgo).toDate().toISOString(),
     }));
 
     await store.collection("cartelas").doc(c.code).set({

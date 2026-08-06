@@ -37,9 +37,9 @@ import {
 import {
   avatarClass,
   buildUnpaidByCustomer,
-  daysToBirthday,
-  lastOrderLabel,
+  lastOrderSummary,
   tagMeta,
+  upcomingBirthdayDays,
 } from "./customer-logic";
 import { CustomerDetailSheet } from "./customer-detail-sheet";
 import { CustomerFormSheet } from "./customer-form-sheet";
@@ -49,14 +49,17 @@ type Segment = "todos" | "vip" | "aniversarios" | "areceber" | "arquivados";
 const SEGMENTS: {
   key: Segment;
   label: string;
+  /** Trigger-button copy, when it differs from the dropdown item label (design Mock Clientes 1a/2a/2b). */
+  triggerLabel?: string;
   icon: React.ComponentType<{ className?: string }>;
   iconClass?: string;
 }[] = [
-  { key: "todos", label: "Todos", icon: Users },
+  { key: "todos", label: "Todos", triggerLabel: "Todos os clientes", icon: Users },
   { key: "vip", label: "VIP", icon: Crown, iconClass: "bg-[#F6EAC6] text-[#8A6312]" },
   {
     key: "aniversarios",
     label: "Aniversários",
+    triggerLabel: "Aniversários do mês",
     icon: Cake,
     iconClass: "bg-[#F8E9F1] text-[#C2407E]",
   },
@@ -150,13 +153,13 @@ export function ClientesClient({
       if (segment === "arquivados") return c.archived;
       if (c.archived) return false;
       if (segment === "vip") return c.tags.includes("vip");
-      if (segment === "aniversarios") {
-        const d = daysToBirthday(c.birthday);
-        return d != null && d <= 30;
-      }
+      if (segment === "aniversarios") return upcomingBirthdayDays(c.birthday) != null;
       if (segment === "areceber") return unpaidByCustomer.has(c.id);
       return true;
-    });
+    })
+      // Most-frequent buyers first (design Mock Clientes 1a: "ordenada por
+      // recorrência").
+      .sort((a, b) => b.orderCount - a.orderCount);
   }, [customers, query, shellSearch, segment, unpaidByCustomer]);
 
   const activeSeg = SEGMENTS.find((s) => s.key === segment)!;
@@ -177,10 +180,19 @@ export function ClientesClient({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-[13px] font-semibold text-ink-soft transition-colors hover:border-primary/40 data-[state=open]:border-primary/40"
+              className={cn(
+                "flex shrink-0 items-center gap-2 rounded-xl border bg-card px-3.5 py-2.5 text-[13px] font-semibold transition-colors hover:border-primary/40 data-[state=open]:border-primary/40",
+                // A non-default segment reads as an active filter — border and
+                // text shift to primary green (design Mock Clientes 2a/2b).
+                segment === "todos"
+                  ? "border-border text-ink-soft"
+                  : "border-primary/30 text-primary",
+              )}
             >
-              <ListFilter className="size-4 text-leaf" />
-              <span>{activeSeg.label}</span>
+              <ListFilter
+                className={cn("size-4", segment === "todos" ? "text-leaf" : "text-primary")}
+              />
+              <span>{activeSeg.triggerLabel ?? activeSeg.label}</span>
               <ChevronDown className="size-3.5 text-ink-faint" />
             </button>
           </DropdownMenuTrigger>
@@ -224,10 +236,7 @@ export function ClientesClient({
             </DataListHeader>
             {filtered.map((customer) => {
               const unpaid = unpaidByCustomer.get(customer.id);
-              const bdayDays =
-                segment === "aniversarios"
-                  ? daysToBirthday(customer.birthday)
-                  : null;
+              const bdayDays = upcomingBirthdayDays(customer.birthday);
               return (
                 <DataListRow
                   key={customer.id}
@@ -247,12 +256,10 @@ export function ClientesClient({
                         {customer.name}
                       </span>
                       <span className="block truncate text-[11.5px] text-ink-faint">
-                        {lastOrderLabel(customer.lastOrderAt)}
+                        {lastOrderSummary(customer)}
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                        {bdayDays != null && (
-                          <BirthdayChip birthday={customer.birthday} days={bdayDays} />
-                        )}
+                        {bdayDays != null && <BirthdayChip days={bdayDays} />}
                         {unpaid && (
                           <UnpaidChip total={unpaid.total} />
                         )}
@@ -271,10 +278,7 @@ export function ClientesClient({
           <ul className="space-y-2.5 min-[820px]:hidden">
             {filtered.map((customer) => {
               const unpaid = unpaidByCustomer.get(customer.id);
-              const bdayDays =
-                segment === "aniversarios"
-                  ? daysToBirthday(customer.birthday)
-                  : null;
+              const bdayDays = upcomingBirthdayDays(customer.birthday);
               return (
                 <li key={customer.id}>
                   <button
@@ -298,11 +302,11 @@ export function ClientesClient({
                         <RowTags customer={customer} />
                       </span>
                       <span className="mt-0.5 block truncate text-[12px] text-ink-faint">
-                        {lastOrderLabel(customer.lastOrderAt)}
+                        {lastOrderSummary(customer)}
                       </span>
                       {bdayDays != null && (
                         <span className="mt-1.5 flex">
-                          <BirthdayChip birthday={customer.birthday} days={bdayDays} />
+                          <BirthdayChip days={bdayDays} />
                         </span>
                       )}
                     </span>
@@ -373,21 +377,15 @@ function RowTags({ customer }: { customer: Customer }) {
   );
 }
 
-function BirthdayChip({
-  birthday,
-  days,
-}: {
-  birthday: Customer["birthday"];
-  days: number;
-}) {
+function BirthdayChip({ days }: { days: number }) {
+  // "Faz aniversário {hoje|amanhã|em N dias}" (design Mock Clientes 1a) — no
+  // date in the chip itself; the date shows in the Aniversários segment and
+  // the detail sheet's contact row.
   const suffix = days === 0 ? "hoje" : days === 1 ? "amanhã" : `em ${days} dias`;
-  const dm = birthday
-    ? `${String(birthday.day).padStart(2, "0")}/${String(birthday.month).padStart(2, "0")}`
-    : "";
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-[#F8E9F1] px-2.5 py-0.5 text-[11px] font-bold text-[#C2407E]">
       <Cake className="size-3" />
-      {dm} · {suffix}
+      Faz aniversário {suffix}
     </span>
   );
 }

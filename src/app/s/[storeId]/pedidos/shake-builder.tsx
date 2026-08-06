@@ -263,6 +263,7 @@ export function ShakeBuilder({
         {rims.length > 0 && (
           <TieredSection
             label="Bordas"
+            hint="opcional"
             items={rims}
             selected={rimQty}
             onToggle={(id) => toggleTiered(id, rims.find((r) => r.id === id)?.tiers ?? [], rimQty, setRimQty)}
@@ -273,6 +274,7 @@ export function ShakeBuilder({
         {mixins.length > 0 && (
           <TieredSection
             label="Adicionais"
+            hint="quantos quiser"
             items={mixins}
             selected={mixinQty}
             onToggle={(id) =>
@@ -437,12 +439,14 @@ export function ShakeBuilder({
 
 function TieredSection({
   label,
+  hint,
   items,
   selected,
   onToggle,
   onQty,
 }: {
   label: string;
+  hint?: string;
   items: (ShakeRim | ShakeMixin)[];
   selected: Map<string, number>;
   onToggle: (id: string) => void;
@@ -450,7 +454,10 @@ function TieredSection({
 }) {
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <div className="flex items-center gap-2">
+        <Label>{label}</Label>
+        {hint && <span className="text-[11px] text-ink-faint">{hint}</span>}
+      </div>
       <ul className="space-y-1.5">
         {items.map((item) => {
           const qty = selected.get(item.id);
