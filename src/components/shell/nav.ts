@@ -13,8 +13,10 @@ import {
 import type { Section } from "@/lib/types";
 
 /** Live counters the shell can surface on a nav item. */
-export type NavBadge = "openOrders" | "vouchersExpiring";
+export type NavBadge = "openOrders" | "cartelasAtivas";
 export type NavDot = "lowStock";
+/** Badge pill color — defaults to the primary green when unset. */
+export type NavBadgeTone = "primary" | "amber";
 
 export interface NavItem {
   label: string;
@@ -25,6 +27,8 @@ export interface NavItem {
   section: Section | null;
   /** live count pill (design: Pedidos open-orders badge) */
   badge?: NavBadge;
+  /** badge pill color; omitted = primary green */
+  badgeTone?: NavBadgeTone;
   /** pulsing alert dot (design: Estoque low-stock dot) */
   dot?: NavDot;
 }
@@ -50,11 +54,12 @@ export const NAV_ITEMS: NavItem[] = [
     section: "shakes",
   },
   {
-    label: "Vouchers",
-    segment: "vouchers",
+    label: "Cartelas",
+    segment: "cartelas",
     icon: Ticket,
-    section: "vouchers",
-    badge: "vouchersExpiring",
+    section: "cartelas",
+    badge: "cartelasAtivas",
+    badgeTone: "amber",
   },
   {
     label: "Estoque",

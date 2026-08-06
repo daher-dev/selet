@@ -77,7 +77,7 @@ const SECTION_LABELS: Record<GrantableSection, string> = {
   pedidos: "Pedidos",
   clientes: "Clientes",
   produtos: "Cardápio",
-  vouchers: "Vouchers",
+  cartelas: "Cartelas",
   estoque: "Estoque",
   financeiro: "Financeiro",
 };

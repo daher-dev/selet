@@ -1,4 +1,5 @@
 import { requireAccess } from "@/lib/access";
+import { listCartelas } from "@/data/cartelas";
 import { listCustomers } from "@/data/customers";
 import { listOrders } from "@/data/orders";
 import { listStores } from "@/data/stores";
@@ -16,11 +17,14 @@ export default async function ClientesPage({
   await requireAccess(storeId, "clientes");
   // Orders feed the per-customer "Histórico recente" and the "A receber" /
   // reorder signals in the detail sheet; filtered by customerId on the client.
+  // Cartelas feed the per-customer Cartela summary card in the detail sheet;
+  // filtered by customerId on the client, same pattern as orders.
   // Stores give us the current store's display name so new customers derive
   // their city from the active store (design 2401).
-  const [customers, orders, stores] = await Promise.all([
+  const [customers, orders, cartelas, stores] = await Promise.all([
     listCustomers(storeId),
     listOrders(storeId),
+    listCartelas(storeId),
     listStores(),
   ]);
   const store = stores.find((s) => s.id === storeId);
@@ -32,6 +36,7 @@ export default async function ClientesPage({
       defaultDDD={store?.defaultDDD}
       customers={customers}
       orders={orders}
+      cartelas={cartelas}
       initialSegment={seg}
     />
   );

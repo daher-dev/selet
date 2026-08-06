@@ -67,7 +67,7 @@ const STATUS_META: Record<
 };
 
 // The modules a funcionário can be granted (design Mock Equipe.dc.html:
-// 232-255, order extended with Vouchers). "equipe" is deliberately absent
+// 232-255, order extended with Cartelas). "equipe" is deliberately absent
 // from this list — team management is admin-only — but shown separately for
 // admins, who implicitly have it (see ADMIN_AREA_LABELS below).
 const ACCESS_MODULES: {
@@ -78,7 +78,7 @@ const ACCESS_MODULES: {
   { key: "pedidos", label: "Pedidos", icon: Inbox },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "produtos", label: "Cardápio", icon: Tag },
-  { key: "vouchers", label: "Vouchers", icon: Ticket },
+  { key: "cartelas", label: "Cartelas", icon: Ticket },
   { key: "estoque", label: "Estoque", icon: Package },
   { key: "financeiro", label: "Financeiro", icon: CircleDollarSign },
 ];

@@ -12,7 +12,7 @@ import {
   Search,
   Users,
 } from "lucide-react";
-import type { Customer, Order } from "@/lib/types";
+import type { Cartela, Customer, Order } from "@/lib/types";
 import { formatBRL, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -84,6 +84,7 @@ export function ClientesClient({
   defaultDDD,
   customers,
   orders = [],
+  cartelas = [],
   initialSegment,
 }: {
   storeId: string;
@@ -91,6 +92,7 @@ export function ClientesClient({
   defaultDDD?: string;
   customers: Customer[];
   orders?: Order[];
+  cartelas?: Cartela[];
   initialSegment?: string;
 }) {
   const router = useRouter();
@@ -130,6 +132,10 @@ export function ClientesClient({
   const selectedOrders = useMemo(
     () => (selectedId ? orders.filter((o) => o.customerId === selectedId) : []),
     [orders, selectedId],
+  );
+  const selectedCartelas = useMemo(
+    () => (selectedId ? cartelas.filter((c) => c.customerId === selectedId) : []),
+    [cartelas, selectedId],
   );
 
   const filtered = useMemo(() => {
@@ -317,6 +323,7 @@ export function ClientesClient({
         storeId={storeId}
         customer={selected}
         orders={selectedOrders}
+        cartelas={selectedCartelas}
         unpaid={selected ? (unpaidByCustomer.get(selected.id) ?? null) : null}
         open={selectedId !== null}
         onOpenChange={(open) => {

@@ -122,6 +122,7 @@ export function buildConsumptionRequests(
   const produced = new Map<string, number>();
 
   for (const line of items) {
+    if (line.cartelaSale) continue; // sells a punch card, not a real product — no stock draw.
     if (line.shake) {
       resolveShakeLine(line, shakeCatalogs, insumos);
       continue;

@@ -33,10 +33,6 @@ function minutesAgo(n: number): Timestamp {
   return Timestamp.fromMillis(Date.now() - n * 60_000);
 }
 
-function daysFromNow(n: number): Timestamp {
-  return Timestamp.fromMillis(Date.now() + n * 86_400_000);
-}
-
 /** First day of the given month/year (customer "since"). */
 function monthDate(month: number, year: number): Timestamp {
   return Timestamp.fromDate(new Date(year, month - 1, 1));
@@ -155,169 +151,143 @@ const MANUAL_FINANCE: DemoFinance[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Vouchers (design Mock Vouchers.dc.html) — vila-velha only, matching the
-// mock's example roster (#V001, #V002, #V003, #V005 — no #V004, by design).
-// Doc ids are the literal codes so voucherCode(id) reproduces them exactly,
-// mirroring the ORDERS trick above.
+// Cartelas (design Mock Cartelas.dc.html) — vila-velha only, matching the
+// mock's example roster (#C007, #C010, #C011, #C012) for paidUses/totalUses/
+// unitValue/consumed-count. Doc ids are the literal 4-char codes so
+// cartelaCode(id) reproduces them exactly, mirroring the ORDERS trick above.
+//
+// The mock's own "#C010" row is Rafael Souza, a Passos customer — cartelas
+// are store-scoped (customerId must resolve within this store), so that row
+// is reassigned to Carla Menezes (vila-velha) here, keeping every numeric
+// value (paidUses/unitValue/purchasedDaysAgo) identical to the mock.
+//
+// purchasedAt/use timestamps use small relative-day offsets (not the mock's
+// literal 2026-07/08 calendar dates) so "Recebido no mês"/"Usos resgatados no
+// mês" land in whatever month this script actually runs in — unlike the rest
+// of this roster, those two stat cards won't match the mock's frozen R$
+// figures pixel-for-pixel, only its shape (3 active cartelas, one exhausted).
 // ---------------------------------------------------------------------------
 
-interface DemoTemplateItem {
-  productId: string;
-  name: string;
-  unitPrice: number; // centavos
-  qty: number;
+interface DemoCartelaUse {
+  orderCode: string;
+  productName: string;
+  daysAgo: number;
 }
 
-interface DemoTemplate {
-  slug: string;
-  name: string;
-  description: string;
-  items: DemoTemplateItem[];
-  packagePrice: number; // centavos
-  validityDays: number | null;
-  active: boolean;
-}
-
-const VOUCHER_TEMPLATES: DemoTemplate[] = [
-  {
-    slug: "semana-fit",
-    name: "Semana Fit",
-    description: "Cinco shakes e cinco drinks para a semana.",
-    items: [
-      { productId: "shake-shake-da-beleza", name: "Shake da Beleza", unitPrice: 4400, qty: 5 },
-      { productId: "bebida-hype-drink", name: "Hype Drink", unitPrice: 2800, qty: 5 },
-    ],
-    packagePrice: 30000,
-    validityDays: 30,
-    active: true,
-  },
-  {
-    slug: "cartela-coxinha",
-    name: "Cartela Coxinha",
-    description: "Dez coxinhas proteicas para retirar quando quiser.",
-    items: [
-      { productId: "lanche-coxinha-proteica", name: "Coxinha Proteica", unitPrice: 1200, qty: 10 },
-    ],
-    packagePrice: 11000,
-    validityDays: null,
-    active: true,
-  },
-  {
-    slug: "detox-10-dias",
-    name: "Detox 10 dias",
-    description: "Um suco verde por dia, dez dias seguidos.",
-    items: [
-      { productId: "bebida-seca-barriga", name: "Seca Barriga", unitPrice: 1900, qty: 10 },
-    ],
-    packagePrice: 16500,
-    validityDays: 60,
-    active: true,
-  },
-  {
-    slug: "combo-shakes",
-    name: "Combo Shakes",
-    description: "Oito shakes Ovomaltine. Não aparece para venda.",
-    items: [
-      { productId: "shake-ovomaltine", name: "Shake Ovomaltine", unitPrice: 4100, qty: 8 },
-    ],
-    packagePrice: 29000,
-    validityDays: null,
-    active: false,
-  },
-];
-
-interface DemoVoucher {
-  code: string; // "V001" — also the doc id
-  templateSlug: string;
+interface DemoCartela {
+  code: string; // "C012" — also the doc id
   customerName: string;
+  paidUses: number;
+  unitValue: number; // centavos
   purchasedDaysAgo: number;
-  expiresInDays: number | null; // relative to now; null = "Sem validade"
-  paid: boolean;
-  payMethod: "pix" | "cartao" | "dinheiro" | null;
-  /** Per-item redeemed count, by index into the template's items array. */
-  redeemed: number[];
+  /** Chronological, oldest first — index 0 is always the brinde. */
+  uses: DemoCartelaUse[];
+  status: "ativa" | "esgotada";
 }
 
-const VOUCHERS: DemoVoucher[] = [
-  // Active, mostly redeemed.
-  { code: "V005", templateSlug: "semana-fit", customerName: "Mariana Lopes", purchasedDaysAgo: 6, expiresInDays: 24, paid: true, payMethod: "pix", redeemed: [1, 0] },
-  // Expiring soon, partially redeemed.
-  { code: "V002", templateSlug: "cartela-coxinha", customerName: "Beatriz Almeida", purchasedDaysAgo: 12, expiresInDays: 5, paid: true, payMethod: "dinheiro", redeemed: [4] },
-  // Unpaid, no expiry, partially redeemed.
-  { code: "V003", templateSlug: "cartela-coxinha", customerName: "Carla Menezes", purchasedDaysAgo: 20, expiresInDays: null, paid: false, payMethod: null, redeemed: [3] },
-  // Expired, with leftover balance.
-  { code: "V001", templateSlug: "detox-10-dias", customerName: "Luiza Castro", purchasedDaysAgo: 70, expiresInDays: -10, paid: true, payMethod: "cartao", redeemed: [6] },
+const CARTELAS: DemoCartela[] = [
+  // Active, mostly untouched — 6 remaining paid uses.
+  {
+    code: "C012",
+    customerName: "Mariana Lopes",
+    paidUses: 10,
+    unitValue: 3000,
+    purchasedDaysAgo: 4,
+    uses: [
+      { orderCode: "4066", productName: "Shake da Beleza", daysAgo: 4 }, // brinde
+      { orderCode: "4102", productName: "Shake Ovomaltine", daysAgo: 3 },
+      { orderCode: "4187", productName: "Shake da Beleza", daysAgo: 1 },
+      { orderCode: "4187", productName: "Shake Ovomaltine", daysAgo: 1 },
+      { orderCode: "4187", productName: "Shake Bombom Serenata", daysAgo: 1 },
+    ],
+    status: "ativa",
+  },
+  // Active, over halfway consumed — 4 remaining paid uses.
+  {
+    code: "C011",
+    customerName: "Beatriz Almeida",
+    paidUses: 10,
+    unitValue: 2200,
+    purchasedDaysAgo: 10,
+    uses: [
+      { orderCode: "4058", productName: "Coxinha Proteica", daysAgo: 10 }, // brinde
+      { orderCode: "4071", productName: "Coxinha Proteica", daysAgo: 8 },
+      { orderCode: "4071", productName: "Coxinha Proteica", daysAgo: 8 },
+      { orderCode: "4098", productName: "Coxinha Proteica", daysAgo: 5 },
+      { orderCode: "4098", productName: "Coxinha Proteica", daysAgo: 5 },
+      { orderCode: "4140", productName: "Coxinha Proteica", daysAgo: 2 },
+      { orderCode: "4140", productName: "Coxinha Proteica", daysAgo: 2 },
+    ],
+    status: "ativa",
+  },
+  // Active, untouched — bought recently, brinde not even claimed yet.
+  {
+    code: "C010",
+    customerName: "Carla Menezes",
+    paidUses: 6,
+    unitValue: 3600,
+    purchasedDaysAgo: 6,
+    uses: [],
+    status: "ativa",
+  },
+  // Exhausted — dimmed "Esgotada" row, hidden from the balance/circulação stat.
+  {
+    code: "C007",
+    customerName: "Luiza Castro",
+    paidUses: 10,
+    unitValue: 1500,
+    purchasedDaysAgo: 95,
+    uses: [
+      { orderCode: "3312", productName: "Escondidinho de Frango", daysAgo: 95 }, // brinde
+      { orderCode: "3350", productName: "Escondidinho de Frango", daysAgo: 85 },
+      { orderCode: "3390", productName: "Escondidinho de Frango", daysAgo: 76 },
+      { orderCode: "3430", productName: "Escondidinho de Frango", daysAgo: 67 },
+      { orderCode: "3470", productName: "Escondidinho de Frango", daysAgo: 58 },
+      { orderCode: "3512", productName: "Escondidinho de Frango", daysAgo: 49 },
+      { orderCode: "3560", productName: "Escondidinho de Frango", daysAgo: 40 },
+      { orderCode: "3610", productName: "Escondidinho de Frango", daysAgo: 31 },
+      { orderCode: "3670", productName: "Escondidinho de Frango", daysAgo: 22 },
+      { orderCode: "3740", productName: "Escondidinho de Frango", daysAgo: 13 },
+      { orderCode: "3820", productName: "Escondidinho de Frango", daysAgo: 4 },
+    ],
+    status: "esgotada",
+  },
 ];
 
-async function seedVouchers(
+async function seedCartelas(
   store: FirebaseFirestore.DocumentReference,
   customers: DemoCustomer[],
 ) {
   const idByName = new Map(customers.map((c) => [c.name, slug(c.name)]));
-  const templateBySlug = new Map(VOUCHER_TEMPLATES.map((t) => [t.slug, t]));
 
-  for (const t of VOUCHER_TEMPLATES) {
-    const now = minutesAgo(0);
-    await store.collection("voucherTemplates").doc(t.slug).set({
-      name: t.name,
-      description: t.description,
-      items: t.items,
-      packagePrice: t.packagePrice,
-      validityDays: t.validityDays,
-      active: t.active,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
-
-  for (const v of VOUCHERS) {
-    const template = templateBySlug.get(v.templateSlug);
-    if (!template) continue;
-    const customerId = idByName.get(v.customerName) ?? null;
+  for (const c of CARTELAS) {
+    const customerId = idByName.get(c.customerName) ?? null;
     if (!customerId) continue;
-    const purchasedAt = daysAgo(v.purchasedDaysAgo);
-    const expiresAt =
-      v.expiresInDays === null
-        ? null
-        : v.expiresInDays >= 0
-          ? daysFromNow(v.expiresInDays)
-          : daysAgo(-v.expiresInDays);
-    const items = template.items.map((item, i) => ({
-      productId: item.productId,
-      name: item.name,
-      unitPrice: item.unitPrice,
-      qty: item.qty,
-      redeemedCount: v.redeemed[i] ?? 0,
+    const totalUses = c.paidUses + 1;
+    const purchasedAt = daysAgo(c.purchasedDaysAgo);
+    // Brinde-vs-paid is derived from array position (index 0 = brinde), not
+    // stored per-use — see lib/cartelas' punchStates()/usesByOrder().
+    const uses = c.uses.map((u) => ({
+      orderId: `demo-order-${u.orderCode}`,
+      orderCode: u.orderCode,
+      productName: u.productName,
+      at: daysAgo(u.daysAgo),
     }));
-    const hasBalance = items.some((i) => i.redeemedCount < i.qty);
 
-    await store.collection("vouchers").doc(v.code).set({
-      templateId: template.slug,
-      templateName: template.name,
+    await store.collection("cartelas").doc(c.code).set({
       customerId,
-      customerName: v.customerName,
-      items,
-      packagePrice: template.packagePrice,
+      customerName: c.customerName,
+      paidUses: c.paidUses,
+      totalUses,
+      unitValue: c.unitValue,
+      amount: c.paidUses * c.unitValue,
+      uses,
+      status: c.status,
+      soldOnOrderId: `demo-order-${c.code}`,
       purchasedAt,
-      expiresAt,
-      paid: v.paid,
-      payMethod: v.paid ? v.payMethod : null,
-      hasBalance,
       createdAt: purchasedAt,
       updatedAt: purchasedAt,
     });
-    if (v.paid) {
-      await store.collection("finance").doc(`voucher-${v.code}`).set({
-        label: `Voucher #${v.code} · ${v.customerName}`,
-        category: "vendas",
-        amount: template.packagePrice,
-        direction: "in",
-        source: "voucher",
-        voucherId: v.code,
-        payMethod: v.payMethod,
-        date: purchasedAt,
-      });
-    }
   }
 }
 
@@ -670,10 +640,10 @@ async function seedStore(db: Firestore, storeId: StoreId) {
 
   await seedStockHistory(store, orders);
 
-  // Voucher/Shakes demo data lives only in vila-velha (matches the mock's
-  // example roster — no need to duplicate templates/catalogs across stores).
+  // Cartelas/Shakes demo data lives only in vila-velha (matches the mock's
+  // example roster — no need to duplicate catalogs across stores).
   if (storeId === "vila-velha") {
-    await seedVouchers(store, customers);
+    await seedCartelas(store, customers);
     await seedShakeCatalog(store);
   }
 
@@ -682,9 +652,9 @@ async function seedStore(db: Firestore, storeId: StoreId) {
   await refreshStoreSummary(db, storeId);
 
   const paid = orders.filter((o) => o.paid).length;
-  const voucherNote = storeId === "vila-velha" ? `, ${VOUCHERS.length} vouchers` : "";
+  const cartelaNote = storeId === "vila-velha" ? `, ${CARTELAS.length} cartelas` : "";
   console.log(
-    `Demo seed ok em ${storeId}: ${customers.length} clientes, ${orders.length} pedidos (${paid} pagos), ${MANUAL_FINANCE.length} lançamentos manuais${voucherNote}`,
+    `Demo seed ok em ${storeId}: ${customers.length} clientes, ${orders.length} pedidos (${paid} pagos), ${MANUAL_FINANCE.length} lançamentos manuais${cartelaNote}`,
   );
 }
 

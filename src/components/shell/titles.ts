@@ -20,9 +20,9 @@ const TITLES: Record<
     title: "Shakes",
     subtitle: "Sabores, bases, bordas, adicionais e utensílios",
   },
-  vouchers: {
-    title: "Vouchers",
-    subtitle: "Pacotes pagos adiantados e saldo dos clientes",
+  cartelas: {
+    title: "Cartelas",
+    subtitle: "Montadas na venda · cada uso vale um desconto fixo",
   },
   estoque: { title: "Estoque", subtitle: "Embalagens, fracionamento e rendimento" },
   financeiro: { title: "Financeiro", subtitle: "Saldo, entradas e saídas" },

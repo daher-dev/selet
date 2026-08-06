@@ -10,7 +10,7 @@ export const SECTIONS = [
   "produtos",
   "estoque",
   "financeiro",
-  "vouchers",
+  "cartelas",
   "shakes",
   "equipe",
 ] as const;
@@ -28,7 +28,7 @@ export const GRANTABLE_SECTIONS = [
   "produtos",
   "estoque",
   "financeiro",
-  "vouchers",
+  "cartelas",
 ] as const;
 export type GrantableSection = (typeof GRANTABLE_SECTIONS)[number];
 
@@ -114,6 +114,14 @@ export interface OrderItem {
   addons?: string[];
   /** Present only for "Montar shake" lines; mutually exclusive with `addons`. */
   shake?: ShakeSelection;
+  /** Present only on the line that SELLS a new cartela; qty is always 1. */
+  cartelaSale?: { paidUses: number; totalUses: number; unitValue: number };
+  /**
+   * Present on a line a cartela paid down. `unitPrice` is already net of
+   * `covered` (folds in exactly like addons already do, per the existing
+   * order-sheet.tsx convention).
+   */
+  cartelaUse?: { cartelaId: string; code: string; uses: number; covered: number; listPrice: number };
 }
 
 /**
@@ -148,6 +156,10 @@ export interface Order {
   payMethod: PayMethod | null;
   /** Reversal manifest — the stock this order currently holds (empty when cancelled). */
   stockConsumed: ConsumptionDraw[];
+  /** Reversal manifest — the cartela uses this order currently holds (empty when cancelled). */
+  cartelaConsumed: { cartelaId: string; uses: number }[];
+  /** Cartela ids created (sold) by this order — used by the cancel cascade. */
+  cartelaSold: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -341,64 +353,48 @@ export interface FinanceTx {
   category: string;
   amount: number; // centavos, always positive
   direction: "in" | "out";
-  source: "order" | "manual" | "stock" | "voucher";
+  source: "order" | "manual" | "stock";
   orderId?: string;
-  voucherId?: string;
   payMethod?: PayMethod;
   date: string;
 }
 
-// --- Vouchers: prepaid packages sold to a customer and redeemed over time. ---
+// --- Cartelas: single product-agnostic punch cards sold ad hoc (no
+// template/"Modelos" screen). N paid uses at one fixed R$ value each, plus one
+// bonus free "brinde" use built in (totalUses = paidUses + 1). No expiry, no
+// per-cartela payment-status field — money flows through the order that sold
+// it (see OrderItem.cartelaSale), never a separate finance mirror doc. ---
 
-/** One line of a voucher package: a catalog product + how many were bought. */
-export interface VoucherTemplateItem {
-  productId: string;
-  name: string; // snapshot at template-save-time
-  unitPrice: number; // centavos, snapshot at template-save-time
-  qty: number;
-}
+export type CartelaStatus = "ativa" | "esgotada" | "cancelada";
 
-export interface VoucherTemplate {
-  id: string;
-  name: string;
-  description?: string;
-  items: VoucherTemplateItem[];
-  packagePrice: number; // centavos
-  validityDays: number | null; // null → no expiry ("Sem validade")
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
+/** One redemption event, appended to Cartela.uses in the order it happened. */
+export interface CartelaUse {
+  orderId: string;
+  orderCode: string;
+  productName: string;
+  at: string;
 }
 
 /**
- * One sold line item. `redeemedCount` is the ONLY source of truth for how much
- * of this line has been used — remaining count and any punch-bar/label display
- * are always derived from `redeemedCount` vs `qty` (see src/lib/vouchers.ts),
- * never persisted separately.
+ * A punch card. `uses` is the ONLY source of truth for how much has been
+ * redeemed — remaining/balance/status/punch-dot rendering are always derived
+ * from `uses.length` vs `totalUses` (see src/lib/cartelas.ts), never persisted
+ * separately. Punch order: index 0 of the card is always the brinde (free,
+ * consumed first); indices 1..N are the paid uses, consumed in order.
  */
-export interface VoucherLineItem {
-  productId: string;
-  name: string; // snapshot from the template at sale time
-  unitPrice: number; // centavos, snapshot from the template at sale time
-  qty: number; // total purchased
-  redeemedCount: number; // used so far
-}
-
-export interface Voucher {
+export interface Cartela {
   id: string;
-  code: string; // short display code derived from id, e.g. "V3F8" (mirrors Order.code)
-  templateId: string;
-  templateName: string; // snapshot — survives template edits/deactivation
+  code: string; // short display code derived from id, e.g. "C3F8" (mirrors Order.code)
   customerId: string;
   customerName: string;
-  items: VoucherLineItem[];
-  packagePrice: number; // centavos
+  paidUses: number;
+  totalUses: number; // paidUses + 1 (the brinde)
+  unitValue: number; // centavos, the fixed value a single use is worth
+  amount: number; // centavos, paidUses * unitValue — what was actually charged
+  uses: CartelaUse[];
+  status: CartelaStatus;
+  soldOnOrderId: string;
   purchasedAt: string;
-  expiresAt: string | null; // computed from template.validityDays at sale time
-  paid: boolean;
-  payMethod: PayMethod | null;
-  /** Denormalized: true when any line still has redeemedCount < qty. */
-  hasBalance: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -166,8 +166,8 @@ export function SidebarContent({
           const badgeCount =
             item.badge === "openOrders"
               ? badges.openOrders
-              : item.badge === "vouchersExpiring"
-                ? badges.vouchersExpiring
+              : item.badge === "cartelasAtivas"
+                ? badges.cartelasAtivas
                 : 0;
           const showDot = item.dot === "lowStock" && badges.lowStock > 0;
           return (
@@ -188,7 +188,12 @@ export function SidebarContent({
               />
               <span className="flex-1 truncate">{item.label}</span>
               {badgeCount > 0 && (
-                <span className="shrink-0 rounded-full bg-primary px-[7px] py-px text-[10px] font-bold text-white tabular">
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-[7px] py-px text-[10px] font-bold text-white tabular",
+                    item.badgeTone === "amber" ? "bg-amber" : "bg-primary",
+                  )}
+                >
                   {badgeCount}
                 </span>
               )}

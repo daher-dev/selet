@@ -13,8 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
  * registered customer as avatar + name + phone with a VIP crown, plus a
  * "Nenhum cliente encontrado" empty state. Customer selection is mandatory —
  * there is no walk-in option; the empty/no-results state links to Clientes so
- * staff can register a customer without leaving the flow stuck. Shared by
- * Pedidos (order-sheet.tsx) and Vouchers (voucher-sell-sheet.tsx).
+ * staff can register a customer without leaving the flow stuck. Used by
+ * Pedidos (order-sheet.tsx) — the cartela builder reuses the order's already-
+ * selected customer rather than picking its own.
  */
 export function CustomerPicker({
   storeId,

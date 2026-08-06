@@ -12,6 +12,12 @@ import type {
   Product,
 } from "@/lib/types";
 import { orderCode } from "@/lib/format";
+import {
+  cancelSoldCartelas,
+  planCartelas,
+  reactivateSoldCartelas,
+  type CartelaConsumedEntry,
+} from "./cartelas";
 import { buildConsumptionRequests } from "./consumption";
 import { getProduct } from "./products";
 import { loadShakeCatalogsForItems, type ShakeCatalogs } from "./shakes";
@@ -53,6 +59,8 @@ function toOrder(id: string, d: FirebaseFirestore.DocumentData): Order {
     paid: d.paid ?? false,
     payMethod: d.payMethod ?? null,
     stockConsumed: d.stockConsumed ?? [],
+    cartelaConsumed: d.cartelaConsumed ?? [],
+    cartelaSold: d.cartelaSold ?? [],
     createdAt: d.createdAt?.toDate().toISOString() ?? "",
     updatedAt: d.updatedAt?.toDate().toISOString() ?? "",
   };
@@ -60,6 +68,11 @@ function toOrder(id: string, d: FirebaseFirestore.DocumentData): Order {
 
 export function orderTotal(items: OrderItem[]): number {
   return items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0);
+}
+
+/** A cartela-sale line isn't a real product — never let it pollute "Mais vendidos" seller tallies. */
+function sellerItems(items: OrderItem[]): OrderItem[] {
+  return items.filter((i) => !i.cartelaSale);
 }
 
 export async function listOrders(
@@ -336,8 +349,10 @@ export async function createOrder(
   const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
 
   let stockConsumed: ConsumptionDraw[] = [];
+  let cartelaConsumed: CartelaConsumedEntry[] = [];
+  let cartelaSold: string[] = [];
   await db.runTransaction(async (tx) => {
-    // Reads first: summary, plan consumption, then recompute aggregates.
+    // Reads first: summary, plan consumption + cartelas, then recompute aggregates.
     const summary = await readSummaryTx(tx, storeId);
     const plan = await planConsumption(
       tx,
@@ -351,6 +366,17 @@ export async function createOrder(
       shakeCatalogs,
     );
     stockConsumed = plan.draws;
+    const cartelaPlan = await planCartelas(
+      tx,
+      storeId,
+      ref.id,
+      orderCode(ref.id),
+      { id: input.customerId, name: input.customerName },
+      { consumed: [], soldCount: 0 },
+      input.items,
+    );
+    cartelaConsumed = cartelaPlan.consumed;
+    cartelaSold = cartelaPlan.soldIds;
     const commitAggregates = input.customerId
       ? await recomputeAggregates(tx, storeId, input.customerId, {
           orderId: ref.id,
@@ -367,13 +393,14 @@ export async function createOrder(
       open: true,
       paid: payment.paid,
       channel: input.channel,
-      items: input.items,
+      items: sellerItems(input.items),
     });
     // Paid at creation → its finance income mirror lands this month too.
     if (payment.paid) summaryFinance(summary, { mk, direction: "in", amount: total });
 
     // Writes.
     plan.commit();
+    cartelaPlan.commit();
     commitAggregates?.();
     writeSummaryTx(tx, storeId, summary);
     tx.set(ref, {
@@ -383,6 +410,8 @@ export async function createOrder(
       paid: payment.paid,
       payMethod: payment.paid ? payment.payMethod : null,
       stockConsumed,
+      cartelaConsumed,
+      cartelaSold,
       createdAt: now,
       updatedAt: now,
     });
@@ -423,6 +452,8 @@ export async function updateOrder(
     const total = orderTotal(input.items);
     const oldTotal = current.total ?? 0;
     const oldDraws = (current.stockConsumed ?? []) as ConsumptionDraw[];
+    const oldCartelaConsumed = (current.cartelaConsumed ?? []) as CartelaConsumedEntry[];
+    const oldCartelaSold = (current.cartelaSold ?? []) as string[];
     // The finance mirror buckets `in` by its own date, which can differ from the
     // order's createdAt (e.g. paid in a later month) — read it so an amount shift
     // is attributed to the mirror's real month (read phase, before any write).
@@ -443,6 +474,18 @@ export async function updateOrder(
       cancelled ? null : products,
       summary,
       cancelled ? undefined : shakeCatalogs,
+    );
+    // Same reverse-then-reapply shape for cartelas — a cancelled order holds
+    // no punches, but its already-sold cartelas are untouched here (see
+    // setOrderStatus for the cancel/uncancel cascade on those).
+    const cartelaPlan = await planCartelas(
+      tx,
+      storeId,
+      orderId,
+      orderCode(orderId),
+      { id: input.customerId, name: input.customerName },
+      { consumed: oldCartelaConsumed, soldCount: oldCartelaSold.length },
+      cancelled ? null : input.items,
     );
 
     const affected = new Set<string>();
@@ -478,7 +521,7 @@ export async function updateOrder(
         open,
         paid,
         channel: current.channel,
-        items: (current.items ?? []) as OrderItem[],
+        items: sellerItems((current.items ?? []) as OrderItem[]),
       });
       summaryAddOrder(summary, {
         mk,
@@ -487,7 +530,7 @@ export async function updateOrder(
         open,
         paid,
         channel: input.channel,
-        items: input.items,
+        items: sellerItems(input.items),
       });
     }
     if (paid && total !== oldTotal) {
@@ -501,9 +544,17 @@ export async function updateOrder(
     }
 
     plan.commit();
+    cartelaPlan.commit();
     for (const commit of aggregateCommits) commit();
     writeSummaryTx(tx, storeId, summary);
-    tx.update(ref, { ...input, total, stockConsumed: plan.draws, updatedAt: Timestamp.now() });
+    tx.update(ref, {
+      ...input,
+      total,
+      stockConsumed: plan.draws,
+      cartelaConsumed: cartelaPlan.consumed,
+      cartelaSold: [...oldCartelaSold, ...cartelaPlan.soldIds],
+      updatedAt: Timestamp.now(),
+    });
     // Keep the finance mirror in sync with the new total.
     if (current.paid) {
       tx.update(financeMirrorRef, { amount: total });
@@ -536,11 +587,27 @@ export async function setOrderStatus(
     const wasCancelled = current.status === "cancelado";
     const willBeCancelled = status === "cancelado";
     const oldDraws = (current.stockConsumed ?? []) as ConsumptionDraw[];
+    const oldCartelaConsumed = (current.cartelaConsumed ?? []) as CartelaConsumedEntry[];
+    const cartelaSold = (current.cartelaSold ?? []) as string[];
+    const customer = { id: current.customerId ?? "", name: current.customerName ?? "" };
 
     // Cancel → reverse and hold nothing. Uncancel → re-apply from stored items.
     let plan: { draws: ConsumptionDraw[]; commit: () => void } | null = null;
+    let cartelaPlan: Awaited<ReturnType<typeof planCartelas>> | null = null;
+    // Uncancel reactivates the cartelas THIS order sold (cascade counterpart
+    // to cancelSoldCartelas below) — read phase, before any writes.
+    let reactivateSold: (() => void) | null = null;
     if (!wasCancelled && willBeCancelled) {
       plan = await planConsumption(tx, storeId, orderId, by, oldDraws, null, null, summary);
+      cartelaPlan = await planCartelas(
+        tx,
+        storeId,
+        orderId,
+        orderCode(orderId),
+        customer,
+        { consumed: oldCartelaConsumed, soldCount: cartelaSold.length },
+        null,
+      );
     } else if (wasCancelled && !willBeCancelled) {
       plan = await planConsumption(
         tx,
@@ -553,6 +620,18 @@ export async function setOrderStatus(
         summary,
         shakeCatalogs,
       );
+      cartelaPlan = await planCartelas(
+        tx,
+        storeId,
+        orderId,
+        orderCode(orderId),
+        customer,
+        { consumed: [], soldCount: cartelaSold.length },
+        (current.items ?? []) as OrderItem[],
+      );
+      if (cartelaSold.length > 0) {
+        reactivateSold = await reactivateSoldCartelas(tx, storeId, cartelaSold);
+      }
     }
 
     const commitAggregates =
@@ -582,7 +661,7 @@ export async function setOrderStatus(
         open: isOpenStatus(current.status),
         paid,
         channel,
-        items,
+        items: sellerItems(items),
       });
     } else if (wasCancelled && !willBeCancelled) {
       summaryAddOrder(summary, {
@@ -592,7 +671,7 @@ export async function setOrderStatus(
         open: isOpenStatus(status),
         paid,
         channel,
-        items,
+        items: sellerItems(items),
       });
     } else {
       const delta =
@@ -601,10 +680,18 @@ export async function setOrderStatus(
     }
 
     if (plan) plan.commit();
+    if (cartelaPlan) cartelaPlan.commit();
+    if (reactivateSold) reactivateSold();
+    // Cancel cascade: flip every cartela this order sold to "cancelada" — a
+    // pure status flag, blind write (no read needed, mirrors cancelCartela).
+    if (!wasCancelled && willBeCancelled && cartelaSold.length > 0) {
+      cancelSoldCartelas(tx, storeId, cartelaSold);
+    }
     commitAggregates?.();
     writeSummaryTx(tx, storeId, summary);
     const patch: Record<string, unknown> = { status, updatedAt: Timestamp.now() };
     if (plan) patch.stockConsumed = plan.draws;
+    if (cartelaPlan) patch.cartelaConsumed = cartelaPlan.consumed;
     tx.update(ref, patch);
   });
 }

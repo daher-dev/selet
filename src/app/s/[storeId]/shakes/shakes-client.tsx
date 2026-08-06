@@ -249,8 +249,8 @@ function tiersLabel(tiers: { qty: number; price: number }[]): string {
 
 // A whole-card-clickable wrapper: a <div role="button">, NOT <button> — some
 // cards nest their own "Restaurar" button, and <button> can't contain
-// <button> (invalid HTML / hydration error). Mirrors DataListRow/Vouchers'
-// TemplateCard convention.
+// <button> (invalid HTML / hydration error). Mirrors DataListRow's
+// clickable-card convention.
 function ClickableCard({
   active,
   onClick,

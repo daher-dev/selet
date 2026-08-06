@@ -15,9 +15,11 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import type { Customer, Order } from "@/lib/types";
-import { formatBRL, initials } from "@/lib/format";
+import type { Cartela, Customer, Order } from "@/lib/types";
+import { formatBRL, formatDate, initials } from "@/lib/format";
+import { punchStates, remainingUses } from "@/lib/cartelas";
 import { cn } from "@/lib/utils";
+import { CartelaPunchDots } from "@/components/cartela-punch-dots";
 import {
   Sheet,
   SheetContent,
@@ -71,6 +73,8 @@ interface CustomerDetailSheetProps {
   customer: Customer | null;
   /** This customer's orders, newest-first. */
   orders: Order[];
+  /** This customer's cartelas (any status) — the summary card shows the most relevant one. */
+  cartelas: Cartela[];
   unpaid: UnpaidInfo | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -81,6 +85,7 @@ export function CustomerDetailSheet({
   storeId,
   customer,
   orders,
+  cartelas,
   unpaid,
   open,
   onOpenChange,
@@ -102,6 +107,13 @@ export function CustomerDetailSheet({
         .map((id) => tagMeta(id))
         .filter((t): t is NonNullable<typeof t> => t != null)
     : [];
+  // Most relevant cartela for the summary card: cancelled ones are hidden
+  // (decision: cancelling drops a cartela out of active-facing views), and
+  // among the rest the most recently purchased wins — a customer should only
+  // ever have one live cartela at a time in the common case.
+  const cartela = [...cartelas]
+    .filter((c) => c.status !== "cancelada")
+    .sort((a, b) => (a.purchasedAt < b.purchasedAt ? 1 : -1))[0] ?? null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -240,6 +252,31 @@ export function CustomerDetailSheet({
                   label="Ticket médio"
                 />
               </div>
+
+              {/* Cartela summary card (design Mock Clientes 333-345) */}
+              {cartela && (
+                <div className="rounded-xl border border-border bg-card p-3.5">
+                  <div className="flex items-baseline gap-2">
+                    <p className="flex-1 text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+                      Cartela
+                    </p>
+                    <p className="text-[12.5px] text-ink-faint">
+                      #{cartela.code} · comprada {formatDate(cartela.purchasedAt)}
+                    </p>
+                  </div>
+                  <div className="mt-[7px] flex items-baseline gap-2">
+                    <span className="tabular text-[22px] font-bold leading-none tracking-tight text-ink">
+                      {remainingUses(cartela)}
+                    </span>
+                    <span className="text-[12.5px] text-ink-faint">
+                      de {cartela.totalUses} usos livres · {formatBRL(cartela.unitValue)} por uso
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <CartelaPunchDots states={punchStates(cartela)} />
+                  </div>
+                </div>
+              )}
 
               {/* 4-node timeline (design 154-176) */}
               <div className="relative flex justify-between gap-1 rounded-2xl border border-border px-2 pb-1 pt-4">
