@@ -173,10 +173,15 @@
   .selet-leaf {
     animation: seletFloat 6s ease-in-out infinite;
   }
+  /* Low-stock nav dot — mirrors docs/design/SeletNav.dc.html's .selet-dot */
+  .selet-pulse {
+    animation: seletPulse 1.9s ease-in-out infinite;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .selet-rise,
-    .selet-leaf {
+    .selet-leaf,
+    .selet-pulse {
       animation: none;
     }
   }
@@ -189,6 +194,18 @@
   }
   50% {
     transform: translateY(-9px);
+  }
+}
+
+@keyframes seletPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.55);
+    opacity: 0.5;
   }
 }
 

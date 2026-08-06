@@ -56,6 +56,8 @@ function renderList(props: Partial<React.ComponentProps<typeof EstoqueClient>> =
         items={items}
         orders={[]}
         menuProducts={[]}
+        resaleByStock={{}}
+        recipeUsage={{}}
         {...props}
       />
     </AppShellProvider>,
@@ -72,8 +74,8 @@ describe("EstoqueClient", () => {
   it("shows only archived items when the Arquivado situação is selected", async () => {
     const user = userEvent.setup();
     renderList();
-    // The Situação trigger shows its current option label ("Todas") by default.
-    await user.click(screen.getByText("Todas"));
+    // The Situação trigger shows its current option label ("Todos os status") by default.
+    await user.click(screen.getByText("Todos os status"));
     await user.click(screen.getByRole("menuitem", { name: /Arquivado/ }));
     expect(screen.getAllByText("SKU Antigo").length).toBeGreaterThan(0);
     expect(screen.queryByText("Morango")).not.toBeInTheDocument();

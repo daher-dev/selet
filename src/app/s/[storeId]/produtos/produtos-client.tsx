@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  AlertTriangle,
   Archive,
   Blocks,
   ChefHat,
@@ -39,6 +40,7 @@ import {
   PRODUCT_CATEGORY_META,
   STOCK_CATEGORY_META,
 } from "@/components/category-meta";
+import { unitLabel } from "../estoque/stock-view";
 import { ProductFormSheet } from "./product-form-sheet";
 import { ProduzirSheet } from "./produzir-sheet";
 
@@ -70,21 +72,20 @@ export function ProdutosClient({
   const [produceOpen, setProduceOpen] = useState(false);
   const shellSearch = useShellSearch();
 
-  /** Resolve a recipe/insumo reference to its stock category (for colored tiles). */
-  const categoryFor = useMemo(() => {
+  /** Resolve a recipe/insumo reference to its full stock item (name, category, qty…). */
+  const stockItemFor = useMemo(() => {
     const byId = new Map<string, StockItem>();
     const byName = new Map<string, StockItem>();
     for (const s of stockItems) {
       byId.set(s.id, s);
       byName.set(s.name.toLowerCase(), s);
     }
-    return (ref: { stockItemId?: string; name: string }): string | null => {
-      const item =
-        (ref.stockItemId ? byId.get(ref.stockItemId) : undefined) ??
-        byName.get(ref.name.toLowerCase());
-      return item?.category ?? null;
-    };
+    return (ref: { stockItemId?: string; name: string }): StockItem | undefined =>
+      (ref.stockItemId ? byId.get(ref.stockItemId) : undefined) ??
+      byName.get(ref.name.toLowerCase());
   }, [stockItems]);
+  const categoryFor = (ref: { stockItemId?: string; name: string }): string | null =>
+    stockItemFor(ref)?.category ?? null;
 
   const filtered = useMemo(() => {
     const terms = [query, shellSearch]
@@ -116,12 +117,12 @@ export function ProdutosClient({
 
   const categoryLabel =
     category === "all"
-      ? "Categoria"
-      : (PRODUCT_CATEGORY_META[category]?.label ?? "Categoria");
+      ? "Todas as categorias"
+      : (PRODUCT_CATEGORY_META[category]?.label ?? "Todas as categorias");
   const typeLabel =
     saleType === "all"
-      ? "Tipo"
-      : (TYPE_FILTERS.find((t) => t.value === saleType)?.label ?? "Tipo");
+      ? "Menu e revenda"
+      : (TYPE_FILTERS.find((t) => t.value === saleType)?.label ?? "Menu e revenda");
 
   return (
     <>
@@ -131,7 +132,7 @@ export function ProdutosClient({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar item do catálogo…"
+            placeholder="Buscar item do cardápio…"
             className="rounded-xl bg-card pl-9"
           />
         </div>
@@ -187,7 +188,7 @@ export function ProdutosClient({
                     opt.value === "menu"
                       ? "bg-mist text-primary"
                       : opt.value === "revenda"
-                        ? "bg-cat-bebidas-wash text-cat-bebidas"
+                        ? "bg-amber-wash text-amber"
                         : opt.value === "adicional"
                           ? "bg-violet-wash text-violet"
                           : opt.value === "arquivados"
@@ -229,6 +230,7 @@ export function ProdutosClient({
               key={product.id}
               product={product}
               categoryFor={categoryFor}
+              stockItemFor={stockItemFor}
               onClick={() => {
                 setEditing(product);
                 setFormOpen(true);
@@ -296,11 +298,13 @@ function FilterDropdown({
 function ProductCard({
   product,
   categoryFor,
+  stockItemFor,
   onClick,
   onProduzir,
 }: {
   product: Product;
   categoryFor: (ref: { stockItemId?: string; name: string }) => string | null;
+  stockItemFor: (ref: { stockItemId?: string; name: string }) => StockItem | undefined;
   onClick: () => void;
   onProduzir: () => void;
 }) {
@@ -309,6 +313,10 @@ function ProductCard({
   // Only "menu" items have a BASE recipe/Opcionais/Produção — revenda and
   // adicional both just link a single insumo (see product-form-sheet).
   const usesRecipe = isMenu;
+  const linkedInsumo =
+    !usesRecipe && product.insumoId
+      ? stockItemFor({ stockItemId: product.insumoId, name: "" })
+      : undefined;
   const tiers = [...product.tiers].sort((a, b) => a.qty - b.qty);
   const unitTier =
     tiers.find((t) => t.qty === 1) ?? tiers[0] ?? { qty: 1, price: product.price };
@@ -415,6 +423,47 @@ function ProductCard({
         </div>
       )}
 
+      {linkedInsumo && (
+        <div className="mt-3.5">
+          {linkedInsumo.lowStock ? (
+            <div className="flex items-center gap-2.5 rounded-[11px] border border-[#f0e4c8] bg-amber-wash px-3 py-2.5">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-wash text-amber">
+                <AlertTriangle className="size-3.5" strokeWidth={2} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12.5px] font-bold text-amber">
+                  Estoque baixo
+                </span>
+                <span className="block truncate text-[11.5px] text-amber/70">
+                  {linkedInsumo.name} ·{" "}
+                  {formatQty(linkedInsumo.qty, unitLabel(linkedInsumo.unit, linkedInsumo.qty !== 1))}{" "}
+                  restantes
+                </span>
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5 rounded-[11px] border border-wash bg-paper px-3 py-2.5">
+              {STOCK_CATEGORY_META[linkedInsumo.category] && (
+                <CategoryTile
+                  meta={STOCK_CATEGORY_META[linkedInsumo.category]}
+                  className="size-7"
+                />
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12.5px] font-semibold text-ink">
+                  Vinculado ao estoque
+                </span>
+                <span className="block truncate text-[11.5px] text-ink-faint">
+                  {linkedInsumo.name} ·{" "}
+                  {formatQty(linkedInsumo.qty, unitLabel(linkedInsumo.unit, linkedInsumo.qty !== 1))}{" "}
+                  disponíveis
+                </span>
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-3.5 flex items-baseline gap-2 border-t border-border pt-3">
         <span className="tabular text-[22px] font-bold leading-none text-primary">
           {formatBRL(unitTier.price)}
@@ -473,7 +522,7 @@ function TypeBadge({ saleType }: { saleType: Product["saleType"] }) {
       ? "bg-mist text-primary"
       : saleType === "adicional"
         ? "bg-violet-wash text-violet"
-        : "bg-cat-bebidas-wash text-cat-bebidas";
+        : "bg-amber-wash text-amber";
   const Icon = saleType === "menu" ? ChefHat : saleType === "adicional" ? Blocks : Tag;
   const label =
     saleType === "menu" ? "Menu" : saleType === "adicional" ? "Adicional" : "Revenda";

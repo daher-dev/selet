@@ -1,4 +1,4 @@
-import { CircleCheck, CircleX, TriangleAlert, Archive } from "lucide-react";
+import { Archive, CircleCheck, CircleX, RotateCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { StockItem } from "@/lib/types";
 import { formatQty } from "@/lib/format";
@@ -59,7 +59,7 @@ export interface StatusMeta {
 
 export const STATUS_META: Record<StockStatus, StatusMeta> = {
   ok: { label: "OK", icon: CircleCheck, fg: "text-success", bg: "bg-mint-wash" },
-  repor: { label: "Repor", icon: TriangleAlert, fg: "text-amber", bg: "bg-amber-wash" },
+  repor: { label: "Repor", icon: RotateCw, fg: "text-amber", bg: "bg-amber-wash" },
   esgotado: { label: "Esgotado", icon: CircleX, fg: "text-destructive", bg: "bg-danger-wash" },
   arquivado: { label: "Arquivado", icon: Archive, fg: "text-ink-faint", bg: "bg-wash" },
 };
@@ -79,6 +79,10 @@ export interface StockCardView {
   pips: { total: number; filled: number } | null;
   /** big count-unit open package → fill bar percentage 0-100 */
   barPct: number | null;
+  /** Right-column message when there's nothing open: "Nenhuma embalagem
+   *  aberta" (frac-capable, just not started) or "Não fraciona" (whole-unit
+   *  items that never open a package). */
+  openMutedLabel: string;
 }
 
 /** Everything the estoque card needs to render, mirroring the design's stockRows. */
@@ -136,7 +140,9 @@ export function buildStockCard(item: StockItem): StockCardView {
     leftSub: item.tracked
       ? frac
         ? `${formatQty(pkgSize, pu)}/${pkgLabel}`
-        : ""
+        : item.sealed === 0
+          ? `mínimo ${formatQty(item.reorderAt, unitLabel(item.unit))}.`
+          : `vendido por ${pkgLabel}`
       : "não rastreado",
     leftColor,
     hasOpen,
@@ -144,5 +150,6 @@ export function buildStockCard(item: StockItem): StockCardView {
     openSub,
     pips,
     barPct,
+    openMutedLabel: frac ? "Nenhuma embalagem aberta" : "Não fraciona",
   };
 }

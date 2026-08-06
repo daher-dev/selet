@@ -66,9 +66,10 @@ const STATUS_META: Record<
   inativo: { label: "Inativo", fg: "text-ink-faint", bg: "bg-wash", dot: "bg-ink-faint" },
 };
 
-// The modules a funcionário can be granted (design aclSections, Selet
-// Admin.dc.html:2415-2423, extended with Vouchers). "equipe" is deliberately
-// absent — team management is admin-only.
+// The modules a funcionário can be granted (design Mock Equipe.dc.html:
+// 232-255, order extended with Vouchers). "equipe" is deliberately absent
+// from this list — team management is admin-only — but shown separately for
+// admins, who implicitly have it (see ADMIN_AREA_LABELS below).
 const ACCESS_MODULES: {
   key: GrantableSection;
   label: string;
@@ -77,16 +78,43 @@ const ACCESS_MODULES: {
   { key: "pedidos", label: "Pedidos", icon: Inbox },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "produtos", label: "Cardápio", icon: Tag },
+  { key: "vouchers", label: "Vouchers", icon: Ticket },
   { key: "estoque", label: "Estoque", icon: Package },
   { key: "financeiro", label: "Financeiro", icon: CircleDollarSign },
-  { key: "vouchers", label: "Vouchers", icon: Ticket },
 ];
 
+// Admins implicitly have every area, plus team management itself (design
+// Mock Equipe.dc.html:320-328) — shown as a read-only chip list, never as
+// toggles.
+const ADMIN_AREA_LABELS = [...ACCESS_MODULES.map((m) => m.label), "Equipe"];
+
+/**
+ * Sheet header subtitle: role + store reach (design Mock Equipe.dc.html:200,
+ * 306 — "Funcionária · Vila Velha/ES", "Administrador · todas as lojas").
+ * Role is kept ungendered ("Funcionário"), matching this app's copy
+ * elsewhere — the design's gendered example isn't a signal we can act on
+ * without a gender field on the member.
+ */
+function memberHeaderSubtitle(member: TeamMember, stores: Store[]): string {
+  const roleLabel = member.role === "admin" ? "Administrador" : "Funcionário";
+  if (member.role === "admin" || member.storeIds === "all") {
+    return `${roleLabel} · todas as lojas`;
+  }
+  const ids = member.storeIds;
+  if (ids.length === 0) return roleLabel;
+  if (ids.length === 1) {
+    const store = stores.find((s) => s.id === ids[0]);
+    return store ? `${roleLabel} · ${store.sub}` : roleLabel;
+  }
+  return `${roleLabel} · ${ids.length} lojas`;
+}
+
+// Shown only while inviting (design Mock Equipe.dc.html:363) — once a member
+// exists, their role's reach is explained by the sections below instead.
 const ROLE_DESC = {
   admin:
     "Acesso total: gerencia catálogo, estoque, finanças, pedidos e equipe em todas as lojas.",
-  funcionario:
-    "Acesso operacional: registra pedidos, dá baixa no estoque e atende clientes nas lojas atribuídas.",
+  funcionario: "Acesso operacional nas lojas atribuídas.",
 } as const;
 
 // Maps the stored lucide icon name (design metaphors) to a component.
@@ -107,6 +135,7 @@ const ACTIVITY_ICONS: Record<string, LucideIcon> = {
   truck: Truck,
   ticket: Ticket,
   "cup-soda": CupSoda,
+  mail: Mail,
 };
 
 interface MemberSheetProps {
@@ -148,27 +177,18 @@ export function MemberSheet({
                 <SheetTitle className="truncate text-[17px] font-bold">
                   {member.name}
                 </SheetTitle>
-                <p className="truncate text-[11.5px] text-ink-faint">
-                  {member.email}
+                <p className="truncate text-[12.5px] text-ink-faint">
+                  {memberHeaderSubtitle(member, stores)}
                 </p>
               </div>
-              <span
-                className={cn(
-                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold",
-                  STATUS_META[member.status].bg,
-                  STATUS_META[member.status].fg,
-                )}
-              >
-                {STATUS_META[member.status].label}
-              </span>
             </div>
           ) : (
             <div>
               <span className="text-[11px] font-bold uppercase tracking-[0.5px] text-leaf">
-                Novo membro
+                Equipe
               </span>
               <SheetTitle className="mt-0.5 text-[19px] font-bold">
-                Convidar para a equipe
+                Convidar pessoa
               </SheetTitle>
             </div>
           )}
@@ -322,7 +342,7 @@ function MemberForm({
 
         {!member && (
           <div className="space-y-1.5">
-            <Label htmlFor="member-email">E-mail de acesso (conta Google)</Label>
+            <Label htmlFor="member-email">E-mail</Label>
             <Input
               id="member-email"
               type="email"
@@ -352,23 +372,25 @@ function MemberForm({
           <Label>Permissão</Label>
           <div className="flex gap-0.5 rounded-[10px] border border-border bg-surface p-[3px]">
             <SegButton
+              active={role === "admin"}
+              disabled={locked || !meIsAdmin}
+              onClick={() => setRole("admin")}
+              icon={ShieldCheck}
+              label="Administrador"
+            />
+            <SegButton
               active={role === "funcionario"}
               disabled={locked || !meIsAdmin}
               onClick={() => setRole("funcionario")}
               icon={ShieldUser}
               label="Funcionário"
             />
-            <SegButton
-              active={role === "admin"}
-              disabled={locked || !meIsAdmin}
-              onClick={() => setRole("admin")}
-              icon={ShieldCheck}
-              label="Admin"
-            />
           </div>
-          <p className="text-[11.5px] leading-relaxed text-ink-faint">
-            {ROLE_DESC[role]}
-          </p>
+          {!member && (
+            <p className="text-[11.5px] leading-relaxed text-ink-faint">
+              {ROLE_DESC[role]}
+            </p>
+          )}
         </div>
 
         {/* Store access — shown for both roles; admins locked to all (design
@@ -382,112 +404,162 @@ function MemberForm({
               </span>
             )}
           </Label>
-          <div className="space-y-2">
-            {stores.map((store) => {
-              const checked = isAdmin || storeIds.includes(store.id);
-              const disabled = locked || isAdmin;
-              return (
-                <button
+          {isAdmin ? (
+            // Read-only: admins always reach every store — genuinely
+            // non-interactive chips, not a disabled picker (design Mock
+            // Equipe.dc.html:330-336).
+            <div className="flex flex-wrap gap-2">
+              {stores.map((store) => (
+                <span
                   key={store.id}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() =>
-                    setStoreIds(
-                      checked
-                        ? storeIds.filter((id) => id !== store.id)
-                        : [...storeIds, store.id],
-                    )
-                  }
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
-                    checked
-                      ? "border-primary bg-primary/[0.05]"
-                      : "border-border bg-card",
-                    disabled ? "cursor-default" : "cursor-pointer",
-                  )}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-[13px] font-semibold text-ink"
                 >
-                  <span
-                    className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold",
-                      checked
-                        ? "bg-primary/[0.12] text-primary"
-                        : "bg-mist text-ink-faint",
-                    )}
-                  >
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-[11px] font-bold text-white">
                     {store.initial}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-semibold text-ink">
-                      {store.name}
-                    </span>
-                    <span className="block truncate text-[11px] text-ink-faint">
-                      {store.sub}
-                    </span>
-                  </span>
-                  {checked && (
-                    <span className="flex size-[22px] shrink-0 items-center justify-center rounded-md bg-primary text-white">
-                      <Check className="size-3" strokeWidth={3} />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Per-module access — funcionários only (design 1823-1834) */}
-        {!isAdmin && (
-          <div className="space-y-2">
-            <Label>Áreas que pode acessar</Label>
-            <div className="space-y-1.5">
-              {ACCESS_MODULES.map((mod) => {
-                const checked = sections.includes(mod.key);
+                  {store.name}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {stores.map((store) => {
+                const checked = storeIds.includes(store.id);
                 return (
-                  <label
-                    key={mod.key}
+                  <button
+                    key={store.id}
+                    type="button"
+                    disabled={locked}
+                    onClick={() =>
+                      setStoreIds(
+                        checked
+                          ? storeIds.filter((id) => id !== store.id)
+                          : [...storeIds, store.id],
+                      )
+                    }
                     className={cn(
-                      "flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-all",
+                      "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all",
                       checked
-                        ? "border-primary/40 bg-primary/[0.04]"
+                        ? "border-primary bg-primary/[0.05]"
                         : "border-border bg-card",
                       locked ? "cursor-default" : "cursor-pointer",
                     )}
                   >
                     <span
                       className={cn(
-                        "flex size-[30px] shrink-0 items-center justify-center rounded-lg [&_svg]:size-4",
+                        "flex size-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold",
                         checked
                           ? "bg-primary/[0.12] text-primary"
                           : "bg-mist text-ink-faint",
                       )}
                     >
-                      <mod.icon />
+                      {store.initial}
                     </span>
-                    <span
-                      className={cn(
-                        "flex-1 text-[13.5px] font-semibold",
-                        checked ? "text-ink" : "text-ink-faint",
-                      )}
-                    >
-                      {mod.label}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-semibold text-ink">
+                        {store.name}
+                      </span>
+                      <span className="block truncate text-[11px] text-ink-faint">
+                        {store.sub}
+                      </span>
                     </span>
-                    <Switch
-                      checked={checked}
-                      disabled={locked}
-                      onCheckedChange={(on) =>
-                        setSections(
-                          on
-                            ? [...sections, mod.key]
-                            : sections.filter((s) => s !== mod.key),
-                        )
-                      }
-                    />
-                  </label>
+                    {checked && (
+                      <span className="flex size-[22px] shrink-0 items-center justify-center rounded-md bg-primary text-white">
+                        <Check className="size-3" strokeWidth={3} />
+                      </span>
+                    )}
+                  </button>
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Per-module access (design Mock Equipe.dc.html:228-257 for
+            funcionários, 318-329 for admins — read-only chips there, never
+            toggles). */}
+        <div className="space-y-2">
+          {isAdmin ? (
+            <>
+              <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-surface px-3.5 py-3">
+                <span className="flex size-[34px] shrink-0 items-center justify-center rounded-lg bg-mint-wash text-primary">
+                  <ShieldCheck className="size-4" />
+                </span>
+                <span className="flex-1">
+                  <span className="block text-[13px] font-bold text-primary">
+                    Acesso total
+                  </span>
+                  <span className="mt-0.5 block text-[12.5px] leading-relaxed text-ink-soft">
+                    Administradores enxergam todas as áreas e todas as lojas.
+                    Para limitar, mude o papel para funcionário.
+                  </span>
+                </span>
+              </div>
+              <Label>Áreas</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {ADMIN_AREA_LABELS.map((label) => (
+                  <span
+                    key={label}
+                    className="rounded-full bg-mist px-3 py-1.5 text-[12px] font-semibold text-primary"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <Label>Áreas que pode acessar</Label>
+              <div className="space-y-1.5">
+                {ACCESS_MODULES.map((mod) => {
+                  const checked = sections.includes(mod.key);
+                  return (
+                    <label
+                      key={mod.key}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-all",
+                        checked
+                          ? "border-primary/40 bg-primary/[0.04]"
+                          : "border-border bg-card",
+                        locked ? "cursor-default" : "cursor-pointer",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex size-[30px] shrink-0 items-center justify-center rounded-lg [&_svg]:size-4",
+                          checked
+                            ? "bg-primary/[0.12] text-primary"
+                            : "bg-mist text-ink-faint",
+                        )}
+                      >
+                        <mod.icon />
+                      </span>
+                      <span
+                        className={cn(
+                          "flex-1 text-[13.5px] font-semibold",
+                          checked ? "text-ink" : "text-ink-faint",
+                        )}
+                      >
+                        {mod.label}
+                      </span>
+                      <Switch
+                        checked={checked}
+                        disabled={locked}
+                        onCheckedChange={(on) =>
+                          setSections(
+                            on
+                              ? [...sections, mod.key]
+                              : sections.filter((s) => s !== mod.key),
+                          )
+                        }
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
 
         {member && (
           <div className="space-y-2">

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, Check } from "lucide-react";
 import { formatQty } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePageAction } from "@/components/shell/app-shell-context";
@@ -28,12 +29,13 @@ interface DashboardClientProps {
   byChannel: { instagram: number; whatsapp: number; loja: number };
   topSellers: { name: string; qty: number }[];
   lowStock: LowStockChip[];
+  canEstoque: boolean;
 }
 
 const TREND_TONE: Record<"green" | "blue" | "red", string> = {
-  green: "text-[#3A9D5D] bg-[#E7F4EC]",
-  blue: "text-[#2F6FB5] bg-[#E6EFF8]",
-  red: "text-[#C0492F] bg-[#FBE9E4]",
+  green: "text-success bg-mint-wash",
+  blue: "text-info bg-info-wash",
+  red: "text-destructive bg-danger-wash",
 };
 
 export function DashboardClient({
@@ -42,12 +44,19 @@ export function DashboardClient({
   byChannel,
   topSellers,
   lowStock,
+  canEstoque,
 }: DashboardClientProps) {
   const maxSellerQty = Math.max(1, ...topSellers.map((s) => s.qty));
   const base = `/s/${storeId}`;
+  const router = useRouter();
 
-  // Dashboard has no contextual add (design hides it on dashboard/financeiro).
-  usePageAction(null);
+  // "Novo pedido" jumps to Pedidos and auto-opens the create sheet there
+  // (the creation form's state — products, customers, shake options — lives
+  // in PedidosClient, not here).
+  usePageAction({
+    label: "Novo pedido",
+    onClick: () => router.push(`${base}/pedidos?novo=1`),
+  });
 
   return (
     <>
@@ -59,7 +68,7 @@ export function DashboardClient({
       </div>
 
       {/* Channel donut + top sellers */}
-      <div className="mb-4 grid gap-2.5 lg:grid-cols-2 lg:gap-4">
+      <div className="mb-4 grid gap-2.5 lg:grid-cols-[1.1fr_0.9fr] lg:gap-4">
         <div className="rounded-2xl border border-border bg-card p-5">
           <h3 className="text-[15px] font-semibold text-ink">
             Pedidos por canal
@@ -103,58 +112,81 @@ export function DashboardClient({
         </div>
       </div>
 
-      {/* Low stock — cream alert with 3-col chip grid */}
-      {lowStock.length > 0 && (
-        <div className="rounded-2xl border border-[#F0E4C8] bg-[#FBF6EC] p-5">
-          <div className="mb-3.5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <AlertTriangle className="size-[18px] text-amber" />
-              <h3 className="text-[15px] font-bold text-[#8A6312]">
-                Estoque baixo
-              </h3>
+      {/* Low stock — cream alert with 3-col chip grid, or a green all-clear
+          confirmation. Hidden entirely for members without estoque access. */}
+      {canEstoque &&
+        (lowStock.length > 0 ? (
+          <div className="rounded-2xl border border-[#F0E4C8] bg-[#FBF6EC] p-5">
+            <div className="mb-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="size-[18px] text-amber" />
+                <h3 className="text-[15px] font-bold text-[#8A6312]">
+                  Estoque baixo
+                </h3>
+              </div>
+              <Link
+                href={`${base}/estoque`}
+                className="shrink-0 text-[12.5px] font-semibold text-amber transition-opacity hover:opacity-80"
+              >
+                Ver estoque →
+              </Link>
             </div>
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {lowStock.map((item) => {
+                const out = item.qty <= 0;
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-2.5 rounded-xl border border-[#F0E4C8] bg-card px-3.5 py-3"
+                  >
+                    <span
+                      className={cn(
+                        "size-2.5 shrink-0 rounded-full",
+                        out ? "bg-destructive" : "bg-amber",
+                      )}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-semibold text-[#5C4F2A]">
+                        {item.name}
+                      </span>
+                      <span className="tabular block text-[11.5px] font-semibold text-amber">
+                        {out
+                          ? "Esgotado"
+                          : `${formatQty(item.qty, item.unit)} em estoque`}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-[13px] rounded-2xl border border-[#DDEBD5] bg-surface px-5 py-[18px]">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-mint-wash text-primary">
+              <Check className="size-[18px]" strokeWidth={2.2} />
+            </span>
+            <span className="flex-1">
+              <span className="block text-[14px] font-bold text-primary">
+                Estoque em ordem
+              </span>
+              <span className="mt-0.5 block text-[12.5px] text-ink-soft">
+                Nenhum insumo abaixo do mínimo.
+              </span>
+            </span>
             <Link
               href={`${base}/estoque`}
-              className="shrink-0 text-[12.5px] font-semibold text-amber transition-opacity hover:opacity-80"
+              className="shrink-0 text-[12.5px] font-semibold text-primary transition-opacity hover:opacity-80"
             >
               Ver estoque →
             </Link>
           </div>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-            {lowStock.map((item) => {
-              const out = item.qty <= 0;
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-2.5 rounded-xl border border-[#F0E4C8] bg-card px-3.5 py-3"
-                >
-                  <span
-                    className={cn(
-                      "size-2.5 shrink-0 rounded-full",
-                      out ? "bg-destructive" : "bg-amber",
-                    )}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-semibold text-[#5C4F2A]">
-                      {item.name}
-                    </span>
-                    <span className="tabular block text-[11.5px] font-semibold text-amber">
-                      {out
-                        ? "Esgotado"
-                        : `${formatQty(item.qty, item.unit)} em estoque`}
-                    </span>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+        ))}
     </>
   );
 }
 
 function Kpi({ kpi }: { kpi: KpiCard }) {
+  const isZero = kpi.value === "0";
   const inner = (
     <>
       <div className="flex items-start justify-between gap-2">
@@ -172,7 +204,12 @@ function Kpi({ kpi }: { kpi: KpiCard }) {
           </span>
         )}
       </div>
-      <p className="tabular mt-2 whitespace-nowrap text-[38px] font-semibold leading-none tracking-[-0.4px] text-ink">
+      <p
+        className={cn(
+          "tabular mt-2 whitespace-nowrap text-[38px] font-semibold leading-none tracking-[-0.4px]",
+          isZero ? "text-ink-faint/70" : "text-ink",
+        )}
+      >
         {kpi.value}
       </p>
       <p className="mt-0.5 text-[11.5px] text-ink-faint">{kpi.sub}</p>

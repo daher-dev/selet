@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
   AtSign,
@@ -136,10 +137,21 @@ export function PedidosClient({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [payFilter, setPayFilter] = useState<PayFilter>("todos");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
   const shellSearch = useShellSearch();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Deep link from the dashboard's "Novo pedido" action (?novo=1): open the
+  // create sheet straight from the initial render (no setState-in-effect).
+  const [creating, setCreating] = useState(() => searchParams.get("novo") === "1");
 
   usePageAction({ label: "Novo pedido", onClick: () => setCreating(true) });
+
+  // Strip the deep-link param once mounted so back/refresh doesn't reopen it.
+  useEffect(() => {
+    if (searchParams.get("novo") !== "1") return;
+    router.replace(pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
 
   const selected = orders.find((o) => o.id === selectedId) ?? null;
 

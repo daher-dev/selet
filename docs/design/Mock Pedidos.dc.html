@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #EFF3EC; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #D6E2D0; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #186B41; text-decoration: none; }
+  a:hover { color: #124F30; }
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:72px; padding:56px 56px 120px; font-family:'Albert Sans',sans-serif; color:#15231C; background:#EFF3EC;">
+
+  <div style="display:flex; align-items:baseline; gap:14px;">
+    <span style="font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; color:#186B41;">Selet</span>
+    <span style="font-size:11px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#8A968D;">Mockups · Pedidos</span>
+  </div>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">1</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Dia cheio — pedidos dos três canais, com valores a receber</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="1a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1a</span>
+          <span style="font-size:14px; color:#5C6B62;">Lista padrão: aviso de "a receber" no topo, filtros e tabela com status e pagamento.</span>
+        </div>
+        <div style="position:relative; display:flex; width:1360px; height:860px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="pedidos" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
+              <div style="flex:1; min-width:0;">
+                <h1 style="margin:0; font-size:19px; font-weight:700; letter-spacing:-.2px;">Pedidos</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Acompanhe vendas do Instagram, WhatsApp e loja</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; width:280px; height:38px; padding:0 13px; background:#F6FAF4; border:1px solid #E7EEE6; border-radius:10px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                <span style="font-size:13px; color:#A8B4AC;">Buscar pedido, cliente…</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>
+                <span>Novo pedido</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:26px 28px 40px;">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#5C6B62;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92C17D" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg>
+                  <span style="color:#A0AC9D;">Canal:</span><span>Todos</span>
+                  <span style="color:#A8B4AC; font-size:9px;">▼</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#5C6B62;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92C17D" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg>
+                  <span style="color:#A0AC9D;">Status:</span><span>Todos</span>
+                  <span style="color:#A8B4AC; font-size:9px;">▼</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#5C6B62;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92C17D" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg>
+                  <span style="color:#A0AC9D;">Pagamento:</span><span>Todos</span>
+                  <span style="color:#A8B4AC; font-size:9px;">▼</span>
+                </div>
+                <span style="flex:1;"></span>
+                <span style="font-size:12.5px; color:#A0AC9D;">9 pedidos</span>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:11px; width:100%; margin-bottom:14px; padding:13px 16px; background:#FDFAF1; border:1px solid #F0E4C8; border-radius:12px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#F6EAC6; color:#B7791F; flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+                <span style="flex:1; text-align:left;">
+                  <span style="display:block; font-size:13.5px; font-weight:700; color:#8A6312;">R$ 239,00 a receber</span>
+                  <span style="display:block; font-size:12px; color:#A08A57; margin-top:1px;">4 pedidos ainda não pagos · ver somente estes</span>
+                </span>
+                <span style="color:#B7791F; font-size:12.5px; font-weight:700;">Filtrar →</span>
+              </div>
+
+              <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px;">
+                <div style="display:grid; grid-template-columns:60px 1.3fr 1.15fr 96px 108px 200px; gap:10px; padding:13px 18px; background:#FAFCF8; border-bottom:1px solid #E7EEE6; border-radius:14px 14px 0 0; font-size:11px; font-weight:700; letter-spacing:.4px; color:#8A968D; text-transform:uppercase;">
+                  <span>Pedido</span><span>Cliente</span><span>Itens</span><span>Canal</span><span>Status</span><span style="text-align:right;">Total</span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:60px 1.3fr 1.15fr 96px 108px 200px; gap:10px; padding:14px 18px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="font-size:12px; font-weight:600; color:#A0AC9D; font-variant-numeric:tabular-nums;">#1048</span>
+                  <span><span style="display:block; font-size:13.5px; font-weight:600;">Mariana Lopes</span><span style="display:block; font-size:11.5px; color:#A0AC9D;">há 6 min</span></span>
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <span style="display:flex; align-items:center; gap:5px; background:#F7FAF4; border:1px solid #EEF3EA; border-radius:20px; padding:3px 9px 3px 3px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px; background:#E3F1F4; color:#2F8FA8;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                      <span style="font-size:12px; font-weight:700; color:#3D4A42;">1×</span>
+                    </span>
+                    <span style="display:flex; align-items:center; gap:5px; background:#F7FAF4; border:1px solid #EEF3EA; border-radius:20px; padding:3px 9px 3px 3px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px; background:#E3F1F4; color:#2F8FA8;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                      <span style="font-size:12px; font-weight:700; color:#3D4A42;">1×</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#C2407E; background:#F8E9F1; padding:3px 10px; border-radius:20px;">Instagram</span></span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#B7791F; background:#FBF1DC; padding:3px 10px; border-radius:20px;">Preparando</span></span>
+                  <span style="display:flex; align-items:center; justify-content:flex-end; gap:8px; white-space:nowrap;">
+                    <span style="display:inline-flex; align-items:center; gap:3px; font-size:10.5px; font-weight:700; color:#B7791F; background:#FBF1DC; padding:2px 8px; border-radius:20px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>A receber</span>
+                    <span style="font-size:14px; font-weight:700;">R$ 72,00</span>
+                  </span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:60px 1.3fr 1.15fr 96px 108px 200px; gap:10px; padding:14px 18px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="font-size:12px; font-weight:600; color:#A0AC9D; font-variant-numeric:tabular-nums;">#1047</span>
+                  <span><span style="display:block; font-size:13.5px; font-weight:600;">Rafael Souza</span><span style="display:block; font-size:11.5px; color:#A0AC9D;">há 12 min</span></span>
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <span style="display:flex; align-items:center; gap:5px; background:#F7FAF4; border:1px solid #EEF3EA; border-radius:20px; padding:3px 9px 3px 3px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px; background:#F5EED2; color:#AD861C;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.5 4.5 5.5 7 5.5 10a5.5 5.5 0 0 1-11 0C6.5 10 8.5 7.5 12 3Z"></path></svg></span>
+                      <span style="font-size:12px; font-weight:700; color:#3D4A42;">3×</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#1E9E54; background:#E5F5EC; padding:3px 10px; border-radius:20px;">WhatsApp</span></span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#2F6FB5; background:#E6EFF8; padding:3px 10px; border-radius:20px;">Novo</span></span>
+                  <span style="display:flex; align-items:center; justify-content:flex-end; gap:8px; white-space:nowrap;">
+                    <span style="display:inline-flex; align-items:center; gap:3px; font-size:10.5px; font-weight:700; color:#B7791F; background:#FBF1DC; padding:2px 8px; border-radius:20px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>A receber</span>
+                    <span style="font-size:14px; font-weight:700;">R$ 37,00</span>
+                  </span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:60px 1.3fr 1.15fr 96px 108px 200px; gap:10px; padding:14px 18px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="font-size:12px; font-weight:600; color:#A0AC9D; font-variant-numeric:tabular-nums;">#1046</span>
+                  <span><span style="display:block; font-size:13.5px; font-weight:600;">Beatriz Almeida</span><span style="display:block; font-size:11.5px; color:#A0AC9D;">há 20 min</span></span>
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <span style="display:flex; align-items:center; gap:5px; background:#F7FAF4; border:1px solid #EEF3EA; border-radius:20px; padding:3px 9px 3px 3px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px; background:#E7F2E4; color:#3A8B4E;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18l-1.8 5.4A7 7 0 0 1 5.8 14.4L3 9Z"></path><path d="M9 9c0-2 1.5-3 3-3s3 1 3 3"></path></svg></span>
+                      <span style="font-size:12px; font-weight:700; color:#3D4A42;">1×</span>
+                    </span>
+                    <span style="display:flex; align-items:center; gap:5px; background:#F7FAF4; border:1px solid #EEF3EA; border-radius:20px; padding:3px 9px 3px 3px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px; background:#E3F1F4; color:#2F8FA8;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                      <span style="font-size:12px; font-weight:700; color:#3D4A42;">1×</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#5C6B62; background:#EEF2EC; padding:3px 10px; border-radius:20px;">Loja física</span></span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#3A9D5D; background:#E7F4EC; padding:3px 10px; border-radius:20px;">Concluído</span></span>
+                  <span style="display:flex; align-items:center; justify-content:flex-end; gap:8px; white-space:nowrap;"><span style="font-size:14px; font-weight:700;">R$ 61,00</span></span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:60px 1.3fr 1.15fr 96px 108px 200px; gap:10px; padding:14px 18px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="font-size:12px; font-weight:600; color:#A0AC9D; font-variant-numeric:tabular-nums;">#1045</span>
+                  <span><span style="display:block; font-size:13.5px; font-weight:600;">Carla Menezes</span><span style="display:block; font-size:11.5px; color:#A0AC9D;">há 34 min</span></span>
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <span style="display:flex; align-items:center; gap:5px; background:#F7FAF4; border:1px solid #EEF3EA; border-radius:20px; padding:3px 9px 3px 3px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px; background:#E3F1F4; color:#2F8FA8;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                      <span style="font-size:12px; font-weight:700; color:#3D4A42;">2×</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#1E9E54; background:#E5F5EC; padding:3px 10px; border-radius:20px;">WhatsApp</span></span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#186B41; background:#E7F1E5; padding:3px 10px; border-radius:20px;">Entrega</span></span>
+                  <span style="display:flex; align-items:center; justify-content:flex-end; gap:8px; white-space:nowrap;">
+                    <span style="display:inline-flex; align-items:center; gap:3px; font-size:10.5px; font-weight:700; color:#5C6B62; background:#EEF2EC; padding:2px 8px; border-radius:20px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path><path d="M13 5v14"></path></svg>−R$ 41,00</span>
+                    <span style="font-size:14px; font-weight:700;">R$ 82,00</span>
+                  </span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:60px 1.3fr 1.15fr 96px 108px 200px; gap:10px; padding:14px 18px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="font-size:12px; font-weight:600; color:#A0AC9D; font-variant-numeric:tabular-nums;">#1044</span>
+                  <span><span style="display:block; font-size:13.5px; font-weight:600;">João Pedro</span><span style="display:block; font-size:11.5px; color:#A0AC9D;">há 41 min</span></span>
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <span style="display:flex; align-items:center; gap:5px; background:#F7FAF4; border:1px solid #EEF3EA; border-radius:20px; padding:3px 9px 3px 3px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px; background:#E3F1F4; color:#2F8FA8;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                      <span style="font-size:12px; font-weight:700; color:#3D4A42;">2×</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#C2407E; background:#F8E9F1; padding:3px 10px; border-radius:20px;">Instagram</span></span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#B7791F; background:#FBF1DC; padding:3px 10px; border-radius:20px;">Preparando</span></span>
+                  <span style="display:flex; align-items:center; justify-content:flex-end; gap:8px; white-space:nowrap;">
+                    <span style="display:inline-flex; align-items:center; gap:3px; font-size:10.5px; font-weight:700; color:#B7791F; background:#FBF1DC; padding:2px 8px; border-radius:20px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>A receber</span>
+                    <span style="font-size:14px; font-weight:700;">R$ 56,00</span>
+                  </span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:60px 1.3fr 1.15fr 96px 108px 200px; gap:10px; padding:14px 18px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="font-size:12px; font-weight:600; color:#A0AC9D; font-variant-numeric:tabular-nums;">#1042</span>
+                  <span><span style="display:block; font-size:13.5px; font-weight:600;">Fernando Dias</span><span style="display:block; font-size:11.5px; color:#A0AC9D;">há 1 h</span></span>
+                  <span style="display:flex; align-items:center; gap:6px;">
+                    <span style="display:flex; align-items:center; gap:5px; background:#F7FAF4; border:1px solid #EEF3EA; border-radius:20px; padding:3px 9px 3px 3px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px; background:#E3F1F4; color:#2F8FA8;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                      <span style="font-size:12px; font-weight:700; color:#3D4A42;">1×</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#5C6B62; background:#EEF2EC; padding:3px 10px; border-radius:20px;">Loja física</span></span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#3A9D5D; background:#E7F4EC; padding:3px 10px; border-radius:20px;">Concluído</span></span>
+                  <span style="display:flex; align-items:center; justify-content:flex-end; gap:8px; white-space:nowrap;"><span style="font-size:14px; font-weight:700;">R$ 22,00</span></span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:60px 1.3fr 1.15fr 96px 108px 200px; gap:10px; padding:14px 18px; align-items:center;">
+                  <span style="font-size:12px; font-weight:600; color:#A0AC9D; font-variant-numeric:tabular-nums;">#1041</span>
+                  <span><span style="display:block; font-size:13.5px; font-weight:600; color:#8A968D; text-decoration:line-through;">Patrícia Gomes</span><span style="display:block; font-size:11.5px; color:#A0AC9D;">há 2 h</span></span>
+                  <span style="display:flex; align-items:center; gap:6px; opacity:.55;">
+                    <span style="display:flex; align-items:center; gap:5px; background:#F7FAF4; border:1px solid #EEF3EA; border-radius:20px; padding:3px 9px 3px 3px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:8px; background:#F5E7DF; color:#B0603A;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-1 12H8L7 8Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg></span>
+                      <span style="font-size:12px; font-weight:700; color:#3D4A42;">1×</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#1E9E54; background:#E5F5EC; padding:3px 10px; border-radius:20px;">WhatsApp</span></span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#C0492F; background:#FBE9E4; padding:3px 10px; border-radius:20px;">Cancelado</span></span>
+                  <span style="display:flex; align-items:center; justify-content:flex-end; gap:8px;"><span style="font-size:14px; font-weight:700; color:#A0AC9D; text-decoration:line-through;">R$ 36,00</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">2</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Filtragem — escolher um status e o caso em que nada sobra</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="2a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2a</span>
+          <span style="font-size:14px; color:#5C6B62;">Dropdown de status aberto, com contagem por opção.</span>
+        </div>
+        <div style="position:relative; display:flex; width:1000px; height:620px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="pedidos" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 24px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center;">
+              <div style="flex:1;">
+                <h1 style="margin:0; font-size:19px; font-weight:700;">Pedidos</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Acompanhe vendas do Instagram, WhatsApp e loja</p>
+              </div>
+            </div>
+            <div style="flex:1; padding:24px; overflow:hidden;">
+              <div style="display:flex; align-items:flex-start; gap:10px; position:relative;">
+                <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#5C6B62;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92C17D" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg>
+                  <span style="color:#A0AC9D;">Canal:</span><span>Todos</span><span style="color:#A8B4AC; font-size:9px;">▼</span>
+                </div>
+                <div style="position:relative;">
+                  <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #C9DBC0; border-radius:10px; font-size:12.5px; font-weight:600; color:#186B41;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg>
+                    <span style="color:#8A968D;">Status:</span><span>Preparando</span><span style="color:#186B41; font-size:9px;">▲</span>
+                  </div>
+                  <div style="position:absolute; top:calc(100% + 7px); left:0; width:238px; z-index:5; background:#fff; border:1px solid #E7EEE6; border-radius:13px; box-shadow:0 18px 44px -16px rgba(21,40,30,.3); padding:6px;">
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:9px; font-size:13px; color:#5C6B62;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:#EEF3EA; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg></span>
+                      <span style="flex:1;">Todos</span><span style="font-size:12px; color:#A0AC9D;">9</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:9px; font-size:13px; color:#5C6B62;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:#E6EFF8; color:#2F6FB5;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.5 5.5 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.5A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.5Z"></path></svg></span>
+                      <span style="flex:1;">Novo</span><span style="font-size:12px; color:#A0AC9D;">1</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:9px; font-size:13px; font-weight:600; color:#186B41; background:rgba(24,107,65,.08);">
+                      <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:#FBF1DC; color:#B7791F;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21H7a1 1 0 0 1-1-1v-3h12v3a1 1 0 0 1-1 1Z"></path><path d="M6 17a5 5 0 0 1-1-9.9A5 5 0 0 1 12 4a5 5 0 0 1 7 3.1A5 5 0 0 1 18 17"></path></svg></span>
+                      <span style="flex:1;">Preparando</span><span style="font-size:12px; color:#186B41;">2</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:9px; font-size:13px; color:#5C6B62;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:#E7F1E5; color:#186B41;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17h4V5H2v12h3"></path><path d="M20 17h2v-3.3a2 2 0 0 0-.6-1.4L18 9h-4v8h3"></path><circle cx="7.5" cy="17.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg></span>
+                      <span style="flex:1;">Entrega</span><span style="font-size:12px; color:#A0AC9D;">1</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:9px; font-size:13px; color:#5C6B62;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:#E7F4EC; color:#3A9D5D;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 4.5-5"></path></svg></span>
+                      <span style="flex:1;">Concluído</span><span style="font-size:12px; color:#A0AC9D;">4</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:9px; font-size:13px; color:#5C6B62;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:#FBE9E4; color:#C0492F;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6M15 9l-6 6"></path></svg></span>
+                      <span style="flex:1;">Cancelado</span><span style="font-size:12px; color:#A0AC9D;">1</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#5C6B62;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92C17D" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg>
+                  <span style="color:#A0AC9D;">Pagamento:</span><span>Todos</span><span style="color:#A8B4AC; font-size:9px;">▼</span>
+                </div>
+              </div>
+              <div style="margin-top:16px; background:#fff; border:1px solid #E7EEE6; border-radius:14px; height:330px; opacity:.45;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="2b" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2b</span>
+          <span style="font-size:14px; color:#5C6B62;">Combinação de filtros sem resultado — estado vazio com atalho para limpar.</span>
+        </div>
+        <div style="position:relative; display:flex; width:1000px; height:620px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="pedidos" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 24px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center;">
+              <div style="flex:1;">
+                <h1 style="margin:0; font-size:19px; font-weight:700;">Pedidos</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Acompanhe vendas do Instagram, WhatsApp e loja</p>
+              </div>
+            </div>
+            <div style="flex:1; padding:24px; overflow:hidden;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #C9DBC0; border-radius:10px; font-size:12.5px; font-weight:600; color:#186B41;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg>
+                  <span style="color:#8A968D;">Canal:</span><span>Loja física</span><span style="color:#186B41; font-size:9px;">▼</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #C9DBC0; border-radius:10px; font-size:12.5px; font-weight:600; color:#186B41;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg>
+                  <span style="color:#8A968D;">Status:</span><span>Novo</span><span style="color:#186B41; font-size:9px;">▼</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #C9DBC0; border-radius:10px; font-size:12.5px; font-weight:600; color:#186B41;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg>
+                  <span style="color:#8A968D;">Pagamento:</span><span>A receber</span><span style="color:#186B41; font-size:9px;">▼</span>
+                </div>
+                <span style="flex:1;"></span>
+                <span style="font-size:12.5px; color:#A0AC9D;">0 pedidos</span>
+              </div>
+              <div style="margin-top:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; height:340px; background:#fff; border:1px solid #E7EEE6; border-radius:14px; text-align:center; padding:0 40px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:52px; height:52px; border-radius:14px; background:#F3F8EF; color:#92C17D;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg></span>
+                <span style="font-size:16px; font-weight:700;">Nenhum pedido nesses filtros</span>
+                <span style="font-size:13px; color:#8A968D; max-width:340px;">Não há pedidos novos da loja física com pagamento pendente neste período.</span>
+                <span style="margin-top:6px; display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 14px; border:1px solid #E7EEE6; border-radius:10px; font-size:13px; font-weight:600; color:#5C6B62; background:#FAFCF8;">Limpar filtros</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">3</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Drawer do pedido e o fluxo de adicionar item</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="3a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3a</span>
+          <span style="font-size:14px; color:#5C6B62;">Pedido em preparo: trilha de status, itens com quantidade, brinde no item e a cartela oferecida no próprio item, para confirmar.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:452px; height:1620px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex:1; min-height:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; display:flex; align-items:center; gap:12px; padding:20px 22px 16px; border-bottom:1px solid #F0F4ED;">
+              <div style="flex:1;">
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:#A0AC9D;">Pedido #1048</span>
+                <h2 style="margin:3px 0 0; font-size:19px; font-weight:700;">Editar pedido</h2>
+              </div>
+              <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; background:#F3F8EF; color:#5C6B62;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"></path></svg></span>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:22px;">
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:8px;">Cliente</span>
+                <div style="display:flex; align-items:center; gap:11px; height:46px; padding:0 12px; background:#FAFCF8; border:1px solid #E7EEE6; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#F8E9F1; color:#C2407E; font-size:12px; font-weight:700;">ML</span>
+                  <span style="flex:1; font-size:14px; font-weight:600;">Mariana Lopes</span>
+                  <span style="color:#A8B4AC; font-size:10px;">▼</span>
+                </div>
+              </div>
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Canal da venda</span>
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+                  <span style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:70px; border:1.5px solid #186B41; border-radius:12px; background:#F3F8EF; font-size:12px; font-weight:700; color:#186B41;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:#F8E9F1; color:#C2407E;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"></circle></svg></span>
+                    Instagram
+                  </span>
+                  <span style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:70px; border:1px solid #E7EEE6; border-radius:12px; background:#FAFCF8; font-size:12px; font-weight:600; color:#5C6B62;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:#E5F5EC; color:#1E9E54;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.7-5.2A8.5 8.5 0 1 1 21 11.5Z"></path></svg></span>
+                    WhatsApp
+                  </span>
+                  <span style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:70px; border:1px solid #E7EEE6; border-radius:12px; background:#FAFCF8; font-size:12px; font-weight:600; color:#5C6B62;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:#E2F0DA; color:#186B41;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 9h16v11H4z"></path><path d="M3 9l1.6-5h14.8L21 9"></path><path d="M9 20v-6h6v6"></path></svg></span>
+                    Loja física
+                  </span>
+                  <span style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:70px; border:1px solid #E7EEE6; border-radius:12px; background:#FAFCF8; font-size:12px; font-weight:600; color:#5C6B62;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:#E4E9E2; color:#3D4A42;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"></circle><path d="M3.5 20a5.5 5.5 0 0 1 11 0"></path><path d="M16 11.2A3 3 0 0 0 16 5.4"></path><path d="M17.5 20a5.4 5.4 0 0 0-2-4.2"></path></svg></span>
+                    Interno
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Data da venda</span>
+                <div style="display:flex; align-items:center; gap:11px; height:46px; padding:0 13px; background:#FAFCF8; border:1px solid #E7EEE6; border-radius:11px;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="1.9"><rect x="3" y="5" width="18" height="16" rx="2.5"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+                  <span style="flex:1; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums;">05/08/2026</span>
+                  <span style="width:1px; height:22px; background:#E7EEE6;"></span>
+                  <span style="font-size:14px; font-weight:600; color:#3D4A42; font-variant-numeric:tabular-nums;">15:12</span>
+                </div>
+              </div>
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:14px;">Status do pedido</span>
+                <div style="display:flex; align-items:flex-start; padding:0 6px;">
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:#E7F1E5; border:2px solid #D6E7CE; color:#186B41;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.5 5.5 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.5A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.5Z"></path></svg></span>
+                      <span style="font-size:12px; font-weight:600; color:#5C6B62; text-align:center;">Novo</span>
+                    </div><span style="flex:0 0 22px; height:2px; margin-top:19px; background:#D6E7CE;"></span>
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:#B7791F; border:2px solid #B7791F; color:#fff;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21H7a1 1 0 0 1-1-1v-3h12v3a1 1 0 0 1-1 1Z"></path><path d="M6 17a5 5 0 0 1-1-9.9A5 5 0 0 1 12 4a5 5 0 0 1 7 3.1A5 5 0 0 1 18 17"></path></svg></span>
+                      <span style="font-size:12px; font-weight:700; color:#B7791F; text-align:center;">Preparando</span>
+                    </div><span style="flex:0 0 22px; height:2px; margin-top:19px; background:#EDF2E9;"></span>
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:#FAFCF8; border:2px solid #E7EEE6; color:#B7C2B9;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17h4V5H2v12h3"></path><path d="M20 17h2v-3.3a2 2 0 0 0-.6-1.4L18 9h-4v8h3"></path><circle cx="7.5" cy="17.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg></span>
+                      <span style="font-size:12px; font-weight:500; color:#A0AC9D; text-align:center;">Entrega</span>
+                    </div><span style="flex:0 0 22px; height:2px; margin-top:19px; background:#EDF2E9;"></span>
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:#FAFCF8; border:2px solid #E7EEE6; color:#B7C2B9;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                      <span style="font-size:12px; font-weight:500; color:#A0AC9D; text-align:center;">Concluído</span>
+                    </div>
+                </div>
+                <div style="text-align:center; margin-top:14px;"><span style="font-size:12.5px; color:#A0AC9D;">Cancelar pedido</span></div>
+              </div>
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:10px;">Itens</span>
+                                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <div style="display:flex; flex-direction:column;">
+                    <div style="display:flex; align-items:flex-start; gap:12px; padding:13px 14px; border:1px solid #EEF3EA; border-radius:12px 12px 0 0;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; background:#E3F1F4; color:#2F8FA8; flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                      <span style="flex:1; min-width:0;">
+                        <span style="display:block; font-size:14px; font-weight:600;">Shake da Beleza</span>
+                        <span style="display:block; font-size:11.5px; color:#A0AC9D; margin-top:1px;">Bebidas</span>
+                        <span style="display:flex; align-items:center; gap:5px; margin-top:5px; font-size:11.5px; color:#5C6B62;">+ Colágeno, Whey extra</span>
+                        <span style="display:flex; align-items:center; gap:6px; margin-top:5px; font-size:11.5px; color:#5C6B62;"><span style="font-size:10px; font-weight:700; color:#186B41; background:#ECF4E8; padding:2px 7px; border-radius:20px;">Brinde</span>Chá Limão · R$ 0,00</span>
+                        <span style="display:flex; align-items:center; gap:5px; margin-top:4px; font-size:11.5px; color:#5C6B62;">+ Fibra Ativa no chá · R$ 5,00</span>
+                      </span>
+                      <span style="display:flex; flex-direction:column; align-items:flex-end; gap:7px;">
+                        <span style="display:flex; align-items:center; gap:9px; padding:3px 6px; border:1px solid #E7EEE6; border-radius:9px;">
+                          <span style="font-size:14px; color:#8A968D;">−</span>
+                          <span style="font-size:13px; font-weight:700; min-width:12px; text-align:center;">1</span>
+                          <span style="font-size:14px; color:#186B41;">+</span>
+                        </span>
+                        <span style="font-size:13.5px; font-weight:700;">R$ 47,00</span>
+                      </span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:11px; padding:11px 13px; background:#F3F8EF; border:1px solid #DDEBD5; border-top:0; border-radius:0 0 12px 12px;">
+                      <span style="flex:1; min-width:0;">
+                        <span style="display:block; font-size:12px; font-weight:700; color:#186B41;">Usar cartela #C012 neste item?</span>
+                        <span style="display:block; font-size:11.5px; color:#5C6B62; margin-top:2px;">1 uso cobre R$ 30,00 · 6 livres</span>
+                      </span>
+                      <span style="display:inline-flex; align-items:center; height:30px; padding:0 11px; border-radius:9px; border:1px solid #DDEBD5; background:#fff; color:#5C6B62; font-size:11.5px; font-weight:600; flex-shrink:0;">Agora não</span>
+                      <span style="display:inline-flex; align-items:center; height:30px; padding:0 13px; border-radius:9px; background:#186B41; color:#fff; font-size:11.5px; font-weight:600; flex-shrink:0;">Usar cartela</span>
+                    </div>
+                  </div>
+                  <div style="display:flex; align-items:flex-start; gap:12px; padding:13px 14px; border:1px solid #EEF3EA; border-radius:12px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; background:#E3F1F4; color:#2F8FA8; flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:14px; font-weight:600;">Hype Drink</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D; margin-top:1px;">Bebidas</span>
+                    </span>
+                    <span style="display:flex; flex-direction:column; align-items:flex-end; gap:7px;">
+                      <span style="display:flex; align-items:center; gap:9px; padding:3px 6px; border:1px solid #E7EEE6; border-radius:9px;">
+                        <span style="font-size:14px; color:#8A968D;">−</span>
+                        <span style="font-size:13px; font-weight:700; min-width:12px; text-align:center;">1</span>
+                        <span style="font-size:14px; color:#186B41;">+</span>
+                      </span>
+                      <span style="font-size:13.5px; font-weight:700;">R$ 30,00</span>
+                    </span>
+                  </div>
+                  <div style="display:flex; flex-direction:column;">
+                    <div style="display:flex; align-items:flex-start; gap:12px; padding:13px 14px; border:1px solid #EEF3EA; border-radius:12px 12px 0 0;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; background:#E3F1F4; color:#2F8FA8; flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                      <span style="flex:1; min-width:0;">
+                        <span style="display:block; font-size:14px; font-weight:600;">Shake Ovomaltine</span>
+                        <span style="display:block; font-size:11.5px; color:#A0AC9D; margin-top:1px;">Bebidas</span>
+                        <span style="display:flex; align-items:center; gap:6px; margin-top:5px; font-size:11.5px; color:#5C6B62;"><span style="font-size:10px; font-weight:700; color:#186B41; background:#ECF4E8; padding:2px 7px; border-radius:20px;">Brinde</span>Chá Hibisco · R$ 0,00</span>
+                      </span>
+                      <span style="display:flex; flex-direction:column; align-items:flex-end; gap:7px;">
+                        <span style="display:flex; align-items:center; gap:9px; padding:3px 6px; border:1px solid #E7EEE6; border-radius:9px;">
+                          <span style="font-size:14px; color:#8A968D;">−</span>
+                          <span style="font-size:13px; font-weight:700; min-width:12px; text-align:center;">1</span>
+                          <span style="font-size:14px; color:#186B41;">+</span>
+                        </span>
+                        <span style="font-size:15px; font-weight:700; color:#186B41; font-variant-numeric:tabular-nums;">R$ 11,00</span>
+                        <span style="font-size:11.5px; color:#A0AC9D; text-decoration:line-through; font-variant-numeric:tabular-nums;">R$ 41,00</span>
+                      </span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; padding:11px 13px; background:#F3F8EF; border:1px solid #DDEBD5; border-top:0; border-radius:0 0 12px 12px;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; background:#186B41; color:#fff; flex-shrink:0;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                      <span style="flex:1; min-width:0;">
+                        <span style="display:block; font-size:12px; font-weight:700; color:#186B41;">Cartela #C012 · 1 uso</span>
+                        <span style="display:block; font-size:11.5px; color:#5C6B62; margin-top:2px;">Cobre R$ 30,00 · 6 livres</span>
+                      </span>
+                      <span style="font-size:11.5px; font-weight:600; color:#8A968D; flex-shrink:0;">Remover</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:center; gap:7px; height:44px; margin-top:9px; border:1px dashed #CDDCC4; border-radius:11px; font-size:13px; font-weight:600; color:#186B41;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>Adicionar item</div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:12px; padding:15px 16px; background:#F3F8EF; border:1px solid #E3EEDC; border-radius:12px;">
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62;">Valores</span>
+                <div style="display:flex; align-items:center; gap:10px; font-size:12.5px; color:#5C6B62;">
+                  <span style="flex:1;">Subtotal dos itens</span><span style="font-weight:600; font-variant-numeric:tabular-nums;">R$ 118,00</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; font-size:12.5px; color:#A0AC9D;">
+                  <span style="flex:1;">Coberto pela cartela · 1 uso</span><span style="font-weight:600; font-variant-numeric:tabular-nums;">− R$ 30,00</span>
+                </div>
+                
+                <div style="display:flex; align-items:center; gap:11px; padding:12px 13px; background:#fff; border:1px dashed #CDDCC4; border-radius:10px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#F3F8EF; color:#186B41; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg></span>
+                  <span style="flex:1; font-size:12.5px; font-weight:600; color:#186B41;">Adicionar desconto</span>
+                  <span style="font-size:11.5px; color:#A0AC9D;">R$, % ou grátis</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; padding-top:11px; border-top:1px solid #E3EEDC;">
+                  <span style="flex:1; font-size:13.5px; font-weight:600;">Total a pagar</span>
+                  <span style="font-size:22px; font-weight:700; letter-spacing:-.5px; font-variant-numeric:tabular-nums;">R$ 88,00</span>
+                </div>
+              </div>
+
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Notas</span>
+                  <span style="font-size:11.5px; color:#A0AC9D;">opcional · visível para a equipe</span>
+                </div>
+                <div style="display:flex; align-items:flex-start; gap:10px; min-height:78px; padding:12px 13px; background:#FAFCF8; border:1px solid #E7EEE6; border-radius:11px;">
+                  <span style="flex:1; font-size:13px; line-height:1.5; color:#3D4A42; text-wrap:pretty;">Sem gelo. Entregar na portaria do edifício, avisar pelo WhatsApp ao chegar.</span>
+                </div>
+              </div>
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:10px;">Pagamento</span>
+                <div style="display:flex; gap:8px;">
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; height:42px; border:1px solid #E7EEE6; border-radius:11px; font-size:13px; font-weight:600; color:#8A968D; background:#FAFCF8;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m5 13 4 4L19 7"></path></svg>Pago</span>
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; height:42px; border:1.5px solid #E0B963; border-radius:11px; font-size:13px; font-weight:700; color:#8A6312; background:#FBF1DC;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>A receber</span>
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; height:42px; border:1px dashed #DCE4D8; border-radius:11px; font-size:13px; font-weight:600; color:#B7C2B9;">Nada a cobrar</span>
+                </div>
+              </div>
+            </div>
+            <div style="flex-shrink:0; display:flex; gap:10px; padding:16px 22px; border-top:1px solid #F0F4ED; background:#fff;">
+              <span style="flex:0 0 auto; display:flex; align-items:center; justify-content:center; height:44px; padding:0 18px; border:1px solid #E7EEE6; border-radius:11px; font-size:13.5px; font-weight:600; color:#5C6B62;">Cancelar</span>
+              <span style="flex:1; display:flex; align-items:center; justify-content:center; height:44px; border-radius:11px; background:#186B41; color:#fff; font-size:13.5px; font-weight:600;">Salvar pedido</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="3b" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3b</span>
+          <span style="font-size:14px; color:#5C6B62;">Pedido cancelado: a trilha é substituída por um aviso e o pagamento fica bloqueado.</span>
+        </div>
+        <div style="position:relative; display:flex; width:520px; height:880px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex:1; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; display:flex; align-items:center; gap:12px; padding:20px 22px 16px; border-bottom:1px solid #F0F4ED;">
+              <div style="flex:1;">
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:#A0AC9D;">Pedido #1041</span>
+                <h2 style="margin:3px 0 0; font-size:19px; font-weight:700;">Editar pedido</h2>
+              </div>
+              <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; background:#F3F8EF; color:#5C6B62;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"></path></svg></span>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:22px;">
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:7px;">Cliente</span>
+                <div style="display:flex; align-items:center; gap:11px; width:100%; height:48px; padding:0 12px; background:#FAFCF8; border:1px solid #E7EEE6; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:9px; background:#EEF2EC; color:#5C6B62; font-size:12px; font-weight:700;">PG</span>
+                  <span style="flex:1; font-size:14px; font-weight:600;">Patrícia Gomes</span>
+                  <span style="color:#A8B4AC; font-size:10px;">▼</span>
+                </div>
+              </div>
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Canal e data</span>
+                <div style="display:flex; align-items:center; gap:10px; padding:14px 15px; background:#F7F8F6; border:1px dashed #DCE4D8; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:#EEF2EC; color:#8A968D; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.7-5.2A8.5 8.5 0 1 1 21 11.5Z"></path></svg></span>
+                  <span style="flex:1; font-size:12.5px; color:#8A968D; font-variant-numeric:tabular-nums;">WhatsApp · 05/08/2026 13:40</span>
+                </div>
+              </div>
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:12px;">Status do pedido</span>
+                <div style="display:flex; align-items:center; gap:13px; padding:14px 15px; background:#FBF1EE; border:1px solid #F2D8CF; border-radius:12px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:10px; background:#FBE0D8; color:#C0492F; flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6M15 9l-6 6"></path></svg></span>
+                  <span style="flex:1;">
+                    <span style="display:block; font-size:13.5px; font-weight:700; color:#C0492F;">Pedido cancelado</span>
+                    <span style="display:block; font-size:12px; color:#8A6A60; margin-top:2px;">Cancelado há 2 h por Marina Alves · nada foi cobrado.</span>
+                  </span>
+                </div>
+                <div style="text-align:center; margin-top:14px;"><span style="font-size:12.5px; font-weight:600; color:#186B41;">Reabrir como novo pedido</span></div>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Itens</span>
+                </div>
+                <div style="display:flex; align-items:flex-start; gap:12px; padding:13px 14px; border:1px solid #EEF3EA; border-radius:12px; opacity:.6;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; background:#F5E7DF; color:#B0603A; flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-1 12H8L7 8Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg></span>
+                  <span style="flex:1;">
+                    <span style="display:block; font-size:14px; font-weight:600;">Escondidinho de Frango</span>
+                    <span style="display:block; font-size:11.5px; color:#A0AC9D; margin-top:1px;">Bowls</span>
+                  </span>
+                  <span style="font-size:13.5px; font-weight:700;">R$ 36,00</span>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:10px; padding:15px 16px; background:#F7F8F6; border:1px solid #E7EEE6; border-radius:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span style="flex:1; font-size:13.5px; font-weight:600; color:#8A968D;">Total cancelado</span>
+                  <span style="font-size:22px; font-weight:700; letter-spacing:-.5px; color:#A0AC9D; text-decoration:line-through;">R$ 36,00</span>
+                </div>
+              </div>
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:10px;">Pagamento</span>
+                <div style="display:flex; align-items:center; gap:10px; padding:14px 15px; background:#F7F8F6; border:1px dashed #DCE4D8; border-radius:11px;">
+                  <span style="font-size:12.5px; color:#8A968D;">Indisponível em pedidos cancelados.</span>
+                </div>
+              </div>
+            </div>
+            <div style="flex-shrink:0; display:flex; gap:10px; padding:16px 22px; border-top:1px solid #F0F4ED;">
+              <span style="flex:1; display:flex; align-items:center; justify-content:center; height:44px; border:1px solid #E7EEE6; border-radius:11px; font-size:13.5px; font-weight:600; color:#5C6B62;">Fechar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="3c" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3c</span>
+          <span style="font-size:14px; color:#5C6B62;">Drawer único de adicionar item — aba Cardápio: busca e lista com o tipo do produto.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:560px; height:900px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex:1; min-height:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; padding:20px 22px 16px; border-bottom:1px solid #F0F4ED;">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:13px;">
+                <h3 style="margin:0; flex:1; font-size:16.5px; font-weight:700;">Adicionar item</h3>
+                <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#F3F8EF; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"></path></svg></span>
+              </div>
+              <div style="display:flex; gap:4px; margin-bottom:13px; padding:4px; background:#EDF2E9; border-radius:11px;">
+                <span style="flex:1; text-align:center; padding:8px 10px; border-radius:8px; background:#fff; font-size:12.5px; font-weight:700; box-shadow:0 2px 6px -3px rgba(21,40,30,.25);">Cardápio</span>
+                <span style="flex:1; text-align:center; padding:8px 10px; border-radius:8px; font-size:12.5px; font-weight:600; color:#5C6B62;">Montar shake</span>
+                <span style="flex:1; text-align:center; padding:8px 10px; border-radius:8px; font-size:12.5px; font-weight:600; color:#5C6B62;">Cartela</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; height:40px; padding:0 12px; background:#FAFCF8; border:1px solid #E7EEE6; border-radius:11px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                <span style="font-size:13px; color:#15231C;">prot</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; align-items:center; gap:12px; padding:10px 11px; border-radius:11px; background:#F7FAF4;">
+                <span style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:#E3F1F4; color:#2F8FA8; flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                <span style="flex:1; min-width:0;">
+                  <span style="display:block; font-size:13.5px; font-weight:600;">Pizza Proteica</span>
+                  <span style="display:block; font-size:11.5px; color:#A0AC9D;">Salgados</span>
+                </span>
+                <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                  <span style="font-size:13px; font-weight:700;">R$ 26,00</span>
+                  <span style="font-size:10px; font-weight:700; color:#186B41; background:#ECF4E8; padding:2px 7px; border-radius:20px;">Menu</span>
+                </span>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; padding:10px 11px; border-radius:11px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:#E3F1F4; color:#2F8FA8; flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                <span style="flex:1; min-width:0;">
+                  <span style="display:block; font-size:13.5px; font-weight:600;">Barra de Proteína</span>
+                  <span style="display:block; font-size:11.5px; color:#A0AC9D;">Proteínas</span>
+                </span>
+                <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                  <span style="font-size:13px; font-weight:700;">R$ 18,00</span>
+                  <span style="font-size:10px; font-weight:700; color:#186B41; background:#ECF4E8; padding:2px 7px; border-radius:20px;">Menu</span>
+                </span>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; padding:10px 11px; border-radius:11px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:#E3F1F4; color:#2F8FA8; flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                <span style="flex:1; min-width:0;">
+                  <span style="display:block; font-size:13.5px; font-weight:600;">Sopa Proteica</span>
+                  <span style="display:block; font-size:11.5px; color:#A0AC9D;">Salgados</span>
+                </span>
+                <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                  <span style="font-size:13px; font-weight:700;">R$ 22,00</span>
+                  <span style="font-size:10px; font-weight:700; color:#186B41; background:#ECF4E8; padding:2px 7px; border-radius:20px;">Menu</span>
+                </span>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; padding:10px 11px; border-radius:11px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:#F5EED2; color:#AD861C; flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-1 12H8L7 8Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg></span>
+                <span style="flex:1; min-width:0;">
+                  <span style="display:block; font-size:13.5px; font-weight:600;">Proteína em pó Baunilha</span>
+                  <span style="display:block; font-size:11.5px; color:#A0AC9D;">Secos · pote 550 g</span>
+                </span>
+                <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                  <span style="font-size:13px; font-weight:700;">R$ 210,00</span>
+                  <span style="font-size:10px; font-weight:700; color:#8A6312; background:#F6EAC6; padding:2px 7px; border-radius:20px;">Revenda</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="3d" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3d</span>
+          <span style="font-size:14px; color:#5C6B62;">Aba Montar shake: sabor primeiro, base, borda, adicionais e o brinde incluso — o chá sai por R$ 0,00 e só o adicional dele é cobrado.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:560px; height:900px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex:1; min-height:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; padding:20px 22px 16px; border-bottom:1px solid #F0F4ED;">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:13px;">
+                <h3 style="margin:0; flex:1; font-size:16.5px; font-weight:700;">Adicionar item</h3>
+                <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#F3F8EF; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"></path></svg></span>
+              </div>
+              <div style="display:flex; gap:4px; padding:4px; background:#EDF2E9; border-radius:11px;">
+                <span style="flex:1; text-align:center; padding:8px 10px; border-radius:8px; font-size:12.5px; font-weight:600; color:#5C6B62;">Cardápio</span>
+                <span style="flex:1; text-align:center; padding:8px 10px; border-radius:8px; background:#fff; font-size:12.5px; font-weight:700; box-shadow:0 2px 6px -3px rgba(21,40,30,.25);">Montar shake</span>
+                <span style="flex:1; text-align:center; padding:8px 10px; border-radius:8px; font-size:12.5px; font-weight:600; color:#5C6B62;">Cartela</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:16px 20px 20px; display:flex; flex-direction:column; gap:18px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#3D4A42;">Sabor</span>
+                  <span style="font-size:11px; color:#A0AC9D;">até 3</span>
+                  <span style="height:1px; flex:1; background:#F0F4ED;"></span>
+                  <span style="font-size:10.5px; font-weight:700; color:#186B41; background:#ECF4E8; padding:2px 8px; border-radius:20px;">2 de 3</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                  <span style="display:flex; align-items:center; justify-content:space-between; gap:8px; height:46px; padding:0 12px; border:1.5px solid #186B41; border-radius:11px; background:#F3F8EF; font-size:13px; font-weight:700; color:#186B41;">Frutas Amarelas <span style="font-size:12px;">32,00</span></span>
+                  <span style="display:flex; align-items:center; justify-content:space-between; gap:8px; height:46px; padding:0 12px; border:1.5px solid #186B41; border-radius:11px; background:#F3F8EF; font-size:13px; font-weight:700; color:#186B41;">Frutas Vermelhas <span style="font-size:12px;">32,00</span></span>
+                  <span style="display:flex; align-items:center; justify-content:space-between; gap:8px; height:46px; padding:0 12px; border:1px solid #E7EEE6; border-radius:11px; font-size:13px; font-weight:600; color:#3D4A42;">Ovomaltine <span style="font-size:12px; color:#8A968D;">34,00</span></span>
+                  <span style="display:flex; align-items:center; justify-content:space-between; gap:8px; height:46px; padding:0 12px; border:1px solid #E7EEE6; border-radius:11px; font-size:13px; font-weight:600; color:#3D4A42;">Beleza <span style="font-size:12px; color:#8A968D;">38,00</span></span>
+                  <span style="display:flex; align-items:center; justify-content:space-between; gap:8px; height:46px; padding:0 12px; border:1px solid #E7EEE6; border-radius:11px; font-size:13px; font-weight:600; color:#3D4A42;">Cookies <span style="font-size:12px; color:#8A968D;">34,00</span></span>
+                  <span style="display:flex; align-items:center; justify-content:space-between; gap:8px; height:46px; padding:0 12px; border:1px solid #E7EEE6; border-radius:11px; font-size:13px; font-weight:600; color:#3D4A42;">Chocolate <span style="font-size:12px; color:#8A968D;">30,00</span></span>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#3D4A42;">Base</span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; height:56px; border:1px solid #E7EEE6; border-radius:11px; font-size:13px; font-weight:600; color:#3D4A42;">Leite</span>
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; height:56px; border:1.5px solid #186B41; border-radius:11px; background:#F3F8EF; font-size:13px; font-weight:700; color:#186B41;">NutreV</span>
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; height:56px; border:1px solid #E7EEE6; border-radius:11px; font-size:13px; font-weight:600; color:#3D4A42;">Ambos</span>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#3D4A42;">Borda</span>
+                  <span style="font-size:11px; color:#A0AC9D;">opcional</span>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                  <span style="display:inline-flex; align-items:center; height:36px; padding:0 12px; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#8A968D;">Sem borda</span>
+                  <span style="display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 8px 0 12px; border:1.5px solid #186B41; border-radius:10px; background:#F3F8EF; font-size:12.5px; font-weight:700; color:#186B41;">Nutella <span style="display:inline-flex; align-items:center; gap:7px; padding:1px 6px; background:#fff; border:1px solid #DDEBD5; border-radius:7px;"><span style="font-size:12px; color:#8A968D;">−</span><span style="font-size:12px; font-weight:700;">1</span><span style="font-size:12px; color:#186B41;">+</span></span><span style="font-size:11.5px;">+6,00</span></span>
+                  <span style="display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 12px; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#3D4A42;">Paçoca <span style="font-size:11.5px; color:#8A968D;">+4,00</span></span>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#3D4A42;">Adicionais</span>
+                  <span style="font-size:11px; color:#A0AC9D;">quantos quiser</span>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                  <span style="display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 8px 0 12px; border:1.5px solid #186B41; border-radius:10px; background:#F3F8EF; font-size:12.5px; font-weight:700; color:#186B41;">Fibra Ativa <span style="display:inline-flex; align-items:center; gap:7px; padding:1px 6px; background:#fff; border:1px solid #DDEBD5; border-radius:7px;"><span style="font-size:12px; color:#8A968D;">−</span><span style="font-size:12px; font-weight:700;">1</span><span style="font-size:12px; color:#186B41;">+</span></span><span style="font-size:11.5px;">+8,00</span></span>
+                  <span style="display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 12px; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#3D4A42;">Coco ralado <span style="font-size:11.5px; color:#8A968D;">+3,00</span></span>
+                  <span style="display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 12px; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#3D4A42;">Colágeno <span style="font-size:11.5px; color:#8A968D;">+8,00</span></span>
+                  <span style="display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 12px; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#3D4A42;">Whey extra <span style="font-size:11.5px; color:#8A968D;">+7,00</span></span>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#3D4A42;">Brinde · Chá</span>
+                  <span style="font-size:11px; color:#A0AC9D;">incluso, escolha 1</span>
+                  <span style="height:1px; flex:1; background:#F0F4ED;"></span>
+                  <span style="font-size:10.5px; font-weight:700; color:#186B41; background:#ECF4E8; padding:2px 8px; border-radius:20px;">R$ 0,00</span>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                  <span style="display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 12px; border:1.5px solid #186B41; border-radius:10px; background:#F3F8EF; font-size:12.5px; font-weight:700; color:#186B41;">Chá Limão <span style="font-size:11.5px; color:#8A968D; text-decoration:line-through;">12,00</span></span>
+                  <span style="display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 12px; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#3D4A42;">Chá Pêssego <span style="font-size:11.5px; color:#A0AC9D; text-decoration:line-through;">12,00</span></span>
+                  <span style="display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 12px; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#3D4A42;">Chá Hibisco <span style="font-size:11.5px; color:#A0AC9D; text-decoration:line-through;">14,00</span></span>
+                  <span style="display:inline-flex; align-items:center; height:36px; padding:0 12px; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#8A968D;">Sem brinde</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin:12px 0 9px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Adicionais do chá</span>
+                  <span style="font-size:11px; color:#A0AC9D;">cobrados</span>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                  <span style="display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 12px; border:1.5px solid #186B41; border-radius:10px; background:#F3F8EF; font-size:12.5px; font-weight:700; color:#186B41;">Fibra Ativa <span style="font-size:11.5px;">+5,00</span></span>
+                  <span style="display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 12px; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#3D4A42;">Dose extra de limão <span style="font-size:11.5px; color:#8A968D;">+2,00</span></span>
+                </div>
+              </div>
+            </div>
+            <div style="flex-shrink:0; display:flex; align-items:center; gap:12px; padding:14px 20px; border-top:1px solid #F0F4ED;">
+              <span style="display:flex; flex-direction:column;">
+                <span style="font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Shake + chá</span>
+                <span style="font-size:22px; font-weight:700; letter-spacing:-.5px; font-variant-numeric:tabular-nums;">R$ 51,00</span>
+              </span>
+              <span style="flex:1; display:flex; align-items:center; justify-content:center; height:48px; border-radius:12px; background:#186B41; color:#fff; font-size:14px; font-weight:600;">Adicionar ao pedido</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="3e" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3e</span>
+          <span style="font-size:14px; color:#5C6B62;">Aba Cartela: montada na hora — quantidade e valor do produto viram um item do pedido.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:560px; height:900px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex:1; min-height:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; padding:20px 22px 16px; border-bottom:1px solid #F0F4ED;">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:13px;">
+                <h3 style="margin:0; flex:1; font-size:16.5px; font-weight:700;">Adicionar item</h3>
+                <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#F3F8EF; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"></path></svg></span>
+              </div>
+              <div style="display:flex; gap:4px; padding:4px; background:#EDF2E9; border-radius:11px;">
+                <span style="flex:1; text-align:center; padding:8px 10px; border-radius:8px; font-size:12.5px; font-weight:600; color:#5C6B62;">Cardápio</span>
+                <span style="flex:1; text-align:center; padding:8px 10px; border-radius:8px; font-size:12.5px; font-weight:600; color:#5C6B62;">Montar shake</span>
+                <span style="flex:1; text-align:center; padding:8px 10px; border-radius:8px; background:#fff; font-size:12.5px; font-weight:700; box-shadow:0 2px 6px -3px rgba(21,40,30,.25);">Cartela</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:18px 20px; display:flex; flex-direction:column; gap:16px;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:7px;">Produtos</span>
+                  <div style="display:flex; align-items:center; height:44px; padding:0 8px 0 13px; border:1px solid #E7EEE6; border-radius:11px;">
+                    <span style="flex:1; font-size:15px; font-weight:700;">10</span>
+                    <span style="display:flex; align-items:center; gap:8px; padding:3px 7px; border:1px solid #E7EEE6; border-radius:9px;">
+                      <span style="font-size:14px; color:#8A968D;">−</span><span style="font-size:14px; color:#186B41;">+</span>
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:7px;">Valor do produto</span>
+                  <div style="display:flex; align-items:center; height:44px; padding:0 13px; border:1.5px solid #186B41; border-radius:11px; font-size:15px; font-weight:700; color:#186B41;">R$ 30,00</div>
+                </div>
+              </div>
+              <div style="padding:14px 15px; background:#F3F8EF; border:1px solid #DDEBD5; border-radius:12px;">
+                <span style="display:block; font-size:12.5px; color:#3D4A42;">11 usos · 10 pagos + 1 brinde</span>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:11px;">
+                  <span style="width:15px; height:15px; border-radius:50%; background:#D9A11B;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                </div>
+              </div>
+            </div>
+            <div style="flex-shrink:0; display:flex; align-items:center; gap:12px; padding:14px 20px; border-top:1px solid #F0F4ED;">
+              <span style="display:flex; flex-direction:column;">
+                <span style="font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Cartela</span>
+                <span style="font-size:22px; font-weight:700; letter-spacing:-.5px; font-variant-numeric:tabular-nums;">R$ 300,00</span>
+              </span>
+              <span style="flex:1; display:flex; align-items:center; justify-content:center; height:48px; border-radius:12px; background:#186B41; color:#fff; font-size:14px; font-weight:600;">Adicionar ao pedido</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div id="3f" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3f</span>
+          <span style="font-size:14px; color:#5C6B62;">Cartela aplicada: 3 produtos de R$ 36,00 consomem 3 usos de R$ 30,00 e sobram R$ 18,00.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:520px; height:660px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex-shrink:0; padding:20px 22px 16px; border-bottom:1px solid #F0F4ED; display:flex; align-items:flex-start; gap:12px;">
+            <div style="flex:1;">
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#92C17D;">Pedido #4187 · balcão</span>
+              <h2 style="margin:3px 0 0; font-size:19px; font-weight:700;">Mariana Lopes</h2>
+            </div>
+            <span style="display:inline-flex; align-items:center; gap:6px; padding:6px 11px; border-radius:20px; background:#ECF4E8; color:#186B41; font-size:11.5px; font-weight:700;">Cartela #C012 · 10 × R$ 30,00</span>
+          </div>
+          <div style="flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; border:1px solid #EEF3EA; border-radius:12px;">
+                <span style="width:15px; height:15px; flex-shrink:0; border-radius:50%; background:#186B41;"></span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:13.5px; font-weight:600;">Shake da Beleza · 500ml</span>
+                  <span style="display:block; font-size:11.5px; color:#A0AC9D;">1 uso da cartela</span>
+                </span>
+                <span style="text-align:right;">
+                  <span style="display:block; font-size:13.5px; font-weight:700;">R$ 6,00</span>
+                  <span style="display:block; font-size:11.5px; color:#A0AC9D; text-decoration:line-through;">R$ 36,00</span>
+                </span>
+              </div>
+              <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; border:1px solid #EEF3EA; border-radius:12px;">
+                <span style="width:15px; height:15px; flex-shrink:0; border-radius:50%; background:#186B41;"></span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:13.5px; font-weight:600;">Shake Ovomaltine · 500ml</span>
+                  <span style="display:block; font-size:11.5px; color:#A0AC9D;">1 uso da cartela</span>
+                </span>
+                <span style="text-align:right;">
+                  <span style="display:block; font-size:13.5px; font-weight:700;">R$ 6,00</span>
+                  <span style="display:block; font-size:11.5px; color:#A0AC9D; text-decoration:line-through;">R$ 36,00</span>
+                </span>
+              </div>
+              <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; border:1px solid #EEF3EA; border-radius:12px;">
+                <span style="width:15px; height:15px; flex-shrink:0; border-radius:50%; background:#186B41;"></span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:13.5px; font-weight:600;">Shake Verde · 500ml</span>
+                  <span style="display:block; font-size:11.5px; color:#A0AC9D;">1 uso da cartela</span>
+                </span>
+                <span style="text-align:right;">
+                  <span style="display:block; font-size:13.5px; font-weight:700;">R$ 6,00</span>
+                  <span style="display:block; font-size:11.5px; color:#A0AC9D; text-decoration:line-through;">R$ 36,00</span>
+                </span>
+              </div>
+            </div>
+
+            <div style="padding:15px 16px; background:#FAFCF8; border:1px solid #EEF3EA; border-radius:12px;">
+              <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#3D4A42;">
+                <span style="flex:1;">Subtotal</span><span style="font-weight:600;">R$ 108,00</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#186B41; margin-top:7px;">
+                <span style="flex:1;">Cartela · 3 usos</span><span style="font-weight:700;">− R$ 90,00</span>
+              </div>
+              <div style="display:flex; align-items:baseline; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid #EEF3EA;">
+                <span style="flex:1; font-size:13.5px; font-weight:700;">A pagar agora</span>
+                <span style="font-size:24px; font-weight:700; letter-spacing:-.4px;">R$ 18,00</span>
+              </div>
+            </div>
+
+            <div style="padding:15px 16px; border:1px solid #EEF3EA; border-radius:12px;">
+              <span style="display:block; font-size:12px; color:#8A968D; margin-bottom:10px;">Cartela depois deste pedido</span>
+              <div style="display:flex; align-items:center; gap:14px;">
+                <div style="display:flex; gap:6px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:#fff; border:1.5px solid #E2D3A6; color:#D9A11B;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                  <span style="display:flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:#fff; border:1.5px solid #D3DDCE; color:#A8B4AC;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                  <span style="display:flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:#fff; border:1.5px solid #D3DDCE; color:#A8B4AC;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                  <span style="display:flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; background:#fff; border:1.5px solid #D3DDCE; color:#A8B4AC;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                  <span style="width:15px; height:15px; border-radius:50%; background:#186B41;"></span>
+                </div>
+                <span style="flex:1;"></span>
+                <span style="font-size:12.5px; font-weight:700; color:#186B41;">7 usos · R$ 210,00</span>
+              </div>
+            </div>
+          </div>
+          <div style="flex-shrink:0; display:flex; gap:10px; padding:16px 22px; border-top:1px solid #F0F4ED;">
+            <span style="display:flex; align-items:center; justify-content:center; height:44px; padding:0 16px; border:1px solid #E7EEE6; border-radius:11px; font-size:13.5px; font-weight:600; color:#5C6B62;">Não usar cartela</span>
+            <span style="flex:1; display:flex; align-items:center; justify-content:center; height:44px; border-radius:11px; background:#186B41; color:#fff; font-size:13.5px; font-weight:600;">Fechar pedido · R$ 18,00</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">4</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">O item montado dentro do pedido</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+
+      <div id="4a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px; max-width:460px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">4a</span>
+          <span style="font-size:14px; color:#5C6B62;">No pedido, o shake vira uma linha com sabor e extras escolhidos.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px; width:460px; padding:22px; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 15px; border:1px solid #EEF3EA; border-radius:12px;">
+            <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; background:#E2F0DA; color:#186B41; flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path><path d="M9.5 13h5"></path></svg></span>
+            <span style="flex:1; min-width:0;">
+              <span style="display:block; font-size:14.5px; font-weight:600;">Shake · Frutas Amarelas</span>
+              <span style="display:flex; flex-wrap:wrap; gap:6px; margin-top:7px;">
+                <span style="font-size:11.5px; font-weight:600; color:#5C6B62; background:#F3F8EF; border:1px solid #E3EEDC; padding:3px 9px; border-radius:20px;">NutreV</span>
+                <span style="font-size:11.5px; font-weight:600; color:#5C6B62; background:#F3F8EF; border:1px solid #E3EEDC; padding:3px 9px; border-radius:20px;">Borda Nutella</span>
+                <span style="font-size:11.5px; font-weight:600; color:#5C6B62; background:#F3F8EF; border:1px solid #E3EEDC; padding:3px 9px; border-radius:20px;">+ 2× Fibra Ativa</span>
+              </span>
+              <span style="display:block; font-size:12px; color:#186B41; font-weight:600; margin-top:9px;">Editar</span>
+            </span>
+            <span style="display:flex; flex-direction:column; align-items:flex-end; gap:7px;">
+              <span style="display:flex; align-items:center; gap:9px; padding:3px 6px; border:1px solid #E7EEE6; border-radius:9px;">
+                <span style="font-size:14px; color:#8A968D;">−</span>
+                <span style="font-size:13px; font-weight:700; min-width:12px; text-align:center;">1</span>
+                <span style="font-size:14px; color:#186B41;">+</span>
+              </span>
+              <span style="font-size:13.5px; font-weight:700;">R$ 46,00</span>
+            </span>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 15px; border:1px solid #EEF3EA; border-radius:12px;">
+            <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:10px; background:#F5EED2; color:#AD861C; flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.5 4.5 5.5 7 5.5 10a5.5 5.5 0 0 1-11 0C6.5 10 8.5 7.5 12 3Z"></path></svg></span>
+            <span style="flex:1; min-width:0;">
+              <span style="display:block; font-size:14.5px; font-weight:600;">Coxinha Proteica</span>
+              <span style="display:block; font-size:11.5px; color:#A0AC9D; margin-top:2px;">Salgados</span>
+            </span>
+            <span style="display:flex; flex-direction:column; align-items:flex-end; gap:7px;">
+              <span style="display:flex; align-items:center; gap:9px; padding:3px 6px; border:1px solid #E7EEE6; border-radius:9px;">
+                <span style="font-size:14px; color:#8A968D;">−</span>
+                <span style="font-size:13px; font-weight:700; min-width:12px; text-align:center;">2</span>
+                <span style="font-size:14px; color:#186B41;">+</span>
+              </span>
+              <span style="font-size:13.5px; font-weight:700;">R$ 30,00</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">5</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Lançar venda — canal, data retroativa e desconto em uma tela</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="5a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px; max-width:900px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">5a</span>
+          <span style="font-size:14px; color:#5C6B62;">Canal, data da venda, itens, desconto e pagamento no mesmo drawer.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:544px; height:1530px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+            <div style="flex-shrink:0; display:flex; align-items:center; gap:12px; padding:20px 24px 16px; border-bottom:1px solid #F0F4ED;">
+              <div style="flex:1;">
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:#A0AC9D;">Novo pedido · #1051</span>
+                <h2 style="margin:3px 0 0; font-size:19px; font-weight:700;">Lançar venda</h2>
+              </div>
+              <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; background:#F3F8EF; color:#5C6B62;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"></path></svg></span>
+            </div>
+
+            <div style="flex:1; min-height:0; overflow-y:auto; padding:20px 24px 24px; display:flex; flex-direction:column; gap:20px;">
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:8px;">Cliente</span>
+                <div style="display:flex; align-items:center; gap:11px; height:46px; padding:0 12px; background:#FAFCF8; border:1px solid #E7EEE6; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#E6EFF8; color:#2F6FB5; font-size:12px; font-weight:700;">RS</span>
+                  <span style="flex:1; font-size:14px; font-weight:600;">Rafael Souza</span>
+                  <span style="color:#A8B4AC; font-size:10px;">▼</span>
+                </div>
+              </div>
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Canal da venda</span>
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+                  <span style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:74px; border:1px solid #E7EEE6; border-radius:12px; background:#FAFCF8; font-size:12.5px; font-weight:600; color:#5C6B62;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:#F8E9F1; color:#C2407E;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"></circle></svg></span>
+                    Instagram
+                  </span>
+                  <span style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:74px; border:1px solid #E7EEE6; border-radius:12px; background:#FAFCF8; font-size:12.5px; font-weight:600; color:#5C6B62;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:#E5F5EC; color:#1E9E54;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.7-5.2A8.5 8.5 0 1 1 21 11.5Z"></path></svg></span>
+                    WhatsApp
+                  </span>
+                  <span style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:74px; border:1.5px solid #186B41; border-radius:12px; background:#F3F8EF; font-size:12.5px; font-weight:700; color:#186B41;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:#E2F0DA; color:#186B41;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 9h16v11H4z"></path><path d="M3 9l1.6-5h14.8L21 9"></path><path d="M9 20v-6h6v6"></path></svg></span>
+                    Loja física
+                  </span>
+                  <span style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; height:74px; border:1px solid #E7EEE6; border-radius:12px; background:#FAFCF8; font-size:12.5px; font-weight:600; color:#5C6B62;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:#E4E9E2; color:#3D4A42;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"></circle><path d="M3.5 20a5.5 5.5 0 0 1 11 0"></path><path d="M16 11.2A3 3 0 0 0 16 5.4"></path><path d="M17.5 20a5.4 5.4 0 0 0-2-4.2"></path></svg></span>
+                    Interno
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Data da venda</span>
+                <div style="display:flex; gap:8px; margin-bottom:9px;">
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; height:40px; border:1px solid #E7EEE6; border-radius:11px; background:#FAFCF8; font-size:13px; font-weight:600; color:#8A968D;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.5 2"></path></svg>Agora</span>
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; height:40px; border:1.5px solid #186B41; border-radius:11px; background:#F3F8EF; font-size:13px; font-weight:700; color:#186B41;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2.5"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>Outra data</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:11px; height:46px; padding:0 13px; background:#fff; border:1.5px solid #C9DBC0; border-radius:11px;">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.9"><rect x="3" y="5" width="18" height="16" rx="2.5"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+                  <span style="flex:1; font-size:14.5px; font-weight:600; font-variant-numeric:tabular-nums;">28/07/2026</span>
+                  <span style="width:1px; height:22px; background:#E7EEE6;"></span>
+                  <span style="font-size:14.5px; font-weight:600; color:#3D4A42; font-variant-numeric:tabular-nums;">14:20</span>
+                </div>
+              </div>
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:14px;">Status do pedido</span>
+                <div style="display:flex; align-items:flex-start; padding:0 24px;">
+                  <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:#E7F1E5; border:2px solid #D6E7CE; color:#186B41;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.5 5.5 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.5A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.5Z"></path></svg></span>
+                    <span style="font-size:12px; font-weight:600; color:#5C6B62; text-align:center;">Novo</span>
+                  </div><span style="flex:0 0 30px; height:2px; margin-top:19px; background:#D6E7CE;"></span>
+                  <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:#E7F1E5; border:2px solid #D6E7CE; color:#186B41;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21H7a1 1 0 0 1-1-1v-3h12v3a1 1 0 0 1-1 1Z"></path><path d="M6 17a5 5 0 0 1-1-9.9A5 5 0 0 1 12 4a5 5 0 0 1 7 3.1A5 5 0 0 1 18 17"></path></svg></span>
+                    <span style="font-size:12px; font-weight:600; color:#5C6B62; text-align:center;">Preparando</span>
+                  </div><span style="flex:0 0 30px; height:2px; margin-top:19px; background:#D6E7CE;"></span>
+                  <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:#186B41; border:2px solid #186B41; color:#fff;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                    <span style="font-size:12px; font-weight:700; color:#186B41; text-align:center;">Concluído</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Itens</span>
+                <div style="display:flex; flex-direction:column; gap:9px;">
+                  <div style="display:flex; align-items:center; gap:12px; padding:12px 13px; border:1px solid #EEF3EA; border-radius:12px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:#F5EED2; color:#AD861C; flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.5 4.5 5.5 7 5.5 10a5.5 5.5 0 0 1-11 0C6.5 10 8.5 7.5 12 3Z"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:14px; font-weight:600;">Coxinha Proteica</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D; margin-top:1px;">Salgados</span>
+                    </span>
+                    <span style="display:flex; align-items:center; gap:9px; padding:3px 6px; border:1px solid #E7EEE6; border-radius:9px;">
+                      <span style="font-size:14px; color:#8A968D;">−</span><span style="font-size:13px; font-weight:700; min-width:12px; text-align:center;">3</span><span style="font-size:14px; color:#186B41;">+</span>
+                    </span>
+                    <span style="font-size:13.5px; font-weight:700; font-variant-numeric:tabular-nums;">R$ 45,00</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:12px; padding:12px 13px; border:1px solid #EEF3EA; border-radius:12px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:#E2F0DA; color:#186B41; flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path><path d="M9.5 13h5"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:14px; font-weight:600;">Shake · Frutas Amarelas</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D; margin-top:1px;">NutreV · Borda Nutella</span>
+                    </span>
+                    <span style="display:flex; align-items:center; gap:9px; padding:3px 6px; border:1px solid #E7EEE6; border-radius:9px;">
+                      <span style="font-size:14px; color:#8A968D;">−</span><span style="font-size:13px; font-weight:700; min-width:12px; text-align:center;">1</span><span style="font-size:14px; color:#186B41;">+</span>
+                    </span>
+                    <span style="font-size:13.5px; font-weight:700; font-variant-numeric:tabular-nums;">R$ 37,00</span>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:center; gap:7px; height:44px; margin-top:9px; border:1px dashed #CDDCC4; border-radius:11px; font-size:13px; font-weight:600; color:#186B41;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>Adicionar item</div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:12px; padding:15px 16px; background:#F3F8EF; border:1px solid #E3EEDC; border-radius:13px;">
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62;">Valores</span>
+                <div style="display:flex; align-items:center; gap:10px; font-size:12.5px; color:#5C6B62;">
+                  <span style="flex:1;">Subtotal dos itens</span><span style="font-weight:600; font-variant-numeric:tabular-nums;">R$ 82,00</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:11px; padding:12px 13px; background:#fff; border:1px solid #E3EEDC; border-radius:10px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#EEF2EC; color:#8A968D; flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path><path d="M13 5v14"></path></svg></span>
+                  <span style="flex:1; font-size:12.5px; color:#8A968D;">Rafael não tem cartela com saldo</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:10px; padding:13px; background:#fff; border:1px solid #E3EEDC; border-radius:11px;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="flex:1; font-size:12.5px; font-weight:700; color:#3D4A42;">Desconto</span>
+                    <span style="font-size:11.5px; font-weight:600; color:#186B41;">Remover</span>
+                  </div>
+                  <div style="display:flex; gap:8px;">
+                    <span style="display:flex; align-items:center; gap:3px; padding:3px; background:#EDF2E9; border-radius:10px;">
+                      <span style="padding:6px 11px; border-radius:8px; font-size:12.5px; font-weight:600; color:#5C6B62;">R$</span>
+                      <span style="padding:6px 11px; border-radius:8px; background:#fff; font-size:12.5px; font-weight:700; box-shadow:0 2px 6px -3px rgba(21,40,30,.25);">%</span>
+                      <span style="padding:6px 11px; border-radius:8px; font-size:12.5px; font-weight:600; color:#5C6B62;">Grátis</span>
+                    </span>
+                    <div style="flex:1; display:flex; align-items:center; gap:8px; height:38px; padding:0 12px; border:1.5px solid #C9DBC0; border-radius:10px;">
+                      <span style="flex:1; font-size:14.5px; font-weight:700; font-variant-numeric:tabular-nums;">15</span>
+                      <span style="font-size:12.5px; color:#A0AC9D;">%</span>
+                      <span style="width:1px; height:20px; background:#E7EEE6;"></span>
+                      <span style="font-size:12.5px; font-weight:600; color:#186B41; font-variant-numeric:tabular-nums;">−R$ 12,30</span>
+                    </div>
+                  </div>
+                  <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                    <span style="font-size:11.5px; font-weight:700; color:#186B41; background:#F3F8EF; border:1.5px solid #A9CB98; padding:5px 11px; border-radius:20px;">Cortesia</span>
+                    <span style="font-size:11.5px; font-weight:600; color:#5C6B62; background:#FAFCF8; border:1px solid #E7EEE6; padding:5px 11px; border-radius:20px;">Consumo interno</span>
+                    <span style="font-size:11.5px; font-weight:600; color:#5C6B62; background:#FAFCF8; border:1px solid #E7EEE6; padding:5px 11px; border-radius:20px;">Combinado</span>
+                    <span style="font-size:11.5px; font-weight:600; color:#5C6B62; background:#FAFCF8; border:1px solid #E7EEE6; padding:5px 11px; border-radius:20px;">Erro no preparo</span>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; padding-top:11px; border-top:1px solid #E3EEDC;">
+                  <span style="flex:1; font-size:13.5px; font-weight:600;">Total</span>
+                  <span style="font-size:13px; color:#A0AC9D; text-decoration:line-through; font-variant-numeric:tabular-nums;">82,00</span>
+                  <span style="font-size:22px; font-weight:700; letter-spacing:-.5px; font-variant-numeric:tabular-nums;">R$ 69,70</span>
+                </div>
+              </div>
+
+              <div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Notas</span>
+                  <span style="font-size:11.5px; color:#A0AC9D;">opcional · visível para a equipe</span>
+                </div>
+                <div style="display:flex; align-items:flex-start; gap:10px; min-height:78px; padding:12px 13px; background:#FAFCF8; border:1px solid #E7EEE6; border-radius:11px;">
+                  <span style="flex:1; font-size:13px; line-height:1.5; color:#A8B4AC; text-wrap:pretty;">Alguma observação sobre este pedido…</span>
+                </div>
+              </div>
+
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Pagamento</span>
+                <div style="display:flex; gap:8px;">
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; height:42px; border:1.5px solid #186B41; border-radius:11px; background:#F3F8EF; font-size:13px; font-weight:700; color:#186B41;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m5 13 4 4L19 7"></path></svg>Pago</span>
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; height:42px; border:1px solid #E7EEE6; border-radius:11px; background:#FAFCF8; font-size:13px; font-weight:600; color:#8A968D;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>A receber</span>
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; height:42px; border:1px dashed #DCE4D8; border-radius:11px; font-size:13px; font-weight:600; color:#B7C2B9;">Nada a cobrar</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="flex-shrink:0; display:flex; gap:10px; padding:16px 24px; border-top:1px solid #F0F4ED; background:#fff;">
+              <span style="flex:0 0 auto; display:flex; align-items:center; justify-content:center; height:46px; padding:0 18px; border:1px solid #E7EEE6; border-radius:11px; font-size:13.5px; font-weight:600; color:#5C6B62;">Cancelar</span>
+              <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; height:46px; border-radius:11px; background:#186B41; color:#fff; font-size:14px; font-weight:600;">Lançar em 28/07 · R$ 69,70</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+</body>
+</html>

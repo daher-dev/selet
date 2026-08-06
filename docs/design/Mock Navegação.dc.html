@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #EFF3EC; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #D6E2D0; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #186B41; text-decoration: none; }
+  a:hover { color: #124F30; }
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:72px; padding:56px 56px 120px; font-family:'Albert Sans',sans-serif; color:#15231C; background:#EFF3EC;">
+
+  <div style="display:flex; align-items:baseline; gap:14px;">
+    <span style="font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; color:#186B41;">Selet</span>
+    <span style="font-size:11px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#8A968D;">Mockups · Navegação</span>
+  </div>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">1</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Item ativo e sinais — o que muda conforme a área aberta</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start;">
+
+      <div id="1a" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1a</span>
+          <span style="font-size:14px; color:#5C6B62;">Visão geral ativa: fundo verde suave, ícone e texto em verde escuro.</span>
+        </div>
+        <div style="display:flex; width:280px; height:720px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="dashboard" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+      <div id="1b" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1b</span>
+          <span style="font-size:14px; color:#5C6B62;">Pedidos ativa: contador cheio ao lado do rótulo, vouchers em selo âmbar.</span>
+        </div>
+        <div style="display:flex; width:280px; height:720px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="pedidos" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+      <div id="1c" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1c</span>
+          <span style="font-size:14px; color:#5C6B62;">Estoque ativa: o ponto âmbar pulsa enquanto houver insumo abaixo do mínimo.</span>
+        </div>
+        <div style="display:flex; width:280px; height:720px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="estoque" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+      <div id="1d" style="display:flex; flex-direction:column; gap:14px; max-width:420px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1d</span>
+          <span style="font-size:14px; color:#5C6B62;">Os três estados de um item, lado a lado.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px; width:420px; padding:22px; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; font-size:13.5px; font-weight:500; color:#5C6B62;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7h14l-1 13H6L5 7Z"></path><path d="M9 7a3 3 0 0 1 6 0"></path></svg>
+            <span style="flex:1;">Repouso</span>
+            <span style="font-size:11px; color:#B7C2B9;">#5C6B62 · sem fundo</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; background:#F2F7EE; font-size:13.5px; font-weight:500; color:#5C6B62;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7h14l-1 13H6L5 7Z"></path><path d="M9 7a3 3 0 0 1 6 0"></path></svg>
+            <span style="flex:1;">Hover</span>
+            <span style="font-size:11px; color:#B7C2B9;">fundo #F2F7EE</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; background:rgba(24,107,65,.08); font-size:13.5px; font-weight:600; color:#186B41;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7h14l-1 13H6L5 7Z"></path><path d="M9 7a3 3 0 0 1 6 0"></path></svg>
+            <span style="flex:1;">Ativo</span>
+            <span style="font-size:11px; color:#92C17D;">verde 8% · peso 600</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">2</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Seletor de loja — fechado, aberto e quando só existe uma loja</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start;">
+
+      <div id="2a" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2a</span>
+          <span style="font-size:14px; color:#5C6B62;">Matriz selecionada, seletor fechado.</span>
+        </div>
+        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="dashboard" store="Vila Velha/ES" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+      <div id="2b" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2b</span>
+          <span style="font-size:14px; color:#5C6B62;">Aberto: matriz marcada com ✓, franquia abaixo.</span>
+        </div>
+        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="dashboard" store-menu="{{ true }}" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+      <div id="2c" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2c</span>
+          <span style="font-size:14px; color:#5C6B62;">Franquia ativa: mesma estrutura, inicial e nome trocados.</span>
+        </div>
+        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="dashboard" store="Passos/MG" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+      <div id="2d" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2d</span>
+          <span style="font-size:14px; color:#5C6B62;">Loja única: sem seta, o bloco vira só identificação.</span>
+        </div>
+        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="dashboard" multi-store="{{ false }}" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">3</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Permissão — administrador vê tudo, funcionário vê só o que opera</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start;">
+
+      <div id="3a" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3a</span>
+          <span style="font-size:14px; color:#5C6B62;">Administrador: nove áreas, rodapé como Gerente.</span>
+        </div>
+        <div style="display:flex; width:280px; height:720px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="dashboard" role="admin" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+      <div id="3b" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3b</span>
+          <span style="font-size:14px; color:#5C6B62;">Funcionária: só Visão geral, Pedidos, Clientes e Estoque — as demais não aparecem.</span>
+        </div>
+        <div style="display:flex; width:280px; height:720px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="pedidos" role="funcionario" user-name="Marina Alves" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+      <div id="3c" style="display:flex; flex-direction:column; gap:14px; max-width:420px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3c</span>
+          <span style="font-size:14px; color:#5C6B62;">Menu da conta, aberto pelo rodapé.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; justify-content:flex-end; width:420px; height:300px; padding:22px; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <div style="border:1px solid #E7EEE6; border-radius:12px; box-shadow:0 18px 40px -18px rgba(21,40,30,.26); padding:6px; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:9px; font-size:13px; color:#3D4A42;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="1.8"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+              <span style="flex:1;">Minha conta</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:9px; font-size:13px; color:#3D4A42;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="1.8"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 2.6 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.8-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.8l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21.4 11a2 2 0 1 1 0 4Z"></path></svg>
+              <span style="flex:1;">Preferências da loja</span>
+            </div>
+            <div style="height:1px; background:#F0F4ED; margin:5px 8px;"></div>
+            <div style="display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:9px; font-size:13px; font-weight:600; color:#C0492F;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path></svg>
+              <span style="flex:1;">Sair</span>
+            </div>
+          </div>
+          <div style="padding-top:16px; border-top:1px solid #EEF3EA; display:flex; align-items:center; gap:10px;">
+            <span style="width:34px; height:34px; border-radius:50%; background:#ECF4E8; color:#186B41; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">AC</span>
+            <span style="flex:1; min-width:0;">
+              <span style="display:block; font-size:13px; font-weight:600;">Ana Costa</span>
+              <span style="display:block; font-size:11px; color:#8A968D;">Gerente</span>
+            </span>
+            <span style="color:#186B41; font-size:16px;">⋯</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

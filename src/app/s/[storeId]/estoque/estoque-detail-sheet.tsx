@@ -7,12 +7,14 @@ import {
   ArrowUpFromLine,
   Boxes,
   ChevronDown,
+  ChefHat,
   Loader2,
   PackagePlus,
   Pencil,
   Search,
   ShoppingBag,
   Trash2,
+  TriangleAlert,
   Utensils,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -49,7 +51,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { CategoryTile, STOCK_CATEGORY_META } from "@/components/category-meta";
-import { isFrac, unitLabel } from "./stock-view";
+import { isFrac, stockStatus, unitLabel } from "./stock-view";
 
 export interface OrderRef {
   id: string;
@@ -57,11 +59,21 @@ export interface OrderRef {
   customerName: string;
 }
 
+/** One recipe/adicional line elsewhere in the catalog that consumes this insumo. */
+export interface RecipeUsage {
+  name: string;
+  qty: number | null;
+  unit: string;
+}
+
 interface Props {
   storeId: string;
   item: StockItem | null;
   orders: OrderRef[];
   menuProducts: Product[];
+  /** Revenda/adicional catalog products backed directly by this insumo. */
+  resaleNames: string[];
+  usedIn: RecipeUsage[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -85,6 +97,8 @@ export function StockDetailSheet({
   item,
   orders,
   menuProducts,
+  resaleNames,
+  usedIn,
   open,
   onOpenChange,
 }: Props) {
@@ -101,6 +115,8 @@ export function StockDetailSheet({
             item={item}
             orders={orders}
             menuProducts={menuProducts}
+            resaleNames={resaleNames}
+            usedIn={usedIn}
             onClose={() => onOpenChange(false)}
           />
         )}
@@ -114,12 +130,16 @@ function DetailBody({
   item,
   orders,
   menuProducts,
+  resaleNames,
+  usedIn,
   onClose,
 }: {
   storeId: string;
   item: StockItem;
   orders: OrderRef[];
   menuProducts: Product[];
+  resaleNames: string[];
+  usedIn: RecipeUsage[];
   onClose: () => void;
 }) {
   const meta = STOCK_CATEGORY_META[item.category];
@@ -165,6 +185,12 @@ function DetailBody({
         {item.continuousUse && (
           <ContinuoCard storeId={storeId} item={item} pending={pending} startTransition={startTransition} />
         )}
+
+        {resaleNames.length > 0 && stockStatus(item) === "esgotado" && (
+          <ResaleOutWarning names={resaleNames} />
+        )}
+
+        {usedIn.length > 0 && <UsedInRecipes usedIn={usedIn} />}
 
         <EditPanel
           storeId={storeId}
@@ -289,6 +315,62 @@ function ContinuoCard({
           Sem embalagens em estoque
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------- revenda esgotado */
+
+/** "A", "A e B", or "A, B e mais N" — same join rule as the estoque banner. */
+function joinNames(names: string[]): string {
+  if (names.length <= 2) return names.join(" e ");
+  return `${names.slice(0, 2).join(", ")} e mais ${names.length - 2}`;
+}
+
+function ResaleOutWarning({ names }: { names: string[] }) {
+  const label = joinNames(names);
+  const plural = names.length > 1;
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl border border-[#f1d6ce] bg-[#fdf5f2] p-3.5">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-danger-wash text-destructive">
+        <TriangleAlert className="size-[15px]" strokeWidth={2} />
+      </span>
+      <p className="text-[12.5px] leading-snug text-[#8a6a60]">
+        {plural ? `Os itens de revenda ${label}` : `O item de revenda ${label}`}{" "}
+        {plural ? "aparecem" : "aparece"} indisponíve{plural ? "is" : "l"} no cardápio
+        enquanto este insumo estiver zerado.
+      </p>
+    </div>
+  );
+}
+
+/* --------------------------------------------------------- usado nas receitas */
+
+function UsedInRecipes({ usedIn }: { usedIn: RecipeUsage[] }) {
+  const MAX = 4;
+  const visible = usedIn.slice(0, MAX);
+  const hidden = usedIn.length - visible.length;
+  return (
+    <div className="rounded-xl border border-border bg-paper p-3.5">
+      <span className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+        <ChefHat className="size-3.5" strokeWidth={1.9} />
+        Usado nas receitas
+      </span>
+      <div className="flex flex-col gap-1.5">
+        {visible.map((u, i) => (
+          <div key={i} className="flex items-center justify-between gap-2 text-[13px]">
+            <span className="truncate text-ink-soft">{u.name}</span>
+            <span className="tabular shrink-0 font-semibold text-ink-faint">
+              {u.qty == null ? "sem medição" : formatQty(u.qty, u.unit)}
+            </span>
+          </div>
+        ))}
+        {hidden > 0 && (
+          <span className="mt-0.5 text-[12px] font-semibold text-ink-faint">
+            +{hidden} {hidden === 1 ? "item" : "itens"}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

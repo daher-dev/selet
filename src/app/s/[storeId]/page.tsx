@@ -59,6 +59,7 @@ export default async function DashboardPage({
       byChannel={view.byChannel}
       topSellers={view.topSellers}
       lowStock={view.lowStock}
+      canEstoque={view.canEstoque}
     />
   );
 }

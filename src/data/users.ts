@@ -75,6 +75,13 @@ export async function setUserStatus(
   await usersCol().doc(email.toLowerCase()).update({ status });
 }
 
+/** Bumps invitedAt to now, so a pending invite reads as freshly re-sent. */
+export async function touchInvite(email: string): Promise<void> {
+  await usersCol().doc(email.toLowerCase()).update({
+    invitedAt: FieldValue.serverTimestamp(),
+  });
+}
+
 export async function listUsers(): Promise<TeamMember[]> {
   const snap = await usersCol().get();
   return snap.docs.map((doc) => {

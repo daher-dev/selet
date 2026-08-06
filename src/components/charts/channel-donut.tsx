@@ -16,9 +16,18 @@ export function ChannelDonut({
 
   if (total === 0) {
     return (
-      <p className="py-6 text-center text-[12.5px] text-ink-faint">
-        Sem pedidos neste período ainda.
-      </p>
+      <div className="flex flex-col items-center justify-center gap-2.5 pt-[26px] pb-[22px]">
+        <svg width="104" height="104" viewBox="0 0 118 118">
+          <circle cx="59" cy="59" r={R} fill="none" stroke="#F0F4ED" strokeWidth="16" />
+        </svg>
+        <span className="text-[13.5px] font-semibold text-ink-soft">
+          Nenhum pedido no período
+        </span>
+        <span className="max-w-[280px] text-center text-[12.5px] text-ink-faint">
+          Os canais aparecem aqui conforme os pedidos entram pelo Instagram,
+          WhatsApp ou loja.
+        </span>
+      </div>
     );
   }
 

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #EFF3EC; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #D6E2D0; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #186B41; text-decoration: none; }
+  a:hover { color: #124F30; }
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:72px; padding:56px 56px 120px; font-family:'Albert Sans',sans-serif; color:#15231C; background:#EFF3EC;">
+
+  <div style="display:flex; align-items:baseline; gap:14px;">
+    <span style="font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; color:#186B41;">Selet</span>
+    <span style="font-size:11px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#8A968D;">Mockups · Estoque</span>
+  </div>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">1</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Estoque por embalagem — lacradas, uma aberta e o que já acabou</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="1a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1a</span>
+          <span style="font-size:14px; color:#5C6B62;">Cada card separa embalagens fechadas do que já está fracionado; o alerta sobe para o topo.</span>
+        </div>
+        <div style="display:flex; width:1300px; height:860px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="estoque" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
+              <div style="flex:1;">
+                <h1 style="margin:0; font-size:19px; font-weight:700;">Estoque</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Embalagens, fracionamento e rendimento</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg><span>Registrar compra</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:24px 28px 40px;">
+              <div style="display:flex; align-items:center; gap:11px; margin-bottom:16px; padding:14px 16px; background:#FDF4F1; border:1px solid #F2D8CF; border-radius:12px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#FBE0D8; color:#C0492F; flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg></span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:13.5px; font-weight:700; color:#C0492F;">1 insumo esgotado e 2 abaixo do mínimo</span>
+                  <span style="display:block; font-size:12px; color:#8A6A60; margin-top:1px;">CR7 Drive Berry Mix zerou · Fiber Concentrate e Sopa Instantânea na última embalagem</span>
+                </span>
+                <span style="color:#C0492F; font-size:12.5px; font-weight:700;">Gerar lista de compra →</span>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:8px; flex:1; max-width:320px; height:38px; padding:0 13px; background:#fff; border:1px solid #E7EEE6; border-radius:10px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                  <span style="font-size:13px; color:#A8B4AC;">Buscar insumo…</span>
+                </div>
+                <span style="flex:1;"></span>
+                <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#5C6B62;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92C17D" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg><span>Todas as categorias</span><span style="color:#A8B4AC; font-size:9px;">▼</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#5C6B62;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92C17D" stroke-width="1.9"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg><span>Todos os status</span><span style="color:#A8B4AC; font-size:9px;">▼</span>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:13px; padding:16px 18px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:12px; background:#F5EED2; color:#AD861C; flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-1 12H8L7 8Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:16px; font-weight:600; letter-spacing:-.2px;">Shake Herbalife Baunilha</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:1px;">Secos</span>
+                    </span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#E7F4EC; color:#3A9D5D; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                  </div>
+                  <div style="display:flex; border-top:1px solid #F0F4ED;">
+                    <div style="flex:1; padding:13px 18px 15px;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#3A8B4E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 11h18"></path></svg>Fechados</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#15231C;">3 potes</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:2px;">550 g/pote</span>
+                    </div>
+                    <div style="flex:1; padding:13px 18px 15px; background:#F7F3FD; border-left:1px solid #EDE6F8;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#7C55C9;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="9" width="18" height="6" rx="3"></rect></svg>Fracionado</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#6B46C1;">Em uso · 14 usos</span>
+                      <span style="display:block; font-size:12.5px; color:#A99BC4; margin-top:2px;">embalagem de 550 g</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:13px; padding:16px 18px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:12px; background:#F5EED2; color:#AD861C; flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-1 12H8L7 8Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:16px; font-weight:600; letter-spacing:-.2px;">Pó de Proteína (PDM)</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:1px;">Secos</span>
+                    </span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#E7F4EC; color:#3A9D5D; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                  </div>
+                  <div style="display:flex; border-top:1px solid #F0F4ED;">
+                    <div style="flex:1; padding:13px 18px 15px;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#3A8B4E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 11h18"></path></svg>Fechados</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#15231C;">2 potes</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:2px;">480 g/pote</span>
+                    </div>
+                    <div style="flex:1; padding:13px 18px 15px; background:#F7F3FD; border-left:1px solid #EDE6F8;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#7C55C9;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="9" width="18" height="6" rx="3"></rect></svg>Fracionado</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#6B46C1;">Em uso · 9 usos</span>
+                      <span style="display:block; font-size:12.5px; color:#A99BC4; margin-top:2px;">embalagem de 480 g</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:13px; padding:16px 18px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:12px; background:#F5E7DF; color:#B0603A; flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18a9 9 0 0 1-18 0Z"></path><path d="M9 6c0-1.2 1-1.2 1-2.5"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:16px; font-weight:600; letter-spacing:-.2px;">Nutrisoup Creme Verde-Frango</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:1px;">Proteínas</span>
+                    </span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#E7F4EC; color:#3A9D5D; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                  </div>
+                  <div style="display:flex; border-top:1px solid #F0F4ED;">
+                    <div style="flex:1; padding:13px 18px 15px;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#3A8B4E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 11h18"></path></svg>Fechados</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#15231C;">2 potes</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:2px;">416 g/pote</span>
+                    </div>
+                    <div style="flex:1; padding:13px 18px 15px; background:#F7F3FD; border-left:1px solid #EDE6F8;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#7C55C9;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="9" width="18" height="6" rx="3"></rect></svg>Fracionado</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#6B46C1;">Em uso · 6 usos</span>
+                      <span style="display:block; font-size:12.5px; color:#A99BC4; margin-top:2px;">embalagem de 416 g</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:13px; padding:16px 18px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:12px; background:#E3F1F4; color:#2F8FA8; flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:16px; font-weight:600; letter-spacing:-.2px;">Fiber Concentrate</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:1px;">Bebidas</span>
+                    </span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#FBF1DC; color:#B7791F; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg></span>
+                  </div>
+                  <div style="display:flex; border-top:1px solid #F0F4ED;">
+                    <div style="flex:1; padding:13px 18px 15px;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#3A8B4E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 11h18"></path></svg>Fechados</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#B7791F;">1 pote</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:2px;">200 g/pote</span>
+                    </div>
+                    <div style="flex:1; padding:13px 18px 15px; background:#F7F3FD; border-left:1px solid #EDE6F8;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#7C55C9;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="9" width="18" height="6" rx="3"></rect></svg>Fracionado</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#6B46C1;">Em uso · 22 usos</span>
+                      <span style="display:block; font-size:12.5px; color:#A99BC4; margin-top:2px;">embalagem de 200 g</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:13px; padding:16px 18px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:12px; background:#F5EED2; color:#AD861C; flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-1 12H8L7 8Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:16px; font-weight:600; letter-spacing:-.2px;">Protein Crunch</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:1px;">Secos</span>
+                    </span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#E7F4EC; color:#3A9D5D; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                  </div>
+                  <div style="display:flex; border-top:1px solid #F0F4ED;">
+                    <div style="flex:1; padding:13px 18px 15px;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#3A8B4E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 11h18"></path></svg>Fechados</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#15231C;">2 potes</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:2px;">200 g/pote</span>
+                    </div>
+                    <div style="flex:1; padding:13px 18px 15px; background:#F7F3FD; border-left:1px solid #EDE6F8;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#7C55C9;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="9" width="18" height="6" rx="3"></rect></svg>Fracionado</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#6B46C1;">Em uso · 5 usos</span>
+                      <span style="display:block; font-size:12.5px; color:#A99BC4; margin-top:2px;">embalagem de 200 g</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:13px; padding:16px 18px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:12px; background:#E3F1F4; color:#2F8FA8; flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:16px; font-weight:600; letter-spacing:-.2px;">Herbal Concentrate</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:1px;">Bebidas</span>
+                    </span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#FBF1DC; color:#B7791F; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v5h-5"></path></svg></span>
+                  </div>
+                  <div style="display:flex; border-top:1px solid #F0F4ED;">
+                    <div style="flex:1; padding:13px 18px 15px;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#3A8B4E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 11h18"></path></svg>Fechados</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#B7791F;">1 pote</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:2px;">357 g/pote</span>
+                    </div>
+                    <div style="flex:1; padding:13px 18px 15px; border-left:1px solid #F0F4ED;">
+                      <span style="display:block; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#C3CDBF;">Fracionado</span>
+                      <span style="display:block; font-size:13px; color:#A0AC9D; margin-top:9px;">Nenhuma embalagem aberta</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:13px; padding:16px 18px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:12px; background:#E3F1F4; color:#2F8FA8; flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:16px; font-weight:600; letter-spacing:-.2px;">Beauty Drink Colágeno</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:1px;">Bebidas</span>
+                    </span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#E7F4EC; color:#3A9D5D; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg></span>
+                  </div>
+                  <div style="display:flex; border-top:1px solid #F0F4ED;">
+                    <div style="flex:1; padding:13px 18px 15px;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#3A8B4E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 11h18"></path></svg>Fechados</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#15231C;">6 sachês</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:2px;">vendido por sachê</span>
+                    </div>
+                    <div style="flex:1; padding:13px 18px 15px; border-left:1px solid #F0F4ED;">
+                      <span style="display:block; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#C3CDBF;">Fracionado</span>
+                      <span style="display:block; font-size:13px; color:#A0AC9D; margin-top:9px;">Não fraciona</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:13px; padding:16px 18px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:12px; background:#FBE9E4; color:#C0492F; flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path></svg></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:16px; font-weight:600; letter-spacing:-.2px;">CR7 Drive Berry Mix</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:1px;">Bebidas · revenda</span>
+                    </span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:#FBE9E4; color:#C0492F; flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></span>
+                  </div>
+                  <div style="display:flex; border-top:1px solid #F0F4ED;">
+                    <div style="flex:1; padding:13px 18px 15px;">
+                      <span style="display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#3A8B4E;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 11h18"></path></svg>Fechados</span>
+                      <span style="display:block; font-size:17px; font-weight:700; margin-top:7px; color:#C0492F;">0 potes</span>
+                      <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:2px;">mínimo 10 un.</span>
+                    </div>
+                    <div style="flex:1; padding:13px 18px 15px; border-left:1px solid #F0F4ED;">
+                      <span style="display:block; font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:#C3CDBF;">Fracionado</span>
+                      <span style="display:block; font-size:13px; color:#A0AC9D; margin-top:9px;">Esgotado desde ontem</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">2</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Ficha do insumo — embalagem aberta, item esgotado e entrada de compra</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="2a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2a</span>
+          <span style="font-size:14px; color:#5C6B62;">Insumo fracionado com embalagem aberta: saldo, usos e rendimento do último pote.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:480px; height:820px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex-shrink:0; display:flex; align-items:center; gap:13px; padding:20px 22px; border-bottom:1px solid #EEF3EA;">
+            <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:11px; background:#F5EED2; color:#AD861C;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7 8h10l-1 12H8L7 8Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg></span>
+            <div style="flex:1;">
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#92C17D;">Secos</span>
+              <h2 style="margin:2px 0 0; font-size:18px; font-weight:700;">Shake Herbalife Baunilha</h2>
+            </div>
+            <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid #E7EEE6; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg></span>
+          </div>
+          <div style="flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:18px;">
+            <div style="padding:16px 18px; background:#F3F8EF; border:1px solid #DDEBD5; border-radius:13px;">
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#186B41; margin-bottom:10px;">Embalagem aberta</span>
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <span style="font-size:34px; font-weight:600; letter-spacing:-.6px; font-variant-numeric:tabular-nums;">130</span>
+                <span style="font-size:14px; color:#5C6B62;">g de 550 g</span>
+              </div>
+              <div style="height:8px; border-radius:5px; background:#DCEAD4; overflow:hidden; margin-top:12px;"><div style="height:100%; width:24%; border-radius:5px; background:#186B41;"></div></div>
+              <span style="display:block; font-size:12px; color:#5C6B62; margin-top:9px;">14 usos registrados · rende cerca de 4 shakes ainda</span>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div style="padding:14px 15px; background:#FAFCF8; border:1px solid #EEF3EA; border-radius:12px;">
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Lacradas</span>
+                <span style="display:block; font-size:26px; font-weight:600; margin-top:4px;">3</span>
+                <span style="display:block; font-size:11.5px; color:#A0AC9D;">potes de 550 g</span>
+              </div>
+              <div style="padding:14px 15px; background:#FAFCF8; border:1px solid #EEF3EA; border-radius:12px;">
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Custo por pote</span>
+                <span style="display:block; font-size:26px; font-weight:600; margin-top:4px;">R$ 130,00</span>
+                <span style="display:block; font-size:11.5px; color:#A0AC9D;">R$ 0,24 por grama</span>
+              </div>
+            </div>
+
+            <div>
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:10px;">Rendimento dos últimos potes</span>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; align-items:center; gap:12px; padding:11px 13px; border:1px solid #EEF3EA; border-radius:11px;">
+                  <span style="flex:1; font-size:13px;">Pote encerrado em 18/07</span>
+                  <span style="font-size:12.5px; font-weight:700; color:#3A9D5D;">102% do previsto</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px; padding:11px 13px; border:1px solid #EEF3EA; border-radius:11px;">
+                  <span style="flex:1; font-size:13px;">Pote encerrado em 02/07</span>
+                  <span style="font-size:12.5px; font-weight:700; color:#B7791F;">94% do previsto</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:10px;">Usado nas receitas</span>
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                <span style="font-size:11.5px; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:4px 10px; border-radius:20px;">Shake da Beleza · 30 g</span>
+                <span style="font-size:11.5px; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:4px 10px; border-radius:20px;">Shake Oreo · 30 g</span>
+                <span style="font-size:11.5px; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:4px 10px; border-radius:20px;">Shake Ovomaltine · 30 g</span>
+                <span style="font-size:11.5px; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:4px 10px; border-radius:20px;">+3 itens</span>
+              </div>
+            </div>
+          </div>
+          <div style="flex-shrink:0; display:flex; gap:10px; padding:16px 22px; border-top:1px solid #F0F4ED;">
+            <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; height:44px; border:1px solid #CDDCC4; border-radius:11px; color:#186B41; font-size:13.5px; font-weight:600;">Abrir nova embalagem</span>
+            <span style="flex:1; display:flex; align-items:center; justify-content:center; height:44px; border-radius:11px; background:#186B41; color:#fff; font-size:13.5px; font-weight:600;">Registrar consumo</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="2b" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2b</span>
+          <span style="font-size:14px; color:#5C6B62;">Insumo esgotado: bloqueia venda do item de revenda ligado a ele.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:480px; height:620px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex-shrink:0; display:flex; align-items:center; gap:13px; padding:20px 22px; border-bottom:1px solid #EEF3EA;">
+            <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:11px; background:#FBE9E4; color:#C0492F;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7 8h10l-1 12H8L7 8Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg></span>
+            <div style="flex:1;">
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#C0492F;">Esgotado</span>
+              <h2 style="margin:2px 0 0; font-size:18px; font-weight:700;">CR7 Drive Berry Mix</h2>
+            </div>
+            <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid #E7EEE6; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg></span>
+          </div>
+          <div style="flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:18px;">
+            <div style="padding:16px 18px; background:#FDF4F1; border:1px solid #F2D8CF; border-radius:13px;">
+              <div style="display:flex; align-items:baseline; gap:8px;">
+                <span style="font-size:34px; font-weight:600; letter-spacing:-.6px; color:#C0492F;">0</span>
+                <span style="font-size:14px; color:#8A6A60;">unidades em estoque</span>
+              </div>
+              <span style="display:block; font-size:12.5px; color:#8A6A60; margin-top:8px;">Mínimo definido: 10 un. · última compra em 12/06/2026</span>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:11px; padding:14px 15px; background:#FBF6EC; border:1px solid #F0E4C8; border-radius:12px;">
+              <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:9px; background:#F6EAC6; color:#B7791F; flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg></span>
+              <span style="flex:1; font-size:12.5px; color:#5C4A1E; line-height:1.5;">O item de revenda <strong>CR7 Drive</strong> aparece indisponível no cardápio enquanto este insumo estiver zerado.</span>
+            </div>
+            <div>
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:10px;">Consumo recente</span>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; align-items:center; gap:12px; padding:11px 13px; border:1px solid #EEF3EA; border-radius:11px;">
+                  <span style="flex:1; font-size:13px;">Venda avulsa · #1039</span>
+                  <span style="font-size:12.5px; color:#8A968D;">−1 un · há 3 h</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px; padding:11px 13px; border:1px solid #EEF3EA; border-radius:11px;">
+                  <span style="flex:1; font-size:13px;">Venda avulsa · #1031</span>
+                  <span style="font-size:12.5px; color:#8A968D;">−2 un · ontem</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="flex-shrink:0; padding:16px 22px; border-top:1px solid #F0F4ED;">
+            <span style="display:flex; align-items:center; justify-content:center; height:44px; border-radius:11px; background:#186B41; color:#fff; font-size:13.5px; font-weight:600;">Registrar compra</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="2c" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2c</span>
+          <span style="font-size:14px; color:#5C6B62;">Entrada de compra: quantas embalagens, custo total e custo unitário calculado.</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:center; width:480px; height:620px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:rgba(21,35,28,.46);">
+          <div style="width:390px; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 30px 70px -30px rgba(0,0,0,.5);">
+            <div style="padding:20px 22px 16px; border-bottom:1px solid #F0F4ED;">
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#92C17D;">Estoque</span>
+              <h3 style="margin:3px 0 0; font-size:18px; font-weight:700;">Registrar compra</h3>
+            </div>
+            <div style="padding:20px 22px; display:flex; flex-direction:column; gap:16px;">
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:7px;">Insumo</span>
+                <div style="display:flex; align-items:center; gap:10px; height:48px; padding:0 12px; border:1px solid #E7EEE6; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#E3F1F4; color:#2F8FA8;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M7 8h10l-1 12H8L7 8Z"></path></svg></span>
+                  <span style="flex:1; font-size:14px; font-weight:600;">CR7 Drive Berry Mix</span>
+                  <span style="color:#A8B4AC; font-size:10px;">▼</span>
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                  <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:7px;">Embalagens</span>
+                  <div style="display:flex; align-items:center; height:46px; padding:0 13px; border:1.5px solid #186B41; border-radius:11px; font-size:14px; font-weight:700;">12</div>
+                </div>
+                <div>
+                  <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:7px;">Custo total</span>
+                  <div style="display:flex; align-items:center; height:46px; padding:0 13px; border:1px solid #E7EEE6; border-radius:11px; font-size:14px; font-weight:700;">R$ 146,90</div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:11px; padding:13px 14px; background:#F3F8EF; border:1px solid #DDEBD5; border-radius:12px;">
+                <span style="flex:1; font-size:12.5px; color:#3D4A42;">Custo unitário <strong>R$ 12,24</strong> · margem de 52% no preço atual de R$ 26,00.</span>
+              </div>
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:7px;">Data</span>
+                <div style="display:flex; align-items:center; justify-content:space-between; height:46px; padding:0 13px; border:1px solid #E7EEE6; border-radius:11px; font-size:14px;">03/08/2026<span style="font-size:10px; color:#A8B4AC;">▼</span></div>
+              </div>
+            </div>
+            <div style="display:flex; gap:10px; padding:16px 22px; border-top:1px solid #F0F4ED;">
+              <span style="display:flex; align-items:center; justify-content:center; height:44px; padding:0 18px; border:1px solid #E7EEE6; border-radius:11px; font-size:13.5px; font-weight:600; color:#5C6B62;">Cancelar</span>
+              <span style="flex:1; display:flex; align-items:center; justify-content:center; height:44px; border-radius:11px; background:#186B41; color:#fff; font-size:13.5px; font-weight:600;">Lançar entrada</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">3</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Produção — área ainda não construída</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="3a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3a</span>
+          <span style="font-size:14px; color:#5C6B62;">Placeholder honesto: explica o que virá e devolve para onde dá para trabalhar hoje.</span>
+        </div>
+        <div style="display:flex; width:980px; height:560px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="estoque" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 26px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center;">
+              <div style="flex:1;">
+                <h1 style="margin:0; font-size:19px; font-weight:700;">Produção</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Fila de preparo da cozinha</p>
+              </div>
+            </div>
+            <div style="flex:1; padding:26px;">
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; height:100%; padding:0 60px; text-align:center; background:#fff; border:1px solid #E7EEE6; border-radius:16px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:56px; height:56px; border-radius:15px; background:#F3F8EF; color:#92C17D;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 21h14"></path><path d="M6 10h12l-1 8H7l-1-8Z"></path><path d="M9 10V6a3 3 0 0 1 6 0v4"></path></svg></span>
+                <span style="font-size:18px; font-weight:700;">Fila de produção em desenho</span>
+                <span style="font-size:13.5px; color:#8A968D; max-width:400px; line-height:1.55;">Aqui vai entrar a fila da cozinha: lotes em preparo, tempo estimado e baixa automática dos insumos.</span>
+                <span style="display:inline-flex; align-items:center; gap:7px; margin-top:8px; height:38px; padding:0 15px; border:1px solid #CDDCC4; border-radius:11px; color:#186B41; font-size:13px; font-weight:600;">Produzir pelo cardápio</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

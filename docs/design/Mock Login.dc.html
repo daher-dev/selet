@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #EFF3EC; }
+  a { color: #186B41; text-decoration: none; font-weight: 600; }
+  a:hover { color: #124F30; }
+  @keyframes seletSpin { to { transform: rotate(360deg); } }
+  .selet-spin { animation: seletSpin .9s linear infinite; }
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:72px; padding:56px 56px 120px; font-family:'Albert Sans',sans-serif; color:#15231C; background:#EFF3EC;">
+
+  <div style="display:flex; align-items:baseline; gap:14px;">
+    <span style="font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; color:#186B41;">Selet</span>
+    <span style="font-size:11px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#8A968D;">Mockups · Entrada</span>
+  </div>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">1</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Login — repouso, autenticando e conta sem permissão</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="1a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1a</span>
+          <span style="font-size:14px; color:#5C6B62;">Estado padrão: painel de marca à esquerda, entrada por Google à direita.</span>
+        </div>
+        <div style="display:flex; width:1200px; height:720px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F3F8EF; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex:1; position:relative; overflow:hidden; background:linear-gradient(160deg,#1C7A4A 0%,#186B41 45%,#0F5233 100%); display:flex; flex-direction:column; justify-content:space-between; padding:52px 56px;">
+            <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.04) 0,rgba(255,255,255,.04) 1px,transparent 1px,transparent 11px);"></div>
+            <div style="position:absolute; top:-60px; right:-40px; width:340px; height:340px; border-radius:50%; background:rgba(146,193,125,.16);"></div>
+            <div style="position:absolute; bottom:-90px; left:-70px; width:300px; height:300px; border-radius:50%; background:rgba(146,193,125,.10);"></div>
+            <div style="display:flex; align-items:baseline; gap:11px; position:relative;">
+              <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:40px; line-height:1; color:#fff; letter-spacing:.5px;">Selet</span>
+              <span style="font-size:9px; font-weight:600; letter-spacing:2.5px; color:#92C17D; text-transform:uppercase;">Vida ativa &amp; saudável</span>
+            </div>
+            <div style="position:relative; max-width:440px;">
+              <p style="font-size:14px; line-height:1.6; color:rgba(255,255,255,.72); margin:0;">Acompanhe pedidos, estoque e clientes das suas lojas em um só lugar. Entre para continuar.</p>
+            </div>
+            <div style="position:relative; display:flex; gap:26px; font-size:12px; color:rgba(255,255,255,.6);">
+              <span>Mais energia</span>
+              <span style="color:rgba(255,255,255,.28);">•</span>
+              <span>Progresso diário</span>
+              <span style="color:rgba(255,255,255,.28);">•</span>
+              <span>Hábitos que ficam</span>
+            </div>
+          </div>
+          <div style="width:480px; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:40px; background:#FBFDF9;">
+            <div style="width:100%; max-width:352px;">
+              <div style="width:52px; height:52px; border-radius:14px; background:#186B41; display:flex; align-items:center; justify-content:center; margin-bottom:26px; box-shadow:0 12px 26px -12px rgba(24,107,65,.6);">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"></path><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"></path></svg>
+              </div>
+              <h1 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:34px; line-height:1.1; margin:0 0 8px;">Bem-vindo de volta</h1>
+              <p style="font-size:14px; line-height:1.55; color:#6E7C72; margin:0 0 32px;">Acesse o painel da Selet com sua conta Google.</p>
+              <div style-hover="border-color:#186B41; box-shadow:0 10px 24px -14px rgba(24,107,65,.5)" style="display:flex; align-items:center; justify-content:center; gap:12px; width:100%; padding:14px 18px; background:#fff; border:1.5px solid #E1E9DD; border-radius:13px; font-size:15px; font-weight:600; transition:border-color .16s ease, box-shadow .16s ease;">
+                <svg width="19" height="19" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"></path><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"></path><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"></path><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z"></path></svg>
+                <span>Entrar com Google</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; margin:26px 0;">
+                <span style="flex:1; height:1px; background:#E7EEE6;"></span>
+                <span style="font-size:11px; font-weight:600; letter-spacing:1px; color:#A8B4AC; text-transform:uppercase;">Acesso exclusivo</span>
+                <span style="flex:1; height:1px; background:#E7EEE6;"></span>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:11px; padding:14px 15px; background:#F3F8EF; border:1px solid #E7EEE6; border-radius:12px;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.8" style="flex-shrink:0; margin-top:1px;"><rect x="4" y="10" width="16" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+                <p style="font-size:12.5px; line-height:1.5; color:#4B5A50; margin:0;">Apenas contas autorizadas da equipe Selet. Fale com o administrador para solicitar acesso.</p>
+              </div>
+              <p style="font-size:12px; line-height:1.55; color:#98A69C; margin:28px 0 0; text-align:center;">Ao entrar, você concorda com os <a href="#1a">Termos</a> e a <a href="#1a">Política de Privacidade</a>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="1b" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1b</span>
+          <span style="font-size:14px; color:#5C6B62;">Autenticando: botão desabilitado com indicador, sem trocar o layout.</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:center; width:480px; height:720px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#FBFDF9; box-shadow:0 26px 60px -34px rgba(21,40,30,.45); padding:40px;">
+          <div style="width:100%; max-width:352px;">
+            <div style="width:52px; height:52px; border-radius:14px; background:#186B41; display:flex; align-items:center; justify-content:center; margin-bottom:26px;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"></path><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"></path></svg>
+            </div>
+            <h1 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:34px; line-height:1.1; margin:0 0 8px;">Bem-vindo de volta</h1>
+            <p style="font-size:14px; line-height:1.55; color:#6E7C72; margin:0 0 32px;">Confirmando sua conta com o Google…</p>
+            <div style="display:flex; align-items:center; justify-content:center; gap:12px; width:100%; padding:14px 18px; background:#F5F8F2; border:1.5px solid #E1E9DD; border-radius:13px; font-size:15px; font-weight:600; color:#8A968D;">
+              <span class="selet-spin" style="display:block; width:18px; height:18px; border-radius:50%; border:2.4px solid #DCE6D7; border-top-color:#186B41;"></span>
+              <span>Verificando acesso…</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; margin:26px 0;">
+              <span style="flex:1; height:1px; background:#E7EEE6;"></span>
+              <span style="font-size:11px; font-weight:600; letter-spacing:1px; color:#A8B4AC; text-transform:uppercase;">Acesso exclusivo</span>
+              <span style="flex:1; height:1px; background:#E7EEE6;"></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:11px; padding:14px 15px; background:#F3F8EF; border:1px solid #E7EEE6; border-radius:12px;">
+              <span style="width:34px; height:34px; border-radius:50%; background:#E2EDDC; flex-shrink:0;"></span>
+              <span style="flex:1;">
+                <span style="display:block; height:10px; width:70%; border-radius:5px; background:#E2EDDC;"></span>
+                <span style="display:block; height:9px; width:45%; border-radius:5px; background:#EBF1E7; margin-top:6px;"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="1c" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1c</span>
+          <span style="font-size:14px; color:#5C6B62;">Conta fora da equipe: erro nomeando o e-mail tentado e caminho para pedir acesso.</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:center; width:480px; height:720px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#FBFDF9; box-shadow:0 26px 60px -34px rgba(21,40,30,.45); padding:40px;">
+          <div style="width:100%; max-width:352px;">
+            <div style="width:52px; height:52px; border-radius:14px; background:#C0492F; display:flex; align-items:center; justify-content:center; margin-bottom:26px; box-shadow:0 12px 26px -12px rgba(192,73,47,.5);">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>
+            </div>
+            <h1 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:34px; line-height:1.1; margin:0 0 8px;">Conta sem acesso</h1>
+            <p style="font-size:14px; line-height:1.55; color:#6E7C72; margin:0 0 24px;">Entramos com <strong style="color:#15231C;">joana.p@gmail.com</strong>, mas esse e-mail não está na equipe Selet.</p>
+            <div style="display:flex; align-items:flex-start; gap:11px; padding:14px 15px; background:#FDF4F1; border:1px solid #F2D8CF; border-radius:12px; margin-bottom:24px;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C0492F" stroke-width="1.9" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6M15 9l-6 6"></path></svg>
+              <p style="font-size:12.5px; line-height:1.5; color:#8A6A60; margin:0;">Se você usa outro e-mail de trabalho, entre com ele. Convites são enviados pelo administrador da loja.</p>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:center; gap:12px; width:100%; padding:14px 18px; background:#186B41; border-radius:13px; font-size:15px; font-weight:600; color:#fff;">
+              <span>Tentar com outra conta</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:center; gap:12px; width:100%; margin-top:10px; padding:14px 18px; border:1.5px solid #E1E9DD; border-radius:13px; font-size:15px; font-weight:600; color:#5C6B62;">
+              <span>Solicitar acesso</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">2</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Login no celular — a faixa de marca vira topo curto</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="2a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2a</span>
+          <span style="font-size:14px; color:#5C6B62;">Sem a coluna verde inteira: apenas cabeçalho de marca e o bloco de entrada.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:390px; height:800px; overflow:hidden; border-radius:28px; border:1px solid #10160f; background:#FBFDF9; box-shadow:0 40px 90px -20px rgba(0,0,0,.45);">
+          <div style="flex-shrink:0; position:relative; overflow:hidden; background:linear-gradient(160deg,#1C7A4A 0%,#186B41 60%,#0F5233 100%); padding:34px 26px 30px;">
+            <div style="position:absolute; top:-40px; right:-30px; width:200px; height:200px; border-radius:50%; background:rgba(146,193,125,.16);"></div>
+            <div style="position:relative; display:flex; align-items:baseline; gap:10px;">
+              <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:34px; line-height:1; color:#fff;">Selet</span>
+              <span style="font-size:9px; font-weight:600; letter-spacing:2.5px; color:#92C17D; text-transform:uppercase;">Painel</span>
+            </div>
+          </div>
+          <div style="flex:1; padding:34px 24px 44px;">
+            <div style="width:52px; height:52px; border-radius:14px; background:#186B41; display:flex; align-items:center; justify-content:center; margin-bottom:22px;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-6.5 3-6.5"></path><path d="M11 20c0-8 5-12 9-13 0 8-4 13-9 13Z"></path></svg>
+            </div>
+            <h1 style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:30px; line-height:1.1; margin:0 0 8px;">Bem-vindo de volta</h1>
+            <p style="font-size:14px; line-height:1.55; color:#6E7C72; margin:0 0 28px;">Acesse o painel da Selet com sua conta Google.</p>
+            <div style="display:flex; align-items:center; justify-content:center; gap:12px; width:100%; padding:15px 18px; background:#fff; border:1.5px solid #E1E9DD; border-radius:13px; font-size:15px; font-weight:600;">
+              <svg width="19" height="19" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"></path><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"></path><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"></path><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z"></path></svg>
+              <span>Entrar com Google</span>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:11px; margin-top:26px; padding:14px 15px; background:#F3F8EF; border:1px solid #E7EEE6; border-radius:12px;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.8" style="flex-shrink:0; margin-top:1px;"><rect x="4" y="10" width="16" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+              <p style="font-size:12.5px; line-height:1.5; color:#4B5A50; margin:0;">Apenas contas autorizadas da equipe Selet. Fale com o administrador para solicitar acesso.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

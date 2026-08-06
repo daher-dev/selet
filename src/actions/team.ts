@@ -7,6 +7,7 @@ import {
   getUserByEmail,
   inviteUser,
   setUserStatus,
+  touchInvite,
   updateUserAccess,
 } from "@/data/users";
 import { listActivity, logActivity } from "@/data/activity";
@@ -112,6 +113,31 @@ export async function setMemberStatusAction(
     await logActivity(storeId, {
       icon: status === "inativo" ? "ban" : "circle-check",
       label: `${status === "inativo" ? "Desativou" : "Reativou"} acesso · ${target.name}`,
+      detail: "Equipe",
+      by: actor.email,
+      section: "equipe",
+    });
+    revalidatePath(`/s/${storeId}/equipe`);
+  });
+}
+
+/** Bumps a pending invite's sent date, for the "Reenviar" action on the amber banner. */
+export async function resendInviteAction(
+  storeId: string,
+  email: string,
+): Promise<ActionResult> {
+  return run(async () => {
+    const actor = await requireAccess(storeId, "equipe");
+    const target = await getUserByEmail(email);
+    if (!target) throw new Error("Membro não encontrado.");
+    if (target.status !== "convidado") {
+      throw new Error("Este convite já foi aceito.");
+    }
+    assertCanManage(actor, target.role, email);
+    await touchInvite(email);
+    await logActivity(storeId, {
+      icon: "mail",
+      label: `Reenviou convite · ${target.name}`,
       detail: "Equipe",
       by: actor.email,
       section: "equipe",

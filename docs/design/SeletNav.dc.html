@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  @keyframes seletPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.55); opacity: .5; } }
+  .selet-dot { animation: seletPulse 1.9s ease-in-out infinite; }
+  a { color: #186B41; }
+  a:hover { color: #124F30; }
+</style>
+</helmet>
+<aside style="width:100%; height:100%; flex-shrink:0; background:#FFFFFF; border-right:1px solid #E7EEE6; display:flex; flex-direction:column; padding:22px 16px; font-family:'Albert Sans',sans-serif; color:#15231C;">
+  <div style="display:flex; flex-direction:column; gap:3px; padding:4px 8px 2px;">
+    <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:32px; line-height:1; color:#186B41; letter-spacing:.5px;">Selet</span>
+    <span style="font-size:9px; font-weight:600; letter-spacing:2.5px; color:#92C17D; text-transform:uppercase; white-space:nowrap;">Painel de controle</span>
+  </div>
+
+  <div style="position:relative; margin-top:18px; margin-bottom:18px;">
+    <div style="display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; background:#F3F8EF; border:1px solid #E7EEE6; border-radius:11px; text-align:left;">
+      <span style="width:30px; height:30px; flex-shrink:0; border-radius:8px; background:#186B41; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">{{ storeInitial }}</span>
+      <span style="flex:1; min-width:0;">
+        <span style="display:block; font-size:9px; font-weight:700; letter-spacing:1px; color:#A8B4AC; text-transform:uppercase;">Loja ativa</span>
+        <span style="display:block; font-size:13px; font-weight:600; color:#15231C; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ storeName }}</span>
+      </span>
+      <sc-if value="{{ multiStore }}" hint-placeholder-val="{{ true }}">
+        <span style="color:#8A968D; font-size:10px;">▼</span>
+      </sc-if>
+    </div>
+    <sc-if value="{{ storeMenu }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:20; background:#fff; border:1px solid #E7EEE6; border-radius:12px; box-shadow:0 18px 40px -14px rgba(21,40,30,.28); padding:6px;">
+        <div style="display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:9px; background:rgba(24,107,65,.08);">
+          <span style="width:30px; height:30px; border-radius:8px; background:#186B41; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">V</span>
+          <span style="flex:1;">
+            <span style="display:block; font-size:13px; font-weight:600;">Vila Velha/ES</span>
+            <span style="display:block; font-size:11px; color:#8A968D;">Loja matriz</span>
+          </span>
+          <span style="color:#186B41; font-weight:700; font-size:13px; width:14px;">✓</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:9px;">
+          <span style="width:30px; height:30px; border-radius:8px; background:#E7EEE6; color:#5C6B62; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">P</span>
+          <span style="flex:1;">
+            <span style="display:block; font-size:13px; font-weight:600;">Passos/MG</span>
+            <span style="display:block; font-size:11px; color:#8A968D;">Franquia</span>
+          </span>
+          <span style="width:14px;"></span>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <nav style="display:flex; flex-direction:column; gap:3px;">
+    <div style-hover="background-color:#F2F7EE" style="{{ nDash }}">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="8" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="11" width="7" height="10" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>
+      <span>Visão geral</span>
+    </div>
+    <div style-hover="background-color:#F2F7EE" style="{{ nPed }}">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 7h14l-1 13H6L5 7Z"></path><path d="M9 7a3 3 0 0 1 6 0"></path></svg>
+      <span style="flex:1;">Pedidos</span>
+      <span style="background:#186B41; color:#fff; font-size:10px; font-weight:700; padding:1px 7px; border-radius:20px;">5</span>
+    </div>
+    <div style-hover="background-color:#F2F7EE" style="{{ nCli }}">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>
+      <span>Clientes</span>
+    </div>
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ true }}">
+    <div style-hover="background-color:#F2F7EE" style="{{ nProd }}">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 8 12 3 3 8l9 5 9-5Z"></path><path d="M3 8v8l9 5 9-5V8"></path><path d="M12 13v8"></path></svg>
+        <span>Cardápio</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ true }}">
+    <div style-hover="background-color:#F2F7EE" style="{{ nShk }}">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path><path d="M8 8l1-4h6l1 4"></path><path d="M9.5 13h5"></path></svg>
+        <span>Shakes</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ true }}">
+    <div style-hover="background-color:#F2F7EE" style="{{ nVou }}">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path><path d="M13 5v14"></path></svg>
+        <span style="flex:1;">Cartelas</span>
+        <span style="background:#F6EAC6; color:#8A6312; font-size:10px; font-weight:700; padding:1px 7px; border-radius:20px;">3</span>
+      </div>
+    </sc-if>
+    <div style-hover="background-color:#F2F7EE" style="{{ nEst }}">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7l9-4 9 4-9 4-9-4Z"></path><path d="M3 12l9 4 9-4"></path><path d="M3 17l9 4 9-4"></path></svg>
+      <span style="flex:1;">Estoque</span>
+      <span class="selet-dot" style="width:7px; height:7px; border-radius:50%; background:#B7791F;"></span>
+    </div>
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ true }}">
+    <div style-hover="background-color:#F2F7EE" style="{{ nFin }}">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path><circle cx="16.5" cy="14.5" r="1.6"></circle></svg>
+        <span>Financeiro</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ true }}">
+    <div style-hover="background-color:#F2F7EE" style="{{ nEqu }}">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="9" r="3"></circle><circle cx="17" cy="10" r="2.4"></circle><path d="M2.5 20a5.5 5.5 0 0 1 11 0"></path><path d="M14.5 20a4 4 0 0 1 7-2.6"></path></svg>
+        <span>Equipe</span>
+      </div>
+    </sc-if>
+  </nav>
+
+  <div style="margin-top:auto; padding-top:16px; border-top:1px solid #EEF3EA; display:flex; align-items:center; gap:10px;">
+    <span style="width:34px; height:34px; border-radius:50%; background:#ECF4E8; color:#186B41; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">{{ userInitials }}</span>
+    <span style="flex:1; min-width:0;">
+      <span style="display:block; font-size:13px; font-weight:600;">{{ userName }}</span>
+      <span style="display:block; font-size:11px; color:#8A968D;">{{ userRole }}</span>
+    </span>
+    <span style="color:#B7C2B9; font-size:16px;">⋯</span>
+  </div>
+</aside>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:248,&quot;height&quot;:760},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;pedidos&quot;,&quot;clientes&quot;,&quot;cardapio&quot;,&quot;shakes&quot;,&quot;vouchers&quot;,&quot;estoque&quot;,&quot;financeiro&quot;,&quot;equipe&quot;],&quot;default&quot;:&quot;dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;store&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Vila Velha/ES&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;storeMenu&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;funcionario&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;multiStore&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;userName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Ana Costa&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  nav(on) {
+    const base = "display:flex; align-items:center; gap:12px; width:100%; padding:10px 12px; border-radius:10px; font-size:13.5px; text-align:left;";
+    return base + (on ? "background-color:rgba(24,107,65,.08); color:#186B41; font-weight:600;" : "background-color:transparent; color:#5C6B62; font-weight:500;");
+  }
+  renderVals() {
+    const a = this.props.active ?? 'dashboard';
+    const store = this.props.store ?? 'Vila Velha/ES';
+    const role = this.props.role ?? 'admin';
+    const isAdmin = role === 'admin';
+    const name = this.props.userName ?? (isAdmin ? 'Ana Costa' : 'Marina Alves');
+    return {
+      storeName: store,
+      storeInitial: store.charAt(0).toUpperCase(),
+      storeMenu: this.props.storeMenu ?? false,
+      multiStore: this.props.multiStore ?? true,
+      isAdmin,
+      userName: name,
+      userRole: isAdmin ? 'Gerente' : 'Funcionária',
+      userInitials: name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase(),
+      nDash: this.nav(a === 'dashboard'), nPed: this.nav(a === 'pedidos'), nCli: this.nav(a === 'clientes'),
+      nProd: this.nav(a === 'cardapio'), nShk: this.nav(a === 'shakes'),
+      nVou: this.nav(a === 'vouchers'), nEst: this.nav(a === 'estoque'),
+      nFin: this.nav(a === 'financeiro'), nEqu: this.nav(a === 'equipe'),
+    };
+  }
+}
+</script>
+</body>
+</html>

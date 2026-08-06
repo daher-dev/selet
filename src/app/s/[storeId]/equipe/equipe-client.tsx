@@ -1,18 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   ChevronDown,
   ListFilter,
+  LogIn,
   Search,
   ShieldCheck,
   ShieldUser,
   UserCog,
   Users,
 } from "lucide-react";
-import type { Store, TeamMember } from "@/lib/types";
-import { initials } from "@/lib/format";
+import { toast } from "sonner";
+import type { GrantableSection, Store, TeamMember } from "@/lib/types";
+import { formatRelative, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { resendInviteAction } from "@/actions/team";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -67,25 +70,113 @@ const ROLE_FILTERS: {
   },
 ];
 
+// Grantable-module labels for the "Acesso" column (design Mock
+// Equipe.dc.html:96-98, 116, 134-137) — mirrors ACCESS_MODULES in
+// member-sheet.tsx, kept as a small standalone map like STATUS_META above.
+const SECTION_LABELS: Record<GrantableSection, string> = {
+  pedidos: "Pedidos",
+  clientes: "Clientes",
+  produtos: "Cardápio",
+  vouchers: "Vouchers",
+  estoque: "Estoque",
+  financeiro: "Financeiro",
+};
+
 /**
- * Which stores a member belongs to, as the design shows it: the actual store
- * names, comma-joined (design storesLabel, Selet Admin.dc.html:2412) — not a
- * lossy "N lojas" count.
+ * A funcionário's granted module labels, in the fixed order above (design
+ * order), dropping any legacy/non-grantable values.
  */
-function storesLabel(member: TeamMember, stores: Store[]): string {
-  if (member.storeIds === "all") return "Todas as lojas";
+function grantedSectionLabels(member: TeamMember): string[] {
+  return (Object.keys(SECTION_LABELS) as GrantableSection[])
+    .filter((key) => member.sections.includes(key))
+    .map((key) => SECTION_LABELS[key]);
+}
+
+/**
+ * Store suffix appended to a funcionário's email in the "Pessoa" column
+ * (design Mock Equipe.dc.html:111,129: "· Passos/MG", "· 2 lojas") — shown
+ * only when it adds information beyond "they work at this store".
+ */
+function storeSuffix(
+  member: TeamMember,
+  currentStoreId: string,
+  stores: Store[],
+): string | null {
+  if (member.role === "admin" || member.storeIds === "all") return null;
   const ids = member.storeIds;
-  if (ids.length === 0) return "Nenhuma loja";
-  const names = ids
-    .map((id) => stores.find((s) => s.id === id)?.name)
-    .filter((n): n is string => Boolean(n));
-  return names.length > 0 ? names.join(", ") : `${ids.length} lojas`;
+  if (ids.length === 0) return null;
+  if (ids.length === 1) {
+    if (ids[0] === currentStoreId) return null;
+    return stores.find((s) => s.id === ids[0])?.sub ?? null;
+  }
+  return `${ids.length} lojas`;
+}
+
+/** The "Pessoa" column's second line (design row structure). */
+function memberSubline(
+  member: TeamMember,
+  currentStoreId: string,
+  stores: Store[],
+): string {
+  if (member.status === "convidado") {
+    return `Convite enviado ${formatRelative(member.invitedAt)}`;
+  }
+  const suffix = storeSuffix(member, currentStoreId, stores);
+  return suffix ? `${member.email} · ${suffix}` : member.email;
+}
+
+/**
+ * The "Acesso" column content (design Mock Equipe.dc.html:78-172): access
+ * chips for an active funcionário, an all-areas summary for admins, and a
+ * plain status note for invited/revoked members.
+ */
+function AccessSummary({
+  member,
+  stores,
+}: {
+  member: TeamMember;
+  stores: Store[];
+}) {
+  if (member.status === "convidado") {
+    return <span className="text-[12.5px] text-ink-faint">Definido no aceite</span>;
+  }
+  if (member.status === "inativo") {
+    return <span className="text-[12.5px] text-ink-faint">Acesso revogado</span>;
+  }
+  if (member.role === "admin") {
+    return (
+      <span className="text-[12.5px] text-ink-soft">
+        Todas as áreas · {stores.length} {stores.length === 1 ? "loja" : "lojas"}
+      </span>
+    );
+  }
+  const labels = grantedSectionLabels(member);
+  if (labels.length === 0) {
+    return <span className="text-[12.5px] text-ink-faint">Nenhuma área liberada</span>;
+  }
+  const shown = labels.slice(0, 3);
+  const extra = labels.length - shown.length;
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      {shown.map((label) => (
+        <span
+          key={label}
+          className="rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] font-semibold text-ink-soft"
+        >
+          {label}
+        </span>
+      ))}
+      {extra > 0 && (
+        <span className="text-[11px] font-semibold text-ink-faint">+{extra}</span>
+      )}
+    </span>
+  );
 }
 
 function roleMeta(role: TeamMember["role"]) {
   return role === "admin"
     ? {
-        label: "Admin",
+        label: "Administrador",
         icon: ShieldCheck,
         pill: "bg-[#F6EAC6] text-[#8A6312]",
         avatar: "bg-[#F6EAC6] text-[#8A6312]",
@@ -119,9 +210,10 @@ export function EquipeClient({
   const [inviting, setInviting] = useState(false);
   const shellSearch = useShellSearch();
 
-  usePageAction({ label: "Novo membro", onClick: () => setInviting(true) });
+  usePageAction({ label: "Convidar", onClick: () => setInviting(true) });
 
   const selected = members.find((m) => m.email === selectedEmail) ?? null;
+  const pendingInvites = members.filter((m) => m.status === "convidado");
 
   const filtered = useMemo(() => {
     const terms = [query, shellSearch]
@@ -187,6 +279,10 @@ export function EquipeClient({
         </DropdownMenu>
       </div>
 
+      {pendingInvites.length > 0 && (
+        <InviteBanner storeId={storeId} invites={pendingInvites} />
+      )}
+
       {filtered.length === 0 ? (
         <EmptyState
           icon={UserCog}
@@ -195,16 +291,16 @@ export function EquipeClient({
         />
       ) : (
         <>
-          {/* Desktop table (design 1730-1750) */}
+          {/* Desktop table (design Mock Equipe.dc.html:65-176) */}
           <DataList
-            columns="1.7fr 130px 1fr 110px"
+            columns="1.3fr 150px 1fr 150px"
             className="hidden min-[820px]:block"
           >
             <DataListHeader>
-              <span>Membro</span>
-              <span>Permissão</span>
-              <span>Lojas</span>
-              <span>Status</span>
+              <span>Pessoa</span>
+              <span>Papel</span>
+              <span>Acesso</span>
+              <span>Situação</span>
             </DataListHeader>
             {filtered.map((member) => {
               const status = STATUS_META[member.status];
@@ -213,6 +309,9 @@ export function EquipeClient({
                 <DataListRow
                   key={member.email}
                   onClick={() => setSelectedEmail(member.email)}
+                  className={cn(
+                    member.status === "inativo" && "opacity-[0.68]",
+                  )}
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <span
@@ -235,30 +334,23 @@ export function EquipeClient({
                         )}
                       </span>
                       <span className="block truncate text-[11.5px] text-ink-faint">
-                        {member.email}
+                        {memberSubline(member, storeId, stores)}
                       </span>
                     </span>
                   </span>
                   <span>
                     <RolePill role={member.role} />
                   </span>
-                  <span className="truncate text-[12.5px] text-ink-soft">
-                    {storesLabel(member, stores)}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      className={cn("size-1.5 shrink-0 rounded-full", status.dot)}
-                    />
-                    <span className="text-[12.5px] text-ink-soft">
-                      {status.label}
-                    </span>
+                  <AccessSummary member={member} stores={stores} />
+                  <span>
+                    <StatusPill status={status} />
                   </span>
                 </DataListRow>
               );
             })}
           </DataList>
 
-          {/* Mobile cards (design 1752-1774) */}
+          {/* Mobile cards — same content as the desktop table, stacked. */}
           <ul className="space-y-2.5 min-[820px]:hidden">
             {filtered.map((member) => {
               const status = STATUS_META[member.status];
@@ -268,7 +360,10 @@ export function EquipeClient({
                   <button
                     type="button"
                     onClick={() => setSelectedEmail(member.email)}
-                    className="flex w-full flex-col gap-3 rounded-2xl border border-border bg-card p-3.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(24,107,65,.28)]"
+                    className={cn(
+                      "flex w-full flex-col gap-3 rounded-2xl border border-border bg-card p-3.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(24,107,65,.28)]",
+                      member.status === "inativo" && "opacity-[0.68]",
+                    )}
                   >
                     <span className="flex items-center gap-3">
                       <span
@@ -292,25 +387,14 @@ export function EquipeClient({
                           )}
                         </span>
                         <span className="mt-0.5 block truncate text-[12px] text-ink-faint">
-                          {member.email}
+                          {memberSubline(member, storeId, stores)}
                         </span>
                       </span>
                     </span>
                     <span className="flex items-center gap-2.5 border-t border-border pt-3">
-                      <span className="flex items-center gap-1.5">
-                        <span
-                          className={cn(
-                            "size-1.5 shrink-0 rounded-full",
-                            status.dot,
-                          )}
-                        />
-                        <span className="text-[12px] text-ink-soft">
-                          {status.label}
-                        </span>
-                      </span>
-                      <span className="flex-1" />
-                      <span className="truncate text-[12px] text-ink-faint">
-                        {storesLabel(member, stores)}
+                      <StatusPill status={status} />
+                      <span className="min-w-0 flex-1 overflow-hidden">
+                        <AccessSummary member={member} stores={stores} />
                       </span>
                     </span>
                   </button>
@@ -336,6 +420,82 @@ export function EquipeClient({
         }}
       />
     </>
+  );
+}
+
+/**
+ * Amber "convite aguardando aceite" banner with a "Reenviar" action (design
+ * Mock Equipe.dc.html:56-63) — shown above the list whenever at least one
+ * invite is still pending acceptance.
+ */
+function InviteBanner({
+  storeId,
+  invites,
+}: {
+  storeId: string;
+  invites: TeamMember[];
+}) {
+  const [pending, startTransition] = useTransition();
+  const first = invites[0];
+
+  function resend() {
+    startTransition(async () => {
+      const result = await resendInviteAction(storeId, first.email);
+      if (result.ok) {
+        toast.success("Convite reenviado.");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  return (
+    <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-amber/25 bg-amber-wash/50 px-4 py-3">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#F6EAC6] text-[#8A6312]">
+        <LogIn className="size-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-bold text-[#8A6312]">
+          {invites.length === 1
+            ? "1 convite aguardando aceite"
+            : `${invites.length} convites aguardando aceite`}
+        </span>
+        <span className="block truncate text-[12px] text-amber/70">
+          {invites.length === 1
+            ? `${first.name} · enviado ${formatRelative(first.invitedAt)} para ${first.email}`
+            : invites.map((m) => m.name).join(", ")}
+        </span>
+      </span>
+      {invites.length === 1 && (
+        <button
+          type="button"
+          onClick={resend}
+          disabled={pending}
+          className="shrink-0 text-[12.5px] font-bold text-amber transition-opacity hover:opacity-80 disabled:opacity-50"
+        >
+          {pending ? "Enviando…" : "Reenviar →"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** "Situação" badge (design Mock Equipe.dc.html): a filled pill, not a dot. */
+function StatusPill({
+  status,
+}: {
+  status: { label: string; fg: string; bg: string };
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-bold",
+        status.bg,
+        status.fg,
+      )}
+    >
+      {status.label}
+    </span>
   );
 }
 

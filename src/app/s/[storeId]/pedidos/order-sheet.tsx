@@ -390,7 +390,7 @@ function OrderForm({
               onClick={() => setPickerOpen(true)}
               className="w-full rounded-xl border border-dashed border-border bg-paper px-4 py-6 text-center text-[12.5px] text-ink-faint transition-colors hover:border-primary/40"
             >
-              Nenhum item — toque para adicionar do catálogo.
+              Nenhum item — toque para adicionar do cardápio.
             </button>
           ) : (
             <ul className="space-y-2.5">
@@ -680,7 +680,7 @@ function ProductPickerDialog({
                     onClick={() => setMode("catalogo")}
                     className="rounded-md bg-white px-3 py-1 text-[12px] font-semibold text-ink shadow-sm"
                   >
-                    Catálogo
+                    Cardápio
                   </button>
                   <button
                     type="button"
@@ -696,7 +696,7 @@ function ProductPickerDialog({
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar produto do catálogo…"
+                  placeholder="Buscar produto do cardápio…"
                   className="rounded-xl pl-9"
                 />
               </div>

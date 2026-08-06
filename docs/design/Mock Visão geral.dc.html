@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #EFF3EC; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #D6E2D0; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  @keyframes seletPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.55); opacity: .5; } }
+  .selet-dot { animation: seletPulse 1.9s ease-in-out infinite; }
+  a { color: #186B41; text-decoration: none; }
+  a:hover { color: #124F30; }
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:72px; padding:56px 56px 120px; font-family:'Albert Sans',sans-serif; color:#15231C; background:#EFF3EC;">
+
+  <div style="display:flex; align-items:baseline; gap:14px;">
+    <span style="font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; color:#186B41;">Selet</span>
+    <span style="font-size:11px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#8A968D;">Mockups · Visão geral</span>
+  </div>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">1</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Dia em andamento — movimento normal, com alerta de estoque</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+
+      <div id="1a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1a</span>
+          <span style="font-size:14px; color:#5C6B62;">Estado padrão: KPIs do período, canais, mais vendidos e o bloco de estoque baixo.</span>
+        </div>
+        <div style="display:flex; width:1360px; height:830px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="dashboard" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
+              <div style="flex:1; min-width:0;">
+                <h1 style="margin:0; font-size:19px; font-weight:700; letter-spacing:-.2px;">Visão geral</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Resumo de hoje · Vila Velha/ES</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; width:280px; height:38px; padding:0 13px; background:#F6FAF4; border:1px solid #E7EEE6; border-radius:10px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                <span style="font-size:13px; color:#A8B4AC;">Buscar pedido, cliente…</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>
+                <span>Novo pedido</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:26px 28px 40px;">
+              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:18px;">
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Clientes ativos</span>
+                    <span style="font-size:11px; font-weight:700; color:#3A9D5D; background:#E7F4EC; padding:2px 8px; border-radius:20px;">+6</span>
+                  </div>
+                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">18</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">vs. período anterior</div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Novos clientes</span>
+                    <span style="font-size:11px; font-weight:700; color:#2F6FB5; background:#E6EFF8; padding:2px 8px; border-radius:20px;">+2</span>
+                  </div>
+                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">7</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">últimos 30 dias</div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Pedidos no período</span>
+                    <span style="font-size:11px; font-weight:700; color:#3A9D5D; background:#E7F4EC; padding:2px 8px; border-radius:20px;">+8%</span>
+                  </div>
+                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">9</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">este mês</div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Aniversários próximos</span>
+                  </div>
+                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">3</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">próximos 30 dias · ver clientes</div>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1.1fr .9fr; gap:16px; margin-bottom:16px;">
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
+                  <h3 style="margin:0 0 2px; font-size:15px; font-weight:600;">Pedidos por canal</h3>
+                  <p style="margin:0 0 14px; font-size:12.5px; color:#8A968D;">Distribuição dos pedidos no período</p>
+                  <div style="display:flex; align-items:center; gap:18px;">
+                    <svg width="118" height="118" viewBox="0 0 118 118" style="transform:rotate(-90deg); flex-shrink:0;">
+                      <circle cx="59" cy="59" r="48" fill="none" stroke="#F0F4ED" stroke-width="16"></circle>
+                      <circle cx="59" cy="59" r="48" fill="none" stroke="#C2407E" stroke-width="16" stroke-dasharray="134 301.6" stroke-dashoffset="0"></circle>
+                      <circle cx="59" cy="59" r="48" fill="none" stroke="#1E9E54" stroke-width="16" stroke-dasharray="101 301.6" stroke-dashoffset="-134"></circle>
+                      <circle cx="59" cy="59" r="48" fill="none" stroke="#9DB394" stroke-width="16" stroke-dasharray="67 301.6" stroke-dashoffset="-235"></circle>
+                    </svg>
+                    <div style="flex:1; display:flex; flex-direction:column; gap:11px;">
+                      <div style="display:flex; align-items:center; gap:9px;">
+                        <span style="width:10px; height:10px; border-radius:3px; background:#C2407E;"></span>
+                        <span style="flex:1; font-size:13px; color:#3D4A42;">Instagram</span>
+                        <span style="font-size:13px; font-weight:700;">4</span>
+                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">44%</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:9px;">
+                        <span style="width:10px; height:10px; border-radius:3px; background:#1E9E54;"></span>
+                        <span style="flex:1; font-size:13px; color:#3D4A42;">WhatsApp</span>
+                        <span style="font-size:13px; font-weight:700;">3</span>
+                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">33%</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:9px;">
+                        <span style="width:10px; height:10px; border-radius:3px; background:#9DB394;"></span>
+                        <span style="flex:1; font-size:13px; color:#3D4A42;">Loja física</span>
+                        <span style="font-size:13px; font-weight:700;">2</span>
+                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">23%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
+                  <h3 style="margin:0 0 13px; font-size:15px; font-weight:600;">Mais vendidos</h3>
+                  <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div>
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-size:13px; font-weight:600;">Shake Frutas Vermelhas</span>
+                        <span style="font-size:12px; color:#8A968D;">86 un.</span>
+                      </div>
+                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:100%;"></div></div>
+                    </div>
+                    <div>
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-size:13px; font-weight:600;">Hype Drink</span>
+                        <span style="font-size:12px; color:#8A968D;">64 un.</span>
+                      </div>
+                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:74%;"></div></div>
+                    </div>
+                    <div>
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-size:13px; font-weight:600;">Pizza Proteica</span>
+                        <span style="font-size:12px; color:#8A968D;">41 un.</span>
+                      </div>
+                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:48%;"></div></div>
+                    </div>
+                    <div>
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-size:13px; font-weight:600;">Coxinha Proteica</span>
+                        <span style="font-size:12px; color:#8A968D;">33 un.</span>
+                      </div>
+                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:38%;"></div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="background:#FBF6EC; border:1px solid #F0E4C8; border-radius:14px; padding:20px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+                  <div style="display:flex; align-items:center; gap:9px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B7791F" stroke-width="2"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>
+                    <h3 style="margin:0; font-size:15px; font-weight:700; color:#8A6312;">Estoque baixo</h3>
+                  </div>
+                  <span style="color:#B7791F; font-size:12.5px; font-weight:600;">Ver estoque →</span>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+                  <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; background:#fff; border:1px solid #F0E4C8; border-radius:11px;">
+                    <span style="width:9px; height:9px; border-radius:50%; flex-shrink:0; background:#C0492F;"></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:13px; font-weight:600; color:#5C4F2A;">Fiber Concentrate</span>
+                      <span style="display:block; font-size:11.5px; color:#B7791F; font-weight:600;">Esgotado</span>
+                    </span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; background:#fff; border:1px solid #F0E4C8; border-radius:11px;">
+                    <span style="width:9px; height:9px; border-radius:50%; flex-shrink:0; background:#B7791F;"></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:13px; font-weight:600; color:#5C4F2A;">Sopa Instantânea Frango</span>
+                      <span style="display:block; font-size:11.5px; color:#B7791F; font-weight:600;">2 em estoque</span>
+                    </span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; background:#fff; border:1px solid #F0E4C8; border-radius:11px;">
+                    <span style="width:9px; height:9px; border-radius:50%; flex-shrink:0; background:#B7791F;"></span>
+                    <span style="flex:1; min-width:0;">
+                      <span style="display:block; font-size:13px; font-weight:600; color:#5C4F2A;">Beauty Drink Colágeno</span>
+                      <span style="display:block; font-size:11.5px; color:#B7791F; font-weight:600;">6 em estoque</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">2</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Começo do dia — nenhum pedido ainda e estoque em ordem</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="2a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2a</span>
+          <span style="font-size:14px; color:#5C6B62;">Zeros nos KPIs, gráficos vazios com instrução e o bloco de alerta trocado por confirmação verde.</span>
+        </div>
+        <div style="display:flex; width:1360px; height:830px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="dashboard" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
+              <div style="flex:1; min-width:0;">
+                <h1 style="margin:0; font-size:19px; font-weight:700; letter-spacing:-.2px;">Visão geral</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Resumo de hoje · Vila Velha/ES</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; width:280px; height:38px; padding:0 13px; background:#F6FAF4; border:1px solid #E7EEE6; border-radius:10px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                <span style="font-size:13px; color:#A8B4AC;">Buscar pedido, cliente…</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>
+                <span>Novo pedido</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:26px 28px 40px;">
+              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:18px;">
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
+                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Clientes ativos</span>
+                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">18</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">vs. período anterior</div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
+                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Novos clientes</span>
+                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px; color:#C3CDBF;">0</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">hoje</div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
+                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Pedidos no período</span>
+                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px; color:#C3CDBF;">0</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">hoje · loja abriu às 09:00</div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
+                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Aniversários próximos</span>
+                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">3</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">próximos 30 dias · ver clientes</div>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1.1fr .9fr; gap:16px; margin-bottom:16px;">
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
+                  <h3 style="margin:0 0 2px; font-size:15px; font-weight:600;">Pedidos por canal</h3>
+                  <p style="margin:0 0 14px; font-size:12.5px; color:#8A968D;">Distribuição dos pedidos no período</p>
+                  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:26px 0 22px;">
+                    <svg width="104" height="104" viewBox="0 0 118 118"><circle cx="59" cy="59" r="48" fill="none" stroke="#F0F4ED" stroke-width="16"></circle></svg>
+                    <span style="font-size:13.5px; font-weight:600; color:#5C6B62;">Nenhum pedido registrado hoje</span>
+                    <span style="font-size:12.5px; color:#A0AC9D; text-align:center; max-width:280px;">Os canais aparecem aqui conforme os pedidos entram pelo Instagram, WhatsApp ou loja.</span>
+                  </div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
+                  <h3 style="margin:0 0 13px; font-size:15px; font-weight:600;">Mais vendidos</h3>
+                  <div style="display:flex; flex-direction:column; gap:14px; opacity:.55;">
+                    <div>
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-size:13px; font-weight:600; color:#8A968D;">Shake Frutas Vermelhas</span>
+                        <span style="font-size:12px; color:#A8B4AC;">— un.</span>
+                      </div>
+                      <div style="height:6px; border-radius:4px; background:#F0F4ED;"></div>
+                    </div>
+                    <div>
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-size:13px; font-weight:600; color:#8A968D;">Hype Drink</span>
+                        <span style="font-size:12px; color:#A8B4AC;">— un.</span>
+                      </div>
+                      <div style="height:6px; border-radius:4px; background:#F0F4ED;"></div>
+                    </div>
+                    <div>
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-size:13px; font-weight:600; color:#8A968D;">Pizza Proteica</span>
+                        <span style="font-size:12px; color:#A8B4AC;">— un.</span>
+                      </div>
+                      <div style="height:6px; border-radius:4px; background:#F0F4ED;"></div>
+                    </div>
+                  </div>
+                  <p style="margin:16px 0 0; font-size:12.5px; color:#A0AC9D;">O ranking do dia começa a se formar no primeiro pedido.</p>
+                </div>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:13px; background:#F3F8EF; border:1px solid #DDEBD5; border-radius:14px; padding:18px 20px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:10px; background:#E2F0DA; color:#186B41; flex-shrink:0;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg>
+                </span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:14px; font-weight:700; color:#186B41;">Estoque em ordem</span>
+                  <span style="display:block; font-size:12.5px; color:#5C6B62; margin-top:2px;">Nenhum insumo abaixo do mínimo. Última conferência hoje às 08:40.</span>
+                </span>
+                <span style="color:#186B41; font-size:12.5px; font-weight:600;">Ver estoque →</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">3</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Troca de loja — seletor aberto e painel da franquia de Passos/MG</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="3a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3a</span>
+          <span style="font-size:14px; color:#5C6B62;">Dropdown de loja ativa aberto sobre o painel; a matriz aparece marcada.</span>
+        </div>
+        <div style="display:flex; width:1360px; height:640px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="dashboard" store-menu="{{ true }}" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
+              <div style="flex:1; min-width:0;">
+                <h1 style="margin:0; font-size:19px; font-weight:700; letter-spacing:-.2px;">Visão geral</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Resumo de hoje · Vila Velha/ES</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>
+                <span>Novo pedido</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow:hidden; padding:26px 28px 40px; opacity:.5;">
+              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;">
+                <div style="height:112px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
+                <div style="height:112px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
+                <div style="height:112px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
+                <div style="height:112px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
+              </div>
+              <div style="display:grid; grid-template-columns:1.1fr .9fr; gap:16px; margin-top:16px;">
+                <div style="height:230px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
+                <div style="height:230px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="3b" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3b</span>
+          <span style="font-size:14px; color:#5C6B62;">Depois da troca: mesma estrutura, volume menor e um só canal ativo.</span>
+        </div>
+        <div style="display:flex; width:1360px; height:640px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="dashboard" store="Passos/MG" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
+              <div style="flex:1; min-width:0;">
+                <h1 style="margin:0; font-size:19px; font-weight:700; letter-spacing:-.2px;">Visão geral</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Resumo de hoje · Passos/MG</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>
+                <span>Novo pedido</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:26px 28px 40px;">
+              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:18px;">
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px;">
+                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Clientes ativos</span>
+                  <div style="font-variant-numeric:tabular-nums; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">6</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">vs. período anterior</div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px;">
+                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Novos clientes</span>
+                  <div style="font-variant-numeric:tabular-nums; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">2</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">últimos 30 dias</div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px;">
+                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Pedidos no período</span>
+                  <div style="font-variant-numeric:tabular-nums; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">3</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">este mês</div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px;">
+                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Aniversários próximos</span>
+                  <div style="font-variant-numeric:tabular-nums; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px; color:#C3CDBF;">0</div>
+                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">próximos 30 dias</div>
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:1.1fr .9fr; gap:16px;">
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
+                  <h3 style="margin:0 0 2px; font-size:15px; font-weight:600;">Pedidos por canal</h3>
+                  <p style="margin:0 0 14px; font-size:12.5px; color:#8A968D;">Distribuição dos pedidos no período</p>
+                  <div style="display:flex; align-items:center; gap:18px;">
+                    <svg width="118" height="118" viewBox="0 0 118 118" style="transform:rotate(-90deg); flex-shrink:0;">
+                      <circle cx="59" cy="59" r="48" fill="none" stroke="#F0F4ED" stroke-width="16"></circle>
+                      <circle cx="59" cy="59" r="48" fill="none" stroke="#1E9E54" stroke-width="16" stroke-dasharray="201 301.6" stroke-dashoffset="0"></circle>
+                      <circle cx="59" cy="59" r="48" fill="none" stroke="#9DB394" stroke-width="16" stroke-dasharray="100 301.6" stroke-dashoffset="-201"></circle>
+                    </svg>
+                    <div style="flex:1; display:flex; flex-direction:column; gap:11px;">
+                      <div style="display:flex; align-items:center; gap:9px;">
+                        <span style="width:10px; height:10px; border-radius:3px; background:#1E9E54;"></span>
+                        <span style="flex:1; font-size:13px; color:#3D4A42;">WhatsApp</span>
+                        <span style="font-size:13px; font-weight:700;">2</span>
+                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">67%</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:9px;">
+                        <span style="width:10px; height:10px; border-radius:3px; background:#9DB394;"></span>
+                        <span style="flex:1; font-size:13px; color:#3D4A42;">Loja física</span>
+                        <span style="font-size:13px; font-weight:700;">1</span>
+                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">33%</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:9px; opacity:.5;">
+                        <span style="width:10px; height:10px; border-radius:3px; background:#C2407E;"></span>
+                        <span style="flex:1; font-size:13px; color:#3D4A42;">Instagram</span>
+                        <span style="font-size:13px; font-weight:700;">0</span>
+                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">0%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
+                  <h3 style="margin:0 0 13px; font-size:15px; font-weight:600;">Mais vendidos</h3>
+                  <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div>
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-size:13px; font-weight:600;">Coxinha Proteica</span>
+                        <span style="font-size:12px; color:#8A968D;">21 un.</span>
+                      </div>
+                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:100%;"></div></div>
+                    </div>
+                    <div>
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-size:13px; font-weight:600;">Hype Drink</span>
+                        <span style="font-size:12px; color:#8A968D;">9 un.</span>
+                      </div>
+                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:43%;"></div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

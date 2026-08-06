@@ -74,9 +74,12 @@ export function ProductFormSheet({
         side="right"
         className="w-full gap-0 overflow-y-auto sm:max-w-md"
       >
-        <SheetHeader className="border-b border-border">
-          <SheetTitle className="text-[17px] font-bold">
-            {product ? "Editar produto" : "Novo produto"}
+        <SheetHeader className="gap-0 border-b border-border">
+          <span className="text-[11px] font-bold uppercase tracking-[0.5px] text-leaf">
+            {product ? "Editar item" : "Novo item"}
+          </span>
+          <SheetTitle className="text-[19px] font-bold">
+            {product ? product.name : "Novo produto"}
           </SheetTitle>
         </SheetHeader>
         {/* Keyed so switching between create/edit remounts with fresh state. */}
@@ -446,7 +449,7 @@ function ProductForm({
         {/* ---------------------------------------------- REVENDA/ADICIONAL insumo */}
         {linksInsumo && (
           <div className="space-y-1.5">
-            <Label>Produto</Label>
+            <Label>Item do estoque</Label>
             <InsumoTriggerPicker
               stockItems={stockItems}
               selected={selectedInsumo}
@@ -471,11 +474,11 @@ function ProductForm({
         {/* ---------------------------------------------------------- MENU base */}
         {usesRecipe && (
           <InsumoSection
-            title="Base"
+            title="Base consumida"
             rows={recipe}
             stockItems={stockItems}
             usedStockIds={usedInRecipe}
-            addLabel="Adicionar Base"
+            addLabel="Adicionar insumo"
             onAdd={addRecipeRow}
             onRemove={(id) => setRecipe((rs) => rs.filter((r) => r._id !== id))}
             renderRow={(row) => (

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #EFF3EC; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #D6E2D0; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #186B41; text-decoration: none; }
+  a:hover { color: #124F30; }
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:72px; padding:56px 56px 120px; font-family:'Albert Sans',sans-serif; color:#15231C; background:#EFF3EC;">
+
+  <div style="display:flex; align-items:baseline; gap:14px;">
+    <span style="font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; color:#186B41;">Selet</span>
+    <span style="font-size:11px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#8A968D;">Mockups · Equipe</span>
+  </div>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">1</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Equipe das duas lojas — admins, operação, convite pendente e acesso revogado</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="1a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1a</span>
+          <span style="font-size:14px; color:#5C6B62;">Cada linha mostra papel, lojas atribuídas, áreas liberadas e último acesso.</span>
+        </div>
+        <div style="display:flex; width:1300px; height:760px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="equipe" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
+              <div style="flex:1;">
+                <h1 style="margin:0; font-size:19px; font-weight:700;">Equipe</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Gestão de funcionários por loja</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg><span>Convidar</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:24px 28px 40px;">
+              <div style="display:flex; align-items:center; gap:11px; margin-bottom:16px; padding:13px 16px; background:#FDFAF1; border:1px solid #F0E4C8; border-radius:12px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#F6EAC6; color:#B7791F; flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path></svg></span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:13.5px; font-weight:700; color:#8A6312;">1 convite aguardando aceite</span>
+                  <span style="display:block; font-size:12px; color:#A08A57; margin-top:1px;">Bruno Teixeira · enviado há 3 dias para bruno.teixeira@selet.com.br</span>
+                </span>
+                <span style="color:#B7791F; font-size:12.5px; font-weight:700;">Reenviar →</span>
+              </div>
+
+              <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px;">
+                <div style="display:grid; grid-template-columns:1.3fr 150px 1fr 150px; gap:12px; padding:13px 20px; background:#FAFCF8; border-bottom:1px solid #E7EEE6; border-radius:14px 14px 0 0; font-size:11px; font-weight:700; letter-spacing:.4px; color:#8A968D; text-transform:uppercase;">
+                  <span>Pessoa</span><span>Papel</span><span>Acesso</span><span style="text-align:right;">Situação</span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:1.3fr 150px 1fr 150px; gap:12px; padding:14px 20px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="display:flex; align-items:center; gap:11px;">
+                    <span style="width:38px; height:38px; border-radius:50%; background:#ECF4E8; color:#186B41; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">RD</span>
+                    <span>
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Rodrigo Daher</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">rodrigo@selet.com.br</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#186B41; background:#ECF4E8; padding:3px 10px; border-radius:20px;">Administrador</span></span>
+                  <span style="font-size:12.5px; color:#5C6B62;">Todas as áreas · 2 lojas</span>
+                  <span style="text-align:right;">
+                    <span style="display:inline-block; font-size:11px; font-weight:700; color:#3A9D5D; background:#E7F4EC; padding:3px 10px; border-radius:20px;">Ativo</span>
+                    <span style="display:block; font-size:11px; color:#A0AC9D; margin-top:4px;">Agora há pouco</span>
+                  </span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:1.3fr 150px 1fr 150px; gap:12px; padding:14px 20px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="display:flex; align-items:center; gap:11px;">
+                    <span style="width:38px; height:38px; border-radius:50%; background:#F8E9F1; color:#C2407E; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">MA</span>
+                    <span>
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Marina Alves</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">marina.alves@selet.com.br</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#5C6B62; background:#EEF2EC; padding:3px 10px; border-radius:20px;">Funcionário</span></span>
+                  <span style="display:flex; flex-wrap:wrap; gap:5px;">
+                    <span style="font-size:11px; font-weight:600; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:2px 8px; border-radius:20px;">Pedidos</span>
+                    <span style="font-size:11px; font-weight:600; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:2px 8px; border-radius:20px;">Clientes</span>
+                    <span style="font-size:11px; font-weight:600; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:2px 8px; border-radius:20px;">Estoque</span>
+                  </span>
+                  <span style="text-align:right;">
+                    <span style="display:inline-block; font-size:11px; font-weight:700; color:#3A9D5D; background:#E7F4EC; padding:3px 10px; border-radius:20px;">Ativo</span>
+                    <span style="display:block; font-size:11px; color:#A0AC9D; margin-top:4px;">Hoje · 11:10</span>
+                  </span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:1.3fr 150px 1fr 150px; gap:12px; padding:14px 20px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="display:flex; align-items:center; gap:11px;">
+                    <span style="width:38px; height:38px; border-radius:50%; background:#E3F1F4; color:#2F8FA8; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">TN</span>
+                    <span>
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Tiago Nunes</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">tiago.nunes@selet.com.br · Passos/MG</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#5C6B62; background:#EEF2EC; padding:3px 10px; border-radius:20px;">Funcionário</span></span>
+                  <span style="display:flex; gap:5px;">
+                    <span style="font-size:11px; font-weight:600; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:2px 8px; border-radius:20px;">Pedidos</span>
+                  </span>
+                  <span style="text-align:right;">
+                    <span style="display:inline-block; font-size:11px; font-weight:700; color:#3A9D5D; background:#E7F4EC; padding:3px 10px; border-radius:20px;">Ativo</span>
+                    <span style="display:block; font-size:11px; color:#A0AC9D; margin-top:4px;">Hoje · 09:40</span>
+                  </span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:1.3fr 150px 1fr 150px; gap:12px; padding:14px 20px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="display:flex; align-items:center; gap:11px;">
+                    <span style="width:38px; height:38px; border-radius:50%; background:#F5EED2; color:#AD861C; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">CR</span>
+                    <span>
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Camila Rocha</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">camila.rocha@selet.com.br · 2 lojas</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#5C6B62; background:#EEF2EC; padding:3px 10px; border-radius:20px;">Funcionário</span></span>
+                  <span style="display:flex; flex-wrap:wrap; gap:5px;">
+                    <span style="font-size:11px; font-weight:600; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:2px 8px; border-radius:20px;">Pedidos</span>
+                    <span style="font-size:11px; font-weight:600; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:2px 8px; border-radius:20px;">Clientes</span>
+                    <span style="font-size:11px; font-weight:600; color:#5C6B62; background:#F4F7F1; border:1px solid #E7EEE6; padding:2px 8px; border-radius:20px;">Cardápio</span>
+                    <span style="font-size:11px; font-weight:600; color:#8A968D;">+1</span>
+                  </span>
+                  <span style="text-align:right;">
+                    <span style="display:inline-block; font-size:11px; font-weight:700; color:#3A9D5D; background:#E7F4EC; padding:3px 10px; border-radius:20px;">Ativo</span>
+                    <span style="display:block; font-size:11px; color:#A0AC9D; margin-top:4px;">Ontem · 14:12</span>
+                  </span>
+                </div>
+
+                <div style-hover="background-color:#FAFCF8" style="display:grid; grid-template-columns:1.3fr 150px 1fr 150px; gap:12px; padding:14px 20px; border-bottom:1px solid #F0F4ED; align-items:center;">
+                  <span style="display:flex; align-items:center; gap:11px;">
+                    <span style="width:38px; height:38px; border-radius:50%; background:#FBF1DC; color:#B7791F; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">BT</span>
+                    <span>
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Bruno Teixeira</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">Convite enviado há 3 dias</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#5C6B62; background:#EEF2EC; padding:3px 10px; border-radius:20px;">Funcionário</span></span>
+                  <span style="font-size:12.5px; color:#A0AC9D;">Definido no aceite</span>
+                  <span style="text-align:right;">
+                    <span style="display:inline-block; font-size:11px; font-weight:700; color:#B7791F; background:#FBF1DC; padding:3px 10px; border-radius:20px;">Convidado</span>
+                    <span style="display:block; font-size:11px; color:#A0AC9D; margin-top:4px;">Nunca acessou</span>
+                  </span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1.3fr 150px 1fr 150px; gap:12px; padding:14px 20px; align-items:center; opacity:.68;">
+                  <span style="display:flex; align-items:center; gap:11px;">
+                    <span style="width:38px; height:38px; border-radius:50%; background:#EEF1ED; color:#8A968D; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">LM</span>
+                    <span>
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Letícia Moraes</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">leticia.moraes@selet.com.br</span>
+                    </span>
+                  </span>
+                  <span><span style="display:inline-block; font-size:11px; font-weight:700; color:#186B41; background:#ECF4E8; padding:3px 10px; border-radius:20px;">Administrador</span></span>
+                  <span style="font-size:12.5px; color:#A0AC9D;">Acesso revogado</span>
+                  <span style="text-align:right;">
+                    <span style="display:inline-block; font-size:11px; font-weight:700; color:#7A857D; background:#EEF1ED; padding:3px 10px; border-radius:20px;">Inativo</span>
+                    <span style="display:block; font-size:11px; color:#A0AC9D; margin-top:4px;">Há 4 meses</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">2</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Ficha da pessoa — permissões por área, admin sem escolha e novo convite</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="2a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2a</span>
+          <span style="font-size:14px; color:#5C6B62;">Funcionária: áreas liberadas com chave por linha e atividade recente.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:460px; height:800px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex-shrink:0; display:flex; align-items:center; gap:13px; padding:20px 22px; border-bottom:1px solid #EEF3EA;">
+            <span style="width:46px; height:46px; border-radius:50%; background:#F8E9F1; color:#C2407E; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700;">MA</span>
+            <div style="flex:1;">
+              <h2 style="margin:0; font-size:18px; font-weight:700;">Marina Alves</h2>
+              <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Funcionária · Vila Velha/ES</p>
+            </div>
+            <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid #E7EEE6; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg></span>
+          </div>
+          <div style="flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:20px;">
+            <div style="display:flex; flex-direction:column; gap:1px; background:#F0F4ED; border:1px solid #EEF3EA; border-radius:12px; overflow:hidden;">
+              <div style="display:flex; align-items:center; gap:11px; padding:11px 14px; background:#fff;">
+                <span style="flex:1; font-size:12px; color:#8A968D;">E-mail</span>
+                <span style="font-size:13px; font-weight:600;">marina.alves@selet.com.br</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:11px; padding:11px 14px; background:#fff;">
+                <span style="flex:1; font-size:12px; color:#8A968D;">Telefone</span>
+                <span style="font-size:13px; font-weight:600;">(27) 99655-3341</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:11px; padding:11px 14px; background:#fff;">
+                <span style="flex:1; font-size:12px; color:#8A968D;">Na equipe desde</span>
+                <span style="font-size:13px; font-weight:600;">Mar 2024</span>
+              </div>
+            </div>
+
+            <div>
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Papel</span>
+              <div style="display:flex; gap:8px;">
+                <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; height:40px; border:1px solid #E7EEE6; border-radius:11px; font-size:13px; font-weight:600; color:#8A968D;">Administrador</span>
+                <span style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; height:40px; border:1.5px solid #186B41; border-radius:11px; background:#F3F8EF; font-size:13px; font-weight:700; color:#186B41;">Funcionário</span>
+              </div>
+            </div>
+
+            <div>
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:10px;">Áreas liberadas</span>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; border:1px solid #DDEBD5; background:#F3F8EF; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#E2F0DA; color:#186B41;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.5 5.5 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.5A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.5Z"></path></svg></span>
+                  <span style="flex:1; font-size:13.5px; font-weight:600;">Pedidos</span>
+                  <span style="width:42px; height:24px; border-radius:20px; background:#186B41; position:relative;"><span style="position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%; background:#fff;"></span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; border:1px solid #DDEBD5; background:#F3F8EF; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#E2F0DA; color:#186B41;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span>
+                  <span style="flex:1; font-size:13.5px; font-weight:600;">Clientes</span>
+                  <span style="width:42px; height:24px; border-radius:20px; background:#186B41; position:relative;"><span style="position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%; background:#fff;"></span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; border:1px solid #EEF3EA; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#F0F4ED; color:#A0AC9D;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 8 12 3 3 8l9 5 9-5Z"></path><path d="M3 8v8l9 5 9-5V8"></path></svg></span>
+                  <span style="flex:1; font-size:13.5px; font-weight:600; color:#8A968D;">Cardápio</span>
+                  <span style="width:42px; height:24px; border-radius:20px; background:#E2E8DF; position:relative;"><span style="position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff;"></span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; border:1px solid #DDEBD5; background:#F3F8EF; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#E2F0DA; color:#186B41;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4-9 4-9-4Z"></path><path d="M3 12l9 4 9-4"></path></svg></span>
+                  <span style="flex:1; font-size:13.5px; font-weight:600;">Estoque</span>
+                  <span style="width:42px; height:24px; border-radius:20px; background:#186B41; position:relative;"><span style="position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%; background:#fff;"></span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; border:1px solid #EEF3EA; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#F0F4ED; color:#A0AC9D;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v10M9.5 9.5h5M9.5 14.5h5"></path></svg></span>
+                  <span style="flex:1; font-size:13.5px; font-weight:600; color:#8A968D;">Financeiro</span>
+                  <span style="width:42px; height:24px; border-radius:20px; background:#E2E8DF; position:relative;"><span style="position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff;"></span></span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:10px;">Atividade recente</span>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; align-items:center; gap:11px; padding:11px 13px; border:1px solid #EEF3EA; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#F4F7F1; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path></svg></span>
+                  <span style="flex:1;">
+                    <span style="display:block; font-size:13px; font-weight:600;">Registrou pedido #1048</span>
+                    <span style="display:block; font-size:11.5px; color:#A0AC9D;">Pedidos · Instagram</span>
+                  </span>
+                  <span style="font-size:11.5px; color:#A0AC9D;">Hoje · 11:10</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:11px; padding:11px 13px; border:1px solid #EEF3EA; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#F4F7F1; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 4.5-5"></path></svg></span>
+                  <span style="flex:1;">
+                    <span style="display:block; font-size:13px; font-weight:600;">Concluiu pedido #1046</span>
+                    <span style="display:block; font-size:11.5px; color:#A0AC9D;">Pedidos</span>
+                  </span>
+                  <span style="font-size:11.5px; color:#A0AC9D;">Hoje · 10:22</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:11px; padding:11px 13px; border:1px solid #EEF3EA; border-radius:11px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#F4F7F1; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4-9 4-9-4Z"></path></svg></span>
+                  <span style="flex:1;">
+                    <span style="display:block; font-size:13px; font-weight:600;">Abriu embalagem · Fiber Concentrate</span>
+                    <span style="display:block; font-size:11.5px; color:#A0AC9D;">Estoque</span>
+                  </span>
+                  <span style="font-size:11.5px; color:#A0AC9D;">Hoje · 09:05</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="flex-shrink:0; display:flex; gap:10px; padding:16px 22px; border-top:1px solid #F0F4ED;">
+            <span style="display:flex; align-items:center; justify-content:center; height:44px; padding:0 16px; border:1px solid #F2D8CF; border-radius:11px; font-size:13.5px; font-weight:600; color:#C0492F;">Desativar acesso</span>
+            <span style="flex:1; display:flex; align-items:center; justify-content:center; height:44px; border-radius:11px; background:#186B41; color:#fff; font-size:13.5px; font-weight:600;">Salvar</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="2b" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2b</span>
+          <span style="font-size:14px; color:#5C6B62;">Administrador: as áreas aparecem travadas, sem chaves para desligar.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; width:460px; height:560px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <div style="flex-shrink:0; display:flex; align-items:center; gap:13px; padding:20px 22px; border-bottom:1px solid #EEF3EA;">
+            <span style="width:46px; height:46px; border-radius:50%; background:#ECF4E8; color:#186B41; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700;">RD</span>
+            <div style="flex:1;">
+              <h2 style="margin:0; font-size:18px; font-weight:700;">Rodrigo Daher</h2>
+              <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Administrador · todas as lojas</p>
+            </div>
+            <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid #E7EEE6; color:#5C6B62;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg></span>
+          </div>
+          <div style="flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:18px;">
+            <div style="display:flex; align-items:flex-start; gap:11px; padding:14px 15px; background:#F3F8EF; border:1px solid #DDEBD5; border-radius:12px;">
+              <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#E2F0DA; color:#186B41; flex-shrink:0;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z"></path><path d="m9 12 2 2 4-4"></path></svg></span>
+              <span style="flex:1;">
+                <span style="display:block; font-size:13px; font-weight:700; color:#186B41;">Acesso total</span>
+                <span style="display:block; font-size:12.5px; color:#5C6B62; margin-top:2px;">Administradores enxergam todas as áreas e todas as lojas. Para limitar, mude o papel para funcionário.</span>
+              </span>
+            </div>
+            <div>
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:10px;">Áreas</span>
+              <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#186B41; background:#ECF4E8; padding:6px 12px; border-radius:20px;">Pedidos</span>
+                <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#186B41; background:#ECF4E8; padding:6px 12px; border-radius:20px;">Clientes</span>
+                <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#186B41; background:#ECF4E8; padding:6px 12px; border-radius:20px;">Cardápio</span>
+                <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#186B41; background:#ECF4E8; padding:6px 12px; border-radius:20px;">Vouchers</span>
+                <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#186B41; background:#ECF4E8; padding:6px 12px; border-radius:20px;">Estoque</span>
+                <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#186B41; background:#ECF4E8; padding:6px 12px; border-radius:20px;">Financeiro</span>
+                <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#186B41; background:#ECF4E8; padding:6px 12px; border-radius:20px;">Equipe</span>
+              </div>
+            </div>
+            <div>
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:10px;">Lojas</span>
+              <div style="display:flex; gap:8px;">
+                <span style="display:inline-flex; align-items:center; gap:8px; padding:10px 13px; border:1px solid #EEF3EA; border-radius:11px; font-size:13px; font-weight:600;"><span style="width:24px; height:24px; border-radius:7px; background:#186B41; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700;">V</span>Vila Velha/ES</span>
+                <span style="display:inline-flex; align-items:center; gap:8px; padding:10px 13px; border:1px solid #EEF3EA; border-radius:11px; font-size:13px; font-weight:600;"><span style="width:24px; height:24px; border-radius:7px; background:#186B41; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700;">P</span>Passos/MG</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="2c" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2c</span>
+          <span style="font-size:14px; color:#5C6B62;">Convidar: e-mail, papel, lojas e as áreas já pré-marcadas para operação.</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:center; width:460px; height:560px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:rgba(21,35,28,.46);">
+          <div style="width:390px; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 30px 70px -30px rgba(0,0,0,.5);">
+            <div style="padding:20px 22px 16px; border-bottom:1px solid #F0F4ED;">
+              <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#92C17D;">Equipe</span>
+              <h3 style="margin:3px 0 0; font-size:18px; font-weight:700;">Convidar pessoa</h3>
+            </div>
+            <div style="padding:20px 22px; display:flex; flex-direction:column; gap:16px;">
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:7px;">E-mail</span>
+                <div style="display:flex; align-items:center; height:46px; padding:0 13px; border:1.5px solid #186B41; border-radius:11px; font-size:14px;">joana.p@selet.com.br</div>
+              </div>
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Papel</span>
+                <div style="display:flex; gap:8px;">
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; height:40px; border:1px solid #E7EEE6; border-radius:11px; font-size:13px; font-weight:600; color:#8A968D;">Administrador</span>
+                  <span style="flex:1; display:flex; align-items:center; justify-content:center; height:40px; border:1.5px solid #186B41; background:#F3F8EF; border-radius:11px; font-size:13px; font-weight:700; color:#186B41;">Funcionário</span>
+                </div>
+                <span style="display:block; font-size:11.5px; color:#8A968D; margin-top:8px;">Acesso operacional nas lojas atribuídas.</span>
+              </div>
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Lojas</span>
+                <div style="display:flex; gap:8px;">
+                  <span style="display:inline-flex; align-items:center; gap:7px; padding:9px 12px; border:1.5px solid #186B41; background:#F3F8EF; border-radius:10px; font-size:12.5px; font-weight:700; color:#186B41;">Vila Velha/ES</span>
+                  <span style="display:inline-flex; align-items:center; gap:7px; padding:9px 12px; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#5C6B62;">Passos/MG</span>
+                </div>
+              </div>
+              <div>
+                <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D; margin-bottom:9px;">Áreas liberadas</span>
+                <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                  <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#186B41; background:#ECF4E8; padding:7px 12px; border-radius:20px;">✓ Pedidos</span>
+                  <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#186B41; background:#ECF4E8; padding:7px 12px; border-radius:20px;">✓ Clientes</span>
+                  <span style="display:inline-flex; align-items:center; font-size:12px; font-weight:600; color:#8A968D; background:#F4F7F1; border:1px solid #E7EEE6; padding:6px 12px; border-radius:20px;">Cardápio</span>
+                  <span style="display:inline-flex; align-items:center; font-size:12px; font-weight:600; color:#8A968D; background:#F4F7F1; border:1px solid #E7EEE6; padding:6px 12px; border-radius:20px;">Estoque</span>
+                  <span style="display:inline-flex; align-items:center; font-size:12px; font-weight:600; color:#8A968D; background:#F4F7F1; border:1px solid #E7EEE6; padding:6px 12px; border-radius:20px;">Financeiro</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex; gap:10px; padding:16px 22px; border-top:1px solid #F0F4ED;">
+              <span style="display:flex; align-items:center; justify-content:center; height:44px; padding:0 18px; border:1px solid #E7EEE6; border-radius:11px; font-size:13.5px; font-weight:600; color:#5C6B62;">Cancelar</span>
+              <span style="flex:1; display:flex; align-items:center; justify-content:center; height:44px; border-radius:11px; background:#186B41; color:#fff; font-size:13.5px; font-weight:600;">Enviar convite</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

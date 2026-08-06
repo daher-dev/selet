@@ -13,6 +13,9 @@ export interface DashboardView {
   byChannel: { instagram: number; whatsapp: number; loja: number };
   topSellers: { name: string; qty: number }[];
   lowStock: { id: string; name: string; qty: number; unit: string }[];
+  /** Gates the stock card entirely — members without estoque access see neither
+   *  the low-stock alert nor the "estoque em ordem" confirmation. */
+  canEstoque: boolean;
 }
 
 const NO_CHANNELS = { instagram: 0, whatsapp: 0, loja: 0 };
@@ -80,8 +83,14 @@ function buildKpis(input: {
     {
       label: "Aniversários próximos",
       value: String(input.upcomingBirthdays),
-      sub: "próximos 30 dias · ver clientes",
-      href: `/s/${input.storeId}/clientes?seg=aniversarios`,
+      sub:
+        input.upcomingBirthdays > 0
+          ? "próximos 30 dias · ver clientes"
+          : "próximos 30 dias",
+      href:
+        input.upcomingBirthdays > 0
+          ? `/s/${input.storeId}/clientes?seg=aniversarios`
+          : undefined,
     },
   ];
 }
@@ -139,7 +148,13 @@ export async function fastPath(ctx: {
     upcomingBirthdays: countUpcomingBirthdays(birthdayCustomers, now),
   });
 
-  return { kpis, byChannel, topSellers, lowStock: lowStockChips(lowItems) };
+  return {
+    kpis,
+    byChannel,
+    topSellers,
+    lowStock: lowStockChips(lowItems),
+    canEstoque: ctx.canEstoque,
+  };
 }
 
 /**
@@ -207,7 +222,13 @@ export async function slowPath(ctx: {
     upcomingBirthdays: countUpcomingBirthdays(active, now),
   });
 
-  return { kpis, byChannel, topSellers, lowStock: lowStockChips(stockItems) };
+  return {
+    kpis,
+    byChannel,
+    topSellers,
+    lowStock: lowStockChips(stockItems),
+    canEstoque: ctx.canEstoque,
+  };
 }
 
 /** Build a KPI trend pill from a delta; null when there's nothing to show. */

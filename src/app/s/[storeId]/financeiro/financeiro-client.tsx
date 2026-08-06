@@ -12,10 +12,10 @@ import {
   ChevronRight,
   Clock,
   MoreVertical,
-  Plus,
   Trash2,
   TrendingDown,
   TrendingUp,
+  TriangleAlert,
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -82,6 +82,11 @@ function monthLabel(key: string): string {
   const [y, m] = key.split("-").map(Number);
   const s = monthFmt.format(new Date(y, m - 1, 1));
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** "2026-07" → "Julho" (month name only, no year — capitalized). */
+function monthNameOnly(key: string): string {
+  return monthLabel(key).split(" de ")[0];
 }
 
 /** Contiguous list of month keys from `min` to `max`, inclusive. */
@@ -256,23 +261,42 @@ export function FinanceiroClient({
 
   const selected = monthData.get(selectedKey) ?? { in: 0, out: 0 };
   const net = selected.in - selected.out;
+  // A month with literally nothing recorded gets the neutral "sem
+  // movimentação" treatment (design 2b) instead of the green/dark hero.
+  const hasMovement = selected.in !== 0 || selected.out !== 0;
+  const isNegative = hasMovement && net < 0;
+  const selectedMonthName = monthNameOnly(selectedKey);
 
   // Month-over-month delta — only when the prior month has real activity, so we
   // never invent a comparison against a fabricated zero.
   const delta = useMemo(() => {
     if (selectedIndex <= 0) return null;
-    const prev = monthData.get(range[selectedIndex - 1]);
+    const prevKey = range[selectedIndex - 1];
+    const prev = monthData.get(prevKey);
     if (!prev) return null;
     const prevNet = prev.in - prev.out;
     if (prevNet === 0) return null;
     const diff = net - prevNet;
     const pct = Math.round((diff / Math.abs(prevNet)) * 100);
-    return { up: diff >= 0, pct: Math.abs(pct) };
+    return { up: diff >= 0, pct: Math.abs(pct), monthName: monthNameOnly(prevKey).toLowerCase() };
   }, [selectedIndex, range, monthData, net]);
 
-  // Financeiro has no top-bar add (design hides it on dashboard/financeiro);
-  // the "Novo lançamento" trigger stays inline in the competência row below.
-  usePageAction(null);
+  // Largest single outflow of the selected month — surfaced only when the
+  // month closed negative (design "Reforma da loja pesou no mês").
+  const largestOutflow = useMemo(() => {
+    if (!isNegative) return null;
+    let max: FinanceTx | null = null;
+    for (const tx of transactions) {
+      if (tx.direction !== "out" || !tx.date) continue;
+      if (monthKeyOf(tx.date) !== selectedKey) continue;
+      if (!max || tx.amount > max.amount) max = tx;
+    }
+    return max;
+  }, [transactions, selectedKey, isNegative]);
+
+  // The header's primary action opens the same manual-lançamento sheet,
+  // defaulted to "Saída" (design top-bar "Nova despesa").
+  usePageAction({ label: "Nova despesa", onClick: () => setFormOpen(true) });
 
   // "A receber" is pinned to the CURRENT month regardless of the competência
   // being viewed (design finCurAR = financeMonths[0]).
@@ -281,14 +305,15 @@ export function FinanceiroClient({
     count: 0,
   };
 
-  // Recent movements across all months (design "Movimentações recentes").
+  // Recent movements scoped to the selected competência (design "Sem
+  // movimentações em agosto" only makes sense as a per-month list).
   const recentTxs = useMemo(
     () =>
-      [...transactions]
-        .filter((tx) => tx.date)
+      transactions
+        .filter((tx) => tx.date && monthKeyOf(tx.date) === selectedKey)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 12),
-    [transactions],
+    [transactions, selectedKey],
   );
 
   return (
@@ -306,21 +331,6 @@ export function FinanceiroClient({
             {monthLabel(selectedKey)}
           </span>
         </div>
-        <Button
-          onClick={() => setFormOpen(true)}
-          className="hidden gap-1.5 rounded-xl font-semibold sm:flex"
-        >
-          <Plus className="size-4" />
-          Novo lançamento
-        </Button>
-        <Button
-          onClick={() => setFormOpen(true)}
-          size="icon"
-          aria-label="Novo lançamento"
-          className="rounded-xl sm:hidden"
-        >
-          <Plus className="size-4" />
-        </Button>
         <button
           type="button"
           aria-label="Mês anterior"
@@ -343,78 +353,151 @@ export function FinanceiroClient({
 
       {/* Hero: net of the selected month */}
       <div className="mb-4">
-        <div className="rounded-2xl bg-primary p-5 text-white">
-          <div className="flex items-center gap-2">
-            <span className="text-[12.5px] font-semibold tracking-wide text-white/85">
-              Líquido do mês
-            </span>
-            <span className="flex-1" />
-            {delta && (
-              <span
-                className={cn(
-                  "flex items-center gap-1 text-[11.5px] font-semibold",
-                  delta.up ? "text-leaf" : "text-[#f2b8a8]",
-                )}
-              >
-                {delta.up ? (
-                  <TrendingUp className="size-3.5" />
-                ) : (
-                  <TrendingDown className="size-3.5" />
-                )}
-                {delta.pct}% vs. mês ant.
-              </span>
+        {hasMovement ? (
+          <div
+            className={cn(
+              "rounded-2xl p-5 text-white",
+              isNegative ? "bg-ink" : "bg-primary",
             )}
-          </div>
-          <p className="tabular mt-1.5 text-[30px] font-bold leading-none tracking-[-0.5px]">
-            {formatBRL(net)}
-          </p>
-          <div className="mt-4 flex border-t border-white/15 pt-3.5">
-            <div className="flex flex-1 items-center gap-2.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/15">
-                <ArrowUp className="size-4 text-leaf" />
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-[12.5px] font-semibold tracking-wide text-white/85">
+                Líquido do mês
               </span>
-              <span className="min-w-0">
-                <span className="block text-[11px] text-white/75">Entradas</span>
-                <span className="tabular block text-[16px] font-bold">
-                  {formatBRL(selected.in)}
+              <span className="flex-1" />
+              {delta && (
+                <span
+                  className={cn(
+                    "flex items-center gap-1 text-[11.5px] font-semibold",
+                    delta.up ? "text-leaf" : "text-[#f2b8a8]",
+                  )}
+                >
+                  {delta.up ? (
+                    <TrendingUp className="size-3.5" />
+                  ) : (
+                    <TrendingDown className="size-3.5" />
+                  )}
+                  {delta.pct}% vs. {delta.monthName}
                 </span>
-              </span>
+              )}
             </div>
-            <div className="mx-4 w-px bg-white/15" />
-            <div className="flex flex-1 items-center gap-2.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/15">
-                <ArrowDown className="size-4 text-[#f2b8a8]" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[11px] text-white/75">Saídas</span>
-                <span className="tabular block text-[16px] font-bold">
-                  {formatBRL(selected.out)}
-                </span>
-              </span>
+            <p
+              className={cn(
+                "tabular mt-1.5 text-[44px] font-bold leading-none tracking-[-0.6px]",
+                isNegative && "text-[#f2b8a8]",
+              )}
+            >
+              {isNegative ? "− " : ""}
+              {formatBRL(Math.abs(net))}
+            </p>
+            <div className="mt-4 flex border-t border-white/15 pt-3.5">
+              {isNegative ? (
+                <>
+                  <div className="flex-1">
+                    <span className="block text-[11px] text-white/75">Entradas</span>
+                    <span className="tabular block text-[17px] font-bold">
+                      {formatBRL(selected.in)}
+                    </span>
+                  </div>
+                  <div className="mx-4 w-px bg-white/15" />
+                  <div className="flex-1">
+                    <span className="block text-[11px] text-white/75">Saídas</span>
+                    <span className="tabular block text-[17px] font-bold">
+                      {formatBRL(selected.out)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex flex-1 items-center gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/15">
+                      <ArrowUp className="size-4 text-leaf" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[11px] text-white/75">Entradas</span>
+                      <span className="tabular block text-[17px] font-bold">
+                        {formatBRL(selected.in)}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="mx-4 w-px bg-white/15" />
+                  <div className="flex flex-1 items-center gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/15">
+                      <ArrowDown className="size-4 text-[#f2b8a8]" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[11px] text-white/75">Saídas</span>
+                      <span className="tabular block text-[17px] font-bold">
+                        {formatBRL(selected.out)}
+                      </span>
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border bg-card px-5.5 py-6.5">
+            <span className="block text-[12.5px] text-ink-faint">Líquido do mês</span>
+            <p className="tabular mt-1.5 text-[44px] font-semibold leading-none tracking-[-0.6px] text-ink-faint">
+              {formatBRL(0)}
+            </p>
+            <span className="mt-1 block text-[12.5px] text-ink-faint">
+              {selectedKey === currentMonthKey
+                ? `${selectedMonthName} começou hoje — nada lançado ainda.`
+                : "Nenhum lançamento neste mês."}
+            </span>
+            <div className="mt-5">
+              <Button
+                onClick={() => setFormOpen(true)}
+                className="rounded-[11px] font-semibold"
+              >
+                Lançar despesa
+              </Button>
+            </div>
+          </div>
+        )}
 
-        {/* A receber — pinned to the current month (design "· mês atual") */}
-        <div className="mt-3.5 flex items-center gap-3 rounded-2xl border border-amber/40 bg-amber-wash px-4 py-3">
-          <span className="flex size-9.5 shrink-0 items-center justify-center rounded-[10px] bg-amber/20 text-amber">
-            <Clock className="size-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[11px] font-bold uppercase tracking-wide text-amber">
-              A receber · mês atual
+        {/* A receber — pinned to the current month (design "· mês atual"),
+            only shown when there's something actually pending. */}
+        {currentReceivables.count > 0 && (
+          <div className="mt-3.5 flex items-center gap-3 rounded-2xl border border-amber/40 bg-amber-wash px-4 py-3">
+            <span className="flex size-9.5 shrink-0 items-center justify-center rounded-[10px] bg-amber/20 text-amber">
+              <Clock className="size-5" />
             </span>
-            <span className="block text-[11.5px] text-ink-soft">
-              {currentReceivables.count}{" "}
-              {currentReceivables.count === 1
-                ? "pedido em aberto"
-                : "pedidos em aberto"}
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-bold uppercase tracking-wide text-amber">
+                A receber · mês atual
+              </span>
+              <span className="block text-[11.5px] text-ink-soft">
+                {currentReceivables.count}{" "}
+                {currentReceivables.count === 1
+                  ? "pedido ainda não pago"
+                  : "pedidos ainda não pagos"}
+              </span>
             </span>
-          </span>
-          <span className="tabular shrink-0 text-[22px] font-bold text-amber">
-            {formatBRL(currentReceivables.total)}
-          </span>
-        </div>
+            <span className="tabular shrink-0 text-[22px] font-bold text-amber">
+              {formatBRL(currentReceivables.total)}
+            </span>
+          </div>
+        )}
+
+        {/* Largest outflow — surfaced only when the month closed negative. */}
+        {largestOutflow && (
+          <div className="mt-3.5 flex items-start gap-3 rounded-2xl border border-destructive/25 bg-danger-wash px-4 py-3.5">
+            <span className="flex size-9.5 shrink-0 items-center justify-center rounded-[10px] bg-destructive/15 text-destructive">
+              <TriangleAlert className="size-[19px]" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-bold text-destructive">
+                {largestOutflow.label} pesou no mês
+              </span>
+              <span className="mt-0.5 block text-[12.5px] text-ink-soft">
+                {formatBRL(largestOutflow.amount)} · {txMeta(largestOutflow)}
+              </span>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Two-column: trend chart (left) + recent movements (right) */}
@@ -422,17 +505,25 @@ export function FinanceiroClient({
         <div className="rounded-2xl border border-border bg-card p-5">
           <h3 className="text-[15px] font-semibold text-ink">Entradas e saídas</h3>
           <p className="mb-4 mt-0.5 text-[12.5px] text-ink-faint">Últimos 6 meses</p>
-          <EntradaSaidaChart months={months} />
-          <div className="mt-3.5 flex gap-5 border-t border-wash pt-3.5">
-            <span className="flex items-center gap-2 text-[12.5px] text-ink-soft">
-              <span className="size-2.5 rounded-[3px] bg-leaf" />
-              Entradas
-            </span>
-            <span className="flex items-center gap-2 text-[12.5px] text-ink-soft">
-              <span className="size-2.5 rounded-[3px] bg-[#e2c089]" />
-              Saídas
-            </span>
-          </div>
+          {hasMovement ? (
+            <>
+              <EntradaSaidaChart months={months} />
+              <div className="mt-3.5 flex gap-5 border-t border-wash pt-3.5">
+                <span className="flex items-center gap-2 text-[12.5px] text-ink-soft">
+                  <span className="size-2.5 rounded-[3px] bg-leaf" />
+                  Entradas
+                </span>
+                <span className="flex items-center gap-2 text-[12.5px] text-ink-soft">
+                  <span className="size-2.5 rounded-[3px] bg-[#e2c089]" />
+                  Saídas
+                </span>
+              </div>
+            </>
+          ) : (
+            <p className="text-[12.5px] text-ink-faint">
+              {selectedMonthName} ainda não aparece no gráfico.
+            </p>
+          )}
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5">
@@ -442,8 +533,8 @@ export function FinanceiroClient({
           {recentTxs.length === 0 ? (
             <EmptyState
               icon={Wallet}
-              title="Sem lançamentos"
-              description="Pagamentos de pedidos e lançamentos manuais aparecerão aqui."
+              title={`Sem movimentações em ${selectedMonthName.toLowerCase()}`}
+              description="Vendas e despesas aparecem aqui assim que forem registradas."
             />
           ) : (
             <ul className="flex flex-col">

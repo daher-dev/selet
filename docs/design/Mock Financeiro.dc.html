@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #EFF3EC; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #D6E2D0; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #186B41; text-decoration: none; }
+  a:hover { color: #124F30; }
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; gap:72px; padding:56px 56px 120px; font-family:'Albert Sans',sans-serif; color:#15231C; background:#EFF3EC;">
+
+  <div style="display:flex; align-items:baseline; gap:14px;">
+    <span style="font-family:'Cormorant Garamond',serif; font-size:34px; font-weight:600; color:#186B41;">Selet</span>
+    <span style="font-size:11px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:#8A968D;">Mockups · Financeiro</span>
+  </div>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">1</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Mês positivo — líquido, movimentações e evolução do ticket</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="1a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1a</span>
+          <span style="font-size:14px; color:#5C6B62;">Julho fechado: cartão verde com o líquido, aviso do que ainda entra e dois gráficos.</span>
+        </div>
+        <div style="display:flex; width:1300px; height:900px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="financeiro" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
+              <div style="flex:1;">
+                <h1 style="margin:0; font-size:19px; font-weight:700;">Financeiro</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Saldo, entradas e saídas</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg><span>Nova despesa</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:26px 28px 40px;">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:12px 14px; background:#fff; border:1px solid #E7EEE6; border-radius:12px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#EEF3EA; color:#186B41;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg></span>
+                <div style="flex:1;">
+                  <span style="display:block; font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Competência</span>
+                  <span style="display:block; font-size:15px; font-weight:700;">Julho 2026</span>
+                </div>
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #E7EEE6; border-radius:9px; color:#5C6B62;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m15 18-6-6 6-6"></path></svg></span>
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #E7EEE6; border-radius:9px; color:#5C6B62;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m9 18 6-6-6-6"></path></svg></span>
+              </div>
+
+              <div style="background:#186B41; border-radius:14px; padding:20px 22px; color:#fff;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span style="font-size:12.5px; font-weight:600; opacity:.85;">Líquido do mês</span>
+                  <span style="flex:1;"></span>
+                  <span style="font-size:11.5px; font-weight:600; color:#8FE6B0;">+12% vs. junho</span>
+                </div>
+                <div style="font-variant-numeric:tabular-nums; letter-spacing:-.6px; font-size:44px; font-weight:700; margin-top:6px;">R$ 34.160,00</div>
+                <div style="display:flex; margin-top:16px; border-top:1px solid rgba(255,255,255,.16); padding-top:14px;">
+                  <div style="flex:1; display:flex; align-items:center; gap:10px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:rgba(255,255,255,.14);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8FE6B0" stroke-width="2.2" stroke-linecap="round"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg></span>
+                    <span>
+                      <span style="display:block; font-size:11px; opacity:.75;">Entradas</span>
+                      <span style="display:block; font-variant-numeric:tabular-nums; font-size:17px; font-weight:700;">R$ 86.340,00</span>
+                    </span>
+                  </div>
+                  <div style="width:1px; background:rgba(255,255,255,.16); margin:0 16px;"></div>
+                  <div style="flex:1; display:flex; align-items:center; gap:10px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:rgba(255,255,255,.14);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F2B8A8" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+                    <span>
+                      <span style="display:block; font-size:11px; opacity:.75;">Saídas</span>
+                      <span style="display:block; font-variant-numeric:tabular-nums; font-size:17px; font-weight:700;">R$ 52.180,00</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:12px; margin-top:14px; margin-bottom:26px; padding:14px 16px; background:#FBF6EC; border:1px solid #F0E4C8; border-radius:12px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:#F6EAC6; color:#B7791F;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A6312;">A receber · mês atual</span>
+                  <span style="display:block; font-size:11.5px; color:#A0895A;">14 pedidos ainda não pagos</span>
+                </span>
+                <span style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-size:22px; font-weight:700; color:#B7791F;">R$ 9.240,00</span>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
+                  <h3 style="margin:0 0 4px; font-size:15px; font-weight:600;">Entradas e saídas</h3>
+                  <p style="margin:0 0 18px; font-size:12.5px; color:#8A968D;">Últimos 6 meses</p>
+                  <div style="display:flex; align-items:flex-end; gap:18px; height:180px;">
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
+                      <div style="display:flex; align-items:flex-end; gap:5px; height:100%; justify-content:center;">
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#92C17D; height:62%;"></div>
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#E2C089; height:48%;"></div>
+                      </div>
+                      <span style="font-size:11px; color:#A0AC9D;">Fev</span>
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
+                      <div style="display:flex; align-items:flex-end; gap:5px; height:100%; justify-content:center;">
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#92C17D; height:70%;"></div>
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#E2C089; height:52%;"></div>
+                      </div>
+                      <span style="font-size:11px; color:#A0AC9D;">Mar</span>
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
+                      <div style="display:flex; align-items:flex-end; gap:5px; height:100%; justify-content:center;">
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#92C17D; height:66%;"></div>
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#E2C089; height:59%;"></div>
+                      </div>
+                      <span style="font-size:11px; color:#A0AC9D;">Abr</span>
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
+                      <div style="display:flex; align-items:flex-end; gap:5px; height:100%; justify-content:center;">
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#92C17D; height:78%;"></div>
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#E2C089; height:55%;"></div>
+                      </div>
+                      <span style="font-size:11px; color:#A0AC9D;">Mai</span>
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
+                      <div style="display:flex; align-items:flex-end; gap:5px; height:100%; justify-content:center;">
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#92C17D; height:88%;"></div>
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#E2C089; height:57%;"></div>
+                      </div>
+                      <span style="font-size:11px; color:#A0AC9D;">Jun</span>
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
+                      <div style="display:flex; align-items:flex-end; gap:5px; height:100%; justify-content:center;">
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#92C17D; height:100%;"></div>
+                        <div style="width:13px; border-radius:5px 5px 2px 2px; background:#E2C089; height:60%;"></div>
+                      </div>
+                      <span style="font-size:11px; color:#A0AC9D;">Jul</span>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:18px; margin-top:14px; padding-top:14px; border-top:1px solid #F0F4ED;">
+                    <span style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:#3D4A42;"><span style="width:10px; height:10px; border-radius:3px; background:#92C17D;"></span>Entradas</span>
+                    <span style="display:flex; align-items:center; gap:7px; font-size:12.5px; color:#3D4A42;"><span style="width:10px; height:10px; border-radius:3px; background:#E2C089;"></span>Saídas</span>
+                  </div>
+                </div>
+
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
+                  <h3 style="margin:0 0 14px; font-size:15px; font-weight:600;">Movimentações recentes</h3>
+                  <div style="display:flex; flex-direction:column;">
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid #F0F4ED;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#E7F4EC; color:#3A9D5D;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg></span>
+                      <span style="flex:1;">
+                        <span style="display:block; font-size:13.5px; font-weight:600;">Vendas do dia · loja e delivery</span>
+                        <span style="display:block; font-size:11.5px; color:#A0AC9D;">Hoje · 9 pedidos</span>
+                      </span>
+                      <span style="font-size:14px; font-weight:700; color:#3A9D5D;">+ R$ 512,00</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid #F0F4ED;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#FBF1DC; color:#B7791F;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+                      <span style="flex:1;">
+                        <span style="display:block; font-size:13.5px; font-weight:600;">Compra de insumos · Herbalife</span>
+                        <span style="display:block; font-size:11.5px; color:#A0AC9D;">Ontem · 12 potes</span>
+                      </span>
+                      <span style="font-size:14px; font-weight:700; color:#B7791F;">− R$ 1.556,00</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid #F0F4ED;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#E7F4EC; color:#3A9D5D;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg></span>
+                      <span style="flex:1;">
+                        <span style="display:block; font-size:13.5px; font-weight:600;">Voucher Semana Fit · Mariana Lopes</span>
+                        <span style="display:block; font-size:11.5px; color:#A0AC9D;">28/07 · Pix</span>
+                      </span>
+                      <span style="font-size:14px; font-weight:700; color:#3A9D5D;">+ R$ 300,00</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid #F0F4ED;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#FBF1DC; color:#B7791F;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+                      <span style="flex:1;">
+                        <span style="display:block; font-size:13.5px; font-weight:600;">Aluguel · Vila Velha</span>
+                        <span style="display:block; font-size:11.5px; color:#A0AC9D;">25/07 · mensal</span>
+                      </span>
+                      <span style="font-size:14px; font-weight:700; color:#B7791F;">− R$ 4.200,00</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid #F0F4ED;">
+                      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#FBF1DC; color:#B7791F;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+                      <span style="flex:1;">
+                        <span style="display:block; font-size:13.5px; font-weight:600;">Folha · 4 funcionários</span>
+                        <span style="display:block; font-size:11.5px; color:#A0AC9D;">05/07</span>
+                      </span>
+                      <span style="font-size:14px; font-weight:700; color:#B7791F;">− R$ 9.800,00</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px; margin-top:16px;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px;">
+                  <div>
+                    <h3 style="margin:0; font-size:15px; font-weight:600;">Ticket médio e clientes ativos</h3>
+                    <p style="margin:3px 0 0; font-size:12.5px; color:#8A968D;">Últimos 6 meses</p>
+                  </div>
+                  <div style="display:flex; gap:16px;">
+                    <span style="display:flex; align-items:center; gap:7px; font-size:12px; color:#3D4A42;"><span style="width:16px; height:3px; border-radius:2px; background:#186B41;"></span>Ticket médio</span>
+                    <span style="display:flex; align-items:center; gap:7px; font-size:12px; color:#3D4A42;"><span style="width:11px; height:11px; border-radius:3px; background:#CDE3C2;"></span>Clientes ativos</span>
+                  </div>
+                </div>
+                <svg viewBox="0 0 560 220" style="width:100%; height:auto; display:block;" preserveAspectRatio="xMidYMid meet">
+                  <line x1="46" y1="180" x2="512" y2="180" stroke="#F0F4ED" stroke-width="1"></line>
+                  <line x1="46" y1="160" x2="512" y2="160" stroke="#F0F4ED" stroke-width="1"></line>
+                  <line x1="46" y1="140" x2="512" y2="140" stroke="#F0F4ED" stroke-width="1"></line>
+                  <line x1="46" y1="120" x2="512" y2="120" stroke="#F0F4ED" stroke-width="1"></line>
+                  <line x1="46" y1="100" x2="512" y2="100" stroke="#F0F4ED" stroke-width="1"></line>
+                  <text x="40" y="180" text-anchor="end" dominant-baseline="middle" font-size="10" fill="#A0AC9D" font-family="Albert Sans, sans-serif">R$ 40</text>
+                  <text x="40" y="160" text-anchor="end" dominant-baseline="middle" font-size="10" fill="#A0AC9D" font-family="Albert Sans, sans-serif">R$ 45</text>
+                  <text x="40" y="140" text-anchor="end" dominant-baseline="middle" font-size="10" fill="#A0AC9D" font-family="Albert Sans, sans-serif">R$ 50</text>
+                  <text x="40" y="120" text-anchor="end" dominant-baseline="middle" font-size="10" fill="#A0AC9D" font-family="Albert Sans, sans-serif">R$ 55</text>
+                  <text x="40" y="100" text-anchor="end" dominant-baseline="middle" font-size="10" fill="#A0AC9D" font-family="Albert Sans, sans-serif">R$ 60</text>
+                  <text x="520" y="180" text-anchor="start" dominant-baseline="middle" font-size="10" fill="#A0AC9D" font-family="Albert Sans, sans-serif">0</text>
+                  <text x="520" y="120" text-anchor="start" dominant-baseline="middle" font-size="10" fill="#A0AC9D" font-family="Albert Sans, sans-serif">10</text>
+                  <text x="520" y="100" text-anchor="start" dominant-baseline="middle" font-size="10" fill="#A0AC9D" font-family="Albert Sans, sans-serif">20</text>
+                  <rect x="60" y="108" width="44" height="72" rx="4" fill="#CDE3C2"></rect>
+                  <text x="82" y="198" text-anchor="middle" font-size="10.5" fill="#8A968D" font-family="Albert Sans, sans-serif">Fev</text>
+                  <rect x="136" y="96" width="44" height="84" rx="4" fill="#CDE3C2"></rect>
+                  <text x="158" y="198" text-anchor="middle" font-size="10.5" fill="#8A968D" font-family="Albert Sans, sans-serif">Mar</text>
+                  <rect x="212" y="90" width="44" height="90" rx="4" fill="#CDE3C2"></rect>
+                  <text x="234" y="198" text-anchor="middle" font-size="10.5" fill="#8A968D" font-family="Albert Sans, sans-serif">Abr</text>
+                  <rect x="288" y="84" width="44" height="96" rx="4" fill="#CDE3C2"></rect>
+                  <text x="310" y="198" text-anchor="middle" font-size="10.5" fill="#8A968D" font-family="Albert Sans, sans-serif">Mai</text>
+                  <rect x="364" y="78" width="44" height="102" rx="4" fill="#CDE3C2"></rect>
+                  <text x="386" y="198" text-anchor="middle" font-size="10.5" fill="#8A968D" font-family="Albert Sans, sans-serif">Jun</text>
+                  <rect x="440" y="72" width="44" height="108" rx="4" fill="#CDE3C2"></rect>
+                  <text x="462" y="198" text-anchor="middle" font-size="10.5" fill="#8A968D" font-family="Albert Sans, sans-serif">Jul</text>
+                  <polyline points="82,156 158,144 234,132 310,140 386,120 462,108" fill="none" stroke="#186B41" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                  <circle cx="82" cy="156" r="4" fill="#fff" stroke="#186B41" stroke-width="2.5"></circle>
+                  <circle cx="158" cy="144" r="4" fill="#fff" stroke="#186B41" stroke-width="2.5"></circle>
+                  <circle cx="234" cy="132" r="4" fill="#fff" stroke="#186B41" stroke-width="2.5"></circle>
+                  <circle cx="310" cy="140" r="4" fill="#fff" stroke="#186B41" stroke-width="2.5"></circle>
+                  <circle cx="386" cy="120" r="4" fill="#fff" stroke="#186B41" stroke-width="2.5"></circle>
+                  <circle cx="462" cy="108" r="4" fill="#fff" stroke="#186B41" stroke-width="2.5"></circle>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">2</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Mês no vermelho e mês sem movimento</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+      <div id="2a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2a</span>
+          <span style="font-size:14px; color:#5C6B62;">Líquido negativo: cartão escuro em vez do verde, com a maior saída explicada.</span>
+        </div>
+        <div style="display:flex; width:980px; height:640px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="financeiro" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 26px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center;">
+              <div style="flex:1;">
+                <h1 style="margin:0; font-size:19px; font-weight:700;">Financeiro</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Saldo, entradas e saídas</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg><span>Nova despesa</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:24px 26px;">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:12px 14px; background:#fff; border:1px solid #E7EEE6; border-radius:12px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#EEF3EA; color:#186B41;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg></span>
+                <div style="flex:1;">
+                  <span style="display:block; font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Competência</span>
+                  <span style="display:block; font-size:15px; font-weight:700;">Fevereiro 2026</span>
+                </div>
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #E7EEE6; border-radius:9px; color:#C5CFC7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m15 18-6-6 6-6"></path></svg></span>
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #E7EEE6; border-radius:9px; color:#5C6B62;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m9 18 6-6-6-6"></path></svg></span>
+              </div>
+              <div style="background:#2E3A32; border-radius:14px; padding:20px 22px; color:#fff;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span style="font-size:12.5px; font-weight:600; opacity:.85;">Líquido do mês</span>
+                  <span style="flex:1;"></span>
+                  <span style="font-size:11.5px; font-weight:600; color:#F2B8A8;">−18% vs. janeiro</span>
+                </div>
+                <div style="font-variant-numeric:tabular-nums; letter-spacing:-.6px; font-size:44px; font-weight:700; margin-top:6px; color:#F2B8A8;">− R$ 6.480,00</div>
+                <div style="display:flex; margin-top:16px; border-top:1px solid rgba(255,255,255,.16); padding-top:14px;">
+                  <div style="flex:1;">
+                    <span style="display:block; font-size:11px; opacity:.75;">Entradas</span>
+                    <span style="display:block; font-variant-numeric:tabular-nums; font-size:17px; font-weight:700;">R$ 41.220,00</span>
+                  </div>
+                  <div style="width:1px; background:rgba(255,255,255,.16); margin:0 16px;"></div>
+                  <div style="flex:1;">
+                    <span style="display:block; font-size:11px; opacity:.75;">Saídas</span>
+                    <span style="display:block; font-variant-numeric:tabular-nums; font-size:17px; font-weight:700;">R$ 47.700,00</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:12px; margin-top:14px; padding:14px 16px; background:#FDF4F1; border:1px solid #F2D8CF; border-radius:12px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:#FBE0D8; color:#C0492F; flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg></span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:13px; font-weight:700; color:#C0492F;">Reforma da loja pesou no mês</span>
+                  <span style="display:block; font-size:12.5px; color:#8A6A60; margin-top:2px;">R$ 12.400,00 em obra e equipamentos — lançamento único, sem repetição prevista.</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="2b" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2b</span>
+          <span style="font-size:14px; color:#5C6B62;">Mês futuro sem lançamento: zeros neutros e convite para lançar despesa fixa.</span>
+        </div>
+        <div style="display:flex; width:980px; height:640px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="financeiro" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 26px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center;">
+              <div style="flex:1;">
+                <h1 style="margin:0; font-size:19px; font-weight:700;">Financeiro</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Saldo, entradas e saídas</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg><span>Nova despesa</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:24px 26px;">
+              <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:12px 14px; background:#fff; border:1px solid #E7EEE6; border-radius:12px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#EEF3EA; color:#186B41;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18M8 2v4M16 2v4"></path></svg></span>
+                <div style="flex:1;">
+                  <span style="display:block; font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Competência</span>
+                  <span style="display:block; font-size:15px; font-weight:700;">Agosto 2026</span>
+                </div>
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #E7EEE6; border-radius:9px; color:#5C6B62;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m15 18-6-6 6-6"></path></svg></span>
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border:1px solid #E7EEE6; border-radius:9px; color:#C5CFC7;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m9 18 6-6-6-6"></path></svg></span>
+              </div>
+              <div style="background:#fff; border:1px dashed #DCE4D8; border-radius:14px; padding:26px 22px;">
+                <span style="display:block; font-size:12.5px; color:#8A968D;">Líquido do mês</span>
+                <div style="font-variant-numeric:tabular-nums; letter-spacing:-.6px; font-size:44px; font-weight:600; margin-top:6px; color:#C3CDBF;">R$ 0,00</div>
+                <span style="display:block; font-size:12.5px; color:#A0AC9D; margin-top:4px;">Agosto começou hoje — nada lançado ainda.</span>
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                  <span style="display:inline-flex; align-items:center; gap:7px; height:40px; padding:0 15px; border-radius:11px; background:#186B41; color:#fff; font-size:13px; font-weight:600;">Lançar despesa</span>
+                  <span style="display:inline-flex; align-items:center; height:40px; padding:0 15px; border:1px solid #E7EEE6; border-radius:11px; color:#5C6B62; font-size:13px; font-weight:600;">Copiar fixas de julho</span>
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px; min-height:190px;">
+                  <h3 style="margin:0 0 4px; font-size:15px; font-weight:600;">Entradas e saídas</h3>
+                  <p style="margin:0 0 16px; font-size:12.5px; color:#8A968D;">Últimos 6 meses</p>
+                  <span style="display:block; font-size:12.5px; color:#A0AC9D;">Agosto ainda não aparece no gráfico.</span>
+                </div>
+                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px; min-height:190px;">
+                  <h3 style="margin:0 0 14px; font-size:15px; font-weight:600;">Movimentações recentes</h3>
+                  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:18px 0;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:12px; background:#F3F8EF; color:#92C17D;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path></svg></span>
+                    <span style="font-size:13.5px; font-weight:600; color:#5C6B62;">Sem movimentações em agosto</span>
+                    <span style="font-size:12.5px; color:#A0AC9D; text-align:center; max-width:230px;">Vendas e despesas aparecem aqui assim que forem registradas.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>
