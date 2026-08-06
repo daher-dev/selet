@@ -32,13 +32,60 @@
   <section style="display:flex; flex-direction:column; gap:26px;">
     <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
       <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">1</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Seletor de loja — fechado, aberto e quando só existe uma loja</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start;">
+<div id="1a" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1a</span>
+          <span style="font-size:14px; color:#5C6B62;">Matriz selecionada, seletor fechado.</span>
+        </div>
+        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="dashboard" store="Vila Velha/ES" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+<div id="1b" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1b</span>
+          <span style="font-size:14px; color:#5C6B62;">Aberto: matriz marcada com ✓, franquia abaixo.</span>
+        </div>
+        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="dashboard" store-menu="{{ true }}" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+<div id="1c" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1c</span>
+          <span style="font-size:14px; color:#5C6B62;">Franquia ativa: mesma estrutura, inicial e nome trocados.</span>
+        </div>
+        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="dashboard" store="Passos/MG" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+
+<div id="1d" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1d</span>
+          <span style="font-size:14px; color:#5C6B62;">Loja única: sem seta, o bloco vira só identificação.</span>
+        </div>
+        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
+          <dc-import name="SeletNav" active="dashboard" multi-store="{{ false }}" style="width:100%;" hint-size="100%,100%"></dc-import>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">2</span>
       <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Item ativo e sinais — o que muda conforme a área aberta</h2>
     </div>
     <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start;">
-
-      <div id="1a" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+<div id="2a" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
         <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1a</span>
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2a</span>
           <span style="font-size:14px; color:#5C6B62;">Visão geral ativa: fundo verde suave, ícone e texto em verde escuro.</span>
         </div>
         <div style="display:flex; width:280px; height:720px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
@@ -46,9 +93,9 @@
         </div>
       </div>
 
-      <div id="1b" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+<div id="2b" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
         <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1b</span>
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2b</span>
           <span style="font-size:14px; color:#5C6B62;">Pedidos ativa: contador cheio ao lado do rótulo, vouchers em selo âmbar.</span>
         </div>
         <div style="display:flex; width:280px; height:720px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
@@ -56,9 +103,9 @@
         </div>
       </div>
 
-      <div id="1c" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+<div id="2c" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
         <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1c</span>
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2c</span>
           <span style="font-size:14px; color:#5C6B62;">Estoque ativa: o ponto âmbar pulsa enquanto houver insumo abaixo do mínimo.</span>
         </div>
         <div style="display:flex; width:280px; height:720px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
@@ -66,9 +113,9 @@
         </div>
       </div>
 
-      <div id="1d" style="display:flex; flex-direction:column; gap:14px; max-width:420px;">
+<div id="2d" style="display:flex; flex-direction:column; gap:14px; max-width:420px;">
         <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1d</span>
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2d</span>
           <span style="font-size:14px; color:#5C6B62;">Os três estados de um item, lado a lado.</span>
         </div>
         <div style="display:flex; flex-direction:column; gap:10px; width:420px; padding:22px; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
@@ -89,57 +136,6 @@
           </div>
         </div>
       </div>
-
-    </div>
-  </section>
-
-  <section style="display:flex; flex-direction:column; gap:26px;">
-    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
-      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">2</span>
-      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Seletor de loja — fechado, aberto e quando só existe uma loja</h2>
-    </div>
-    <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start;">
-
-      <div id="2a" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2a</span>
-          <span style="font-size:14px; color:#5C6B62;">Matriz selecionada, seletor fechado.</span>
-        </div>
-        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
-          <dc-import name="SeletNav" active="dashboard" store="Vila Velha/ES" style="width:100%;" hint-size="100%,100%"></dc-import>
-        </div>
-      </div>
-
-      <div id="2b" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2b</span>
-          <span style="font-size:14px; color:#5C6B62;">Aberto: matriz marcada com ✓, franquia abaixo.</span>
-        </div>
-        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
-          <dc-import name="SeletNav" active="dashboard" store-menu="{{ true }}" style="width:100%;" hint-size="100%,100%"></dc-import>
-        </div>
-      </div>
-
-      <div id="2c" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2c</span>
-          <span style="font-size:14px; color:#5C6B62;">Franquia ativa: mesma estrutura, inicial e nome trocados.</span>
-        </div>
-        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
-          <dc-import name="SeletNav" active="dashboard" store="Passos/MG" style="width:100%;" hint-size="100%,100%"></dc-import>
-        </div>
-      </div>
-
-      <div id="2d" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2d</span>
-          <span style="font-size:14px; color:#5C6B62;">Loja única: sem seta, o bloco vira só identificação.</span>
-        </div>
-        <div style="display:flex; width:280px; height:600px; overflow:hidden; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
-          <dc-import name="SeletNav" active="dashboard" multi-store="{{ false }}" style="width:100%;" hint-size="100%,100%"></dc-import>
-        </div>
-      </div>
-
     </div>
   </section>
 
@@ -149,8 +145,7 @@
       <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Permissão — administrador vê tudo, funcionário vê só o que opera</h2>
     </div>
     <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start;">
-
-      <div id="3a" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+<div id="3a" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3a</span>
           <span style="font-size:14px; color:#5C6B62;">Administrador: nove áreas, rodapé como Gerente.</span>
@@ -160,7 +155,7 @@
         </div>
       </div>
 
-      <div id="3b" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
+<div id="3b" style="display:flex; flex-direction:column; gap:14px; max-width:280px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3b</span>
           <span style="font-size:14px; color:#5C6B62;">Funcionária: só Visão geral, Pedidos, Clientes e Estoque — as demais não aparecem.</span>
@@ -169,10 +164,18 @@
           <dc-import name="SeletNav" active="pedidos" role="funcionario" user-name="Marina Alves" style="width:100%;" hint-size="100%,100%"></dc-import>
         </div>
       </div>
+    </div>
+  </section>
 
-      <div id="3c" style="display:flex; flex-direction:column; gap:14px; max-width:420px;">
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">4</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Menu da conta — aberto pelo rodapé da barra</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start;">
+<div id="4a" style="display:flex; flex-direction:column; gap:14px; max-width:420px;">
         <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3c</span>
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">4a</span>
           <span style="font-size:14px; color:#5C6B62;">Menu da conta, aberto pelo rodapé.</span>
         </div>
         <div style="display:flex; flex-direction:column; justify-content:flex-end; width:420px; height:300px; padding:22px; border-radius:14px; border:1px solid #DDE7D8; background:#fff; box-shadow:0 22px 50px -30px rgba(21,40,30,.42);">
@@ -201,7 +204,6 @@
           </div>
         </div>
       </div>
-
     </div>
   </section>
 
