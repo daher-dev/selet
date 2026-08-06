@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import type { OrderItem } from "@/lib/types";
 import type { PunchState } from "@/lib/cartelas";
 import { formatBRL, parseBRL } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CartelaPunchDots } from "@/components/cartela-punch-dots";
 
 /** Best-effort BRL parse for a live-typed input: invalid/partial text (an
@@ -22,7 +21,6 @@ function safeParseBRL(input: string): number {
 }
 
 interface CartelaBuilderProps {
-  onBack: () => void;
   onConfirm: (item: OrderItem) => void;
 }
 
@@ -30,7 +28,7 @@ interface CartelaBuilderProps {
  * A cartela is sold ad hoc, right here — no template. `paidUses` + the one
  * built-in brinde become `totalUses`; the line's price is paidUses × unitValue.
  */
-export function CartelaBuilder({ onBack, onConfirm }: CartelaBuilderProps) {
+export function CartelaBuilder({ onConfirm }: CartelaBuilderProps) {
   const [paidUses, setPaidUses] = useState(1);
   const [valueInput, setValueInput] = useState("");
 
@@ -59,19 +57,6 @@ export function CartelaBuilder({ onBack, onConfirm }: CartelaBuilderProps) {
 
   return (
     <>
-      <DialogHeader className="shrink-0 border-b border-border p-4 pb-3">
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-paper text-ink-soft transition-colors hover:border-primary hover:text-primary"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <DialogTitle className="text-[15px] font-bold">Nova cartela</DialogTitle>
-        </div>
-      </DialogHeader>
-
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
         <div className="flex items-center justify-between">
           <Label>Produtos (usos pagos)</Label>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronLeft, Plus, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import {
   MAX_SHAKE_FLAVORS,
   type OrderItem,
@@ -16,7 +16,6 @@ import { formatBRL, formatShakeLineName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /** Price for a given tier quantity, or 0 if that exact quantity has no tier. */
 function tierPrice(tiers: { qty: number; price: number }[], qty: number): number {
@@ -64,7 +63,6 @@ interface ShakeBuilderProps {
   mixins: ShakeMixin[];
   utensils: ShakeUtensil[];
   brindes: ShakeBrindeOption[];
-  onBack: () => void;
   onConfirm: (item: OrderItem) => void;
 }
 
@@ -75,7 +73,6 @@ export function ShakeBuilder({
   mixins,
   utensils,
   brindes,
-  onBack,
   onConfirm,
 }: ShakeBuilderProps) {
   const [flavorIds, setFlavorIds] = useState<string[]>([]);
@@ -215,19 +212,6 @@ export function ShakeBuilder({
 
   return (
     <>
-      <DialogHeader className="shrink-0 border-b border-border p-4 pb-3">
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-paper text-ink-soft transition-colors hover:border-primary hover:text-primary"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-          <DialogTitle className="text-[15px] font-bold">Montar shake</DialogTitle>
-        </div>
-      </DialogHeader>
-
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
         <div className="space-y-2">
           <div className="flex items-center gap-2">

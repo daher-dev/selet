@@ -52,12 +52,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -1539,63 +1534,51 @@ function ProductPickerDialog({
     ? orderable.filter((p) => p.name.toLowerCase().includes(q))
     : orderable;
 
+  function handleAdd(item: OrderItem) {
+    onAdd(item);
+    toast.success(`${item.name} adicionado.`);
+    close();
+    reset();
+  }
+
   return (
-    <Dialog
+    <Sheet
       open={open}
       onOpenChange={(next) => {
         onOpenChange(next);
         if (!next) reset();
       }}
     >
-      <DialogContent className="flex max-h-[85dvh] w-[calc(100%-2rem)] max-w-md flex-col gap-0 overflow-hidden rounded-2xl p-0">
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
+      >
         {config ? (
           <ProductConfig
             product={config}
             onBack={() => setConfig(null)}
-            onConfirm={(item) => {
-              onAdd(item);
-              toast.success(`${item.name} adicionado.`);
-              close();
-              reset();
-            }}
-          />
-        ) : mode === "shake" ? (
-          <ShakeBuilder
-            flavors={shakeFlavors}
-            bases={shakeBases}
-            rims={shakeRims}
-            mixins={shakeMixins}
-            utensils={shakeUtensils}
-            brindes={shakeBrindes}
-            onBack={() => setMode("catalogo")}
-            onConfirm={(item) => {
-              onAdd(item);
-              toast.success(`${item.name} adicionado.`);
-              close();
-              reset();
-            }}
-          />
-        ) : mode === "cartela" ? (
-          <CartelaBuilder
-            onBack={() => setMode("catalogo")}
-            onConfirm={(item) => {
-              onAdd(item);
-              toast.success(`${item.name} adicionado.`);
-              close();
-              reset();
-            }}
+            onConfirm={handleAdd}
           />
         ) : (
           <>
-            <DialogHeader className="shrink-0 border-b border-border p-4 pb-3">
-              <DialogTitle className="text-[15px] font-bold">
-                Adicionar ao pedido
-              </DialogTitle>
-              <div className="mt-1 inline-flex w-fit items-center gap-0.5 rounded-lg bg-wash p-1">
+            {/* Persistent across all 3 tabs — matches design's "Adicionar
+                item" drawer (Mock Pedidos.dc.html 3c/3d/3e): the title and
+                tab pills never disappear behind a per-tab back button, only
+                the body below swaps. */}
+            <SheetHeader className="shrink-0 gap-3 border-b border-border p-4 pb-3">
+              <SheetTitle className="text-[15px] font-bold">
+                Adicionar item
+              </SheetTitle>
+              <div className="inline-flex w-fit items-center gap-0.5 rounded-lg bg-wash p-1">
                 <button
                   type="button"
                   onClick={() => setMode("catalogo")}
-                  className="rounded-md bg-white px-3 py-1 text-[12px] font-semibold text-ink shadow-sm"
+                  className={cn(
+                    "rounded-md px-3 py-1 text-[12px] font-semibold transition-colors",
+                    mode === "catalogo"
+                      ? "bg-white text-ink shadow-sm"
+                      : "text-ink-faint hover:text-ink-soft",
+                  )}
                 >
                   Cardápio
                 </button>
@@ -1603,7 +1586,12 @@ function ProductPickerDialog({
                   <button
                     type="button"
                     onClick={() => setMode("shake")}
-                    className="rounded-md px-3 py-1 text-[12px] font-semibold text-ink-faint hover:text-ink-soft"
+                    className={cn(
+                      "rounded-md px-3 py-1 text-[12px] font-semibold transition-colors",
+                      mode === "shake"
+                        ? "bg-white text-ink shadow-sm"
+                        : "text-ink-faint hover:text-ink-soft",
+                    )}
                   >
                     Montar shake
                   </button>
@@ -1613,66 +1601,90 @@ function ProductPickerDialog({
                   onClick={() => setMode("cartela")}
                   disabled={!hasCustomer}
                   title={!hasCustomer ? "Selecione um cliente para montar uma cartela" : undefined}
-                  className="rounded-md px-3 py-1 text-[12px] font-semibold text-ink-faint transition-colors hover:text-ink-soft disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-ink-faint"
+                  className={cn(
+                    "rounded-md px-3 py-1 text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+                    mode === "cartela"
+                      ? "bg-white text-ink shadow-sm"
+                      : "text-ink-faint hover:text-ink-soft disabled:hover:text-ink-faint",
+                  )}
                 >
                   Cartela
                 </button>
               </div>
-              <div className="relative mt-2">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar produto do cardápio…"
-                  className="rounded-xl pl-9"
-                />
-              </div>
-            </DialogHeader>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3">
-              {filtered.length === 0 ? (
-                <p className="px-2 py-8 text-center text-[12.5px] text-ink-faint">
-                  {orderable.length === 0
-                    ? "Cadastre produtos no Cardápio primeiro."
-                    : "Nenhum produto encontrado"}
-                </p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {filtered.map((product) => {
-                    const meta =
-                      PRODUCT_CATEGORY_META[product.category] ?? NEUTRAL_TILE;
-                    return (
-                      <li key={product.id}>
-                        <button
-                          type="button"
-                          onClick={() => setConfig(product)}
-                          className="flex w-full items-center gap-3 rounded-xl border border-transparent px-2.5 py-2 text-left transition-colors hover:border-border hover:bg-paper"
-                        >
-                          <CategoryTile meta={meta} className="size-9" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[13.5px] font-semibold text-ink">
-                              {product.name}
-                            </span>
-                            <span className="mt-0.5 flex items-center gap-1.5">
-                              <span className="text-[11px] text-ink-faint">
-                                {meta.label}
-                              </span>
-                              <SaleTypeBadge saleType={product.saleType} />
-                            </span>
-                          </span>
-                          <span className="tabular shrink-0 text-[13.5px] font-bold text-primary">
-                            {formatBRL(product.price)}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+              {mode === "catalogo" && (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Buscar produto do cardápio…"
+                    className="rounded-xl pl-9"
+                  />
+                </div>
               )}
-            </div>
+            </SheetHeader>
+
+            {mode === "catalogo" && (
+              <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                {filtered.length === 0 ? (
+                  <p className="px-2 py-8 text-center text-[12.5px] text-ink-faint">
+                    {orderable.length === 0
+                      ? "Cadastre produtos no Cardápio primeiro."
+                      : "Nenhum produto encontrado"}
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {filtered.map((product) => {
+                      const meta =
+                        PRODUCT_CATEGORY_META[product.category] ?? NEUTRAL_TILE;
+                      return (
+                        <li key={product.id}>
+                          <button
+                            type="button"
+                            onClick={() => setConfig(product)}
+                            className="flex w-full items-center gap-3 rounded-xl border border-transparent px-2.5 py-2 text-left transition-colors hover:border-border hover:bg-paper"
+                          >
+                            <CategoryTile meta={meta} className="size-9" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[13.5px] font-semibold text-ink">
+                                {product.name}
+                              </span>
+                              <span className="mt-0.5 flex items-center gap-1.5">
+                                <span className="text-[11px] text-ink-faint">
+                                  {meta.label}
+                                </span>
+                                <SaleTypeBadge saleType={product.saleType} />
+                              </span>
+                            </span>
+                            <span className="tabular shrink-0 text-[13.5px] font-bold text-primary">
+                              {formatBRL(product.price)}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {mode === "shake" && (
+              <ShakeBuilder
+                flavors={shakeFlavors}
+                bases={shakeBases}
+                rims={shakeRims}
+                mixins={shakeMixins}
+                utensils={shakeUtensils}
+                brindes={shakeBrindes}
+                onConfirm={handleAdd}
+              />
+            )}
+
+            {mode === "cartela" && <CartelaBuilder onConfirm={handleAdd} />}
           </>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 
