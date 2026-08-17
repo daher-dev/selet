@@ -39,7 +39,7 @@ export const GRANTABLE_SECTIONS = [
 ] as const;
 export type GrantableSection = (typeof GRANTABLE_SECTIONS)[number];
 
-export const ORDER_CHANNELS = ["instagram", "whatsapp", "loja", "interno"] as const;
+export const ORDER_CHANNELS = ["instagram", "whatsapp", "loja"] as const;
 export type OrderChannel = (typeof ORDER_CHANNELS)[number];
 
 export const ORDER_STATUSES = [
@@ -59,7 +59,6 @@ export type DiscountKind = (typeof DISCOUNT_KINDS)[number];
 
 export const DISCOUNT_REASONS = [
   "cortesia",
-  "consumo-interno",
   "combinado",
   "erro-preparo",
 ] as const;

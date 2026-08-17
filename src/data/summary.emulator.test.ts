@@ -38,13 +38,16 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     const custA = await createCustomer(storeId, { name: "Balcão A", tags: [] });
     const custB = await createCustomer(storeId, { name: "Balcão B", tags: [] });
 
-    // create (novo, unpaid) → open + a receivable
+    // create (unpaid) → new orders start already concluido (see
+    // NEW_ORDER_STATUS in data/orders.ts); move it back into the pipeline to
+    // exercise the open-status transitions below.
     const orderId = await createOrder(storeId, {
       customerId: custA,
       customerName: "Balcão A",
       channel: "loja",
       items,
     });
+    await setOrderStatus(storeId, orderId, "novo");
     let s = await expectConsistent(storeId);
     expect(s.openOrders).toBe(1);
     // Two customers created above → active base of 2, both new this month.
@@ -55,7 +58,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(s.months[mk].unpaidTotal).toBe(4000);
     expect(s.months[mk].in).toBe(0);
     expect(s.months[mk].newCustomers).toBe(2);
-    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1, interno: 0 });
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
     expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 2 } });
 
     // advance status among open states → still open
@@ -89,7 +92,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(Object.keys(s.months[mk].customers)).toEqual([`id_${custB}`]);
     // sellers/channels re-stated by the edit (qty 2 → 3, still loja).
     expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 3 } });
-    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1, interno: 0 });
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
 
     // cancel → removed from month aggregates (paid mirror stays as income)
     await setOrderStatus(storeId, orderId, "cancelado");
@@ -97,7 +100,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(s.months[mk].orderCount).toBe(0);
     expect(s.months[mk].in).toBe(6000);
     // channels/sellers drop to nothing while cancelled.
-    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 0, interno: 0 });
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 0 });
     expect(s.months[mk].sellers).toEqual({});
 
     // uncancel → back in
@@ -105,7 +108,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     s = await expectConsistent(storeId);
     expect(s.months[mk].orderCount).toBe(1);
     expect(s.openOrders).toBe(1);
-    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1, interno: 0 });
+    expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
     expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 3 } });
   });
 
@@ -270,7 +273,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     // The whole promise of the pre-computation: identical dashboard either way.
     expect(fast).toEqual(slow);
     // Spot-check the summary-derived widgets carry the seeded signal.
-    expect(fast.byChannel).toEqual({ instagram: 1, whatsapp: 1, loja: 0, interno: 0 });
+    expect(fast.byChannel).toEqual({ instagram: 1, whatsapp: 1, loja: 0 });
     expect(fast.topSellers).toEqual([
       { name: "Shake", qty: 5 },
       { name: "Barra", qty: 1 },
@@ -325,7 +328,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     await createOrder(storeId, {
       customerId: cust,
       customerName: "Cortesia",
-      channel: "interno", // exercises the new 4th channel too
+      channel: "loja",
       items,
       discount: { kind: "free", value: 0, reason: "cortesia" },
     });
@@ -335,7 +338,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(s.months[mk].unpaidCount).toBe(0);
     expect(s.months[mk].unpaidTotal).toBe(0);
     expect(s.months[mk].ticketSum).toBe(0);
-    expect(s.months[mk].channels.interno).toBe(1);
+    expect(s.months[mk].channels.loja).toBe(1);
   });
 
   it("a discount that demotes a paid order to nothing-to-charge clears the finance mirror (stored == recomputed)", async () => {

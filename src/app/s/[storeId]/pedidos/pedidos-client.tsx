@@ -21,7 +21,6 @@ import {
   Store,
   Ticket,
   Truck,
-  Users,
   Wallet,
 } from "lucide-react";
 import type {
@@ -96,7 +95,6 @@ const CHANNEL_OPTIONS: FilterOption<ChannelFilter>[] = [
   { value: "instagram", label: "Instagram", icon: AtSign, tile: "bg-channel-instagram/10 text-channel-instagram" },
   { value: "whatsapp", label: "WhatsApp", icon: MessageCircle, tile: "bg-channel-whatsapp/10 text-channel-whatsapp" },
   { value: "loja", label: "Loja física", icon: Store, tile: "bg-channel-loja/15 text-ink-soft" },
-  { value: "interno", label: "Interno", icon: Users, tile: "bg-channel-interno/10 text-channel-interno" },
 ];
 
 const STATUS_OPTIONS: FilterOption<StatusFilter>[] = [

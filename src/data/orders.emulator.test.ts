@@ -39,7 +39,7 @@ describe.skipIf(!hasEmulator)("orders repository (emulator)", () => {
     const order = await getOrder(storeId, orderId);
     expect(order).toMatchObject({
       total: 7200,
-      status: "novo",
+      status: "concluido",
       paid: false,
       payMethod: null,
     });
@@ -263,17 +263,16 @@ describe.skipIf(!hasEmulator)("orders repository (emulator)", () => {
   it("setOrderPayment rejects marking a zero-total (fully discounted) order as paid", async () => {
     const storeId = `test-orders-zero-pay-${Date.now()}`;
     const customerId = await createCustomer(storeId, { name: "Grátis", tags: [] });
-    // "interno" is a real channel now — exercised here incidentally.
     const orderId = await createOrder(storeId, {
       customerId,
       customerName: "Grátis",
-      channel: "interno",
+      channel: "loja",
       items: ITEMS,
       discount: { kind: "free", value: 0, reason: "cortesia" },
     });
     const order = await getOrder(storeId, orderId);
     expect(order?.total).toBe(0);
-    expect(order?.channel).toBe("interno");
+    expect(order?.channel).toBe("loja");
     await expect(setOrderPayment(storeId, orderId, true, "pix")).rejects.toThrow();
   });
 

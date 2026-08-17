@@ -100,7 +100,7 @@ export function lowStockContribution(lowStock: boolean, archived: boolean): numb
 }
 
 export function emptyChannels(): ChannelCounts {
-  return { instagram: 0, whatsapp: 0, loja: 0, interno: 0 };
+  return { instagram: 0, whatsapp: 0, loja: 0 };
 }
 
 export function emptyMonth(): MonthAgg {
@@ -340,8 +340,7 @@ export function isEmptyMonth(b: MonthAgg): boolean {
     Object.keys(b.sellers).length === 0 &&
     b.channels.instagram === 0 &&
     b.channels.whatsapp === 0 &&
-    b.channels.loja === 0 &&
-    b.channels.interno === 0
+    b.channels.loja === 0
   );
 }
 

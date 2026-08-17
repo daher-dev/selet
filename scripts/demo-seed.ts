@@ -109,14 +109,14 @@ interface DemoOrderDiscount {
   kind: "flat" | "percent" | "free";
   value: number; // centavos (flat), 1-100 (percent), always 0 (free)
   amount: number; // centavos, server-computed in the real app — precomputed here to match
-  reason?: "cortesia" | "consumo-interno" | "combinado" | "erro-preparo";
+  reason?: "cortesia" | "combinado" | "erro-preparo";
 }
 
 interface DemoOrder {
   code: string; // "1048" — also the doc id
   store: StoreId;
   customerName: string;
-  channel: "instagram" | "whatsapp" | "loja" | "interno";
+  channel: "instagram" | "whatsapp" | "loja";
   status: "novo" | "preparando" | "entrega" | "concluido" | "cancelado";
   items: DemoOrderItem[];
   total: number; // centavos (authoritative, post-discount)
@@ -132,10 +132,10 @@ interface DemoOrder {
 }
 
 const ORDERS: DemoOrder[] = [
-  // "Interno" channel + "Grátis" discount (reason consumo-interno) → total 0,
-  // demonstrating "nada a cobrar" end to end (paid:false, payMethod:null forced
-  // by the zero total). Notes is drawer-only, never shown in the Pedidos rows.
-  { code: "1049", store: "vila-velha", customerName: "Aline Ferreira", channel: "interno", status: "concluido", total: 0, paid: false, payMethod: null, minutesAgo: 3, discount: { kind: "free", value: 0, amount: 3600, reason: "consumo-interno" }, notes: "Lote de teste do fornecedor — consumo interno da equipe, sem cobrança.", items: [ { productId: "shake-frutas-vermelhas", name: "Shake Frutas Vermelhas", qty: 1, unitPrice: 3600 } ] },
+  // "Grátis" discount (reason cortesia) → total 0, demonstrating "nada
+  // a cobrar" end to end (paid:false, payMethod:null forced by the zero
+  // total). Notes is drawer-only, never shown in the Pedidos rows.
+  { code: "1049", store: "vila-velha", customerName: "Aline Ferreira", channel: "loja", status: "concluido", total: 0, paid: false, payMethod: null, minutesAgo: 3, discount: { kind: "free", value: 0, amount: 3600, reason: "cortesia" }, notes: "Lote de teste do fornecedor — consumo interno da equipe, sem cobrança.", items: [ { productId: "shake-frutas-vermelhas", name: "Shake Frutas Vermelhas", qty: 1, unitPrice: 3600 } ] },
   { code: "1048", store: "vila-velha", customerName: "Mariana Lopes", channel: "instagram", status: "preparando", total: 7200, paid: false, payMethod: null, minutesAgo: 6, items: [ { productId: "shake-shake-da-beleza", name: "Shake da Beleza", qty: 1, unitPrice: 4400 }, { productId: "bebida-hype-drink", name: "Hype Drink", qty: 1, unitPrice: 2800 } ] },
   { code: "1047", store: "passos", customerName: "Rafael Souza", channel: "whatsapp", status: "novo", total: 3700, paid: false, payMethod: null, minutesAgo: 12, items: [ { productId: "lanche-coxinha-proteica", name: "Coxinha Proteica", qty: 3, unitPrice: 1233 } ] },
   { code: "1046", store: "vila-velha", customerName: "Beatriz Almeida", channel: "loja", status: "concluido", total: 6100, paid: true, payMethod: "pix", minutesAgo: 20, items: [ { productId: "salgado-pizza-proteica", name: "Pizza Proteica", qty: 1, unitPrice: 3300 }, { productId: "bebida-hype-drink", name: "Hype Drink", qty: 1, unitPrice: 2800 } ] },

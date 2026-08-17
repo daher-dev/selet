@@ -160,7 +160,6 @@ const DISCOUNT_KIND_OPTIONS: { value: DiscountKind; label: string }[] = [
 
 const DISCOUNT_REASON_LABEL: Record<DiscountReason, string> = {
   cortesia: "Cortesia",
-  "consumo-interno": "Consumo interno",
   combinado: "Combinado",
   "erro-preparo": "Erro no preparo",
 };

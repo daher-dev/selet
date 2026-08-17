@@ -10,7 +10,7 @@ import type { KpiCard } from "./dashboard-client";
 /** The four widgets DashboardClient renders — same shape from either path. */
 export interface DashboardView {
   kpis: KpiCard[];
-  byChannel: { instagram: number; whatsapp: number; loja: number; interno: number };
+  byChannel: { instagram: number; whatsapp: number; loja: number };
   topSellers: { name: string; qty: number }[];
   lowStock: { id: string; name: string; qty: number; unit: string }[];
   /** Gates the stock card entirely — members without estoque access see neither
@@ -18,7 +18,7 @@ export interface DashboardView {
   canEstoque: boolean;
 }
 
-const NO_CHANNELS = { instagram: 0, whatsapp: 0, loja: 0, interno: 0 };
+const NO_CHANNELS = { instagram: 0, whatsapp: 0, loja: 0 };
 
 export function monthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -128,7 +128,6 @@ export async function fastPath(ctx: {
         instagram: thisM?.channels.instagram ?? 0,
         whatsapp: thisM?.channels.whatsapp ?? 0,
         loja: thisM?.channels.loja ?? 0,
-        interno: thisM?.channels.interno ?? 0,
       }
     : NO_CHANNELS;
 
@@ -199,7 +198,7 @@ export async function slowPath(ctx: {
     return d >= startOfLastMonth && d < startOfMonth;
   }).length;
 
-  const byChannel = { instagram: 0, whatsapp: 0, loja: 0, interno: 0 };
+  const byChannel = { instagram: 0, whatsapp: 0, loja: 0 };
   const sellers = new Map<string, { name: string; qty: number }>();
   for (const order of thisMonthOrders) {
     byChannel[order.channel] += 1;

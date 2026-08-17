@@ -6,7 +6,6 @@ import {
   MessageCircle,
   QrCode,
   Store,
-  Users,
 } from "lucide-react";
 import type { OrderChannel, OrderStatus, PayMethod } from "@/lib/types";
 
@@ -34,13 +33,6 @@ export const CHANNEL_META: Record<
     dot: "bg-channel-loja",
     fg: "text-ink-soft",
     bg: "bg-channel-loja/15",
-  },
-  interno: {
-    label: "Interno",
-    icon: Users,
-    dot: "bg-channel-interno",
-    fg: "text-channel-interno",
-    bg: "bg-channel-interno/10",
   },
 };
 

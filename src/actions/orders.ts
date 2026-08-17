@@ -26,7 +26,6 @@ const CHANNEL_LABEL: Record<OrderChannel, string> = {
   instagram: "Instagram",
   whatsapp: "WhatsApp",
   loja: "Loja",
-  interno: "Interno",
 };
 
 // "Data da venda" backdating window (Part A point 2). Past bound is a real
