@@ -21,8 +21,14 @@ export interface ActionResult {
   error?: string;
 }
 
+// Every insumo/opcional the catalog offers must trace to a real Estoque item —
+// no more "topping, no stock link" exceptions (see scripts/lib/recipes.ts's
+// Calda Quente / Pão de Mel for what that policy silently cost: sales of those
+// items never drew stock, with no error or warning anywhere). stockItemId is
+// therefore required here, not optional — the type in @/lib/types stays
+// optional because it also describes reading old docs that predate this rule.
 const recipeItemSchema = z.object({
-  stockItemId: z.string().optional(),
+  stockItemId: z.string().min(1, "Vincule este insumo a um item do estoque."),
   name: z.string().trim().min(1),
   qty: z.number().nonnegative().nullable(),
   unit: z.string().trim().default(""),
@@ -34,7 +40,7 @@ const tierSchema = z.object({
 });
 
 const addonSchema = z.object({
-  stockItemId: z.string().optional(),
+  stockItemId: z.string().min(1, "Vincule este opcional a um item do estoque."),
   name: z.string().trim().min(1),
   price: z.number().int().nonnegative(),
   qty: z.number().nonnegative().nullable().optional(),
@@ -42,7 +48,7 @@ const addonSchema = z.object({
   tiers: z.array(tierSchema).optional(),
 });
 
-const productSchema = z.object({
+const productShape = z.object({
   storeId: z.string().min(1),
   name: z.string().trim().min(1, "Informe o nome do produto."),
   price: z.number().int().positive("Preço deve ser maior que zero."),
@@ -58,6 +64,28 @@ const productSchema = z.object({
   stockManaged: z.boolean().default(false),
   prep: z.enum(["sob demanda", "lote"]).nullish(),
   duration: z.number().int().positive().optional(),
+});
+
+// Cross-field consistency, on top of the per-row stockItemId requirement above:
+// a "menu" item must be prepared from at least one real insumo (no bought-in
+// item hiding as a bodyless recipe), and revenda/adicional must link their one
+// insumo — this mirrors the client's own `linksInsumo` check (product-form-
+// sheet.tsx) so the rule holds even if a caller bypasses the form.
+const productSchema = productShape.superRefine((data, ctx) => {
+  if (data.saleType === "menu" && data.recipe.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Adicione ao menos um insumo à base.",
+      path: ["recipe"],
+    });
+  }
+  if ((data.saleType === "revenda" || data.saleType === "adicional") && !data.insumoId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Selecione o item do estoque.",
+      path: ["insumoId"],
+    });
+  }
 });
 
 export type ProductFormInput = z.input<typeof productSchema>;

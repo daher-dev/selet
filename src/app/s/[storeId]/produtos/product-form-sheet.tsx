@@ -222,7 +222,9 @@ function ProductForm({
   const selectedInsumo = insumoId ? byId.get(insumoId) : undefined;
 
   // Existing "adicional" catalog products double as quick-fill templates in
-  // the opcional picker below — picking one seeds name+price, no live link.
+  // the opcional picker below — picking one seeds name+price+the product's own
+  // insumoId (every adicional product is required to have one), so the new
+  // opcional row stays linked to real stock, same as picking a raw item would.
   const adicionalProducts = useMemo(
     () =>
       allProducts.filter(
@@ -257,7 +259,9 @@ function ProductForm({
   }
   /** Adds an opcional row — either from a raw estoque item (measured/contínuo
    *  consumption wired up) or as a quick-fill template from an existing
-   *  "adicional" catalog product (name+price copied once, no live link). */
+   *  "adicional" catalog product (name+price+stockItemId copied once — not a
+   *  live reference, so a later change to the source product's own insumo
+   *  link won't retroactively update this copy). */
   function addAddonRow(name: string, opts: { stockItemId?: string; price?: number } = {}) {
     const item = resolveItem({ stockItemId: opts.stockItemId, name });
     const continuo = item?.consumptionMode === "continuo";
@@ -331,6 +335,32 @@ function ProductForm({
           })
       : [];
 
+    // Every insumo/opcional must trace to a real Estoque item — no more
+    // "topping, no stock link" catalog holes (see actions/products.ts's
+    // productSchema, which enforces the same rule server-side).
+    if (usesRecipe && cleanRecipe.length === 0) {
+      toast.error("Adicione ao menos um insumo à base.");
+      return;
+    }
+    const unlinkedRecipe = cleanRecipe.find((r) => !r.stockItemId);
+    if (unlinkedRecipe) {
+      toast.error(`"${unlinkedRecipe.name}" precisa estar vinculado a um item do estoque.`);
+      return;
+    }
+    const unlinkedAddon = cleanAddons.find((a) => !a.stockItemId);
+    if (unlinkedAddon) {
+      toast.error(`Opcional "${unlinkedAddon.name}" precisa estar vinculado a um item do estoque.`);
+      return;
+    }
+    // Narrow to the action's required-stockItemId shape — a formality for TS,
+    // since the checks above already guarantee every row has one.
+    const linkedRecipe = cleanRecipe.filter(
+      (r): r is RecipeItem & { stockItemId: string } => Boolean(r.stockItemId),
+    );
+    const linkedAddons = cleanAddons.filter(
+      (a): a is ProductAddon & { stockItemId: string } => Boolean(a.stockItemId),
+    );
+
     startTransition(async () => {
       const input = {
         storeId,
@@ -341,8 +371,8 @@ function ProductForm({
         description: description.trim() || undefined,
         active,
         saleType,
-        recipe: cleanRecipe,
-        adicionais: cleanAddons,
+        recipe: linkedRecipe,
+        adicionais: linkedAddons,
         tiers: parsedTiers,
         insumoId: linksInsumo ? insumoId : undefined,
         stockManaged: usesRecipe ? stockManaged : false,
@@ -560,7 +590,7 @@ function ProductForm({
                   setOpcionalPickerOpen(false);
                 }}
                 onPickProduct={(item) => {
-                  addAddonRow(item.name, { price: item.price });
+                  addAddonRow(item.name, { stockItemId: item.insumoId, price: item.price });
                   setOpcionalPickerOpen(false);
                 }}
               />
@@ -1078,7 +1108,7 @@ function InsumoPicker({
 
 /**
  * Merged searchable picker for an opcional row: existing "adicional" catalog
- * products (quick-fill template — name+price copied once, no live link) plus
+ * products (quick-fill template — name+price+stockItemId copied once) plus
  * raw estoque items, matching how the mockup unifies both into one list.
  */
 function OpcionalPicker({

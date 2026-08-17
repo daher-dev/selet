@@ -39,8 +39,15 @@ function revalidate(storeId: string) {
   revalidatePath(`/s/${storeId}/shakes`);
 }
 
+// Every sabor insumo must trace to a real Estoque item — same rule as
+// actions/products.ts's productSchema, and for the same reason: a sabor
+// saved with an empty/unlinked recipe sells normally but silently draws zero
+// stock forever (resolveShakeLine in data/consumption.ts just loops over
+// nothing). stockItemId is required here, not optional — the type in
+// @/lib/types stays optional because it also describes reading old docs that
+// predate this rule.
 const recipeItemSchema = z.object({
-  stockItemId: z.string().optional(),
+  stockItemId: z.string().min(1, "Vincule este insumo a um item do estoque."),
   name: z.string().trim().min(1),
   qty: z.number().nonnegative().nullable(),
   unit: z.string().trim().optional(),
@@ -60,13 +67,18 @@ const tierSchema = z.object({
 // Sabores
 // ---------------------------------------------------------------------------
 
-const flavorSchema = z.object({
-  storeId: z.string().min(1),
-  name: z.string().trim().min(1, "Informe o nome do sabor."),
-  price: z.number().int().positive("Preço deve ser maior que zero."),
-  recipe: z.array(recipeItemSchema).default([]),
-  archived: z.boolean().default(false),
-});
+const flavorSchema = z
+  .object({
+    storeId: z.string().min(1),
+    name: z.string().trim().min(1, "Informe o nome do sabor."),
+    price: z.number().int().positive("Preço deve ser maior que zero."),
+    recipe: z.array(recipeItemSchema).default([]),
+    archived: z.boolean().default(false),
+  })
+  .refine((data) => data.recipe.length > 0, {
+    message: "Adicione ao menos um insumo a este sabor.",
+    path: ["recipe"],
+  });
 
 export type ShakeFlavorFormInput = z.input<typeof flavorSchema>;
 

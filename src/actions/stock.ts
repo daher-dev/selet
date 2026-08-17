@@ -12,6 +12,14 @@ import {
   updateStockItem,
 } from "@/data/stock";
 import { logActivity } from "@/data/activity";
+import { listProducts } from "@/data/products";
+import {
+  listShakeBases,
+  listShakeFlavors,
+  listShakeMixins,
+  listShakeRims,
+  listShakeUtensils,
+} from "@/data/shakes";
 import {
   CONSUMPTION_MODES,
   consumptionModeForUnit,
@@ -119,12 +127,57 @@ export async function updateStockItemAction(
   });
 }
 
+/**
+ * Everything that still points at `itemId` — recipe/adicional rows and
+ * revenda/adicional's insumoId (products), sabor recipe rows and base/borda/
+ * adicional/utensílio's single insumo (shakes). Deleting the doc out from
+ * under any of these leaves a dangling stockItemId that resolves to nothing:
+ * the sale still goes through, but planConsumption's `if (!entry) continue`
+ * silently skips the draw forever — no error, no low-stock flag, nothing.
+ * (This is exactly how 3 real products ended up drawing zero stock in
+ * production: their insumo was deleted, not merely left unlinked.)
+ */
+async function findStockItemReferences(storeId: string, itemId: string): Promise<string[]> {
+  const [products, flavors, bases, rims, mixins, utensils] = await Promise.all([
+    listProducts(storeId),
+    listShakeFlavors(storeId),
+    listShakeBases(storeId),
+    listShakeRims(storeId),
+    listShakeMixins(storeId),
+    listShakeUtensils(storeId),
+  ]);
+  const names: string[] = [];
+  for (const p of products) {
+    if (
+      p.insumoId === itemId ||
+      p.recipe.some((r) => r.stockItemId === itemId) ||
+      p.adicionais.some((a) => a.stockItemId === itemId)
+    ) {
+      names.push(p.name);
+    }
+  }
+  for (const f of flavors) {
+    if (f.recipe.some((r) => r.stockItemId === itemId)) names.push(f.name);
+  }
+  for (const b of bases) if (b.insumo.stockItemId === itemId) names.push(b.name);
+  for (const r of rims) if (r.insumo.stockItemId === itemId) names.push(r.name);
+  for (const m of mixins) if (m.insumo.stockItemId === itemId) names.push(m.name);
+  for (const u of utensils) if (u.insumo.stockItemId === itemId) names.push(u.name);
+  return names;
+}
+
 export async function deleteStockItemAction(
   storeId: string,
   itemId: string,
 ): Promise<ActionResult> {
   return run(async () => {
     await requireAccess(storeId, "estoque");
+    const refs = await findStockItemReferences(storeId, itemId);
+    if (refs.length > 0) {
+      throw new Error(
+        `Não é possível excluir: vinculado a ${refs.join(", ")}. Remova o vínculo (ou arquive o item em vez de excluir).`,
+      );
+    }
     await deleteStockItem(storeId, itemId);
     revalidatePath(`/s/${storeId}/estoque`);
   });

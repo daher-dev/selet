@@ -102,16 +102,32 @@ function FlavorForm({
   }
 
   function submit() {
+    // A sabor with no insumo sells normally but silently draws zero stock
+    // forever (see actions/shakes.ts's flavorSchema, which enforces the same
+    // rule server-side).
+    if (recipe.length === 0) {
+      toast.error("Adicione ao menos um insumo a este sabor.");
+      return;
+    }
+    const unlinked = recipe.find((r) => !r.stockItemId);
+    if (unlinked) {
+      toast.error(`"${unlinked.name}" precisa estar vinculado a um item do estoque.`);
+      return;
+    }
     const data = {
       storeId,
       name,
       price: Number.isFinite(priceCentavos) ? priceCentavos : 0,
-      recipe: recipe.map((r) => ({
-        stockItemId: r.stockItemId,
-        name: r.name,
-        qty: r.qty,
-        unit: r.unit,
-      })),
+      // Narrowed to the action's required-stockItemId shape — a formality for
+      // TS, since the checks above already guarantee every row has one.
+      recipe: recipe
+        .filter((r): r is RecipeItem & { stockItemId: string } => Boolean(r.stockItemId))
+        .map((r) => ({
+          stockItemId: r.stockItemId,
+          name: r.name,
+          qty: r.qty,
+          unit: r.unit,
+        })),
     };
     startTransition(async () => {
       const result = flavor
@@ -129,11 +145,18 @@ function FlavorForm({
   function toggleArchived() {
     if (!flavor) return;
     startTransition(async () => {
+      // A pre-existing flavor saved before insumo links were required (see
+      // submit() above) can still have an empty/unlinked recipe — archiving
+      // it hits the same server-side guard, surfaced as a toast below, until
+      // it's edited with a real insumo.
+      const linkedRecipe = flavor.recipe.filter(
+        (r): r is RecipeItem & { stockItemId: string } => Boolean(r.stockItemId),
+      );
       const result = await updateShakeFlavorAction(flavor.id, {
         storeId,
         name: flavor.name,
         price: flavor.price,
-        recipe: flavor.recipe,
+        recipe: linkedRecipe,
         archived: !flavor.archived,
       });
       if (result.ok) {
