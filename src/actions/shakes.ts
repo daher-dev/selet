@@ -71,7 +71,11 @@ const flavorSchema = z
   .object({
     storeId: z.string().min(1),
     name: z.string().trim().min(1, "Informe o nome do sabor."),
-    price: z.number().int().positive("Preço deve ser maior que zero."),
+    // Zero is intentional, not an oversight: staff sometimes don't charge
+    // extra for a flavor but must still debit its recipe from stock (price
+    // never gates a stock draw — see data/consumption.ts's resolveShakeLine
+    // and its brinde comment for the established precedent).
+    price: z.number().int().nonnegative("Preço não pode ser negativo."),
     recipe: z.array(recipeItemSchema).default([]),
     archived: z.boolean().default(false),
   })
