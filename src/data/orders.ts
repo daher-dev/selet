@@ -47,6 +47,11 @@ function ordersCol(storeId: string) {
   return storeRef(storeId).collection("orders");
 }
 
+/** The café currently fulfills orders on the spot, so a freshly created order
+ *  starts already done rather than entering the novo/preparando/entrega
+ *  pipeline — staff can still move it back if that changes. */
+const NEW_ORDER_STATUS: OrderStatus = "concluido";
+
 /**
  * Back-compat read-time normalization for "Montar shake" lines: older docs
  * (seed data, historical orders) stored `shake.flavorId: string` (singular).
@@ -441,13 +446,13 @@ export async function createOrder(
           createdAt: now,
         })
       : null;
-    // Summary: a new "novo" (open) order enters the current-month aggregates.
+    // Summary: a new order enters the current-month aggregates.
     const mk = monthKey(now.toDate());
     summaryAddOrder(summary, {
       mk,
       total,
       custKey: customerKey(input.customerId, input.customerName),
-      open: true,
+      open: isOpenStatus(NEW_ORDER_STATUS),
       paid: payment.paid,
       channel: input.channel,
       items: sellerItems(input.items),
@@ -463,7 +468,7 @@ export async function createOrder(
     tx.set(ref, {
       ...rest,
       total,
-      status: "novo",
+      status: NEW_ORDER_STATUS,
       paid: payment.paid,
       payMethod: payment.paid ? payment.payMethod : null,
       discount: money.discount ?? null,
