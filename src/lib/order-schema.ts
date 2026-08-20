@@ -76,13 +76,14 @@ export const orderItemSchema = z
     cartelaUse: cartelaUseSchema.optional(),
   })
   .superRefine((item, ctx) => {
-    const exclusive = [item.shake, item.cartelaSale, item.cartelaUse].filter(
-      (v) => v !== undefined,
-    ).length;
-    if (exclusive > 1) {
+    // cartelaSale is its own line (sells a brand-new cartela) and can never
+    // share a line with a shake build or a cartela redemption. shake +
+    // cartelaUse, though, is the normal "pay for this shake with a punch
+    // card" case and must stay allowed.
+    if (item.cartelaSale && (item.shake || item.cartelaUse)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Um item não pode combinar shake, venda de cartela e uso de cartela.",
+        message: "Um item não pode combinar venda de cartela com shake ou uso de cartela.",
         path: [],
       });
     }

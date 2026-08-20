@@ -146,7 +146,7 @@ describe("orderItemSchema", () => {
     ).toThrow();
   });
 
-  it("rejects a line combining shake and a cartela field", () => {
+  it("rejects a line combining shake and cartelaSale", () => {
     expect(() =>
       orderItemSchema.parse({
         ...base,
@@ -154,6 +154,27 @@ describe("orderItemSchema", () => {
         cartelaSale: { paidUses: 10, totalUses: 11, unitValue: 3000 },
       }),
     ).toThrow();
+  });
+
+  it("rejects a line combining cartelaSale and cartelaUse", () => {
+    expect(() =>
+      orderItemSchema.parse({
+        ...base,
+        cartelaSale: { paidUses: 10, totalUses: 11, unitValue: 3000 },
+        cartelaUse: { cartelaId: "c1", code: "C012", uses: 1, covered: 1000, listPrice: 1000 },
+      }),
+    ).toThrow();
+  });
+
+  it("allows a shake line paid down with a cartela (redeeming a punch card for a shake)", () => {
+    const parsed = orderItemSchema.parse({
+      ...base,
+      unitPrice: 0,
+      shake: { flavorIds: ["sabor-1"], baseId: null, rims: [], mixins: [] },
+      cartelaUse: { cartelaId: "c1", code: "C012", uses: 1, covered: 1000, listPrice: 1000 },
+    });
+    expect(parsed.shake).toBeDefined();
+    expect(parsed.cartelaUse).toBeDefined();
   });
 });
 
