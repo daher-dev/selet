@@ -691,6 +691,13 @@ export async function setOrderStatus(
     const oldCartelaConsumed = (current.cartelaConsumed ?? []) as CartelaConsumedEntry[];
     const cartelaSold = (current.cartelaSold ?? []) as string[];
     const customer = { id: current.customerId ?? "", name: current.customerName ?? "" };
+    // A paid order's income mirror must be reversed on cancel (else a cancelled
+    // sale keeps counting as revenue in Financeiro forever) and restored on
+    // uncancel. Read it now — before any write — only when that flip actually
+    // happens (mirrors updateOrder's read-phase discipline).
+    const financeMirrorRef = storeRef(storeId).collection("finance").doc(`order-${orderId}`);
+    const financeMirrorSnap =
+      current.paid && wasCancelled !== willBeCancelled ? await tx.get(financeMirrorRef) : null;
 
     // Cancel → reverse and hold nothing. Uncancel → re-apply from stored items.
     let plan: { draws: ConsumptionDraw[]; commit: () => void } | null = null;
@@ -745,9 +752,10 @@ export async function setOrderStatus(
         : null;
 
     // Summary: cancelling removes the order from the month aggregates; uncancel
-    // re-adds it (the finance mirror is untouched by status, so `in` isn't
-    // adjusted here). A status change between open/closed states only shifts the
-    // open-orders badge count.
+    // re-adds it. A paid order's finance mirror is reversed out of the month it
+    // was posted in on cancel, and restored on uncancel — so a cancelled order
+    // never counts as revenue in Financeiro. A status change between open/closed
+    // states only shifts the open-orders badge count.
     const mk = monthKey((current.createdAt as Timestamp).toDate());
     const total = current.total ?? 0;
     const custKey = customerKey(current.customerId ?? null, current.customerName);
@@ -764,6 +772,14 @@ export async function setOrderStatus(
         channel,
         items: sellerItems(items),
       });
+      if (paid && financeMirrorSnap?.exists) {
+        const md = financeMirrorSnap.data()!;
+        const mirrorAmount = (md.amount as number | undefined) ?? 0;
+        const mirrorMk = md.date ? monthKey((md.date as Timestamp).toDate()) : mk;
+        if (mirrorAmount) {
+          summaryFinance(summary, { mk: mirrorMk, direction: "in", amount: -mirrorAmount });
+        }
+      }
     } else if (wasCancelled && !willBeCancelled) {
       summaryAddOrder(summary, {
         mk,
@@ -774,6 +790,9 @@ export async function setOrderStatus(
         channel,
         items: sellerItems(items),
       });
+      if (paid && total > 0) {
+        summaryFinance(summary, { mk, direction: "in", amount: total });
+      }
     } else {
       const delta =
         (isOpenStatus(status) ? 1 : 0) - (isOpenStatus(current.status) ? 1 : 0);
@@ -794,6 +813,20 @@ export async function setOrderStatus(
     if (plan) patch.stockConsumed = plan.draws;
     if (cartelaPlan) patch.cartelaConsumed = cartelaPlan.consumed;
     tx.update(ref, patch);
+    if (!wasCancelled && willBeCancelled && paid && financeMirrorSnap?.exists) {
+      tx.delete(financeMirrorRef);
+    } else if (wasCancelled && !willBeCancelled && paid && total > 0) {
+      tx.set(financeMirrorRef, {
+        label: `Pedido #${orderCode(orderId)} · ${current.customerName}`,
+        category: "vendas",
+        amount: total,
+        direction: "in",
+        source: "order",
+        orderId,
+        payMethod: current.payMethod ?? null,
+        date: current.createdAt,
+      });
+    }
   });
 }
 
