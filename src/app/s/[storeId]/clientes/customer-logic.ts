@@ -132,11 +132,13 @@ export interface UnpaidInfo {
 /**
  * Maps customerId → open (unpaid, non-cancelled) receivables
  * (design unpaidByCust 2917-2918). Walk-in orders have no customerId.
+ * A comped/nada-a-cobrar order (total 0) is never a receivable — mirrors the
+ * summary-core unpaid-tally rule.
  */
 export function buildUnpaidByCustomer(orders: Order[]): Map<string, UnpaidInfo> {
   const map = new Map<string, UnpaidInfo>();
   for (const o of orders) {
-    if (o.paid || o.status === "cancelado" || !o.customerId) continue;
+    if (o.paid || o.status === "cancelado" || !o.customerId || o.total <= 0) continue;
     const cur = map.get(o.customerId) ?? { total: 0, count: 0 };
     cur.total += o.total;
     cur.count += 1;
