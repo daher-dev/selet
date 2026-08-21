@@ -22,6 +22,7 @@ import {
 import { buildConsumptionRequests } from "./consumption";
 import { getProduct } from "./products";
 import { loadShakeCatalogsForItems, type ShakeCatalogs } from "./shakes";
+import { loadPudimCatalogsForItems, type PudimCatalogs } from "./pudim";
 import { consumeWork, readStockWork, reverseWork, stockPatch } from "./stock";
 import {
   customerKey,
@@ -227,10 +228,11 @@ function productRef(storeId: string, productId: string) {
 
 /**
  * Loads the products referenced by an order's lines, keyed by id (misses
- * skipped). A shake line's brinde is also a Product join (line.shake.brinde.
- * productId) — included here so both order-item display (its live name/price)
- * and buildConsumptionRequests (its recipe draw) can resolve it from this
- * same map without a second fetch.
+ * skipped). A shake/pudim line's brinde is also a Product join
+ * (line.shake.brinde.productId / line.pudim.brinde.productId) — included here
+ * so both order-item display (its live name/price) and
+ * buildConsumptionRequests (its recipe draw) can resolve it from this same
+ * map without a second fetch.
  */
 async function fetchLineProducts(
   storeId: string,
@@ -238,7 +240,7 @@ async function fetchLineProducts(
 ): Promise<Map<string, Product>> {
   const ids = new Set(items.map((i) => i.productId));
   for (const item of items) {
-    const brindeId = item.shake?.brinde?.productId;
+    const brindeId = item.shake?.brinde?.productId ?? item.pudim?.brinde?.productId;
     if (brindeId) ids.add(brindeId);
   }
   const idList = [...ids];
@@ -270,10 +272,11 @@ async function planConsumption(
   /** Shared working summary — commit() folds low-stock flips into it. */
   summary: SummaryData,
   shakeCatalogs?: ShakeCatalogs,
+  pudimCatalogs?: PudimCatalogs,
 ): Promise<{ draws: ConsumptionDraw[]; commit: () => void }> {
   const req =
     newItems && products
-      ? buildConsumptionRequests(newItems, products, shakeCatalogs)
+      ? buildConsumptionRequests(newItems, products, shakeCatalogs, pudimCatalogs)
       : { insumos: new Map<string, { amount: number; uses: number }>(), produced: new Map<string, number>() };
 
   const stockIds = new Set<string>();
@@ -409,6 +412,7 @@ export async function createOrder(
   const now = createdAtISO ? Timestamp.fromDate(new Date(createdAtISO)) : Timestamp.now();
   const products = await fetchLineProducts(storeId, input.items);
   const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
+  const pudimCatalogs = await loadPudimCatalogsForItems(storeId, input.items);
 
   let stockConsumed: ConsumptionDraw[] = [];
   let cartelaConsumed: CartelaConsumedEntry[] = [];
@@ -426,6 +430,7 @@ export async function createOrder(
       products,
       summary,
       shakeCatalogs,
+      pudimCatalogs,
     );
     stockConsumed = plan.draws;
     const cartelaPlan = await planCartelas(
@@ -508,6 +513,7 @@ export async function updateOrder(
   const { discount: discountInput, notes, createdAt: createdAtISO, ...rest } = input;
   const products = await fetchLineProducts(storeId, input.items);
   const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
+  const pudimCatalogs = await loadPudimCatalogsForItems(storeId, input.items);
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -541,6 +547,7 @@ export async function updateOrder(
       cancelled ? null : products,
       summary,
       cancelled ? undefined : shakeCatalogs,
+      cancelled ? undefined : pudimCatalogs,
     );
     // Same reverse-then-reapply shape for cartelas — a cancelled order holds
     // no punches, but its already-sold cartelas are untouched here (see
@@ -679,6 +686,9 @@ export async function setOrderStatus(
   const shakeCatalogs = existing
     ? await loadShakeCatalogsForItems(storeId, existing.items)
     : undefined;
+  const pudimCatalogs = existing
+    ? await loadPudimCatalogsForItems(storeId, existing.items)
+    : undefined;
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -727,6 +737,7 @@ export async function setOrderStatus(
         products,
         summary,
         shakeCatalogs,
+        pudimCatalogs,
       );
       cartelaPlan = await planCartelas(
         tx,

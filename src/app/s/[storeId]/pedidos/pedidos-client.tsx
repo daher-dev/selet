@@ -10,6 +10,7 @@ import {
   CircleCheck,
   CircleX,
   Clock,
+  Dessert,
   Filter,
   Gift,
   Inbox,
@@ -28,6 +29,11 @@ import type {
   Order,
   OrderChannel,
   Product,
+  PudimBase,
+  PudimBrinde,
+  PudimFlavor,
+  PudimMixin,
+  PudimUtensil,
   ShakeBase,
   ShakeBrinde,
   ShakeFlavor,
@@ -78,6 +84,15 @@ const NEUTRAL_TILE: CategoryMeta = {
   bg: "bg-mist",
 };
 
+// Pudim isn't a Cardápio PRODUCT_CATEGORY — mirrors order-sheet.tsx's own
+// PUDIM_TILE (reuses the otherwise-unused cat-sopas token).
+const PUDIM_TILE: CategoryMeta = {
+  label: "Pudim",
+  icon: Dessert,
+  fg: "text-cat-sopas",
+  bg: "bg-cat-sopas-wash",
+};
+
 // Chips shown inline before collapsing the rest into a "+N".
 const MAX_ITEM_CHIPS = 4;
 
@@ -123,6 +138,11 @@ interface PedidosClientProps {
   shakeMixins: ShakeMixin[];
   shakeUtensils: ShakeUtensil[];
   shakeBrindes: ShakeBrinde[];
+  pudimFlavors: PudimFlavor[];
+  pudimBases: PudimBase[];
+  pudimMixins: PudimMixin[];
+  pudimUtensils: PudimUtensil[];
+  pudimBrindes: PudimBrinde[];
 }
 
 export function PedidosClient({
@@ -136,6 +156,11 @@ export function PedidosClient({
   shakeMixins,
   shakeUtensils,
   shakeBrindes,
+  pudimFlavors,
+  pudimBases,
+  pudimMixins,
+  pudimUtensils,
+  pudimBrindes,
 }: PedidosClientProps) {
   const [query, setQuery] = useState("");
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("todos");
@@ -204,8 +229,9 @@ export function PedidosClient({
     return { visible, hidden };
   }
 
-  function tileMeta(item: { productId: string; shake?: unknown }): CategoryMeta {
+  function tileMeta(item: { productId: string; shake?: unknown; pudim?: unknown }): CategoryMeta {
     if (item.shake) return PRODUCT_CATEGORY_META.shakes ?? NEUTRAL_TILE;
+    if (item.pudim) return PUDIM_TILE;
     return PRODUCT_CATEGORY_META[categoryById.get(item.productId) ?? ""] ?? NEUTRAL_TILE;
   }
 
@@ -473,6 +499,11 @@ export function PedidosClient({
         shakeMixins={shakeMixins}
         shakeUtensils={shakeUtensils}
         shakeBrindes={shakeBrindes}
+        pudimFlavors={pudimFlavors}
+        pudimBases={pudimBases}
+        pudimMixins={pudimMixins}
+        pudimUtensils={pudimUtensils}
+        pudimBrindes={pudimBrindes}
         open={creating || selectedId !== null}
         onOpenChange={(open) => {
           if (!open) {

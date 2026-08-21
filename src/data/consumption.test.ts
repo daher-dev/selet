@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import type {
   OrderItem,
   Product,
+  PudimBase,
+  PudimFlavor,
+  PudimMixin,
+  PudimUtensil,
   ShakeBase,
   ShakeFlavor,
   ShakeMixin,
@@ -9,6 +13,7 @@ import type {
   ShakeUtensil,
 } from "@/lib/types";
 import type { ShakeCatalogs } from "./shakes";
+import type { PudimCatalogs } from "./pudim";
 import { buildConsumptionRequests } from "./consumption";
 
 function product(overrides: Partial<Product> & { id: string }): Product {
@@ -546,6 +551,323 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
           }),
         ],
         new Map(),
+        catalogs({ flavors: new Map([["sabor-1", f]]) }),
+      ];
+      expect(() => buildConsumptionRequests(...args)).not.toThrow();
+      const { insumos, produced } = buildConsumptionRequests(...args);
+      expect(insumos.size).toBe(0);
+      expect(produced.size).toBe(0);
+    });
+  });
+});
+
+describe("buildConsumptionRequests · Montar pudim lines", () => {
+  function flavor(overrides: Partial<PudimFlavor> & { id: string }): PudimFlavor {
+    return { name: overrides.id, price: 3000, recipe: [], archived: false, createdAt: "", ...overrides };
+  }
+  function base(overrides: Partial<PudimBase> & { id: string }): PudimBase {
+    return {
+      name: overrides.id,
+      insumo: { name: "Insumo", qty: 1, unit: "un" },
+      price: 0,
+      archived: false,
+      createdAt: "",
+      ...overrides,
+    };
+  }
+  function mixin(overrides: Partial<PudimMixin> & { id: string }): PudimMixin {
+    return {
+      name: overrides.id,
+      insumo: { name: "Insumo", qty: 1, unit: "un" },
+      tiers: [{ qty: 1, price: 500 }],
+      archived: false,
+      createdAt: "",
+      ...overrides,
+    };
+  }
+  function utensil(overrides: Partial<PudimUtensil> & { id: string }): PudimUtensil {
+    return {
+      name: overrides.id,
+      insumo: { name: "Insumo", qty: 1, unit: "un" },
+      defaultIncluded: true,
+      archived: false,
+      createdAt: "",
+      ...overrides,
+    };
+  }
+
+  function catalogs(over: Partial<PudimCatalogs> = {}): PudimCatalogs {
+    return {
+      flavors: new Map(),
+      bases: new Map(),
+      mixins: new Map(),
+      utensils: [],
+      ...over,
+    };
+  }
+
+  function pudimLine(overrides: Partial<OrderItem> = {}): OrderItem {
+    return {
+      productId: "sabor-1",
+      name: "Pudim",
+      qty: 1,
+      unitPrice: 3000,
+      pudim: {
+        flavorId: "sabor-1",
+        baseId: null,
+        mixins: [],
+      },
+      ...overrides,
+    };
+  }
+
+  it("consumes the flavor's own recipe, scaled by lineQty", () => {
+    const f = flavor({
+      id: "sabor-1",
+      recipe: [{ stockItemId: "ins-pudim", name: "Pudim base", qty: 26, unit: "g" }],
+    });
+    const { insumos } = buildConsumptionRequests(
+      [pudimLine({ qty: 2 })],
+      new Map(),
+      undefined,
+      catalogs({ flavors: new Map([["sabor-1", f]]) }),
+    );
+    expect(insumos.get("ins-pudim")).toEqual({ amount: 52, uses: 2 });
+  });
+
+  it("consumes the chosen base's insumo (0/no draw when baseId is null)", () => {
+    const f = flavor({ id: "sabor-1" });
+    const b = base({
+      id: "base-1",
+      insumo: { stockItemId: "ins-leite", name: "Leite", qty: 150, unit: "ml" },
+    });
+    const withBase = buildConsumptionRequests(
+      [pudimLine({ pudim: { flavorId: "sabor-1", baseId: "base-1", mixins: [] } })],
+      new Map(),
+      undefined,
+      catalogs({ flavors: new Map([["sabor-1", f]]), bases: new Map([["base-1", b]]) }),
+    );
+    expect(withBase.insumos.get("ins-leite")).toEqual({ amount: 150, uses: 1 });
+
+    const noBase = buildConsumptionRequests(
+      [pudimLine()],
+      new Map(),
+      undefined,
+      catalogs({ flavors: new Map([["sabor-1", f]]), bases: new Map([["base-1", b]]) }),
+    );
+    expect(noBase.insumos.has("ins-leite")).toBe(false);
+  });
+
+  it("mixin quantity scales the insumo draw, by both mixin qty and lineQty", () => {
+    const f = flavor({ id: "sabor-1" });
+    const m = mixin({
+      id: "mix-1",
+      insumo: { stockItemId: "ins-fibra", name: "Fibra", qty: 1, unit: "dose" },
+    });
+    const { insumos } = buildConsumptionRequests(
+      [
+        pudimLine({
+          qty: 2, // 2 pudins ordered
+          pudim: { flavorId: "sabor-1", baseId: null, mixins: [{ modifierId: "mix-1", qty: 2 }] },
+        }),
+      ],
+      new Map(),
+      undefined,
+      catalogs({ flavors: new Map([["sabor-1", f]]), mixins: new Map([["mix-1", m]]) }),
+    );
+    // 1 dose × 2 (mixin qty) × 2 (lineQty) = 4, uses = 2×2 = 4
+    expect(insumos.get("ins-fibra")).toEqual({ amount: 4, uses: 4 });
+  });
+
+  it("two mixins (or a mixin + base) sharing a stockItemId sum into one InsumoNeed", () => {
+    const f = flavor({ id: "sabor-1" });
+    const b = base({
+      id: "base-1",
+      insumo: { stockItemId: "ins-leite", name: "Leite", qty: 100, unit: "ml" },
+    });
+    const m = mixin({
+      id: "mix-1",
+      insumo: { stockItemId: "ins-leite", name: "Leite", qty: 30, unit: "ml" },
+    });
+    const { insumos } = buildConsumptionRequests(
+      [
+        pudimLine({
+          pudim: { flavorId: "sabor-1", baseId: "base-1", mixins: [{ modifierId: "mix-1", qty: 1 }] },
+        }),
+      ],
+      new Map(),
+      undefined,
+      catalogs({
+        flavors: new Map([["sabor-1", f]]),
+        bases: new Map([["base-1", b]]),
+        mixins: new Map([["mix-1", m]]),
+      }),
+    );
+    expect(insumos.get("ins-leite")).toEqual({ amount: 130, uses: 2 });
+  });
+
+  it("utensílio with defaultIncluded=true is drawn automatically", () => {
+    const f = flavor({ id: "sabor-1" });
+    const u = utensil({
+      id: "copo",
+      defaultIncluded: true,
+      insumo: { stockItemId: "ins-copo", name: "Copo", qty: 1, unit: "un" },
+    });
+    const { insumos } = buildConsumptionRequests(
+      [pudimLine()],
+      new Map(),
+      undefined,
+      catalogs({ flavors: new Map([["sabor-1", f]]), utensils: [u] }),
+    );
+    expect(insumos.get("ins-copo")).toEqual({ amount: 1, uses: 1 });
+  });
+
+  it("utensílio with defaultIncluded=false is NOT drawn unless overridden to true", () => {
+    const f = flavor({ id: "sabor-1" });
+    const u = utensil({
+      id: "canudo",
+      defaultIncluded: false,
+      insumo: { stockItemId: "ins-canudo", name: "Canudo", qty: 1, unit: "un" },
+    });
+    const cat = catalogs({ flavors: new Map([["sabor-1", f]]), utensils: [u] });
+
+    const skipped = buildConsumptionRequests([pudimLine()], new Map(), undefined, cat);
+    expect(skipped.insumos.has("ins-canudo")).toBe(false);
+
+    const included = buildConsumptionRequests(
+      [
+        pudimLine({
+          pudim: {
+            flavorId: "sabor-1",
+            baseId: null,
+            mixins: [],
+            utensilOverrides: [{ utensilId: "canudo", included: true }],
+          },
+        }),
+      ],
+      new Map(),
+      undefined,
+      cat,
+    );
+    expect(included.insumos.get("ins-canudo")).toEqual({ amount: 1, uses: 1 });
+  });
+
+  it("a per-line override can also OPT OUT of a default-included utensílio", () => {
+    const f = flavor({ id: "sabor-1" });
+    const u = utensil({
+      id: "guardanapo",
+      defaultIncluded: true,
+      insumo: { stockItemId: "ins-guardanapo", name: "Guardanapo", qty: 2, unit: "un" },
+    });
+    const { insumos } = buildConsumptionRequests(
+      [
+        pudimLine({
+          pudim: {
+            flavorId: "sabor-1",
+            baseId: null,
+            mixins: [],
+            utensilOverrides: [{ utensilId: "guardanapo", included: false }],
+          },
+        }),
+      ],
+      new Map(),
+      undefined,
+      catalogs({ flavors: new Map([["sabor-1", f]]), utensils: [u] }),
+    );
+    expect(insumos.has("ins-guardanapo")).toBe(false);
+  });
+
+  it("missing catalogs (undefined) is a best-effort no-op, never throws", () => {
+    expect(() => buildConsumptionRequests([pudimLine()], new Map())).not.toThrow();
+    const { insumos } = buildConsumptionRequests([pudimLine()], new Map());
+    expect(insumos.size).toBe(0);
+  });
+
+  it("a pudim line referencing a deleted flavor/base/mixin is skipped, not thrown", () => {
+    const { insumos } = buildConsumptionRequests(
+      [
+        pudimLine({
+          pudim: {
+            flavorId: "gone",
+            baseId: "also-gone",
+            mixins: [{ modifierId: "gone-too", qty: 1 }],
+          },
+        }),
+      ],
+      new Map(),
+      undefined,
+      catalogs(),
+    );
+    expect(insumos.size).toBe(0);
+  });
+
+  describe("brinde (free Product riding a pudim line)", () => {
+    it("a unitPrice:0 brinde line still consumes its recipe (headline regression case)", () => {
+      const f = flavor({ id: "sabor-1" });
+      const brindeProduct = product({
+        id: "cha-limao",
+        recipe: [{ stockItemId: "ins-cha", name: "Chá", qty: 5, unit: "g" }],
+      });
+      const { insumos } = buildConsumptionRequests(
+        [
+          pudimLine({
+            unitPrice: 0,
+            pudim: {
+              flavorId: "sabor-1",
+              baseId: null,
+              mixins: [],
+              brinde: { productId: "cha-limao", name: "Chá Limão", listPrice: 800 },
+            },
+          }),
+        ],
+        new Map([["cha-limao", brindeProduct]]),
+        undefined,
+        catalogs({ flavors: new Map([["sabor-1", f]]) }),
+      );
+      expect(insumos.get("ins-cha")).toEqual({ amount: 5, uses: 1 });
+    });
+
+    it("a stockManaged brinde draws producedStock, not insumos", () => {
+      const f = flavor({ id: "sabor-1" });
+      const brindeProduct = product({
+        id: "bolo-fatia",
+        stockManaged: true,
+        recipe: [{ stockItemId: "ins-farinha", name: "Farinha", qty: 50, unit: "g" }],
+      });
+      const { insumos, produced } = buildConsumptionRequests(
+        [
+          pudimLine({
+            pudim: {
+              flavorId: "sabor-1",
+              baseId: null,
+              mixins: [],
+              brinde: { productId: "bolo-fatia", name: "Bolo", listPrice: 600 },
+            },
+          }),
+        ],
+        new Map([["bolo-fatia", brindeProduct]]),
+        undefined,
+        catalogs({ flavors: new Map([["sabor-1", f]]) }),
+      );
+      expect(produced.get("bolo-fatia")).toBe(1);
+      expect(insumos.has("ins-farinha")).toBe(false);
+    });
+
+    it("a brinde whose Product is absent from the map is skipped without throwing", () => {
+      const f = flavor({ id: "sabor-1" });
+      const args: Parameters<typeof buildConsumptionRequests> = [
+        [
+          pudimLine({
+            pudim: {
+              flavorId: "sabor-1",
+              baseId: null,
+              mixins: [],
+              brinde: { productId: "gone", name: "Sumiu", listPrice: 500 },
+            },
+          }),
+        ],
+        new Map(),
+        undefined,
         catalogs({ flavors: new Map([["sabor-1", f]]) }),
       ];
       expect(() => buildConsumptionRequests(...args)).not.toThrow();

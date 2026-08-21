@@ -6,6 +6,7 @@ import {
   Check,
   ChevronLeft,
   Clock,
+  Dessert,
   Loader2,
   Minus,
   Plus,
@@ -25,6 +26,11 @@ import type {
   OrderItem,
   PayMethod,
   Product,
+  PudimBase,
+  PudimBrinde,
+  PudimFlavor,
+  PudimMixin,
+  PudimUtensil,
   ShakeBase,
   ShakeBrinde,
   ShakeFlavor,
@@ -34,7 +40,13 @@ import type {
 } from "@/lib/types";
 import { DISCOUNT_REASONS, ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
-import { balanceValue, cartelaCode, coverageFor, remainingUses } from "@/lib/cartelas";
+import {
+  balanceValue,
+  cartelaCode,
+  coverageFor,
+  forecastPunchStates,
+  remainingUses,
+} from "@/lib/cartelas";
 import { orderMoney, type DiscountInput } from "@/lib/order-money";
 import { cn } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customer-picker";
@@ -47,6 +59,7 @@ import {
 } from "@/actions/orders";
 import { listCartelasByCustomerAction } from "@/actions/cartelas";
 import { ShakeBuilder, type ShakeBrindeOption } from "./shake-builder";
+import { PudimBuilder, type PudimBrindeOption } from "./pudim-builder";
 import { CartelaBuilder } from "./cartela-builder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +93,19 @@ const CARTELA_TILE: CategoryMeta = {
   icon: Ticket,
   fg: "text-amber",
   bg: "bg-amber-wash",
+};
+
+// Pudim isn't a Cardápio PRODUCT_CATEGORY (it's its own admin module, like
+// Shakes' nav item, but "shakes" already IS a menu category so it reuses
+// PRODUCT_CATEGORY_META.shakes — Pudim has no such category to borrow), so it
+// gets a bespoke tile mirroring CARTELA_TILE's pattern. Reuses the otherwise-
+// unused cat-sopas token (defined in globals.css, not wired into any
+// PRODUCT_CATEGORY_META entry) rather than inventing a new color.
+const PUDIM_TILE: CategoryMeta = {
+  label: "Pudim",
+  icon: Dessert,
+  fg: "text-cat-sopas",
+  bg: "bg-cat-sopas-wash",
 };
 
 /** Placeholder CartelaUse — only `.length` of the array it's filled into ever
@@ -119,6 +145,22 @@ function shakeSignature(shake?: OrderItem["shake"]): string {
   // sorted by a copy above.
   const flavorIds = [...shake.flavorIds].sort();
   return JSON.stringify({ f: flavorIds, b: shake.baseId, rims, mixins, overrides, brinde });
+}
+
+/** Order-independent signature of a "Montar pudim" line's picks, for merging lines. */
+function pudimSignature(pudim?: OrderItem["pudim"]): string {
+  if (!pudim) return "";
+  const mixins = [...pudim.mixins].sort((a, b) => a.modifierId.localeCompare(b.modifierId));
+  const overrides = [...(pudim.utensilOverrides ?? [])].sort((a, b) =>
+    a.utensilId.localeCompare(b.utensilId),
+  );
+  const brinde = pudim.brinde
+    ? {
+        productId: pudim.brinde.productId,
+        addons: [...(pudim.brinde.addons ?? [])].map((a) => a.name).sort(),
+      }
+    : null;
+  return JSON.stringify({ f: pudim.flavorId, b: pudim.baseId, mixins, overrides, brinde });
 }
 
 /** "2026-08-05" (input[type=date] value) from an ISO datetime, in local time. */
@@ -184,6 +226,11 @@ interface OrderSheetProps {
   shakeMixins: ShakeMixin[];
   shakeUtensils: ShakeUtensil[];
   shakeBrindes: ShakeBrinde[];
+  pudimFlavors: PudimFlavor[];
+  pudimBases: PudimBase[];
+  pudimMixins: PudimMixin[];
+  pudimUtensils: PudimUtensil[];
+  pudimBrindes: PudimBrinde[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -199,6 +246,11 @@ export function OrderSheet({
   shakeMixins,
   shakeUtensils,
   shakeBrindes,
+  pudimFlavors,
+  pudimBases,
+  pudimMixins,
+  pudimUtensils,
+  pudimBrindes,
   open,
   onOpenChange,
 }: OrderSheetProps) {
@@ -228,6 +280,11 @@ export function OrderSheet({
           shakeMixins={shakeMixins}
           shakeUtensils={shakeUtensils}
           shakeBrindes={shakeBrindes}
+          pudimFlavors={pudimFlavors}
+          pudimBases={pudimBases}
+          pudimMixins={pudimMixins}
+          pudimUtensils={pudimUtensils}
+          pudimBrindes={pudimBrindes}
           onClose={() => onOpenChange(false)}
         />
       </SheetContent>
@@ -246,6 +303,11 @@ function OrderForm({
   shakeMixins,
   shakeUtensils,
   shakeBrindes,
+  pudimFlavors,
+  pudimBases,
+  pudimMixins,
+  pudimUtensils,
+  pudimBrindes,
   onClose,
 }: {
   storeId: string;
@@ -258,6 +320,11 @@ function OrderForm({
   shakeMixins: ShakeMixin[];
   shakeUtensils: ShakeUtensil[];
   shakeBrindes: ShakeBrinde[];
+  pudimFlavors: PudimFlavor[];
+  pudimBases: PudimBase[];
+  pudimMixins: PudimMixin[];
+  pudimUtensils: PudimUtensil[];
+  pudimBrindes: PudimBrinde[];
   onClose: () => void;
 }) {
   const [customerId, setCustomerId] = useState<string>(
@@ -467,9 +534,27 @@ function OrderForm({
     return options;
   }, [shakeBrindes, productById]);
 
+  // Same join, for the pudim builder's brinde options.
+  const pudimBrindeOptions = useMemo<PudimBrindeOption[]>(() => {
+    const options: PudimBrindeOption[] = [];
+    for (const b of pudimBrindes) {
+      const product = productById.get(b.productId);
+      if (!product) continue;
+      options.push({
+        productId: b.productId,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        adicionais: product.adicionais,
+      });
+    }
+    return options;
+  }, [pudimBrindes, productById]);
+
   function lineMeta(item: OrderItem): CategoryMeta {
     if (item.cartelaSale) return CARTELA_TILE;
     if (item.shake) return PRODUCT_CATEGORY_META.shakes ?? NEUTRAL_TILE;
+    if (item.pudim) return PUDIM_TILE;
     const cat = productById.get(item.productId)?.category ?? "";
     return PRODUCT_CATEGORY_META[cat] ?? NEUTRAL_TILE;
   }
@@ -478,22 +563,26 @@ function OrderForm({
     return customers.find((c) => c.id === customerId)?.name ?? "";
   }
 
-  // A configured line (product + qty + chosen adicionais/shake picks, price
-  // already folded into unitPrice). Merges into an identical existing line —
-  // same product AND same adicionais (or same shake picks) — otherwise
-  // becomes its own line.
+  // A configured line (product + qty + chosen adicionais/shake/pudim picks,
+  // price already folded into unitPrice). Merges into an identical existing
+  // line — same product AND same adicionais (or same shake/pudim picks) —
+  // otherwise becomes its own line.
   function addConfiguredItem(item: OrderItem) {
     setItems((prev) => {
       // A cartela sale is its own record (soldOnOrderId → one Cartela doc per
       // line) and must never merge into another line — qty always stays 1.
       if (item.cartelaSale) return [...prev, item];
-      const sig = item.shake ? shakeSignature(item.shake) : addonSignature(item.addons);
+      const sig = item.shake
+        ? shakeSignature(item.shake)
+        : item.pudim
+          ? pudimSignature(item.pudim)
+          : addonSignature(item.addons);
       const idx = prev.findIndex((i) => {
         if (i.productId !== item.productId) return false;
         if (i.cartelaSale) return false;
-        return item.shake
-          ? shakeSignature(i.shake) === sig
-          : addonSignature(i.addons) === sig;
+        if (item.shake) return shakeSignature(i.shake) === sig;
+        if (item.pudim) return pudimSignature(i.pudim) === sig;
+        return addonSignature(i.addons) === sig;
       });
       if (idx >= 0) {
         return prev.map((i, j) =>
@@ -1063,6 +1152,11 @@ function OrderForm({
         shakeMixins={shakeMixins}
         shakeUtensils={shakeUtensils}
         shakeBrindes={brindeOptions}
+        pudimFlavors={pudimFlavors}
+        pudimBases={pudimBases}
+        pudimMixins={pudimMixins}
+        pudimUtensils={pudimUtensils}
+        pudimBrindes={pudimBrindeOptions}
         hasCustomer={!!customerId}
         open={pickerOpen}
         onOpenChange={setPickerOpen}
@@ -1351,13 +1445,24 @@ function CartelaConfirmStep({
   }
   // A hypothetical Cartela as it would read right after this save — real
   // `.uses.length` swapped for the post-save used count, everything else
-  // (totalUses, unitValue…) carried over so the real pure helpers apply.
+  // (totalUses, unitValue…) carried over so the real pure helpers (remainingUses,
+  // balanceValue) apply. Still used for those two numbers; the dot row itself
+  // uses forecastStates() below, which keeps the pre-existing/new-this-order
+  // split instead of flattening it into this single `used` count.
   function afterSave(cartela: Cartela): Cartela {
     const used = Math.max(
       0,
       cartela.uses.length - consumedByOrder(cartela.id) + usesInDraft(cartela.id),
     );
     return { ...cartela, uses: Array.from({ length: used }, () => PLACEHOLDER_USE) };
+  }
+
+  // The dot-row forecast: delegates to the pure, independently-tested
+  // forecastPunchStates() (src/lib/cartelas.ts) — unlike afterSave() above,
+  // it never merges the pre-existing and new-this-order counts into one
+  // number, so a manual "ajuste" slot keeps its own dashed-purple rendering.
+  function forecastStates(cartela: Cartela) {
+    return forecastPunchStates(cartela, consumedByOrder(cartela.id), usesInDraft(cartela.id));
   }
 
   const involvedCartelas = [...new Set(cartelaItems.map((i) => i.cartelaUse!.cartelaId))]
@@ -1438,18 +1543,44 @@ function CartelaConfirmStep({
 
         {involvedCartelas.map((cartela) => {
           const after = afterSave(cartela);
+          const newUses = usesInDraft(cartela.id);
           return (
             <div
               key={cartela.id}
               className="rounded-xl border border-border bg-paper px-4 py-3.5"
             >
-              <span className="block text-[12px] text-ink-faint">
-                Cartela #{cartelaCode(cartela.id)} depois deste pedido
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="flex-1 text-[12px] text-ink-faint">
+                  Cartela #{cartelaCode(cartela.id)} depois deste pedido
+                </span>
+                {newUses > 0 && (
+                  <span className="shrink-0 rounded-full bg-mint-wash px-2 py-0.5 text-[10.5px] font-bold text-primary">
+                    +{newUses} novo{newUses === 1 ? "" : "s"} uso{newUses === 1 ? "" : "s"}
+                  </span>
+                )}
+              </div>
               <div className="mt-2.5 flex items-center gap-3">
-                <CartelaPunchDots cartela={after} size="sm" />
+                <CartelaPunchDots states={forecastStates(cartela)} size="sm" />
                 <span className="ml-auto shrink-0 text-[12.5px] font-bold text-primary">
                   {remainingUses(after)} usos · {formatBRL(balanceValue(after))}
+                </span>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-4 border-t border-wash pt-3">
+                <span className="flex items-center gap-1.5 text-[11.5px] text-ink-soft">
+                  <span className="flex size-[13px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-[#D3DDCE] text-[#A8B4AC]">
+                    <Check className="size-2" strokeWidth={3.4} />
+                  </span>
+                  Usados
+                </span>
+                <span className="flex items-center gap-1.5 text-[11.5px] text-ink-soft">
+                  <span className="flex size-[13px] shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                    <Check className="size-2" strokeWidth={3.4} />
+                  </span>
+                  Neste pedido
+                </span>
+                <span className="flex items-center gap-1.5 text-[11.5px] text-ink-soft">
+                  <span className="size-[13px] shrink-0 rounded-full border-[1.5px] border-[#E2E9E2] bg-[#F5F8F3]" />
+                  Disponível
                 </span>
               </div>
             </div>
@@ -1501,6 +1632,11 @@ function ProductPickerDialog({
   shakeMixins,
   shakeUtensils,
   shakeBrindes,
+  pudimFlavors,
+  pudimBases,
+  pudimMixins,
+  pudimUtensils,
+  pudimBrindes,
   hasCustomer,
   open,
   onOpenChange,
@@ -1513,6 +1649,11 @@ function ProductPickerDialog({
   shakeMixins: ShakeMixin[];
   shakeUtensils: ShakeUtensil[];
   shakeBrindes: ShakeBrindeOption[];
+  pudimFlavors: PudimFlavor[];
+  pudimBases: PudimBase[];
+  pudimMixins: PudimMixin[];
+  pudimUtensils: PudimUtensil[];
+  pudimBrindes: PudimBrindeOption[];
   /** A cartela is always sold to a specific customer, but that's only
    *  enforced at save time (the footer's Save button already requires one)
    *  — passed through so CartelaBuilder can show a non-blocking reminder
@@ -1525,7 +1666,7 @@ function ProductPickerDialog({
   const [query, setQuery] = useState("");
   // A picked product moves us from the catalog list to the config step.
   const [config, setConfig] = useState<Product | null>(null);
-  const [mode, setMode] = useState<"catalogo" | "shake" | "cartela">("catalogo");
+  const [mode, setMode] = useState<"catalogo" | "shake" | "pudim" | "cartela">("catalogo");
 
   function reset() {
     setQuery("");
@@ -1607,6 +1748,20 @@ function ProductPickerDialog({
                     Montar shake
                   </button>
                 )}
+                {pudimFlavors.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setMode("pudim")}
+                    className={cn(
+                      "rounded-md px-3 py-1 text-[12px] font-semibold transition-colors",
+                      mode === "pudim"
+                        ? "bg-white text-ink shadow-sm"
+                        : "text-ink-faint hover:text-ink-soft",
+                    )}
+                  >
+                    Montar pudim
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setMode("cartela")}
@@ -1685,6 +1840,17 @@ function ProductPickerDialog({
                 mixins={shakeMixins}
                 utensils={shakeUtensils}
                 brindes={shakeBrindes}
+                onConfirm={handleAdd}
+              />
+            )}
+
+            {mode === "pudim" && (
+              <PudimBuilder
+                flavors={pudimFlavors}
+                bases={pudimBases}
+                mixins={pudimMixins}
+                utensils={pudimUtensils}
+                brindes={pudimBrindes}
                 onConfirm={handleAdd}
               />
             )}

@@ -20,6 +20,11 @@ type CartelaPunchDotsProps = {
  * the cartela history drawer, the customer detail card, and the Pedidos
  * cartela builder + "Cartela aplicada" confirmation preview.
  *
+ * Two more states exist purely for that last caller's forecast: "usado-agora"
+ * (a pulsing solid-green checkmark — about to be consumed by the order being
+ * saved) and "disponivel" (a hollow outline — still free after saving). See
+ * CartelaConfirmStep's forecastStates() in pedidos/order-sheet.tsx.
+ *
  * Accepts either a live `cartela` (most callers — the dots are derived here
  * via punchStates()) or precomputed `states` directly, for callers that
  * already have a PunchState[] on hand (or, as in the Pedidos cartela
@@ -41,6 +46,28 @@ export function CartelaPunchDots(props: CartelaPunchDotsProps) {
         if (state === "livre") {
           return (
             <span key={i} className={cn(dim, "shrink-0 rounded-full bg-primary")} />
+          );
+        }
+        if (state === "usado-agora") {
+          return (
+            <span
+              key={i}
+              style={{ animationDelay: `${i * 0.25}s` }}
+              className={cn(
+                dim,
+                "selet-stamp flex shrink-0 items-center justify-center rounded-full bg-primary text-white",
+              )}
+            >
+              <Check className={iconDim} strokeWidth={3.5} />
+            </span>
+          );
+        }
+        if (state === "disponivel") {
+          return (
+            <span
+              key={i}
+              className={cn(dim, "shrink-0 rounded-full border-[1.5px] border-[#E2E9E2] bg-[#F5F8F3]")}
+            />
           );
         }
         if (state === "ajuste") {

@@ -29,7 +29,18 @@ export function balanceValue(c: Cartela): number {
   return remainingUses(c) * c.unitValue;
 }
 
-export type PunchState = "brinde-livre" | "brinde-usado" | "livre" | "usado" | "ajuste";
+export type PunchState =
+  | "brinde-livre"
+  | "brinde-usado"
+  | "livre"
+  | "usado"
+  | "ajuste"
+  // Forecast-only states: never produced by punchStates() itself — only ever
+  // built manually by the Pedidos "Cartela aplicada" confirmation step, to
+  // show what a cartela will look like right after the order being edited
+  // saves (see CartelaConfirmStep's forecastStates()).
+  | "usado-agora" // about to be consumed by the order being saved
+  | "disponivel"; // still free after this order saves
 
 /**
  * One entry per punch slot (length === totalUses), single source of truth for
@@ -45,6 +56,37 @@ export function punchStates(c: Cartela): PunchState[] {
     if (c.uses[i].kind === "manual") return "ajuste";
     return i === 0 ? "brinde-usado" : "usado";
   });
+}
+
+/**
+ * Forecast dot row for the Pedidos "Cartela aplicada" confirmation step: what
+ * a cartela will look like right after the order currently being edited
+ * saves. Splits the used slots three ways instead of punchStates()'s binary
+ * used/free — the TRUE pre-existing prefix (via punchStates, so a manual
+ * "ajuste" slot keeps its own dashed-purple rendering), then the uses this
+ * order is about to add ("usado-agora"), then the remainder ("disponivel").
+ *
+ * `consumedByThisOrder` is how many of `cartela.uses` this SAME order (being
+ * edited) already holds server-side — those are about to be reversed and
+ * replaced by `newUsesInDraft`, so they're excluded from the "pre-existing"
+ * prefix. Both default to 0 for the create-order case (nothing to exclude).
+ */
+export function forecastPunchStates(
+  cartela: Cartela,
+  consumedByThisOrder = 0,
+  newUsesInDraft = 0,
+): PunchState[] {
+  const priorCount = Math.max(0, cartela.uses.length - consumedByThisOrder);
+  // punchStates(cartela) is already resolved per-slot (ajuste/usado/brinde-usado)
+  // for every index < cartela.uses.length — slicing to priorCount can only
+  // ever take resolved states, never "livre"/"brinde-livre".
+  const prior = punchStates(cartela).slice(0, priorCount);
+  const disponivel = Math.max(0, cartela.totalUses - prior.length - newUsesInDraft);
+  return [
+    ...prior,
+    ...Array.from({ length: newUsesInDraft }, () => "usado-agora" as const),
+    ...Array.from({ length: disponivel }, () => "disponivel" as const),
+  ];
 }
 
 /**

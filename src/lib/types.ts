@@ -12,6 +12,7 @@ export const SECTIONS = [
   "financeiro",
   "cartelas",
   "shakes",
+  "pudim",
   "equipe",
 ] as const;
 export type Section = (typeof SECTIONS)[number];
@@ -36,6 +37,7 @@ export const GRANTABLE_SECTIONS = [
   "financeiro",
   "cartelas",
   "shakes",
+  "pudim",
 ] as const;
 export type GrantableSection = (typeof GRANTABLE_SECTIONS)[number];
 
@@ -144,6 +146,8 @@ export interface OrderItem {
   addons?: string[];
   /** Present only for "Montar shake" lines; mutually exclusive with `addons`. */
   shake?: ShakeSelection;
+  /** Present only for "Montar pudim" lines; mutually exclusive with `addons`/`shake`. */
+  pudim?: PudimSelection;
   /** Present only on the line that SELLS a new cartela; qty is always 1. */
   cartelaSale?: { paidUses: number; totalUses: number; unitValue: number };
   /**
@@ -576,4 +580,91 @@ export interface ShakeSelection {
   /** Per-order overrides against each utensílio's catalog default. Absent id = use current default. */
   utensilOverrides?: { utensilId: string; included: boolean }[];
   brinde?: ShakeBrindeSelection;
+}
+
+// --- Pudim: a shared, store-wide modifier catalog for build-a-pudim orders,
+// structured exactly like Shakes (src/data/pudim.ts) minus a "Borda" tier and
+// with a single sabor per line instead of up to MAX_SHAKE_FLAVORS. ---
+
+/** A flavor's own insumo list — reuses RecipeItem verbatim ("insumos do sabor"). */
+export interface PudimFlavor {
+  id: string;
+  name: string;
+  price: number; // centavos, "R$ X / copo"
+  recipe: RecipeItem[];
+  archived: boolean;
+  createdAt: string;
+}
+
+/** Single-choice modifier (picked once per order), usually free with an optional flat surcharge. */
+export interface PudimBase {
+  id: string;
+  name: string;
+  insumo: RecipeItem;
+  price: number; // centavos, "Acréscimo"; 0 = incluso no preço do sabor
+  archived: boolean;
+  createdAt: string;
+}
+
+/**
+ * Pudim-scoped "Adicional" — unlimited multi-select, quantity-tiered, shared
+ * across all sabores. Named PudimMixin (not PudimAddon) to avoid colliding
+ * with ProductAddon (a Product's own list) and ProductSaleType's "adicional"
+ * (standalone catalog SKUs) — the Portuguese UI copy still says "Adicionais".
+ */
+export interface PudimMixin {
+  id: string;
+  name: string;
+  insumo: RecipeItem;
+  tiers: PriceTier[];
+  archived: boolean;
+  createdAt: string;
+}
+
+/** Never priced/shown on the order — pure stock draw, opt-in/out per order line. */
+export interface PudimUtensil {
+  id: string;
+  name: string;
+  insumo: RecipeItem;
+  /** "Padrão em todo pudim" — auto-applies unless overridden per order line. */
+  defaultIncluded: boolean;
+  archived: boolean;
+  createdAt: string;
+}
+
+/**
+ * A café menu Product given away free alongside a "Montar pudim" order line.
+ * `id === productId` — pure join against products, no recipe/price of its
+ * own; always read the LIVE Product for display (name/category/price).
+ */
+export interface PudimBrinde {
+  id: string;
+  productId: string;
+  name: string;
+  archived: boolean;
+  createdAt: string;
+}
+
+/**
+ * A "Montar pudim" order line's chosen brinde. `listPrice` is the struck-
+ * through menu price (charged as 0); `addons` are the brinde's own add-ons
+ * the customer still pays for, money-snapshotted at order time so a later
+ * menu re-price never rewrites a historical order's price.
+ */
+export interface PudimBrindeSelection {
+  productId: string;
+  name: string;
+  listPrice: number; // centavos, struck-through; charged as 0
+  addons?: { name: string; price: number }[]; // still charged, snapshotted
+}
+
+/** A "Montar pudim" order line's picks, embedded on OrderItem.pudim. */
+export interface PudimSelection {
+  /** Single sabor id — unlike Shake's flavorIds[], Pudim only allows one. */
+  flavorId: string;
+  baseId: string | null;
+  mixins: { modifierId: string; qty: number }[];
+  /** Per-order overrides against each utensílio's catalog default. Absent id = use current default. */
+  utensilOverrides?: { utensilId: string; included: boolean }[];
+  brinde?: PudimBrindeSelection;
 }

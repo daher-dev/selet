@@ -103,3 +103,16 @@ export function formatShakeLineName(parts: {
   }
   return `Shake · ${segments.join(" / ")}`;
 }
+
+export function formatPudimLineName(parts: {
+  flavor: string;
+  base?: string | null;
+  mixins: { name: string; qty: number }[];
+}): string {
+  const segments = [parts.flavor];
+  if (parts.base) segments.push(parts.base);
+  for (const m of parts.mixins) {
+    segments.push(`+${m.qty > 1 ? `${m.qty}× ` : ""}${m.name}`);
+  }
+  return `Pudim · ${segments.join(" / ")}`;
+}

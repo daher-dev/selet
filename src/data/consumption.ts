@@ -1,5 +1,6 @@
 import type { OrderItem, Product } from "@/lib/types";
 import type { ShakeCatalogs } from "./shakes";
+import type { PudimCatalogs } from "./pudim";
 
 /** Per-insumo consumption need. medido reads `amount`; continuo reads `uses`. */
 export interface InsumoNeed {
@@ -107,6 +108,53 @@ function resolveShakeLine(
 }
 
 /**
+ * Resolves a "Montar pudim" line's picks (flavor recipe + base + mixins +
+ * utensílios, respecting per-line overrides else each utensílio's own
+ * defaultIncluded) into the same insumos map — mirrors resolveShakeLine minus
+ * the rims/bordas step and the multi-flavor loop (Pudim allows only one
+ * sabor per line). Best-effort: a catalog entry that's gone (deleted after
+ * the order was placed) is skipped, mirroring resolveShakeLine's discipline.
+ */
+function resolvePudimLine(
+  line: OrderItem,
+  catalogs: PudimCatalogs | undefined,
+  insumos: Map<string, InsumoNeed>,
+) {
+  const sel = line.pudim;
+  if (!sel || !catalogs) return;
+  const lineQty = line.qty;
+
+  const flavor = catalogs.flavors.get(sel.flavorId);
+  for (const r of flavor?.recipe ?? []) {
+    if (!r.stockItemId) continue;
+    addInsumo(insumos, r.stockItemId, (r.qty ?? 0) * lineQty, lineQty);
+  }
+
+  const base = sel.baseId ? catalogs.bases.get(sel.baseId) : undefined;
+  if (base?.insumo.stockItemId) {
+    addInsumo(insumos, base.insumo.stockItemId, (base.insumo.qty ?? 0) * lineQty, lineQty);
+  }
+
+  for (const { modifierId, qty } of sel.mixins) {
+    const mixin = catalogs.mixins.get(modifierId);
+    if (!mixin?.insumo.stockItemId) continue;
+    addInsumo(
+      insumos,
+      mixin.insumo.stockItemId,
+      (mixin.insumo.qty ?? 0) * qty * lineQty,
+      qty * lineQty,
+    );
+  }
+
+  const overrides = new Map((sel.utensilOverrides ?? []).map((o) => [o.utensilId, o.included]));
+  for (const u of catalogs.utensils) {
+    const included = overrides.get(u.id) ?? u.defaultIncluded;
+    if (!included || !u.insumo.stockItemId) continue;
+    addInsumo(insumos, u.insumo.stockItemId, (u.insumo.qty ?? 0) * lineQty, lineQty);
+  }
+}
+
+/**
  * Resolves an order's lines into the stock draws they should make, per the
  * confirmed café semantics:
  *  - revenda/adicional line → decrement its linked insumo by lineQty (adicional
@@ -121,6 +169,9 @@ function resolveShakeLine(
  *    via drawForProduct (same as an ordinary Cardápio line) PLUS its charged
  *    add-ons' insumos — all scaled by lineQty, regardless of the line's
  *    unitPrice (a brinde's price is 0, but that never gates its stock draw).
+ *  - "Montar pudim" line (line.pudim set) → resolvePudimLine, the same shape
+ *    as the shake path minus rims/bordas and multi-flavor, with its own
+ *    brinde draw handled identically to the shake brinde block below.
  * Only entries carrying a stockItemId are tracked; name-only pantry rows skip.
  * The per-insumo mode (medido vs continuo) is decided later, by the item.
  */
@@ -128,37 +179,38 @@ export function buildConsumptionRequests(
   items: OrderItem[],
   products: Map<string, Product>,
   shakeCatalogs?: ShakeCatalogs,
+  pudimCatalogs?: PudimCatalogs,
 ): ConsumptionRequests {
   const insumos = new Map<string, InsumoNeed>();
   const produced = new Map<string, number>();
+
+  function drawBrinde(brinde: { productId: string; addons?: { name: string; price: number }[] } | undefined, lineQty: number) {
+    if (!brinde) return;
+    const brindeProduct = products.get(brinde.productId);
+    if (!brindeProduct) return;
+    drawForProduct(brindeProduct, lineQty, insumos, produced);
+    for (const addon of brinde.addons ?? []) {
+      const productAddon = brindeProduct.adicionais.find((a) => a.name === addon.name);
+      if (!productAddon?.stockItemId) continue;
+      addInsumo(insumos, productAddon.stockItemId, (productAddon.qty ?? 0) * lineQty, lineQty);
+    }
+  }
 
   for (const line of items) {
     if (line.cartelaSale) continue; // sells a punch card, not a real product — no stock draw.
     if (line.shake) {
       resolveShakeLine(line, shakeCatalogs, insumos);
-
       // A brinde (free menu item riding on this shake line) still draws real
       // stock — its own unitPrice contribution is 0, but price must never gate
       // consumption. Looked up in the already-loaded products map (same one
       // used for ordinary Cardápio lines below); missing/archived → best-effort
       // skip, never throw.
-      const brinde = line.shake.brinde;
-      if (brinde) {
-        const brindeProduct = products.get(brinde.productId);
-        if (brindeProduct) {
-          drawForProduct(brindeProduct, line.qty, insumos, produced);
-          for (const addon of brinde.addons ?? []) {
-            const productAddon = brindeProduct.adicionais.find((a) => a.name === addon.name);
-            if (!productAddon?.stockItemId) continue;
-            addInsumo(
-              insumos,
-              productAddon.stockItemId,
-              (productAddon.qty ?? 0) * line.qty,
-              line.qty,
-            );
-          }
-        }
-      }
+      drawBrinde(line.shake.brinde, line.qty);
+      continue;
+    }
+    if (line.pudim) {
+      resolvePudimLine(line, pudimCatalogs, insumos);
+      drawBrinde(line.pudim.brinde, line.qty);
       continue;
     }
 

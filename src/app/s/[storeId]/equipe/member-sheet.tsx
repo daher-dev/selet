@@ -11,6 +11,7 @@ import {
   CircleCheck,
   CircleDollarSign,
   CupSoda,
+  Dessert,
   Inbox,
   LogIn,
   Loader2,
@@ -79,6 +80,7 @@ const ACCESS_MODULES: {
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "produtos", label: "Cardápio", icon: Tag },
   { key: "shakes", label: "Shakes", icon: CupSoda },
+  { key: "pudim", label: "Pudim", icon: Dessert },
   { key: "cartelas", label: "Cartelas", icon: Ticket },
   { key: "estoque", label: "Estoque", icon: Package },
   { key: "financeiro", label: "Financeiro", icon: CircleDollarSign },
@@ -136,6 +138,7 @@ const ACTIVITY_ICONS: Record<string, LucideIcon> = {
   truck: Truck,
   ticket: Ticket,
   "cup-soda": CupSoda,
+  dessert: Dessert,
   mail: Mail,
 };
 

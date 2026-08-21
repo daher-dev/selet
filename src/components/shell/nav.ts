@@ -5,6 +5,7 @@ import {
   User,
   Box,
   CupSoda,
+  Dessert,
   Layers,
   CreditCard,
   Ticket,
@@ -53,6 +54,14 @@ export const NAV_ITEMS: NavItem[] = [
     // it on for them. No extra gating needed here, canAccessSection()/the
     // sidebar filter already handle it.
     section: "shakes",
+  },
+  {
+    label: "Pudim",
+    segment: "pudim",
+    icon: Dessert,
+    // Grantable like Shakes (see GRANTABLE_SECTIONS in src/lib/types.ts) — a
+    // funcionário sees this once an admin toggles it on for them.
+    section: "pudim",
   },
   {
     label: "Cartelas",

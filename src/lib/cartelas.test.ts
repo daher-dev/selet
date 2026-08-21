@@ -5,6 +5,7 @@ import {
   cartelaCode,
   computeStatus,
   coverageFor,
+  forecastPunchStates,
   manualUseGroups,
   punchStates,
   remainingUses,
@@ -115,6 +116,63 @@ describe("punchStates", () => {
       "ajuste",
       "livre",
       "livre",
+    ]);
+  });
+});
+
+describe("forecastPunchStates", () => {
+  it("0 pre-existing used, some new-in-draft: split is all usado-agora then disponivel", () => {
+    // paidUses: 2 → totalUses 3, nothing used yet, this order will consume 2.
+    expect(forecastPunchStates(cartela({ paidUses: 2, uses: [] }), 0, 2)).toEqual([
+      "usado-agora",
+      "usado-agora",
+      "disponivel",
+    ]);
+  });
+
+  it("some pre-existing used, 0 new-in-draft: prior states carry their real per-slot kind", () => {
+    // brinde + 1 paid use already redeemed by a DIFFERENT order; this order adds nothing new.
+    expect(forecastPunchStates(cartela({ paidUses: 2, uses: [use(), use()] }), 0, 0)).toEqual([
+      "brinde-usado",
+      "usado",
+      "disponivel",
+    ]);
+  });
+
+  it("mix of pre-existing and new: prior prefix + usado-agora + remainder, in that order", () => {
+    // 1 pre-existing use (the brinde), this order adds 1 more (a paid slot).
+    expect(forecastPunchStates(cartela({ paidUses: 2, uses: [use()] }), 0, 1)).toEqual([
+      "brinde-usado",
+      "usado-agora",
+      "disponivel",
+    ]);
+  });
+
+  it("fully exhausted after save: no disponivel slots left, no negative padding", () => {
+    expect(forecastPunchStates(cartela({ paidUses: 2, uses: [use()] }), 0, 2)).toEqual([
+      "brinde-usado",
+      "usado-agora",
+      "usado-agora",
+    ]);
+  });
+
+  it("consumedByThisOrder strips exactly that many uses off the pre-existing prefix", () => {
+    // This SAME order (being edited) already holds 1 use against this cartela
+    // (the brinde) — it's about to be reversed and replaced by newUsesInDraft,
+    // so it must NOT appear in the "prior" (unrelated-to-this-save) prefix.
+    const c = cartela({ paidUses: 2, uses: [use()] });
+    expect(forecastPunchStates(c, 1, 1)).toEqual(["usado-agora", "disponivel", "disponivel"]);
+  });
+
+  it("a pre-existing manual 'ajuste' slot keeps rendering as ajuste, not usado/usado-agora", () => {
+    const c = cartela({ paidUses: 2, uses: [use(), manualUse()] });
+    expect(forecastPunchStates(c, 0, 0)).toEqual(["brinde-usado", "ajuste", "disponivel"]);
+  });
+
+  it("defaults consumedByThisOrder/newUsesInDraft to 0 (create-order case)", () => {
+    expect(forecastPunchStates(cartela({ paidUses: 1, uses: [use()] }))).toEqual([
+      "brinde-usado",
+      "disponivel",
     ]);
   });
 });

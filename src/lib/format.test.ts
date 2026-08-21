@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatBRL,
+  formatPudimLineName,
   formatQty,
   formatShakeLineName,
   initials,
@@ -92,5 +93,35 @@ describe("formatShakeLineName", () => {
         mixins: [{ name: "Fibra Ativa", qty: 2 }],
       }),
     ).toBe("Shake · Frutas Amarelas / +2× Fibra Ativa");
+  });
+});
+
+describe("formatPudimLineName", () => {
+  it("formats a single-flavor line with a base", () => {
+    expect(
+      formatPudimLineName({ flavor: "Frutas Amarelas", base: "NutreV", mixins: [] }),
+    ).toBe("Pudim · Frutas Amarelas / NutreV");
+  });
+
+  it("handles no base/mixins", () => {
+    expect(formatPudimLineName({ flavor: "Chocolate", mixins: [] })).toBe("Pudim · Chocolate");
+  });
+
+  it("includes tiered mixins with quantities", () => {
+    expect(
+      formatPudimLineName({
+        flavor: "Frutas Amarelas",
+        mixins: [{ name: "Fibra Ativa", qty: 2 }],
+      }),
+    ).toBe("Pudim · Frutas Amarelas / +2× Fibra Ativa");
+  });
+
+  it("omits the ×qty prefix for a single unit", () => {
+    expect(
+      formatPudimLineName({
+        flavor: "Cookies",
+        mixins: [{ name: "Whey extra", qty: 1 }],
+      }),
+    ).toBe("Pudim · Cookies / +Whey extra");
   });
 });
