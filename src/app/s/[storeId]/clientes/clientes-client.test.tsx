@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Customer, Order } from "@/lib/types";
 import { AppShellProvider } from "@/components/shell/app-shell-context";
+import { setCustomerArchivedAction } from "@/actions/customers";
 import { ClientesClient } from "./clientes-client";
 
 vi.mock("next/navigation", () => ({
@@ -13,8 +14,8 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/actions/customers", () => ({
   createCustomerAction: vi.fn(),
-  updateCustomerAction: vi.fn(),
-  setCustomerArchivedAction: vi.fn(),
+  updateCustomerAction: vi.fn(async () => ({ ok: true })),
+  setCustomerArchivedAction: vi.fn(async () => ({ ok: true })),
 }));
 
 function customer(overrides: Partial<Customer>): Customer {
@@ -106,5 +107,55 @@ describe("ClientesClient", () => {
     );
     expect(screen.getAllByText("João Souza").length).toBeGreaterThan(0);
     expect(screen.queryByText("Maria Silva")).not.toBeInTheDocument();
+  });
+
+  it("renders the Aniversários segment as its own row layout with an Enviar mensagem action (design Mock Clientes 2a)", () => {
+    const today = new Date();
+    const carla = customer({
+      id: "carla",
+      name: "Carla Menezes",
+      phone: "(27) 99812-4471",
+      birthday: { day: today.getDate(), month: today.getMonth() + 1 },
+      orderCount: 41,
+    });
+    renderList({ initialSegment: "aniversarios", customers: [carla] });
+    expect(screen.getByText("Carla Menezes")).toBeInTheDocument();
+    expect(screen.getByText(/41 pedidos/)).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "Enviar mensagem" });
+    expect(link).toHaveAttribute("href", expect.stringContaining("https://wa.me/5527998124471"));
+  });
+
+  it("renders the Arquivados segment as a Cliente/Situação table with a working Reativar action (design Mock Clientes 2b)", async () => {
+    const user = userEvent.setup();
+    renderList({ initialSegment: "arquivados" });
+    expect(screen.getByText("Situação")).toBeInTheDocument();
+    expect(screen.getByText("Arquivado")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reativar" }));
+    expect(setCustomerArchivedAction).toHaveBeenCalledWith("s1", "ana", false);
+    // Clicking Reativar must not also open the customer's detail sheet.
+    expect(screen.queryByLabelText("Fechar")).not.toBeInTheDocument();
+  });
+
+  it("shows an 'Atraso' badge for an overdue customer's Tags column (design Mock Clientes 1a: Luiza Castro)", () => {
+    const now = new Date();
+    const staleDate = new Date(now.getTime() - 21 * 86_400_000).toISOString();
+    const luiza = customer({
+      id: "luiza",
+      name: "Luiza Castro",
+      orderCount: 15,
+      lastOrderAt: staleDate,
+      avgReorderDays: 7,
+    });
+    renderList({ customers: [luiza] });
+    // Desktop table + mobile card both render in jsdom (the breakpoint split
+    // is CSS-only), so the badge legitimately appears twice.
+    expect(screen.getAllByText(/Atraso \d+d/).length).toBeGreaterThan(0);
+  });
+
+  it("shows a 'Novo' badge for a customer under 3 orders with no manual tags (design Mock Clientes 1a: João Pedro)", () => {
+    const rookie = customer({ id: "rookie", name: "João Pedro", orderCount: 2 });
+    renderList({ customers: [rookie] });
+    expect(screen.getAllByText("Novo").length).toBeGreaterThan(0);
   });
 });

@@ -207,6 +207,8 @@ export interface Customer {
   name: string;
   phone?: string;
   city?: string;
+  state?: string; // UF, e.g. "ES"
+  street?: string; // "Rua, número, bairro" — free text, optional
   instagram?: string;
   birthday?: { day: number; month: number };
   since: string;

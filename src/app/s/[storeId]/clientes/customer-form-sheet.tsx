@@ -15,13 +15,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker, MonthPicker } from "@/components/ui/date-picker";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Sheet,
   SheetContent,
   SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { TAG_CATALOG, maskPhone } from "./customer-logic";
+import { BR_STATES, TAG_CATALOG, maskPhone } from "./customer-logic";
 
 interface CustomerFormSheetProps {
   storeId: string;
@@ -102,6 +109,8 @@ function CustomerForm({
     customer ? maskPhone(customer.phone ?? "") : maskPhone(defaultDDD ?? ""),
   );
   const [city, setCity] = useState(customer?.city ?? storeName ?? "");
+  const [state, setState] = useState(customer?.state ?? "");
+  const [street, setStreet] = useState(customer?.street ?? "");
   const [instagram, setInstagram] = useState(customer?.instagram ?? "");
   const [birthday, setBirthday] = useState<Customer["birthday"]>(
     customer?.birthday,
@@ -129,6 +138,8 @@ function CustomerForm({
         // Defaults to the active store's city on create, but stays editable
         // (design Mock Clientes 3c "Endereço").
         city: city || undefined,
+        state: state || undefined,
+        street: street || undefined,
         instagram: instagram || undefined,
         birthday,
         since: since
@@ -215,14 +226,37 @@ function CustomerForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="customer-city">Cidade</Label>
+          <Label htmlFor="customer-city">Endereço</Label>
+          <div className="grid grid-cols-[1fr_100px] gap-3">
+            <Input
+              id="customer-city"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Ex: Vila Velha"
+              className="rounded-xl"
+            />
+            <Select value={state} onValueChange={setState}>
+              <SelectTrigger className="rounded-xl">
+                <SelectValue placeholder="UF" />
+              </SelectTrigger>
+              <SelectContent>
+                {BR_STATES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.value}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Input
-            id="customer-city"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="Ex: Vila Velha"
+            value={street}
+            onChange={(e) => setStreet(e.target.value)}
+            placeholder="Rua, número, bairro — opcional"
             className="rounded-xl"
           />
+          <p className="text-[11.5px] text-ink-faint">
+            A cidade já basta; o resto pode ficar em branco.
+          </p>
         </div>
 
         <div className="space-y-1.5">

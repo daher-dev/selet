@@ -24,6 +24,8 @@ export function toCustomer(
     name: d.name,
     phone: d.phone,
     city: d.city,
+    state: d.state,
+    street: d.street,
     instagram: d.instagram,
     birthday: d.birthday ?? undefined,
     since: d.since?.toDate().toISOString() ?? "",
@@ -75,6 +77,8 @@ export interface CustomerInput {
   name: string;
   phone?: string;
   city?: string;
+  state?: string;
+  street?: string;
   instagram?: string;
   birthday?: { day: number; month: number };
   since?: string; // ISO date; defaults to now on create

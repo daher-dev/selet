@@ -25,6 +25,50 @@ export function tagMeta(id: string) {
   return TAG_CATALOG.find((t) => t.id === id) ?? null;
 }
 
+/** Brazilian states for the address form's UF select (design Mock Clientes 4a). */
+export const BR_STATES: { value: string; label: string }[] = [
+  { value: "AC", label: "Acre" },
+  { value: "AL", label: "Alagoas" },
+  { value: "AP", label: "Amapá" },
+  { value: "AM", label: "Amazonas" },
+  { value: "BA", label: "Bahia" },
+  { value: "CE", label: "Ceará" },
+  { value: "DF", label: "Distrito Federal" },
+  { value: "ES", label: "Espírito Santo" },
+  { value: "GO", label: "Goiás" },
+  { value: "MA", label: "Maranhão" },
+  { value: "MT", label: "Mato Grosso" },
+  { value: "MS", label: "Mato Grosso do Sul" },
+  { value: "MG", label: "Minas Gerais" },
+  { value: "PA", label: "Pará" },
+  { value: "PB", label: "Paraíba" },
+  { value: "PR", label: "Paraná" },
+  { value: "PE", label: "Pernambuco" },
+  { value: "PI", label: "Piauí" },
+  { value: "RJ", label: "Rio de Janeiro" },
+  { value: "RN", label: "Rio Grande do Norte" },
+  { value: "RS", label: "Rio Grande do Sul" },
+  { value: "RO", label: "Rondônia" },
+  { value: "RR", label: "Roraima" },
+  { value: "SC", label: "Santa Catarina" },
+  { value: "SP", label: "São Paulo" },
+  { value: "SE", label: "Sergipe" },
+  { value: "TO", label: "Tocantins" },
+];
+
+/**
+ * Builds a wa.me link from a raw phone string: strips non-digits and prepends
+ * Brazil's country code (55) when absent. Returns null when there's no number.
+ * Shared by the detail sheet's CTAs and the Aniversários segment's "Enviar
+ * mensagem" row action (design Mock Clientes 2a).
+ */
+export function whatsappHref(phone: string | undefined): string | null {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+  const withCountry = digits.startsWith("55") ? digits : `55${digits}`;
+  return `https://wa.me/${withCountry}`;
+}
+
 /** Avatar palette mirroring design custVisual (2082-2086). */
 export function avatarClass(customer: Pick<Customer, "tags" | "archived">): string {
   if (customer.archived) return "bg-[#EEF1ED] text-[#7A857D]";
@@ -77,6 +121,28 @@ export function birthdayLabel(
 ): string {
   if (!birthday) return "";
   return `${birthday.day} de ${MONTHS_SHORT_PT[birthday.month - 1]}`;
+}
+
+/** "28/07" numeric style label — used in the Aniversários segment row (design
+ * Mock Clientes 2a) where the long-form label would be too wide. */
+export function birthdayShort(
+  birthday: { day: number; month: number } | undefined,
+): string {
+  if (!birthday) return "";
+  return `${String(birthday.day).padStart(2, "0")}/${String(birthday.month).padStart(2, "0")}`;
+}
+
+/**
+ * Whole days since the customer's last order, or null when they've never
+ * ordered — the Arquivados segment's "Sem pedidos há {N}d" line (design Mock
+ * Clientes 2b).
+ */
+export function daysSinceLastOrder(
+  lastOrderAt: string | null,
+  now: Date = new Date(),
+): number | null {
+  if (!lastOrderAt) return null;
+  return Math.floor((now.getTime() - new Date(lastOrderAt).getTime()) / DAY_MS);
 }
 
 /** Compact recency for the customer's last order (list secondary line). */
@@ -242,4 +308,94 @@ export function computeReorder(
     detail: `Baseado no consumo de ${product}`,
     cta: "Agendar lembrete",
   };
+}
+
+/** Lowercase, prefix-free recency for embedding mid-sentence, e.g. "…último
+ * pedido {hoje|ontem|há N dias}." (design Mock Clientes 3a rhythm line). */
+export function lastOrderRecencyPhrase(
+  lastOrderAt: string | null,
+  now: Date = new Date(),
+): string {
+  if (!lastOrderAt) return "sem pedidos ainda";
+  const days = Math.floor((now.getTime() - new Date(lastOrderAt).getTime()) / DAY_MS);
+  if (days <= 0) return "hoje";
+  if (days === 1) return "ontem";
+  return `há ${days} dias`;
+}
+
+export interface RhythmInfo {
+  tone: "ok" | "unknown";
+  text: string;
+}
+
+/**
+ * Compact rhythm status line shown under the ticket médio hero card (design
+ * Mock Clientes 3a "Em dia — costuma vir a cada 6 dias, último pedido hoje."
+ * / 3b "Ritmo de compra ainda sem leitura — o sistema precisa de 3 pedidos.").
+ * Returns null when the reorder state is overdue/reactivate — those states
+ * get the top-of-sheet alert card instead (design 3c), not this line.
+ */
+export function computeRhythm(
+  customer: Customer,
+  reorder: Reorder | null,
+  now: Date = new Date(),
+): RhythmInfo | null {
+  if (reorder && (reorder.state === "overdue" || reorder.state === "reactivate")) {
+    return null;
+  }
+  if (!reorder || customer.avgReorderDays == null) {
+    return {
+      tone: "unknown",
+      text: "Ritmo de compra ainda sem leitura — o sistema precisa de 3 pedidos.",
+    };
+  }
+  const avg = Math.round(customer.avgReorderDays);
+  return {
+    tone: "ok",
+    text: `Em dia — costuma vir a cada ${avg} dias, último pedido ${lastOrderRecencyPhrase(customer.lastOrderAt, now)}.`,
+  };
+}
+
+/**
+ * Store-wide average ticket (centavos) across non-archived customers with at
+ * least one order — the "vs. média da loja" comparison in the ticket médio
+ * hero card (design Mock Clientes 3a/3c). Null when nobody has ordered yet.
+ */
+export function computeStoreAvgTicket(customers: Customer[]): number | null {
+  let spent = 0;
+  let count = 0;
+  for (const c of customers) {
+    if (c.archived) continue;
+    spent += c.totalSpent;
+    count += c.orderCount;
+  }
+  return count > 0 ? spent / count : null;
+}
+
+/**
+ * Whether a customer counts as "Novo" for the auto-computed tags-column badge
+ * (design Mock Clientes 1a, João Pedro row) — same "system needs 3 orders"
+ * threshold as the rhythm line, and only shown when there's no manual tag to
+ * take its place.
+ */
+export function isNewCustomer(
+  customer: Pick<Customer, "orderCount" | "tags" | "archived">,
+): boolean {
+  return !customer.archived && customer.orderCount < 3 && customer.tags.length === 0;
+}
+
+/**
+ * Days overdue for the list row's Tags-column badge (design Mock Clientes 1a,
+ * Luiza Castro row: the "Atrasada 14d" pill replaces "—"/the tag chips in
+ * that column, it isn't a third under-name badge alongside birthday/unpaid —
+ * those two are already capped at two by simply being the only two kinds).
+ * Covers both "overdue" and the more severe "reactivate" reorder states.
+ * Cheap by design: pass `null` as computeReorder's fallbackProduct — the row
+ * only needs the day count, not the predicted product name.
+ */
+export function rowOverdueDays(customer: Customer, now: Date = new Date()): number | null {
+  const reorder = computeReorder(customer, null, now);
+  if (!reorder) return null;
+  if (reorder.state !== "overdue" && reorder.state !== "reactivate") return null;
+  return -reorder.days;
 }

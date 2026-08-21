@@ -16,6 +16,8 @@ const customerSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome do cliente."),
   phone: z.string().trim().optional(),
   city: z.string().trim().optional(),
+  state: z.string().trim().optional(),
+  street: z.string().trim().optional(),
   instagram: z
     .string()
     .trim()

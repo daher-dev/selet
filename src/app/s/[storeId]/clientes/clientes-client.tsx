@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Archive,
@@ -10,11 +10,14 @@ import {
   Crown,
   ListFilter,
   Search,
+  Sparkles,
   Users,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { Cartela, Customer, Order } from "@/lib/types";
 import { formatBRL, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { setCustomerArchivedAction } from "@/actions/customers";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -36,10 +39,16 @@ import {
 } from "@/components/shell/app-shell-context";
 import {
   avatarClass,
+  birthdayShort,
   buildUnpaidByCustomer,
+  computeStoreAvgTicket,
+  daysSinceLastOrder,
+  isNewCustomer,
   lastOrderSummary,
+  rowOverdueDays,
   tagMeta,
   upcomingBirthdayDays,
+  whatsappHref,
 } from "./customer-logic";
 import { CustomerDetailSheet } from "./customer-detail-sheet";
 import { CustomerFormSheet } from "./customer-form-sheet";
@@ -128,6 +137,10 @@ export function ClientesClient({
   const unpaidByCustomer = useMemo(
     () => buildUnpaidByCustomer(orders),
     [orders],
+  );
+  const storeAvgTicket = useMemo(
+    () => computeStoreAvgTicket(customers),
+    [customers],
   );
 
   // Look up by id so the drawer always shows fresh data after revalidation.
@@ -223,6 +236,10 @@ export function ClientesClient({
               : "Tente outra busca ou segmento."
           }
         />
+      ) : segment === "aniversarios" ? (
+        <AniversariosList customers={filtered} />
+      ) : segment === "arquivados" ? (
+        <ArquivadosList storeId={storeId} customers={filtered} onOpen={setSelectedId} />
       ) : (
         <>
           {/* Desktop table (design 636-657) */}
@@ -237,6 +254,7 @@ export function ClientesClient({
             {filtered.map((customer) => {
               const unpaid = unpaidByCustomer.get(customer.id);
               const bdayDays = upcomingBirthdayDays(customer.birthday);
+              const overdueDays = rowOverdueDays(customer);
               return (
                 <DataListRow
                   key={customer.id}
@@ -267,7 +285,7 @@ export function ClientesClient({
                     </span>
                   </span>
                   <span className="flex flex-wrap items-center justify-end gap-1.5">
-                    <RowTags customer={customer} />
+                    <RowTags customer={customer} overdueDays={overdueDays} />
                   </span>
                 </DataListRow>
               );
@@ -279,6 +297,7 @@ export function ClientesClient({
             {filtered.map((customer) => {
               const unpaid = unpaidByCustomer.get(customer.id);
               const bdayDays = upcomingBirthdayDays(customer.birthday);
+              const overdueDays = rowOverdueDays(customer);
               return (
                 <li key={customer.id}>
                   <button
@@ -299,7 +318,7 @@ export function ClientesClient({
                         <span className="truncate text-[15px] font-semibold text-ink">
                           {customer.name}
                         </span>
-                        <RowTags customer={customer} />
+                        <RowTags customer={customer} overdueDays={overdueDays} />
                       </span>
                       <span className="mt-0.5 block truncate text-[12px] text-ink-faint">
                         {lastOrderSummary(customer)}
@@ -329,6 +348,7 @@ export function ClientesClient({
         orders={selectedOrders}
         cartelas={selectedCartelas}
         unpaid={selected ? (unpaidByCustomer.get(selected.id) ?? null) : null}
+        storeAvgTicket={storeAvgTicket}
         open={selectedId !== null}
         onOpenChange={(open) => {
           if (!open) setSelectedId(null);
@@ -352,15 +372,27 @@ export function ClientesClient({
   );
 }
 
-function RowTags({ customer }: { customer: Customer }) {
+function RowTags({
+  customer,
+  overdueDays,
+}: {
+  customer: Customer;
+  overdueDays: number | null;
+}) {
   const tags = customer.tags
     .map((id) => tagMeta(id))
     .filter((t): t is NonNullable<typeof t> => t != null);
-  if (tags.length === 0) {
+
+  // The overdue badge takes the Tags-column slot alongside any manual tags
+  // (design Mock Clientes 1a, Luiza Castro row) — it isn't a third under-name
+  // badge, birthday/unpaid already fill that slot on their own.
+  if (overdueDays == null && tags.length === 0) {
+    if (isNewCustomer(customer)) return <NewChip />;
     return <span className="text-[12px] text-ink-faint max-[819px]:hidden">—</span>;
   }
   return (
     <>
+      {overdueDays != null && <OverdueChip days={overdueDays} />}
       {tags.map((t) => (
         <span
           key={t.id}
@@ -374,6 +406,24 @@ function RowTags({ customer }: { customer: Customer }) {
         </span>
       ))}
     </>
+  );
+}
+
+function OverdueChip({ days }: { days: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FBEAE4] px-2.5 py-0.5 text-[11px] font-bold text-[#A83D22]">
+      <span className="size-1.5 rounded-full bg-[#C0492B]" />
+      Atraso {days}d
+    </span>
+  );
+}
+
+function NewChip() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-[#E6EFF8] px-2.5 py-0.5 text-[11px] font-bold text-[#2F6FB5]">
+      <Sparkles className="size-3" />
+      Novo
+    </span>
   );
 }
 
@@ -396,5 +446,164 @@ function UnpaidChip({ total, compact }: { total: number; compact?: boolean }) {
       <Clock className="size-3" />
       {compact ? formatBRL(total) : `A receber ${formatBRL(total)}`}
     </span>
+  );
+}
+
+/**
+ * Aniversários segment: a flat list of rounded cards, not the generic table —
+ * date + tags + order count instead of last-order recency, and a per-row
+ * "Enviar mensagem" WhatsApp action (design Mock Clientes 2a).
+ */
+function AniversariosList({ customers }: { customers: Customer[] }) {
+  return (
+    <ul className="space-y-2.5">
+      {customers.map((customer) => {
+        const tags = customer.tags
+          .map((id) => tagMeta(id))
+          .filter((t): t is NonNullable<typeof t> => t != null);
+        const parts = [
+          birthdayShort(customer.birthday),
+          ...tags.map((t) => t.label),
+          customer.orderCount === 1 ? "1 pedido" : `${customer.orderCount} pedidos`,
+        ].filter(Boolean);
+        const wa = whatsappHref(customer.phone);
+        return (
+          <li
+            key={customer.id}
+            className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5"
+          >
+            <span
+              className={cn(
+                "flex size-10 shrink-0 items-center justify-center rounded-full text-[14px] font-bold",
+                avatarClass(customer),
+              )}
+            >
+              {initials(customer.name)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[14.5px] font-semibold text-ink">
+                {customer.name}
+              </span>
+              <span className="mt-0.5 block truncate text-[12px] text-ink-faint">
+                {parts.join(" · ")}
+              </span>
+            </span>
+            {wa ? (
+              <a
+                href={wa}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-[10px] bg-primary px-3.5 py-2 text-[12.5px] font-semibold text-white transition-colors hover:bg-primary/90"
+              >
+                Enviar mensagem
+              </a>
+            ) : (
+              <span className="shrink-0 rounded-[10px] border border-border px-3.5 py-2 text-[12.5px] font-semibold text-ink-faint">
+                Sem telefone
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/**
+ * Arquivados segment: Cliente / Situação table — "Sem pedidos há {N}d" (plus
+ * the customer's own note as the archive reason, there's no dedicated reason
+ * field) instead of the usual recency line, and a "Reativar" action in place
+ * of tag chips (design Mock Clientes 2b).
+ */
+function ArquivadosList({
+  storeId,
+  customers,
+  onOpen,
+}: {
+  storeId: string;
+  customers: Customer[];
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <DataList columns="1fr 190px">
+      <DataListHeader>
+        <span>Cliente</span>
+        <DataListCell align="end">Situação</DataListCell>
+      </DataListHeader>
+      {customers.map((customer) => (
+        <ArquivadoRow
+          key={customer.id}
+          storeId={storeId}
+          customer={customer}
+          onOpen={onOpen}
+        />
+      ))}
+    </DataList>
+  );
+}
+
+function ArquivadoRow({
+  storeId,
+  customer,
+  onOpen,
+}: {
+  storeId: string;
+  customer: Customer;
+  onOpen: (id: string) => void;
+}) {
+  const [pending, startTransition] = useTransition();
+  const days = daysSinceLastOrder(customer.lastOrderAt);
+  const recency = days == null ? "Sem pedidos ainda" : `Sem pedidos há ${days}d`;
+
+  function reactivate() {
+    startTransition(async () => {
+      const result = await setCustomerArchivedAction(storeId, customer.id, false);
+      if (result.ok) {
+        toast.success("Cliente reativado.");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  return (
+    <DataListRow onClick={() => onOpen(customer.id)} className="opacity-70">
+      <span className="flex min-w-0 items-center gap-3">
+        <span
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold",
+            avatarClass(customer),
+          )}
+        >
+          {initials(customer.name)}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-[13.5px] font-semibold text-ink">
+            {customer.name}
+          </span>
+          <span className="block truncate text-[11.5px] text-ink-faint">
+            {recency}
+            {customer.notes ? ` · ${customer.notes}` : ""}
+          </span>
+        </span>
+      </span>
+      <span className="flex items-center justify-end gap-2">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF1ED] px-2.5 py-0.5 text-[11px] font-bold text-[#7A857D]">
+          <Archive className="size-3" />
+          Arquivado
+        </span>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={(e) => {
+            e.stopPropagation();
+            reactivate();
+          }}
+          className="text-[12.5px] font-semibold text-primary hover:underline disabled:opacity-50"
+        >
+          Reativar
+        </button>
+      </span>
+    </DataListRow>
   );
 }
