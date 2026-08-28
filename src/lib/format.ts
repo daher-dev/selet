@@ -104,12 +104,18 @@ export function formatShakeLineName(parts: {
   return `Shake · ${segments.join(" / ")}`;
 }
 
+/**
+ * A "Montar pudim" order line's display name, e.g.
+ * "Pudim · Chocolate + Doce de Leite / NutreV / +2× Granola".
+ * Multiple sabores (up to MAX_PUDIM_FLAVORS) are joined with " + ",
+ * mirroring formatShakeLineName's separator.
+ */
 export function formatPudimLineName(parts: {
-  flavor: string;
+  flavors: string[];
   base?: string | null;
   mixins: { name: string; qty: number }[];
 }): string {
-  const segments = [parts.flavor];
+  const segments = [parts.flavors.join(" + ")];
   if (parts.base) segments.push(parts.base);
   for (const m of parts.mixins) {
     segments.push(`+${m.qty > 1 ? `${m.qty}× ` : ""}${m.name}`);

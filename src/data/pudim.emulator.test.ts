@@ -247,7 +247,7 @@ describe.skipIf(!hasEmulator)("pudim repository (emulator)", () => {
         name: "Pudim",
         qty: 1,
         unitPrice: 3200,
-        pudim: { flavorId: referencedFlavor, baseId: null, mixins: [] },
+        pudim: { flavorIds: [referencedFlavor], baseId: null, mixins: [] },
       },
     ]);
 

@@ -3,12 +3,14 @@ import { discountSchema, orderItemSchema } from "./order-schema";
 
 /**
  * Regression guard for Zod's silent-unknown-key-strip: this schema has
- * already lost a field twice (OrderItem.shake, then shake.brinde) because
- * z.object() drops unrecognized keys instead of rejecting them, so a typo'd
- * or forgotten field never surfaces as a validation error — the data just
- * vanishes on save. Every optional sub-object gets its own round-trip test
- * here so a future field gets the same treatment automatically once it's
- * added to a fixture below.
+ * already lost a field three times (OrderItem.shake, then shake.brinde, then
+ * OrderItem.pudim itself — pudim was never added here at all, so every
+ * "Montar pudim" order silently saved with no pudim data until this file
+ * caught it) because z.object() drops unrecognized keys instead of rejecting
+ * them, so a typo'd or forgotten field never surfaces as a validation error
+ * — the data just vanishes on save. Every optional sub-object gets its own
+ * round-trip test here so a future field gets the same treatment
+ * automatically once it's added to a fixture below.
  */
 describe("orderItemSchema", () => {
   const base = { productId: "p1", name: "Item", qty: 1, unitPrice: 1000 };
@@ -105,6 +107,96 @@ describe("orderItemSchema", () => {
         shake: { flavorIds: [], baseId: null, rims: [], mixins: [] },
       }),
     ).toThrow();
+  });
+
+  it("round-trips a pudim line's brinde selection intact", () => {
+    const input = {
+      ...base,
+      productId: "sabor-1",
+      unitPrice: 2600,
+      pudim: {
+        flavorIds: ["sabor-1"],
+        baseId: null,
+        mixins: [],
+        brinde: {
+          productId: "prod-cha",
+          name: "Chá Limão",
+          listPrice: 1200,
+          addons: [{ name: "Fibra Ativa", price: 500 }],
+        },
+      },
+    };
+    const parsed = orderItemSchema.parse(input);
+    expect(parsed.pudim?.brinde).toEqual(input.pudim.brinde);
+  });
+
+  it("round-trips a pudim line with no brinde (optional, stays undefined)", () => {
+    const parsed = orderItemSchema.parse({
+      ...base,
+      productId: "sabor-1",
+      pudim: { flavorIds: ["sabor-1"], baseId: null, mixins: [] },
+    });
+    expect(parsed.pudim?.brinde).toBeUndefined();
+  });
+
+  it("round-trips a pudim line with 2 flavorIds", () => {
+    const parsed = orderItemSchema.parse({
+      ...base,
+      productId: "sabor-1",
+      pudim: { flavorIds: ["sabor-1", "sabor-2"], baseId: null, mixins: [] },
+    });
+    expect(parsed.pudim?.flavorIds).toEqual(["sabor-1", "sabor-2"]);
+  });
+
+  it("rejects a pudim line with duplicate flavorIds", () => {
+    expect(() =>
+      orderItemSchema.parse({
+        ...base,
+        productId: "sabor-1",
+        pudim: { flavorIds: ["sabor-1", "sabor-1"], baseId: null, mixins: [] },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a pudim line with more than MAX_PUDIM_FLAVORS", () => {
+    expect(() =>
+      orderItemSchema.parse({
+        ...base,
+        productId: "sabor-1",
+        pudim: { flavorIds: ["sabor-1", "sabor-2", "sabor-3"], baseId: null, mixins: [] },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a pudim line with zero flavorIds", () => {
+    expect(() =>
+      orderItemSchema.parse({
+        ...base,
+        productId: "sabor-1",
+        pudim: { flavorIds: [], baseId: null, mixins: [] },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a line combining pudim and cartelaSale", () => {
+    expect(() =>
+      orderItemSchema.parse({
+        ...base,
+        pudim: { flavorIds: ["sabor-1"], baseId: null, mixins: [] },
+        cartelaSale: { paidUses: 10, totalUses: 11, unitValue: 3000 },
+      }),
+    ).toThrow();
+  });
+
+  it("allows a pudim line paid down with a cartela (redeeming a punch card for a pudim)", () => {
+    const parsed = orderItemSchema.parse({
+      ...base,
+      unitPrice: 0,
+      pudim: { flavorIds: ["sabor-1"], baseId: null, mixins: [] },
+      cartelaUse: { cartelaId: "c1", code: "C012", uses: 1, covered: 2600, listPrice: 2600 },
+    });
+    expect(parsed.pudim?.flavorIds).toEqual(["sabor-1"]);
+    expect(parsed.cartelaUse).toBeDefined();
   });
 
   it("round-trips a cartela-sale line", () => {

@@ -1,3 +1,4 @@
+import { Timestamp } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
 import { getDb } from "@/lib/firebase-admin";
 import { createCustomer } from "./customers";
@@ -64,7 +65,7 @@ describe.skipIf(!hasEmulator)("orders repository · pudim lines (emulator)", () 
           qty: 2, // 2 pudins
           unitPrice: 3200 + 500,
           pudim: {
-            flavorId,
+            flavorIds: [flavorId],
             baseId,
             mixins: [{ modifierId: mixinId, qty: 1 }],
           },
@@ -131,7 +132,7 @@ describe.skipIf(!hasEmulator)("orders repository · pudim lines (emulator)", () 
           name: "Pudim · Frutas Amarelas / Leite",
           qty: 1,
           unitPrice: 3200,
-          pudim: { flavorId, baseId: leiteId, mixins: [] },
+          pudim: { flavorIds: [flavorId], baseId: leiteId, mixins: [] },
         },
       ],
     });
@@ -149,7 +150,7 @@ describe.skipIf(!hasEmulator)("orders repository · pudim lines (emulator)", () 
           name: "Pudim · Frutas Amarelas / NutreV",
           qty: 1,
           unitPrice: 3200,
-          pudim: { flavorId, baseId: nutrevId, mixins: [] },
+          pudim: { flavorIds: [flavorId], baseId: nutrevId, mixins: [] },
         },
       ],
     });
@@ -187,7 +188,7 @@ describe.skipIf(!hasEmulator)("orders repository · pudim lines (emulator)", () 
           name: "Pudim · Beleza",
           qty: 1,
           unitPrice: 3800,
-          pudim: { flavorId, baseId: null, mixins: [] },
+          pudim: { flavorIds: [flavorId], baseId: null, mixins: [] },
         },
       ],
     });
@@ -203,7 +204,7 @@ describe.skipIf(!hasEmulator)("orders repository · pudim lines (emulator)", () 
           name: "Pudim · Beleza / +Colágeno",
           qty: 1,
           unitPrice: 3800 + 800,
-          pudim: { flavorId, baseId: null, mixins: [{ modifierId: mixinId, qty: 1 }] },
+          pudim: { flavorIds: [flavorId], baseId: null, mixins: [{ modifierId: mixinId, qty: 1 }] },
         },
       ],
     });
@@ -225,7 +226,7 @@ describe.skipIf(!hasEmulator)("orders repository · pudim lines (emulator)", () 
           name: "Pudim · Sabor removido",
           qty: 1,
           unitPrice: 3000,
-          pudim: { flavorId: "gone", baseId: "also-gone", mixins: [{ modifierId: "gone-too", qty: 1 }] },
+          pudim: { flavorIds: ["gone"], baseId: "also-gone", mixins: [{ modifierId: "gone-too", qty: 1 }] },
         },
       ],
     });
@@ -256,7 +257,7 @@ describe.skipIf(!hasEmulator)("orders repository · pudim lines (emulator)", () 
             name: "Pudim · Chocolate",
             qty: 1,
             unitPrice: 3000,
-            pudim: { flavorId, baseId: null, mixins: [] },
+            pudim: { flavorIds: [flavorId], baseId: null, mixins: [] },
           },
         ],
       },
@@ -272,5 +273,123 @@ describe.skipIf(!hasEmulator)("orders repository · pudim lines (emulator)", () 
     await setOrderStatus(storeId, orderId, "novo");
     expect(await financeDoc(storeId, orderId)).toMatchObject({ amount: 3000, direction: "in" });
     expect((await getStockItem(storeId, flavorInsumo))?.open).toBe(1000 - 26);
+  });
+
+  it("multi-flavor round-trip: persists all flavorIds and sums every selected flavor's recipe", async () => {
+    const storeId = `test-orders-pudim-multi-${Date.now()}`;
+    const insA = await seedInsumo(storeId, "Base A", 1000);
+    const insB = await seedInsumo(storeId, "Base B", 1000);
+
+    const flavorA = await createPudimFlavor(storeId, {
+      name: "Chocolate",
+      price: 3200,
+      recipe: [{ stockItemId: insA, name: "Base A", qty: 26 }],
+    });
+    const flavorB = await createPudimFlavor(storeId, {
+      name: "Doce de Leite",
+      price: 3200,
+      recipe: [{ stockItemId: insB, name: "Base B", qty: 30 }],
+    });
+
+    const customerId = await createCustomer(storeId, { name: "Duda", tags: [] });
+    const orderId = await createOrder(storeId, {
+      customerId,
+      customerName: "Duda",
+      channel: "loja",
+      items: [
+        {
+          // primary (max-price) flavor id convention — both flavors are 3200
+          // here, so the productId is just whichever the builder resolved.
+          productId: flavorA,
+          name: "Pudim · Chocolate + Doce de Leite",
+          qty: 1,
+          unitPrice: 3200,
+          pudim: { flavorIds: [flavorA, flavorB], baseId: null, mixins: [] },
+        },
+      ],
+    });
+
+    // This is the regression guard for the "silently dropped field" failure
+    // mode: BOTH flavor ids must survive the round-trip through Firestore.
+    const order = await getOrder(storeId, orderId);
+    expect(order?.items[0].pudim?.flavorIds).toEqual([flavorA, flavorB]);
+
+    // Each selected flavor's FULL recipe is drawn (summed, not divided).
+    expect((await getStockItem(storeId, insA))?.open).toBe(1000 - 26);
+    expect((await getStockItem(storeId, insB))?.open).toBe(1000 - 30);
+
+    await setOrderStatus(storeId, orderId, "cancelado");
+    expect((await getStockItem(storeId, insA))?.open).toBe(1000);
+    expect((await getStockItem(storeId, insB))?.open).toBe(1000);
+  });
+
+  it("partial resolution: one valid flavor id + one deleted/missing one draws only the surviving recipe", async () => {
+    const storeId = `test-orders-pudim-partial-${Date.now()}`;
+    const insA = await seedInsumo(storeId, "Base A", 1000);
+
+    const flavorA = await createPudimFlavor(storeId, {
+      name: "Chocolate",
+      price: 3200,
+      recipe: [{ stockItemId: insA, name: "Base A", qty: 26 }],
+    });
+
+    const customerId = await createCustomer(storeId, { name: "Elis", tags: [] });
+    const orderId = await createOrder(storeId, {
+      customerId,
+      customerName: "Elis",
+      channel: "loja",
+      items: [
+        {
+          productId: flavorA,
+          name: "Pudim · Chocolate + Sabor removido",
+          qty: 1,
+          unitPrice: 3200,
+          pudim: { flavorIds: [flavorA, "sabor-removido"], baseId: null, mixins: [] },
+        },
+      ],
+    });
+
+    // Best-effort: the order still persists both ids and its price...
+    const order = await getOrder(storeId, orderId);
+    expect(order?.items[0].pudim?.flavorIds).toEqual([flavorA, "sabor-removido"]);
+    expect(order?.total).toBe(3200);
+    // ...but only the surviving flavor's recipe is actually drawn, never throws.
+    expect((await getStockItem(storeId, insA))?.open).toBe(1000 - 26);
+  });
+
+  it("read-time normalization: a legacy doc with singular pudim.flavorId is read back as flavorIds", async () => {
+    const storeId = `test-orders-pudim-legacy-${Date.now()}`;
+    const db = getDb();
+    const ref = db.collection("stores").doc(storeId).collection("orders").doc();
+    const now = Timestamp.now();
+    // Written the OLD way (singular `flavorId`), bypassing createOrder entirely —
+    // this is exactly the shape a pre-existing seed/historical doc has. Never
+    // rewritten; only the read path (toOrder) normalizes it.
+    await ref.set({
+      customerId: null,
+      customerName: "Legado",
+      channel: "loja",
+      items: [
+        {
+          productId: "sabor-legado",
+          name: "Pudim · Sabor legado",
+          qty: 1,
+          unitPrice: 3000,
+          pudim: { flavorId: "sabor-legado", baseId: null, mixins: [] },
+        },
+      ],
+      total: 3000,
+      status: "novo",
+      paid: false,
+      payMethod: null,
+      stockConsumed: [],
+      cartelaConsumed: [],
+      cartelaSold: [],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const order = await getOrder(storeId, ref.id);
+    expect(order?.items[0].pudim).toMatchObject({ flavorIds: ["sabor-legado"] });
   });
 });

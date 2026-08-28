@@ -54,21 +54,32 @@ function ordersCol(storeId: string) {
 const NEW_ORDER_STATUS: OrderStatus = "concluido";
 
 /**
- * Back-compat read-time normalization for "Montar shake" lines: older docs
- * (seed data, historical orders) stored `shake.flavorId: string` (singular).
- * Placed orders are immutable financial records — their stockConsumed/
- * cartelaConsumed reversal manifests were computed against that old shape, so
- * the source doc is NEVER rewritten. Instead every reader goes through this
- * single choke point, which normalizes to `flavorIds: string[]`. An order
- * re-saved through the normal edit path is lazily upgraded for free.
+ * Back-compat read-time normalization for "Montar shake"/"Montar pudim"
+ * lines: older docs (seed data, historical orders) stored
+ * `shake.flavorId`/`pudim.flavorId: string` (singular). Placed orders are
+ * immutable financial records — their stockConsumed/cartelaConsumed reversal
+ * manifests were computed against that old shape, so the source doc is NEVER
+ * rewritten. Instead every reader goes through this single choke point,
+ * which normalizes to `flavorIds: string[]`. An order re-saved through the
+ * normal edit path is lazily upgraded for free.
  */
 function normalizeItem(raw: FirebaseFirestore.DocumentData): OrderItem {
-  if (!raw.shake) return raw as OrderItem;
-  const rawShake = raw.shake as Record<string, unknown>;
-  const flavorIds =
-    (rawShake.flavorIds as string[] | undefined) ??
-    (rawShake.flavorId ? [rawShake.flavorId as string] : []);
-  return { ...raw, shake: { ...rawShake, flavorIds } } as OrderItem;
+  let item = raw;
+  if (item.shake) {
+    const rawShake = item.shake as Record<string, unknown>;
+    const flavorIds =
+      (rawShake.flavorIds as string[] | undefined) ??
+      (rawShake.flavorId ? [rawShake.flavorId as string] : []);
+    item = { ...item, shake: { ...rawShake, flavorIds } };
+  }
+  if (item.pudim) {
+    const rawPudim = item.pudim as Record<string, unknown>;
+    const flavorIds =
+      (rawPudim.flavorIds as string[] | undefined) ??
+      (rawPudim.flavorId ? [rawPudim.flavorId as string] : []);
+    item = { ...item, pudim: { ...rawPudim, flavorIds } };
+  }
+  return item as OrderItem;
 }
 
 function toOrder(id: string, d: FirebaseFirestore.DocumentData): Order {

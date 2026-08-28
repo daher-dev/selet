@@ -111,9 +111,9 @@ function resolveShakeLine(
  * Resolves a "Montar pudim" line's picks (flavor recipe + base + mixins +
  * utensílios, respecting per-line overrides else each utensílio's own
  * defaultIncluded) into the same insumos map — mirrors resolveShakeLine minus
- * the rims/bordas step and the multi-flavor loop (Pudim allows only one
- * sabor per line). Best-effort: a catalog entry that's gone (deleted after
- * the order was placed) is skipped, mirroring resolveShakeLine's discipline.
+ * the rims/bordas step. Best-effort: a catalog entry that's gone (deleted
+ * after the order was placed) is skipped, mirroring resolveShakeLine's
+ * discipline.
  */
 function resolvePudimLine(
   line: OrderItem,
@@ -124,10 +124,16 @@ function resolvePudimLine(
   if (!sel || !catalogs) return;
   const lineQty = line.qty;
 
-  const flavor = catalogs.flavors.get(sel.flavorId);
-  for (const r of flavor?.recipe ?? []) {
-    if (!r.stockItemId) continue;
-    addInsumo(insumos, r.stockItemId, (r.qty ?? 0) * lineQty, lineQty);
+  // Multi-flavor: a pudim draws the FULL recipe of EVERY selected flavor,
+  // summed (not divided) — mirrors resolveShakeLine's same deliberate
+  // approximation. addInsumo already accumulates into a shared map, so
+  // overlapping insumos across flavors sum correctly.
+  for (const flavorId of sel.flavorIds) {
+    const flavor = catalogs.flavors.get(flavorId);
+    for (const r of flavor?.recipe ?? []) {
+      if (!r.stockItemId) continue;
+      addInsumo(insumos, r.stockItemId, (r.qty ?? 0) * lineQty, lineQty);
+    }
   }
 
   const base = sel.baseId ? catalogs.bases.get(sel.baseId) : undefined;

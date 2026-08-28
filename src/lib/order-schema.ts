@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DISCOUNT_KINDS, DISCOUNT_REASONS, MAX_SHAKE_FLAVORS } from "./types";
+import { DISCOUNT_KINDS, DISCOUNT_REASONS, MAX_PUDIM_FLAVORS, MAX_SHAKE_FLAVORS } from "./types";
 
 /**
  * Pure Zod schemas for order data — split out from src/actions/orders.ts
@@ -38,6 +38,33 @@ const shakeSelectionSchema = z
     }
   });
 
+const pudimBrindeSelectionSchema = z.object({
+  productId: z.string().min(1),
+  name: z.string().min(1),
+  listPrice: z.number().int().min(0),
+  addons: z.array(z.object({ name: z.string().min(1), price: z.number().int().min(0) })).optional(),
+});
+
+const pudimSelectionSchema = z
+  .object({
+    flavorIds: z.array(z.string().min(1)).min(1).max(MAX_PUDIM_FLAVORS),
+    baseId: z.string().nullable(),
+    mixins: z.array(z.object({ modifierId: z.string().min(1), qty: z.number().int().positive() })),
+    utensilOverrides: z
+      .array(z.object({ utensilId: z.string().min(1), included: z.boolean() }))
+      .optional(),
+    brinde: pudimBrindeSelectionSchema.optional(),
+  })
+  .superRefine((sel, ctx) => {
+    if (new Set(sel.flavorIds).size !== sel.flavorIds.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Um pudim não pode repetir o mesmo sabor.",
+        path: ["flavorIds"],
+      });
+    }
+  });
+
 // The line that SELLS a brand-new cartela — qty is always 1 (enforced below).
 const cartelaSaleSchema = z.object({
   paidUses: z.number().int().min(1),
@@ -64,11 +91,13 @@ export const orderItemSchema = z
     qty: z.number().int().min(1),
     unitPrice: z.number().int().min(0),
     addons: z.array(z.string()).optional(),
-    // "Montar shake" lines carry their picks here instead of addons — without
-    // this, z.object() silently strips the field (unrecognized keys are
-    // dropped, not rejected), so the order would save with no shake data and
-    // the consumption engine would never draw the flavor/modifier stock.
+    // "Montar shake"/"Montar pudim" lines carry their picks here instead of
+    // addons — without this, z.object() silently strips the field
+    // (unrecognized keys are dropped, not rejected), so the order would save
+    // with no shake/pudim data and the consumption engine would never draw
+    // the flavor/modifier stock.
     shake: shakeSelectionSchema.optional(),
+    pudim: pudimSelectionSchema.optional(),
     // Same silent-strip risk applies to cartela lines — spelling both out
     // explicitly (rather than z.record/passthrough) is what keeps a redeemed
     // or sold cartela line from vanishing on save.
@@ -77,13 +106,13 @@ export const orderItemSchema = z
   })
   .superRefine((item, ctx) => {
     // cartelaSale is its own line (sells a brand-new cartela) and can never
-    // share a line with a shake build or a cartela redemption. shake +
-    // cartelaUse, though, is the normal "pay for this shake with a punch
+    // share a line with a shake/pudim build or a cartela redemption. shake/
+    // pudim + cartelaUse, though, is the normal "pay for this with a punch
     // card" case and must stay allowed.
-    if (item.cartelaSale && (item.shake || item.cartelaUse)) {
+    if (item.cartelaSale && (item.shake || item.pudim || item.cartelaUse)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Um item não pode combinar venda de cartela com shake ou uso de cartela.",
+        message: "Um item não pode combinar venda de cartela com shake, pudim ou uso de cartela.",
         path: [],
       });
     }

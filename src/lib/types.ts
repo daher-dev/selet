@@ -585,8 +585,10 @@ export interface ShakeSelection {
 }
 
 // --- Pudim: a shared, store-wide modifier catalog for build-a-pudim orders,
-// structured exactly like Shakes (src/data/pudim.ts) minus a "Borda" tier and
-// with a single sabor per line instead of up to MAX_SHAKE_FLAVORS. ---
+// structured exactly like Shakes (src/data/pudim.ts) minus a "Borda" tier. ---
+
+/** Max number of sabores a single "Montar pudim" line may select ("até 2"). */
+export const MAX_PUDIM_FLAVORS = 2;
 
 /** A flavor's own insumo list — reuses RecipeItem verbatim ("insumos do sabor"). */
 export interface PudimFlavor {
@@ -662,8 +664,8 @@ export interface PudimBrindeSelection {
 
 /** A "Montar pudim" order line's picks, embedded on OrderItem.pudim. */
 export interface PudimSelection {
-  /** Single sabor id — unlike Shake's flavorIds[], Pudim only allows one. */
-  flavorId: string;
+  /** 1 to MAX_PUDIM_FLAVORS sabor ids; pricing/productId use the primary (max-price) flavor. */
+  flavorIds: string[];
   baseId: string | null;
   mixins: { modifierId: string; qty: number }[];
   /** Per-order overrides against each utensílio's catalog default. Absent id = use current default. */

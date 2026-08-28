@@ -160,7 +160,11 @@ function pudimSignature(pudim?: OrderItem["pudim"]): string {
         addons: [...(pudim.brinde.addons ?? [])].map((a) => a.name).sort(),
       }
     : null;
-  return JSON.stringify({ f: pudim.flavorId, b: pudim.baseId, mixins, overrides, brinde });
+  // A sorted COPY — never sort in place, `pudim.flavorIds` may belong to a
+  // live cart item — consistent with mixins/overrides already being sorted
+  // by a copy above.
+  const flavorIds = [...pudim.flavorIds].sort();
+  return JSON.stringify({ f: flavorIds, b: pudim.baseId, mixins, overrides, brinde });
 }
 
 /** "2026-08-05" (input[type=date] value) from an ISO datetime, in local time. */

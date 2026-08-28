@@ -99,18 +99,30 @@ describe("formatShakeLineName", () => {
 describe("formatPudimLineName", () => {
   it("formats a single-flavor line with a base", () => {
     expect(
-      formatPudimLineName({ flavor: "Frutas Amarelas", base: "NutreV", mixins: [] }),
+      formatPudimLineName({ flavors: ["Frutas Amarelas"], base: "NutreV", mixins: [] }),
     ).toBe("Pudim · Frutas Amarelas / NutreV");
   });
 
+  it("joins multiple flavors with ' + '", () => {
+    expect(
+      formatPudimLineName({
+        flavors: ["Chocolate", "Doce de Leite"],
+        base: "NutreV",
+        mixins: [],
+      }),
+    ).toBe("Pudim · Chocolate + Doce de Leite / NutreV");
+  });
+
   it("handles no base/mixins", () => {
-    expect(formatPudimLineName({ flavor: "Chocolate", mixins: [] })).toBe("Pudim · Chocolate");
+    expect(formatPudimLineName({ flavors: ["Chocolate"], mixins: [] })).toBe(
+      "Pudim · Chocolate",
+    );
   });
 
   it("includes tiered mixins with quantities", () => {
     expect(
       formatPudimLineName({
-        flavor: "Frutas Amarelas",
+        flavors: ["Frutas Amarelas"],
         mixins: [{ name: "Fibra Ativa", qty: 2 }],
       }),
     ).toBe("Pudim · Frutas Amarelas / +2× Fibra Ativa");
@@ -119,7 +131,7 @@ describe("formatPudimLineName", () => {
   it("omits the ×qty prefix for a single unit", () => {
     expect(
       formatPudimLineName({
-        flavor: "Cookies",
+        flavors: ["Cookies"],
         mixins: [{ name: "Whey extra", qty: 1 }],
       }),
     ).toBe("Pudim · Cookies / +Whey extra");

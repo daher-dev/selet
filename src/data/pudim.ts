@@ -429,7 +429,7 @@ export async function loadPudimCatalogsForItems(
   for (const line of items) {
     const pudim = line.pudim;
     if (!pudim) continue;
-    flavorIds.add(pudim.flavorId);
+    pudim.flavorIds.forEach((id) => flavorIds.add(id));
     if (pudim.baseId) baseIds.add(pudim.baseId);
     for (const m of pudim.mixins) mixinIds.add(m.modifierId);
   }

@@ -613,7 +613,7 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
       qty: 1,
       unitPrice: 3000,
       pudim: {
-        flavorId: "sabor-1",
+        flavorIds: ["sabor-1"],
         baseId: null,
         mixins: [],
       },
@@ -642,7 +642,7 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
       insumo: { stockItemId: "ins-leite", name: "Leite", qty: 150, unit: "ml" },
     });
     const withBase = buildConsumptionRequests(
-      [pudimLine({ pudim: { flavorId: "sabor-1", baseId: "base-1", mixins: [] } })],
+      [pudimLine({ pudim: { flavorIds: ["sabor-1"], baseId: "base-1", mixins: [] } })],
       new Map(),
       undefined,
       catalogs({ flavors: new Map([["sabor-1", f]]), bases: new Map([["base-1", b]]) }),
@@ -668,7 +668,7 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
       [
         pudimLine({
           qty: 2, // 2 pudins ordered
-          pudim: { flavorId: "sabor-1", baseId: null, mixins: [{ modifierId: "mix-1", qty: 2 }] },
+          pudim: { flavorIds: ["sabor-1"], baseId: null, mixins: [{ modifierId: "mix-1", qty: 2 }] },
         }),
       ],
       new Map(),
@@ -692,7 +692,7 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
     const { insumos } = buildConsumptionRequests(
       [
         pudimLine({
-          pudim: { flavorId: "sabor-1", baseId: "base-1", mixins: [{ modifierId: "mix-1", qty: 1 }] },
+          pudim: { flavorIds: ["sabor-1"], baseId: "base-1", mixins: [{ modifierId: "mix-1", qty: 1 }] },
         }),
       ],
       new Map(),
@@ -738,7 +738,7 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
       [
         pudimLine({
           pudim: {
-            flavorId: "sabor-1",
+            flavorIds: ["sabor-1"],
             baseId: null,
             mixins: [],
             utensilOverrides: [{ utensilId: "canudo", included: true }],
@@ -763,7 +763,7 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
       [
         pudimLine({
           pudim: {
-            flavorId: "sabor-1",
+            flavorIds: ["sabor-1"],
             baseId: null,
             mixins: [],
             utensilOverrides: [{ utensilId: "guardanapo", included: false }],
@@ -788,7 +788,7 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
       [
         pudimLine({
           pudim: {
-            flavorId: "gone",
+            flavorIds: ["gone"],
             baseId: "also-gone",
             mixins: [{ modifierId: "gone-too", qty: 1 }],
           },
@@ -799,6 +799,67 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
       catalogs(),
     );
     expect(insumos.size).toBe(0);
+  });
+
+  describe("multi-flavor pudins (até 2 sabores)", () => {
+    it("draws the FULL recipe of EVERY selected flavor, summed across distinct insumos", () => {
+      const f1 = flavor({
+        id: "sabor-1",
+        recipe: [{ stockItemId: "ins-pudim", name: "Pudim base", qty: 26, unit: "g" }],
+      });
+      const f2 = flavor({
+        id: "sabor-2",
+        recipe: [{ stockItemId: "ins-chocolate", name: "Chocolate", qty: 40, unit: "g" }],
+      });
+      const { insumos } = buildConsumptionRequests(
+        [
+          pudimLine({
+            qty: 2, // 2 pudins ordered
+            pudim: { flavorIds: ["sabor-1", "sabor-2"], baseId: null, mixins: [] },
+          }),
+        ],
+        new Map(),
+        undefined,
+        catalogs({ flavors: new Map([["sabor-1", f1], ["sabor-2", f2]]) }),
+      );
+      // Each flavor's FULL recipe is drawn (not divided by flavor count),
+      // scaled by lineQty — a deliberate approximation, mirroring Shake.
+      expect(insumos.get("ins-pudim")).toEqual({ amount: 52, uses: 2 }); // 26 × 2
+      expect(insumos.get("ins-chocolate")).toEqual({ amount: 80, uses: 2 }); // 40 × 2
+    });
+
+    it("accumulates onto a SHARED insumo between two selected flavors (addInsumo merges, not overwrites)", () => {
+      const f1 = flavor({
+        id: "sabor-1",
+        recipe: [{ stockItemId: "ins-leite", name: "Leite", qty: 100, unit: "ml" }],
+      });
+      const f2 = flavor({
+        id: "sabor-2",
+        recipe: [{ stockItemId: "ins-leite", name: "Leite", qty: 60, unit: "ml" }],
+      });
+      const { insumos } = buildConsumptionRequests(
+        [pudimLine({ pudim: { flavorIds: ["sabor-1", "sabor-2"], baseId: null, mixins: [] } })],
+        new Map(),
+        undefined,
+        catalogs({ flavors: new Map([["sabor-1", f1], ["sabor-2", f2]]) }),
+      );
+      // 100ml + 60ml summed onto the same insumo, uses accumulate too (1 + 1).
+      expect(insumos.get("ins-leite")).toEqual({ amount: 160, uses: 2 });
+    });
+
+    it("a partially-deleted flavor set still draws the surviving flavor's recipe", () => {
+      const f1 = flavor({
+        id: "sabor-1",
+        recipe: [{ stockItemId: "ins-pudim", name: "Pudim base", qty: 26, unit: "g" }],
+      });
+      const { insumos } = buildConsumptionRequests(
+        [pudimLine({ pudim: { flavorIds: ["sabor-1", "gone"], baseId: null, mixins: [] } })],
+        new Map(),
+        undefined,
+        catalogs({ flavors: new Map([["sabor-1", f1]]) }),
+      );
+      expect(insumos.get("ins-pudim")).toEqual({ amount: 26, uses: 1 });
+    });
   });
 
   describe("brinde (free Product riding a pudim line)", () => {
@@ -813,7 +874,7 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
           pudimLine({
             unitPrice: 0,
             pudim: {
-              flavorId: "sabor-1",
+              flavorIds: ["sabor-1"],
               baseId: null,
               mixins: [],
               brinde: { productId: "cha-limao", name: "Chá Limão", listPrice: 800 },
@@ -838,7 +899,7 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
         [
           pudimLine({
             pudim: {
-              flavorId: "sabor-1",
+              flavorIds: ["sabor-1"],
               baseId: null,
               mixins: [],
               brinde: { productId: "bolo-fatia", name: "Bolo", listPrice: 600 },
@@ -859,7 +920,7 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
         [
           pudimLine({
             pudim: {
-              flavorId: "sabor-1",
+              flavorIds: ["sabor-1"],
               baseId: null,
               mixins: [],
               brinde: { productId: "gone", name: "Sumiu", listPrice: 500 },
