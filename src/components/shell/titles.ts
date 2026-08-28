@@ -20,6 +20,11 @@ const TITLES: Record<
     title: "Shakes",
     subtitle: "Sabores, bases, bordas, adicionais e utensílios",
   },
+  pudim: {
+    title: "Pudim",
+    subtitle:
+      "Tudo que compõe um pudim: sabores, bases, adicionais, brindes e utensílios",
+  },
   cartelas: {
     title: "Cartelas",
     subtitle: "Montadas na venda · cada uso vale um desconto fixo",
