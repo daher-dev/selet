@@ -17,5 +17,15 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.{ts,tsx}"],
     setupFiles: ["src/test/setup.ts"],
+    // The *.emulator.test.ts files all hit ONE shared local Firestore
+    // emulator instance — running test files in parallel (vitest's default)
+    // contends for it and causes intermittent 5s timeouts under load,
+    // especially on CI's slower/shared runners (confirmed: the exact same
+    // suite is 100% green run serially, flaky run in parallel). Serial
+    // execution costs ~14s locally for the whole suite, which is cheap next
+    // to the cost of flaky CI. testTimeout gives serialized runs on a slower
+    // CI machine some headroom too.
+    fileParallelism: false,
+    testTimeout: 15000,
   },
 });

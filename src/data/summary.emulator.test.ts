@@ -94,19 +94,21 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 3 } });
     expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
 
-    // cancel → removed from month aggregates (paid mirror stays as income)
+    // cancel → removed from month aggregates AND its paid finance mirror is
+    // reversed, so a cancelled sale stops counting as income too.
     await setOrderStatus(storeId, orderId, "cancelado");
     s = await expectConsistent(storeId);
     expect(s.months[mk].orderCount).toBe(0);
-    expect(s.months[mk].in).toBe(6000);
+    expect(s.months[mk].in).toBe(0);
     // channels/sellers drop to nothing while cancelled.
     expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 0 });
     expect(s.months[mk].sellers).toEqual({});
 
-    // uncancel → back in
+    // uncancel → back in, mirror restored too.
     await setOrderStatus(storeId, orderId, "novo");
     s = await expectConsistent(storeId);
     expect(s.months[mk].orderCount).toBe(1);
+    expect(s.months[mk].in).toBe(6000);
     expect(s.openOrders).toBe(1);
     expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
     expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 3 } });
