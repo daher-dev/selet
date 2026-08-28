@@ -28,12 +28,13 @@ test("bootstrapped catalog renders for both stores", async ({
     // --- Catálogo (produtos)
     await page.goto(`/s/${store.id}/produtos`);
 
-    // The Categoria filter (a dropdown) offers all six real menu sections.
-    const categoria = page.getByRole("combobox").first();
+    // The Categoria filter (a FilterDropdown menu, not a native combobox)
+    // offers all six real menu sections.
+    const categoria = page.getByRole("button", { name: "Todas as categorias" });
     await categoria.click();
     for (const cat of CATEGORIES) {
       await expect(
-        page.getByRole("option", { name: cat, exact: true }),
+        page.getByRole("menuitem", { name: cat, exact: true }),
         `${cat} option in ${store.id}`,
       ).toBeVisible();
     }
@@ -53,7 +54,7 @@ test("bootstrapped catalog renders for both stores", async ({
 
     // Filtering by a category narrows the list to that section.
     await categoria.click();
-    await page.getByRole("option", { name: "Bebidas", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Bebidas", exact: true }).click();
     await expect(page.getByText("Sunset", { exact: true })).toBeVisible();
     await expect(page.getByText("Frutas Vermelhas", { exact: true })).toHaveCount(0);
 
@@ -62,9 +63,12 @@ test("bootstrapped catalog renders for both stores", async ({
     await expect(page.getByText("Fiber Concentrate", { exact: true })).toBeVisible();
     await expect(page.getByText("Morango", { exact: true })).toBeVisible();
 
-    // The old Herbalife retail SKUs are gone — the list is the café taxonomy now.
-    await expect(page.getByText(/Whey Protein 3W/)).toHaveCount(0);
-    await expect(page.getByText(/SKIN - Cleanser/)).toHaveCount(0);
+    // The Herbalife retail-only SKUs (supplements/beleza standalone
+    // products, not café insumos) are gone from the seed — Whey Protein 3W
+    // is the one exception, kept because it's a real café mixin ingredient
+    // ("Whey extra") now, not leftover retail data.
+    await expect(page.getByText(/Herbalifeline/)).toHaveCount(0);
+    await expect(page.getByText(/SKIN Cleanser/)).toHaveCount(0);
 
     // The café seed ships nothing archived, so the Arquivados toggle isn't offered.
     await expect(page.getByRole("button", { name: /Arquivados/ })).toHaveCount(0);

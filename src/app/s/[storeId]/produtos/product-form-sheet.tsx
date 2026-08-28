@@ -625,11 +625,12 @@ function ProductForm({
         <div className="space-y-1.5">
           <Label>Faixa de preço</Label>
           <div className="space-y-2">
-            {tiers.map((tier) => (
+            {tiers.map((tier, i) => (
               <TierRow
                 key={tier._id}
                 qty={tier.qty}
                 price={tier.price}
+                priceId={i === 0 ? "product-price" : undefined}
                 onQty={(qty) =>
                   setTiers((ts) =>
                     ts.map((t) => (t._id === tier._id ? { ...t, qty } : t)),
@@ -1270,12 +1271,16 @@ function TierRow({
   onQty,
   onPrice,
   onRemove,
+  priceId,
 }: {
   qty: string;
   price: string;
   onQty: (v: string) => void;
   onPrice: (v: string) => void;
   onRemove: () => void;
+  /** Stable anchor for the qty:1 unit-price row — the product's "own" price
+   *  from the pre-tiers era, still relied on by e2e (see e2e/app.spec.ts). */
+  priceId?: string;
 }) {
   const unitWord = parseInt(qty, 10) === 1 ? "unidade" : "unidades";
   return (
@@ -1295,6 +1300,7 @@ function TierRow({
       <div className="flex h-11 flex-1 items-center rounded-xl border border-border bg-paper px-3">
         <span className="text-[13px] text-ink-faint">R$</span>
         <Input
+          id={priceId}
           value={price}
           onChange={(e) => onPrice(e.target.value)}
           inputMode="decimal"
