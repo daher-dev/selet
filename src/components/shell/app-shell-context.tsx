@@ -16,9 +16,17 @@ export interface PageAction {
   onClick: () => void;
 }
 
+/** A page's dynamic title/subtitle, overriding the static per-segment map. */
+export interface PageHeader {
+  title: string;
+  subtitle: string;
+}
+
 interface ShellContextValue {
   action: PageAction | null;
   setAction: (action: PageAction | null) => void;
+  headerOverride: PageHeader | null;
+  setHeaderOverride: (header: PageHeader | null) => void;
   /** Global header search query (shared by the shell + consuming pages). */
   search: string;
   setSearch: (value: string) => void;
@@ -35,6 +43,7 @@ export function AppShellProvider({
   routeKey: string;
 }) {
   const [action, setAction] = useState<PageAction | null>(null);
+  const [headerOverride, setHeaderOverride] = useState<PageHeader | null>(null);
   const [search, setSearch] = useState("");
 
   // A new route → clear stale search so it can't hide the new list. Adjusting
@@ -47,8 +56,8 @@ export function AppShellProvider({
   }
 
   const value = useMemo(
-    () => ({ action, setAction, search, setSearch }),
-    [action, search],
+    () => ({ action, setAction, headerOverride, setHeaderOverride, search, setSearch }),
+    [action, headerOverride, search],
   );
 
   return <ShellContext.Provider value={value}>{children}</ShellContext.Provider>;
@@ -96,4 +105,26 @@ export function usePageAction(action: PageAction | null) {
 /** Read the global header search query (for pages that filter by it). */
 export function useShellSearch(): string {
   return useShell().search;
+}
+
+/**
+ * Override the shell top-bar's title/subtitle with page-computed text (e.g. a
+ * lançamento count), in place of the static per-segment map. Pass `null` to
+ * fall back to the static map. Mirrors usePageAction's ref+effect structure,
+ * but keys off the primitive title/subtitle strings (not object identity)
+ * since callers pass a fresh `{title, subtitle}` literal every render.
+ */
+export function usePageHeader(header: PageHeader | null) {
+  const { setHeaderOverride } = useShell();
+  const title = header?.title ?? null;
+  const subtitle = header?.subtitle ?? null;
+
+  useEffect(() => {
+    if (title === null || subtitle === null) {
+      setHeaderOverride(null);
+      return;
+    }
+    setHeaderOverride({ title, subtitle });
+    return () => setHeaderOverride(null);
+  }, [title, subtitle, setHeaderOverride]);
 }

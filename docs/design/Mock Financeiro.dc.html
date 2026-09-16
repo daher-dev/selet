@@ -31,6 +31,244 @@
 
   <section style="display:flex; flex-direction:column; gap:26px;">
     <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
+      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">4</span>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Movimentações — editar lançamentos avulsos e abrir a origem dos vinculados</h2>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
+
+      <div id="4a" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">4a</span>
+          <span style="font-size:14px; color:#5C6B62;">Lista completa: avulsos com Editar, vinculados com link para pedido ou produto.</span>
+        </div>
+        <div style="display:flex; width:1180px; height:760px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+          <dc-import name="SeletNav" active="financeiro" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
+              <div style="flex:1;">
+                <h1 style="margin:0; font-size:19px; font-weight:700;">Movimentações</h1>
+                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Julho 2026 · 38 lançamentos</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg><span>Novo lançamento</span>
+              </div>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:22px 28px 36px;">
+              <div style="display:flex; gap:8px; margin-bottom:18px;">
+                <span style="display:inline-flex; align-items:center; height:34px; padding:0 14px; border-radius:9px; background:#15231C; color:#fff; font-size:12.5px; font-weight:600;">Todos</span>
+                <span style="display:inline-flex; align-items:center; height:34px; padding:0 14px; border-radius:9px; background:#fff; border:1px solid #E7EEE6; color:#5C6B62; font-size:12.5px; font-weight:600;">Entradas</span>
+                <span style="display:inline-flex; align-items:center; height:34px; padding:0 14px; border-radius:9px; background:#fff; border:1px solid #E7EEE6; color:#5C6B62; font-size:12.5px; font-weight:600;">Saídas</span>
+                <span style="display:inline-flex; align-items:center; height:34px; padding:0 14px; border-radius:9px; background:#fff; border:1px solid #E7EEE6; color:#5C6B62; font-size:12.5px; font-weight:600;">Avulsos</span>
+                <span style="display:inline-flex; align-items:center; height:34px; padding:0 14px; border-radius:9px; background:#fff; border:1px solid #E7EEE6; color:#5C6B62; font-size:12.5px; font-weight:600;">Vinculados</span>
+              </div>
+
+              <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; overflow:hidden;">
+                <div style="display:grid; grid-template-columns:1fr 210px 140px 108px; gap:16px; padding:11px 20px; background:#F7FAF5; border-bottom:1px solid #E7EEE6; font-size:10.5px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#8A968D;">
+                  <span>Lançamento</span><span>Origem</span><span style="text-align:right;">Valor</span><span style="text-align:right;">Ações</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 210px 140px 108px; gap:16px; align-items:center; padding:14px 20px; border-bottom:1px solid #F0F4ED;">
+                  <span style="display:flex; align-items:center; gap:12px; min-width:0;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#E7F4EC; color:#3A9D5D;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg></span>
+                    <span style="min-width:0;">
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Pedido #1042 · Ana Beatriz</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">31/07 · Pix</span>
+                    </span>
+                  </span>
+                  <a href="#4a" style="display:inline-flex; align-items:center; gap:6px; max-width:100%; height:28px; padding:0 10px; border-radius:8px; background:#EEF3EA; font-size:12px; font-weight:600; color:#186B41;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6h9v9"></path><path d="M18 6 7 17"></path><path d="M6 10v8h8"></path></svg><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Pedido #1042</span>
+                  </a>
+                  <span style="text-align:right; font-variant-numeric:tabular-nums; font-size:14px; font-weight:700; color:#3A9D5D;">+ R$ 86,00</span>
+                  <span style="display:flex; justify-content:flex-end; gap:6px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #EFF3EC; border-radius:9px; color:#C5CFC7;" title="Vinculado ao pedido — edite pelo pedido"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>
+                  </span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 210px 140px 108px; gap:16px; align-items:center; padding:14px 20px; border-bottom:1px solid #F0F4ED;">
+                  <span style="display:flex; align-items:center; gap:12px; min-width:0;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#FBF1DC; color:#B7791F;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+                    <span style="min-width:0;">
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Entrada de estoque · 12 potes</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">30/07 · nota 8841</span>
+                    </span>
+                  </span>
+                  <a href="#4a" style="display:inline-flex; align-items:center; gap:6px; max-width:100%; height:28px; padding:0 10px; border-radius:8px; background:#EEF3EA; font-size:12px; font-weight:600; color:#186B41;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6h9v9"></path><path d="M18 6 7 17"></path><path d="M6 10v8h8"></path></svg><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Shake Morango 550g</span>
+                  </a>
+                  <span style="text-align:right; font-variant-numeric:tabular-nums; font-size:14px; font-weight:700; color:#B7791F;">− R$ 1.556,00</span>
+                  <span style="display:flex; justify-content:flex-end; gap:6px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #EFF3EC; border-radius:9px; color:#C5CFC7;" title="Vinculado ao estoque — edite pela entrada de estoque"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>
+                  </span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 210px 140px 108px; gap:16px; align-items:center; padding:14px 20px; border-bottom:1px solid #F0F4ED; background:#FCFDFB;">
+                  <span style="display:flex; align-items:center; gap:12px; min-width:0;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#FBF1DC; color:#B7791F;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+                    <span style="min-width:0;">
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Aluguel · Vila Velha</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">25/07 · Custos fixos</span>
+                    </span>
+                  </span>
+                  <span style="display:inline-flex; align-items:center; height:28px; padding:0 10px; border-radius:8px; background:#F1F4EF; font-size:12px; font-weight:600; color:#8A968D;">Avulso</span>
+                  <span style="text-align:right; font-variant-numeric:tabular-nums; font-size:14px; font-weight:700; color:#B7791F;">− R$ 4.200,00</span>
+                  <span style="display:flex; justify-content:flex-end; gap:6px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #DDE7D8; border-radius:9px; color:#186B41; background:#fff;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #DDE7D8; border-radius:9px; color:#5C6B62; background:#fff;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6v14h12V6"></path></svg></span>
+                  </span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 210px 140px 108px; gap:16px; align-items:center; padding:14px 20px; border-bottom:1px solid #F0F4ED; background:#FCFDFB;">
+                  <span style="display:flex; align-items:center; gap:12px; min-width:0;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#E7F4EC; color:#3A9D5D;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg></span>
+                    <span style="min-width:0;">
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Aporte do sócio</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">20/07 · transferência</span>
+                    </span>
+                  </span>
+                  <span style="display:inline-flex; align-items:center; height:28px; padding:0 10px; border-radius:8px; background:#F1F4EF; font-size:12px; font-weight:600; color:#8A968D;">Avulso</span>
+                  <span style="text-align:right; font-variant-numeric:tabular-nums; font-size:14px; font-weight:700; color:#3A9D5D;">+ R$ 2.000,00</span>
+                  <span style="display:flex; justify-content:flex-end; gap:6px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #DDE7D8; border-radius:9px; color:#186B41; background:#fff;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #DDE7D8; border-radius:9px; color:#5C6B62; background:#fff;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6v14h12V6"></path></svg></span>
+                  </span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 210px 140px 108px; gap:16px; align-items:center; padding:14px 20px; border-bottom:1px solid #F0F4ED;">
+                  <span style="display:flex; align-items:center; gap:12px; min-width:0;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#E7F4EC; color:#3A9D5D;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg></span>
+                    <span style="min-width:0;">
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Pedido #1031 · Carlos Menezes</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">18/07 · cartão</span>
+                    </span>
+                  </span>
+                  <a href="#4a" style="display:inline-flex; align-items:center; gap:6px; max-width:100%; height:28px; padding:0 10px; border-radius:8px; background:#EEF3EA; font-size:12px; font-weight:600; color:#186B41;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6h9v9"></path><path d="M18 6 7 17"></path><path d="M6 10v8h8"></path></svg><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Pedido #1031</span>
+                  </a>
+                  <span style="text-align:right; font-variant-numeric:tabular-nums; font-size:14px; font-weight:700; color:#3A9D5D;">+ R$ 142,00</span>
+                  <span style="display:flex; justify-content:flex-end; gap:6px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #EFF3EC; border-radius:9px; color:#C5CFC7;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>
+                  </span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 210px 140px 108px; gap:16px; align-items:center; padding:14px 20px; background:#FCFDFB;">
+                  <span style="display:flex; align-items:center; gap:12px; min-width:0;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#FBF1DC; color:#B7791F;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+                    <span style="min-width:0;">
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Folha · 4 funcionários</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">05/07 · Custos fixos</span>
+                    </span>
+                  </span>
+                  <span style="display:inline-flex; align-items:center; height:28px; padding:0 10px; border-radius:8px; background:#F1F4EF; font-size:12px; font-weight:600; color:#8A968D;">Avulso</span>
+                  <span style="text-align:right; font-variant-numeric:tabular-nums; font-size:14px; font-weight:700; color:#B7791F;">− R$ 9.800,00</span>
+                  <span style="display:flex; justify-content:flex-end; gap:6px;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #DDE7D8; border-radius:9px; color:#186B41; background:#fff;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span>
+                    <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid #DDE7D8; border-radius:9px; color:#5C6B62; background:#fff;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6v14h12V6"></path></svg></span>
+                  </span>
+                </div>
+              </div>
+
+              <p style="margin:14px 2px 0; font-size:12px; color:#A0AC9D; text-wrap:pretty;">Lançamentos vinculados a pedidos ou a entradas de estoque não são editados aqui — o valor acompanha a origem.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="4b" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">4b</span>
+          <span style="font-size:14px; color:#5C6B62;">Painel de edição de um lançamento avulso, e o estado vinculado logo abaixo.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:22px;">
+          <div style="width:520px; background:#fff; border:1px solid #DDE7D8; border-radius:16px; box-shadow:0 26px 60px -34px rgba(21,40,30,.45); overflow:hidden; font-family:'Albert Sans',sans-serif;">
+            <div style="display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:1px solid #F0F4ED;">
+              <div style="flex:1;">
+                <h3 style="margin:0; font-size:16px; font-weight:700;">Editar lançamento</h3>
+                <p style="margin:2px 0 0; font-size:12px; color:#8A968D;">Avulso · criado em 25/07 por Júlia</p>
+              </div>
+              <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:9px; color:#8A968D;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:16px; padding:22px;">
+              <div style="display:flex; gap:8px; padding:4px; background:#F3F7F1; border-radius:11px;">
+                <span style="flex:1; display:flex; align-items:center; justify-content:center; height:36px; border-radius:8px; font-size:13px; font-weight:600; color:#8A968D;">Entrada</span>
+                <span style="flex:1; display:flex; align-items:center; justify-content:center; height:36px; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(21,40,30,.12); font-size:13px; font-weight:700; color:#B7791F;">Saída</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Descrição</span>
+                <span style="display:flex; align-items:center; height:44px; padding:0 14px; border:1px solid #DDE7D8; border-radius:11px; font-size:14px; font-weight:500;">Aluguel · Vila Velha</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Valor</span>
+                  <span style="display:flex; align-items:center; height:44px; padding:0 14px; border:1.5px solid #186B41; border-radius:11px; font-size:15px; font-weight:700; font-variant-numeric:tabular-nums;">R$ 4.200,00</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Data</span>
+                  <span style="display:flex; align-items:center; height:44px; padding:0 14px; border:1px solid #DDE7D8; border-radius:11px; font-size:14px; font-weight:500;">25/07/2026</span>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Categoria</span>
+                <span style="display:flex; align-items:center; height:44px; padding:0 14px; border:1px solid #DDE7D8; border-radius:11px; font-size:14px; font-weight:500; color:#15231C;">Custos fixos<span style="flex:1;"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="2.2"><path d="m6 9 6 6 6-6"></path></svg></span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Observação</span>
+                <span style="display:block; min-height:64px; padding:12px 14px; border:1px solid #DDE7D8; border-radius:11px; font-size:13.5px; color:#8A968D;">Opcional</span>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:4px;">
+                <span style="display:inline-flex; align-items:center; gap:7px; height:42px; padding:0 14px; border-radius:11px; font-size:13px; font-weight:600; color:#C0492F;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6v14h12V6"></path></svg>Excluir</span>
+                <span style="display:flex; gap:10px;">
+                  <span style="display:inline-flex; align-items:center; height:42px; padding:0 16px; border:1px solid #DDE7D8; border-radius:11px; font-size:13px; font-weight:600; color:#5C6B62;">Cancelar</span>
+                  <span style="display:inline-flex; align-items:center; height:42px; padding:0 20px; border-radius:11px; background:#186B41; color:#fff; font-size:13px; font-weight:600;">Salvar</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style="width:520px; background:#fff; border:1px solid #DDE7D8; border-radius:16px; box-shadow:0 26px 60px -34px rgba(21,40,30,.45); overflow:hidden; font-family:'Albert Sans',sans-serif;">
+            <div style="display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:1px solid #F0F4ED;">
+              <div style="flex:1;">
+                <h3 style="margin:0; font-size:16px; font-weight:700;">Lançamento vinculado</h3>
+                <p style="margin:2px 0 0; font-size:12px; color:#8A968D;">Gerado automaticamente · somente leitura</p>
+              </div>
+              <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:9px; color:#8A968D;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg></span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:16px; padding:22px;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:#FBF1DC; color:#B7791F;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:15px; font-weight:700;">Entrada de estoque · 12 potes</span>
+                  <span style="display:block; font-size:12px; color:#A0AC9D;">30/07/2026 · nota 8841</span>
+                </span>
+                <span style="font-variant-numeric:tabular-nums; font-size:18px; font-weight:700; color:#B7791F;">− R$ 1.556,00</span>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:#F7FAF5; border:1px solid #E7EEE6; border-radius:12px;">
+                <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#fff; border:1px solid #E7EEE6; color:#5C6B62;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>
+                <span style="flex:1;">
+                  <span style="display:block; font-size:13px; font-weight:700;">Valor controlado pela origem</span>
+                  <span style="display:block; font-size:12.5px; color:#8A968D; margin-top:2px; text-wrap:pretty;">Para alterar valor ou data, edite a entrada de estoque. A movimentação é atualizada junto.</span>
+                </span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <span style="font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#8A968D;">Origem</span>
+                <a href="#4b" style="display:flex; align-items:center; gap:12px; padding:13px 14px; border:1px solid #DDE7D8; border-radius:12px;">
+                  <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#EEF3EA; color:#186B41;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8l9 5 9-5Z"></path><path d="M3 8v8l9 5 9-5V8"></path></svg></span>
+                  <span style="flex:1;">
+                    <span style="display:block; font-size:13.5px; font-weight:600; color:#15231C;">Shake Morango 550g</span>
+                    <span style="display:block; font-size:11.5px; color:#A0AC9D;">Estoque · entrada de 30/07</span>
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="2.2" stroke-linecap="round"><path d="m9 18 6-6-6-6"></path></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:26px;">
+    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
       <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">1</span>
       <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Mês positivo — líquido, movimentações e evolução do ticket</h2>
     </div>
@@ -153,7 +391,10 @@
                 </div>
 
                 <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
-                  <h3 style="margin:0 0 14px; font-size:15px; font-weight:600;">Movimentações recentes</h3>
+                  <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                    <h3 style="margin:0; flex:1; font-size:15px; font-weight:600;">Movimentações recentes</h3>
+                    <a href="#4a" style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600;">Ver todas<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 18 6-6-6-6"></path></svg></a>
+                  </div>
                   <div style="display:flex; flex-direction:column;">
                     <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid #F0F4ED;">
                       <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#E7F4EC; color:#3A9D5D;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg></span>
@@ -311,6 +552,38 @@
                   <span style="display:block; font-size:12.5px; color:#8A6A60; margin-top:2px;">R$ 12.400,00 em obra e equipamentos — lançamento único, sem repetição prevista.</span>
                 </span>
               </div>
+              <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px; margin-top:14px;">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                  <h3 style="margin:0; flex:1; font-size:15px; font-weight:600;">Movimentações recentes</h3>
+                  <a href="#4a" style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600;">Ver todas<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 18 6-6-6-6"></path></svg></a>
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                  <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid #F0F4ED;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#FBF1DC; color:#B7791F;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+                    <span style="flex:1;">
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Reforma · obra e equipamentos</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">22/02 · avulso</span>
+                    </span>
+                    <span style="font-size:14px; font-weight:700; color:#B7791F;">− R$ 12.400,00</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid #F0F4ED;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#FBF1DC; color:#B7791F;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+                    <span style="flex:1;">
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Folha · 4 funcionários</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">05/02 · avulso</span>
+                    </span>
+                    <span style="font-size:14px; font-weight:700; color:#B7791F;">− R$ 9.800,00</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid #F0F4ED;">
+                    <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; background:#E7F4EC; color:#3A9D5D;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg></span>
+                    <span style="flex:1;">
+                      <span style="display:block; font-size:13.5px; font-weight:600;">Pedido #0912 · Rafael Dias</span>
+                      <span style="display:block; font-size:11.5px; color:#A0AC9D;">03/02 · Pix</span>
+                    </span>
+                    <span style="font-size:14px; font-weight:700; color:#3A9D5D;">+ R$ 124,00</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -367,7 +640,10 @@
                   <span style="display:block; font-size:12.5px; color:#A0AC9D;">Agosto ainda não aparece no gráfico.</span>
                 </div>
                 <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px; min-height:190px;">
-                  <h3 style="margin:0 0 14px; font-size:15px; font-weight:600;">Movimentações recentes</h3>
+                  <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                    <h3 style="margin:0; flex:1; font-size:15px; font-weight:600;">Movimentações recentes</h3>
+                    <a href="#4a" style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600;">Ver todas<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 18 6-6-6-6"></path></svg></a>
+                  </div>
                   <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:18px 0;">
                     <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:12px; background:#F3F8EF; color:#92C17D;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path></svg></span>
                     <span style="font-size:13.5px; font-weight:600; color:#5C6B62;">Sem movimentações em agosto</span>

@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowDown,
   ArrowDownRight,
+  ArrowRight,
   ArrowUp,
   ArrowUpRight,
   Calendar,
@@ -20,7 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { FinanceTx } from "@/lib/types";
-import { formatBRL, formatRelative, orderCode } from "@/lib/format";
+import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { deleteManualTxAction } from "@/actions/finance";
 import { Button } from "@/components/ui/button";
@@ -35,6 +37,7 @@ import {
 import { usePageAction } from "@/components/shell/app-shell-context";
 import { EntradaSaidaChart, TicketChart } from "@/components/charts/finance-charts";
 import { ManualTxSheet } from "./manual-tx-sheet";
+import { buildRange, currentMonthKey as getCurrentMonthKey, monthKeyOf, monthLabel, monthNameOnly, txMeta } from "./finance-shared";
 
 export interface MonthBucket {
   label: string;
@@ -49,77 +52,6 @@ interface FinanceiroClientProps {
   receivablesByMonth: Record<string, { total: number; count: number }>;
   months: MonthBucket[];
   transactions: FinanceTx[];
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  vendas: "Vendas",
-  compras: "Compras",
-  salarios: "Salários",
-  aluguel: "Aluguel",
-  marketing: "Marketing",
-  outros: "Outros",
-};
-
-const PAY_METHOD_LABELS: Record<string, string> = {
-  pix: "Pix",
-  cartao: "Cartão",
-  dinheiro: "Dinheiro",
-};
-
-const monthFmt = new Intl.DateTimeFormat("pt-BR", {
-  month: "long",
-  year: "numeric",
-});
-
-/** "2026-07" → key from an ISO date. */
-function monthKeyOf(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-/** "2026-07" → "Julho de 2026" (competência label). */
-function monthLabel(key: string): string {
-  const [y, m] = key.split("-").map(Number);
-  const s = monthFmt.format(new Date(y, m - 1, 1));
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-/** "2026-07" → "Julho" (month name only, no year — capitalized). */
-function monthNameOnly(key: string): string {
-  return monthLabel(key).split(" de ")[0];
-}
-
-/** Contiguous list of month keys from `min` to `max`, inclusive. */
-function buildRange(min: string, max: string): string[] {
-  const [minY, minM] = min.split("-").map(Number);
-  const [maxY, maxM] = max.split("-").map(Number);
-  const out: string[] = [];
-  let y = minY;
-  let m = minM;
-  while (y < maxY || (y === maxY && m <= maxM)) {
-    out.push(`${y}-${String(m).padStart(2, "0")}`);
-    m += 1;
-    if (m > 12) {
-      m = 1;
-      y += 1;
-    }
-  }
-  return out;
-}
-
-/** Transaction meta line: "Pedido #AB3F · Pix · hoje" or "Aluguel · ontem". */
-function txMeta(tx: FinanceTx): string {
-  const parts: string[] = [];
-  if (tx.source === "order") {
-    parts.push(tx.orderId ? `Pedido #${orderCode(tx.orderId)}` : "Pedido");
-    if (tx.payMethod) parts.push(PAY_METHOD_LABELS[tx.payMethod] ?? tx.payMethod);
-  } else if (CATEGORY_LABELS[tx.category]) {
-    parts.push(CATEGORY_LABELS[tx.category]);
-  } else {
-    parts.push("Manual");
-  }
-  if (tx.date) parts.push(formatRelative(tx.date));
-  return parts.join(" · ");
 }
 
 function MovementRow({
@@ -223,10 +155,7 @@ export function FinanceiroClient({
 }: FinanceiroClientProps) {
   const [formOpen, setFormOpen] = useState(false);
 
-  const now = new Date();
-  const currentMonthKey = `${now.getFullYear()}-${String(
-    now.getMonth() + 1,
-  ).padStart(2, "0")}`;
+  const currentMonthKey = getCurrentMonthKey();
 
   // Group every transaction into its competência month (in/out totals).
   const monthData = useMemo(() => {
@@ -527,9 +456,18 @@ export function FinanceiroClient({
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5">
-          <h3 className="mb-1 text-[15px] font-semibold text-ink">
-            Movimentações recentes
-          </h3>
+          <div className="mb-1 flex items-center gap-3">
+            <h3 className="flex-1 text-[15px] font-semibold text-ink">
+              Movimentações recentes
+            </h3>
+            <Link
+              href={`/s/${storeId}/financeiro/movimentacoes?mes=${selectedKey}`}
+              className="flex shrink-0 items-center gap-1 text-[12.5px] font-semibold text-primary"
+            >
+              Ver todas
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
           {recentTxs.length === 0 ? (
             <EmptyState
               icon={Wallet}

@@ -9,6 +9,7 @@ import { EstoqueClient } from "./estoque-client";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/s/s1/estoque",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/actions/stock", () => ({

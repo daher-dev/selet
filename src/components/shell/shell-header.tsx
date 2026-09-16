@@ -22,8 +22,8 @@ export function ShellHeader({
 }) {
   const pathname = usePathname();
   const segment = segmentFromPathname(pathname, store.id);
-  const { title, subtitle } = pageMeta(segment, store);
-  const { action, search, setSearch } = useShellState();
+  const { action, headerOverride, search, setSearch } = useShellState();
+  const { title, subtitle } = headerOverride ?? pageMeta(segment, store);
 
   return (
     <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-white px-3.5 min-[820px]:h-[72px] min-[820px]:gap-5 min-[820px]:px-7">

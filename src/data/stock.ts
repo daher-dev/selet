@@ -206,6 +206,7 @@ export async function createStockItem(
     if (input.cost != null && input.cost > 0) {
       await financeDoc(storeId, stockPurchaseFinanceId(movRef.id)).set(
         stockPurchaseTxData({
+          itemId: ref.id,
           itemName: input.name,
           amount: input.cost * openingQty,
           date: at,
@@ -393,6 +394,7 @@ export async function applyMovement(
       tx.set(
         financeDoc(storeId, stockPurchaseFinanceId(movRef.id)),
         stockPurchaseTxData({
+          itemId,
           itemName: name,
           amount: purchaseOut,
           date: at,

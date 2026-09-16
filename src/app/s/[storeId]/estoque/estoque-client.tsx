@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, Filter, List, Package, TriangleAlert } from "lucide-react";
 import type { Product, StockItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -53,15 +54,27 @@ export function EstoqueClient({
   const [category, setCategory] = useState<string | null>(null);
   const [status, setStatus] = useState<StatusFilter>("todas");
   const [lowStockOnly, setLowStockOnly] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [compraOpen, setCompraOpen] = useState(false);
   const shellSearch = useShellSearch();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Deep link from a Movimentações "Origem" chip (?item=<id>): open that
+  // item's sheet straight from the initial render, same pattern as pedidos'
+  // ?novo=1/?order=<id>.
+  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get("item"));
 
   usePageAction({
     label: "Registrar compra",
     onClick: () => setCompraOpen(true),
   });
+
+  // Strip the deep-link param once mounted so back/refresh doesn't reopen it.
+  useEffect(() => {
+    if (!searchParams.get("item")) return;
+    router.replace(pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
 
   const selected = items.find((i) => i.id === selectedId) ?? null;
 
@@ -213,7 +226,7 @@ export function EstoqueClient({
         menuProducts={menuProducts}
         resaleNames={selected ? resaleByStock[selected.id] ?? [] : []}
         usedIn={selected ? recipeUsage[selected.id] ?? [] : []}
-        open={selectedId !== null}
+        open={selectedId !== null && selected !== null}
         onOpenChange={(open) => {
           if (!open) setSelectedId(null);
         }}

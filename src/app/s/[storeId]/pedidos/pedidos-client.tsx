@@ -166,7 +166,6 @@ export function PedidosClient({
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("todos");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");
   const [payFilter, setPayFilter] = useState<PayFilter>("todos");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const shellSearch = useShellSearch();
   const router = useRouter();
   const pathname = usePathname();
@@ -174,12 +173,16 @@ export function PedidosClient({
   // Deep link from the dashboard's "Novo pedido" action (?novo=1): open the
   // create sheet straight from the initial render (no setState-in-effect).
   const [creating, setCreating] = useState(() => searchParams.get("novo") === "1");
+  // Deep link from a Movimentações "Origem" chip (?order=<id>): open that
+  // order's sheet straight from the initial render, same pattern as ?novo=1.
+  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get("order"));
 
   usePageAction({ label: "Novo pedido", onClick: () => setCreating(true) });
 
-  // Strip the deep-link param once mounted so back/refresh doesn't reopen it.
+  // Strip whichever deep-link param brought us here once mounted, so
+  // back/refresh doesn't reopen it.
   useEffect(() => {
-    if (searchParams.get("novo") !== "1") return;
+    if (searchParams.get("novo") !== "1" && !searchParams.get("order")) return;
     router.replace(pathname, { scroll: false });
   }, [searchParams, router, pathname]);
 
@@ -504,7 +507,7 @@ export function PedidosClient({
         pudimMixins={pudimMixins}
         pudimUtensils={pudimUtensils}
         pudimBrindes={pudimBrindes}
-        open={creating || selectedId !== null}
+        open={creating || (selectedId !== null && selected !== null)}
         onOpenChange={(open) => {
           if (!open) {
             setCreating(false);

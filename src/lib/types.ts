@@ -395,8 +395,18 @@ export interface FinanceTx {
   direction: "in" | "out";
   source: "order" | "manual" | "stock";
   orderId?: string;
+  /** The stock item this purchase mirrors — set only when source === "stock". */
+  stockItemId?: string;
   payMethod?: PayMethod;
   date: string;
+  /** Observação — free text, manual entries only. */
+  note?: string;
+  /**
+   * Display NAME snapshot of who created this (not email), same
+   * denormalization-at-write-time precedent as CartelaManualUse.by — there's
+   * no email→name resolver to join against later. Manual entries only.
+   */
+  createdBy?: string;
 }
 
 // --- Cartelas: single product-agnostic punch cards sold ad hoc (no

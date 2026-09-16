@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAccess } from "@/lib/access";
-import { createManualTx, deleteManualTx } from "@/data/finance";
+import { createManualTx, deleteManualTx, updateManualTx } from "@/data/finance";
 import { FINANCE_CATEGORIES } from "@/lib/types";
 import type { ActionResult } from "./products";
 
@@ -14,6 +14,7 @@ const manualTxSchema = z.object({
   amount: z.number().int().positive("Valor deve ser maior que zero."),
   direction: z.enum(["in", "out"]),
   date: z.iso.datetime({ offset: true }),
+  note: z.string().trim().max(500).optional(),
 });
 
 export type ManualTxFormInput = z.input<typeof manualTxSchema>;
@@ -38,9 +39,24 @@ export async function createManualTxAction(
 ): Promise<ActionResult> {
   return run(async () => {
     const { storeId, ...data } = manualTxSchema.parse(input);
-    await requireAccess(storeId, "financeiro");
-    await createManualTx(storeId, data);
+    const user = await requireAccess(storeId, "financeiro");
+    await createManualTx(storeId, data, user.name);
     revalidatePath(`/s/${storeId}/financeiro`);
+    revalidatePath(`/s/${storeId}/financeiro/movimentacoes`);
+    revalidatePath(`/s/${storeId}`);
+  });
+}
+
+export async function updateManualTxAction(
+  txId: string,
+  input: ManualTxFormInput,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { storeId, ...data } = manualTxSchema.parse(input);
+    await requireAccess(storeId, "financeiro");
+    await updateManualTx(storeId, txId, data);
+    revalidatePath(`/s/${storeId}/financeiro`);
+    revalidatePath(`/s/${storeId}/financeiro/movimentacoes`);
     revalidatePath(`/s/${storeId}`);
   });
 }
@@ -53,6 +69,7 @@ export async function deleteManualTxAction(
     await requireAccess(storeId, "financeiro");
     await deleteManualTx(storeId, txId);
     revalidatePath(`/s/${storeId}/financeiro`);
+    revalidatePath(`/s/${storeId}/financeiro/movimentacoes`);
     revalidatePath(`/s/${storeId}`);
   });
 }

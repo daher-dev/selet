@@ -7,6 +7,7 @@ import {
   updateStockItem,
 } from "./stock";
 import type { StockItemInput } from "./stock";
+import { listTransactions } from "./finance";
 
 const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 
@@ -108,5 +109,36 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
     // Raise the threshold above what's on hand (4 potes = 2000 g > 1500 g) → low.
     await updateStockItem(storeId, id, { ...GRANOLA, reorderAt: 4 });
     expect((await getStockItem(storeId, id))?.lowStock).toBe(true);
+  });
+
+  it("a priced opening balance mirrors a finance doc carrying the item's stockItemId", async () => {
+    const storeId = `test-stock-e-${Date.now()}`;
+    const id = await createStockItem(storeId, GRANOLA, { sealed: 3, open: 0 });
+
+    const [tx] = await listTransactions(storeId);
+    expect(tx).toMatchObject({
+      source: "stock",
+      stockItemId: id,
+      amount: GRANOLA.cost! * 3,
+      direction: "out",
+    });
+  });
+
+  it("a priced entrada movement mirrors a finance doc carrying the item's stockItemId", async () => {
+    const storeId = `test-stock-f-${Date.now()}`;
+    // No opening cost, so no mirror is created at creation time — isolates
+    // the applyMovement path's own stockItemId threading.
+    const id = await createStockItem(storeId, { ...GRANOLA, cost: undefined }, { sealed: 1, open: 0 });
+    expect(await listTransactions(storeId)).toHaveLength(0);
+
+    await applyMovement(storeId, id, { ...mv, type: "entrada", qty: 2, byPackage: true, price: 3600 });
+
+    const [tx] = await listTransactions(storeId);
+    expect(tx).toMatchObject({
+      source: "stock",
+      stockItemId: id,
+      amount: 3600 * 2,
+      direction: "out",
+    });
   });
 });

@@ -5,7 +5,7 @@ import {
   setOrderStatus,
   updateOrder,
 } from "./orders";
-import { createManualTx, deleteManualTx } from "./finance";
+import { createManualTx, deleteManualTx, updateManualTx } from "./finance";
 import { createCustomer, setCustomerArchived } from "./customers";
 import { applyMovement, createStockItem } from "./stock";
 import { computeSummary, readSummary } from "./summary";
@@ -189,6 +189,62 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     s = await expectConsistent(storeId);
     // Deleting the only tx empties (or zeroes) the month bucket.
     expect(s.months[mk]?.out ?? 0).toBe(0);
+  });
+
+  it("editing a manual tx keeps the summary consistent through an amount change, a direction flip, and a cross-month date move", async () => {
+    const storeId = `test-summary-edit-${Date.now()}`;
+    const date = new Date();
+    const id = await createManualTx(storeId, {
+      label: "Aluguel",
+      category: "aluguel",
+      amount: 120000,
+      direction: "out",
+      date: date.toISOString(),
+    });
+    let s = await expectConsistent(storeId);
+    const oldMk = monthKey(date);
+    expect(s.months[oldMk].out).toBe(120000);
+
+    // Amount change, same month/direction.
+    await updateManualTx(storeId, id, {
+      label: "Aluguel",
+      category: "aluguel",
+      amount: 135000,
+      direction: "out",
+      date: date.toISOString(),
+    });
+    s = await expectConsistent(storeId);
+    expect(s.months[oldMk].out).toBe(135000);
+
+    // Direction flip, same month — reversal + re-application must both land
+    // correctly in the same bucket (this is exactly what a naive "just add
+    // the new amount" implementation would get wrong).
+    await updateManualTx(storeId, id, {
+      label: "Aporte do sócio",
+      category: "outros",
+      amount: 135000,
+      direction: "in",
+      date: date.toISOString(),
+    });
+    s = await expectConsistent(storeId);
+    expect(s.months[oldMk].out).toBe(0);
+    expect(s.months[oldMk].in).toBe(135000);
+
+    // Cross-month date move — old month must decrement, new month increment.
+    const moved = new Date(date);
+    moved.setMonth(moved.getMonth() - 3);
+    const newMk = monthKey(moved);
+    await updateManualTx(storeId, id, {
+      label: "Aporte do sócio",
+      category: "outros",
+      amount: 135000,
+      direction: "in",
+      date: moved.toISOString(),
+    });
+    s = await expectConsistent(storeId);
+    expect(newMk).not.toBe(oldMk);
+    expect(s.months[oldMk]?.in ?? 0).toBe(0);
+    expect(s.months[newMk].in).toBe(135000);
   });
 
   it("dashboard fallback: summary-backed view == fresh scan-and-compute", async () => {
