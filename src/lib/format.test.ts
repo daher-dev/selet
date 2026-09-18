@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   formatBRL,
+  formatDate,
   formatPudimLineName,
   formatQty,
   formatShakeLineName,
+  formatTime,
   initials,
   orderCode,
   parseBRL,
@@ -32,6 +34,16 @@ describe("parseBRL", () => {
 
   it("throws on garbage", () => {
     expect(() => parseBRL("abc")).toThrow();
+  });
+});
+
+describe("formatTime/formatDate (explicit America/Sao_Paulo)", () => {
+  it("renders BRT regardless of the process's own timezone", () => {
+    expect(formatTime("2026-08-01T02:30:00.000Z")).toBe("23:30");
+  });
+
+  it("keeps a late-night sale on its correct calendar day", () => {
+    expect(formatDate("2026-08-01T01:00:00.000Z")).toBe("31/07/2026");
   });
 });
 

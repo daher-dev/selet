@@ -1,4 +1,5 @@
 import { monthKey } from "@/lib/summary-core";
+import { STORE_TIME_ZONE, zonedTimeToUtc } from "@/lib/timezone";
 import type { FinanceTx } from "@/lib/types";
 import { formatRelative, orderCode } from "@/lib/format";
 
@@ -20,6 +21,7 @@ export const PAY_METHOD_LABELS: Record<string, string> = {
 const monthFmt = new Intl.DateTimeFormat("pt-BR", {
   month: "long",
   year: "numeric",
+  timeZone: STORE_TIME_ZONE,
 });
 
 /** ISO date string → "2026-07" competência key (local calendar month). */
@@ -35,7 +37,7 @@ export function currentMonthKey(): string {
 /** "2026-07" → "Julho de 2026" (competência label). */
 export function monthLabel(key: string): string {
   const [y, m] = key.split("-").map(Number);
-  const s = monthFmt.format(new Date(y, m - 1, 1));
+  const s = monthFmt.format(zonedTimeToUtc(y, m, 1));
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -65,7 +67,7 @@ export function buildRange(min: string, max: string): string[] {
 /** "2026-07" → [start, end) Date bounds, for a Firestore date range query. */
 export function monthBounds(key: string): { start: Date; end: Date } {
   const [y, m] = key.split("-").map(Number);
-  return { start: new Date(y, m - 1, 1), end: new Date(y, m, 1) };
+  return { start: zonedTimeToUtc(y, m, 1), end: zonedTimeToUtc(y, m + 1, 1) };
 }
 
 /** Transaction meta line: "Pedido #AB3F · Pix · hoje" or "Aluguel · ontem". */

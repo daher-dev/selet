@@ -48,6 +48,7 @@ import {
   remainingUses,
 } from "@/lib/cartelas";
 import { orderMoney, type DiscountInput } from "@/lib/order-money";
+import { zonedParts, zonedTimeToUtc } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customer-picker";
 import { CartelaPunchDots } from "@/components/cartela-punch-dots";
@@ -167,29 +168,26 @@ function pudimSignature(pudim?: OrderItem["pudim"]): string {
   return JSON.stringify({ f: flavorIds, b: pudim.baseId, mixins, overrides, brinde });
 }
 
-/** "2026-08-05" (input[type=date] value) from an ISO datetime, in local time. */
+/** "2026-08-05" (input[type=date] value) from an ISO datetime, in store-local (BRT) time. */
 function isoToDateInput(iso: string): string {
-  const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  const { year, month, day } = zonedParts(new Date(iso));
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-/** "15:12" (input[type=time] value) from an ISO datetime, in local time. */
+/** "15:12" (input[type=time] value) from an ISO datetime, in store-local (BRT) time. */
 function isoToTimeInput(iso: string): string {
-  const d = new Date(iso);
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mi}`;
+  const { hour, minute } = zonedParts(new Date(iso));
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
-/** Combines the date+time inputs (local time) into an ISO datetime string,
+/** Combines the date+time inputs (store-local/BRT) into an ISO datetime string,
  *  or null while either half is empty/invalid (the picker was cleared). */
 function saleDateTimeToISO(date: string, time: string): string | null {
   if (!date || !time) return null;
-  const d = new Date(`${date}T${time}`);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  const [y, m, d] = date.split("-").map(Number);
+  const [hh, mi] = time.split(":").map(Number);
+  if ([y, m, d, hh, mi].some((n) => Number.isNaN(n))) return null;
+  return zonedTimeToUtc(y, m, d, hh, mi).toISOString();
 }
 
 /** "2026-07-28" -> "28/07", for the "Lançar em {dd/MM}" footer label. */

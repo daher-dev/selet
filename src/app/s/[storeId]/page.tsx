@@ -1,7 +1,9 @@
 import { requireSessionUser, canAccessSection } from "@/lib/access";
 import { readSummary } from "@/data/summary";
+import { monthKey } from "@/lib/summary-core";
+import { addZonedMonths } from "@/lib/timezone";
 import { DashboardClient } from "./dashboard-client";
-import { fastPath, slowPath, monthKey } from "./dashboard-data";
+import { fastPath, slowPath } from "./dashboard-data";
 
 export default async function DashboardPage({
   params,
@@ -12,8 +14,8 @@ export default async function DashboardPage({
   const user = await requireSessionUser();
 
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const startOfMonth = addZonedMonths(now, 0);
+  const startOfLastMonth = addZonedMonths(now, -1);
   const thisKey = monthKey(startOfMonth);
   const lastKey = monthKey(startOfLastMonth);
 

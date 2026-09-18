@@ -2,11 +2,9 @@ import { requireAccess } from "@/lib/access";
 import { listTransactions } from "@/data/finance";
 import { listOrders } from "@/data/orders";
 import { activeCustomerCount, readSummary } from "@/data/summary";
+import { monthKey } from "@/lib/summary-core";
+import { addZonedMonths } from "@/lib/timezone";
 import { FinanceiroClient, type MonthBucket } from "./financeiro-client";
-
-function monthKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 const MONTH_LABELS = [
   "jan", "fev", "mar", "abr", "mai", "jun",
@@ -22,7 +20,7 @@ export default async function FinanceiroPage({
   await requireAccess(storeId, "financeiro");
 
   const now = new Date();
-  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const sixMonthsAgo = addZonedMonths(now, -5);
 
   // The transaction list (and the client-side selected-month totals) always
   // needs the raw txs. The per-month figures + receivables PREFER the summary
@@ -35,8 +33,9 @@ export default async function FinanceiroPage({
 
   const monthKeys: { key: string; label: string }[] = [];
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    monthKeys.push({ key: monthKey(d), label: MONTH_LABELS[d.getMonth()] });
+    const d = addZonedMonths(now, -i);
+    const key = monthKey(d);
+    monthKeys.push({ key, label: MONTH_LABELS[Number(key.split("-")[1]) - 1] });
   }
 
   let months: MonthBucket[];

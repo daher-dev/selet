@@ -9,11 +9,8 @@ import { createManualTx, deleteManualTx, updateManualTx } from "./finance";
 import { createCustomer, setCustomerArchived } from "./customers";
 import { applyMovement, createStockItem } from "./stock";
 import { computeSummary, readSummary } from "./summary";
-import {
-  fastPath,
-  slowPath,
-  monthKey,
-} from "@/app/s/[storeId]/dashboard-data";
+import { fastPath, slowPath } from "@/app/s/[storeId]/dashboard-data";
+import { monthKey } from "@/lib/summary-core";
 
 const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 
@@ -468,5 +465,25 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(s.months[newMk].orderCount).toBe(1);
     expect(s.months[newMk].ticketSum).toBe(4000);
     expect(s.months[newMk].channels.whatsapp).toBe(1);
+  });
+
+  it("buckets a late-night sale on the last day of the month into that month, not UTC's next month (America/Sao_Paulo)", async () => {
+    const storeId = `test-summary-tz-${Date.now()}`;
+    const cust = await createCustomer(storeId, { name: "Balcão A", tags: [] });
+
+    // 2026-07-31T23:30 BRT == 2026-08-01T02:30Z — a naive server-local
+    // (UTC) monthKey would bucket this into August.
+    const orderId = await createOrder(storeId, {
+      customerId: cust,
+      customerName: "Balcão A",
+      channel: "loja",
+      items: [{ productId: "p1", name: "Shake", qty: 1, unitPrice: 2000 }],
+      createdAt: "2026-07-31T23:30:00-03:00",
+    });
+    expect(orderId).toBeTruthy();
+
+    const s = await expectConsistent(storeId);
+    expect(s.months["2026-07"]?.orderCount).toBe(1);
+    expect(s.months["2026-08"]).toBeUndefined();
   });
 });

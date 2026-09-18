@@ -1,3 +1,5 @@
+import { STORE_TIME_ZONE } from "./timezone";
+
 const brl = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
@@ -19,17 +21,20 @@ export function parseBRL(input: string): number {
 const dateShort = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
   month: "short",
+  timeZone: STORE_TIME_ZONE,
 });
 
 const dateFull = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
+  timeZone: STORE_TIME_ZONE,
 });
 
 const timeFmt = new Intl.DateTimeFormat("pt-BR", {
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: STORE_TIME_ZONE,
 });
 
 export function formatDateShort(iso: string): string {

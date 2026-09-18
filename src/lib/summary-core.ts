@@ -28,6 +28,7 @@
  */
 
 import type { OrderChannel } from "./types";
+import { monthKey } from "./timezone";
 
 /** Per-channel order counts for a month bucket. */
 export type ChannelCounts = Record<OrderChannel, number>;
@@ -69,10 +70,8 @@ export function isOpenStatus(status: string): boolean {
   return OPEN_STATUSES.has(status);
 }
 
-/** "2026-07" for a given date. */
-export function monthKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
+/** "2026-07" for a given date, in the store's timezone (America/Sao_Paulo). */
+export { monthKey };
 
 /**
  * Stable, Firestore-map-safe distinct key for a customer. Prefers the customer

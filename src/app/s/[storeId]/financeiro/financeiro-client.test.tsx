@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AppShellProvider } from "@/components/shell/app-shell-context";
+import { monthKey } from "@/lib/summary-core";
 import { FinanceiroClient } from "./financeiro-client";
 
 vi.mock("next/navigation", () => ({
@@ -38,8 +39,7 @@ describe("FinanceiroClient", () => {
       </AppShellProvider>,
     );
 
-    const now = new Date();
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const currentMonthKey = monthKey(new Date());
     const link = screen.getByRole("link", { name: /Ver todas/ });
     expect(link).toHaveAttribute(
       "href",

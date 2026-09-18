@@ -5,18 +5,17 @@ import { Check, Minus, Ticket } from "lucide-react";
 import type { Cartela } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
 import { balanceValue, remainingUses } from "@/lib/cartelas";
+import { monthKey } from "@/lib/summary-core";
+import { STORE_TIME_ZONE } from "@/lib/timezone";
 import { usePageAction } from "@/components/shell/app-shell-context";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CartelasList } from "./cartelas-list";
 import { CartelaHistorySheet } from "./cartela-history-sheet";
 
-const monthName = new Intl.DateTimeFormat("pt-BR", { month: "long" });
-
-/** "2026-7" key from an ISO date, for same-month grouping. */
-function monthKeyOf(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${d.getMonth()}`;
-}
+const monthName = new Intl.DateTimeFormat("pt-BR", {
+  month: "long",
+  timeZone: STORE_TIME_ZONE,
+});
 
 function StatCard({
   label,
@@ -59,13 +58,13 @@ export function CartelasClient({ storeId, cartelas }: CartelasClientProps) {
 
   const stats = useMemo(() => {
     const now = new Date();
-    const monthKey = monthKeyOf(now.toISOString());
+    const thisMonthKey = monthKey(now);
 
     const withBalance = active.filter((c) => remainingUses(c) > 0);
     const circulacao = withBalance.reduce((s, c) => s + balanceValue(c), 0);
 
     const soldThisMonth = active.filter(
-      (c) => monthKeyOf(c.purchasedAt) === monthKey,
+      (c) => monthKey(new Date(c.purchasedAt)) === thisMonthKey,
     );
     const recebidoMes = soldThisMonth.reduce((s, c) => s + c.amount, 0);
 
@@ -73,7 +72,7 @@ export function CartelasClient({ storeId, cartelas }: CartelasClientProps) {
     let descontoMes = 0;
     for (const c of active) {
       for (const u of c.uses) {
-        if (monthKeyOf(u.at) === monthKey) {
+        if (monthKey(new Date(u.at)) === thisMonthKey) {
           usosMes += 1;
           descontoMes += c.unitValue;
         }

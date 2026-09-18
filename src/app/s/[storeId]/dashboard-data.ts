@@ -5,6 +5,7 @@ import { listCustomers, listUpcomingBirthdays } from "@/data/customers";
 import { listStockItems, listLowStock } from "@/data/stock";
 import type { SummaryData } from "@/data/summary";
 import type { Customer, StockItem } from "@/lib/types";
+import { zonedParts, zonedTimeToUtc } from "@/lib/timezone";
 import type { KpiCard } from "./dashboard-client";
 
 /** The four widgets DashboardClient renders — same shape from either path. */
@@ -20,18 +21,15 @@ export interface DashboardView {
 
 const NO_CHANNELS = { instagram: 0, whatsapp: 0, loja: 0 };
 
-export function monthKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
 /** Active customers whose next birthday lands within the next 30 days. */
 export function countUpcomingBirthdays(customers: Customer[], now: Date): number {
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const { year, month, day } = zonedParts(now);
+  const today = zonedTimeToUtc(year, month, day);
   return customers.filter((c) => {
     if (c.archived || !c.birthday) return false;
     const b = c.birthday;
-    let next = new Date(now.getFullYear(), b.month - 1, b.day);
-    if (next < today) next = new Date(now.getFullYear() + 1, b.month - 1, b.day);
+    let next = zonedTimeToUtc(year, b.month, b.day);
+    if (next < today) next = zonedTimeToUtc(year + 1, b.month, b.day);
     const inDays = Math.round((next.getTime() - today.getTime()) / 86_400_000);
     return inDays <= 30;
   }).length;

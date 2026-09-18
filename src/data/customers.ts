@@ -3,6 +3,7 @@ import "server-only";
 import { Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
 import type { Customer } from "@/lib/types";
+import { zonedParts } from "@/lib/timezone";
 import {
   monthKey,
   readSummaryTx,
@@ -56,8 +57,7 @@ export async function listCustomers(storeId: string): Promise<Customer[]> {
 export async function listUpcomingBirthdays(
   storeId: string,
 ): Promise<Customer[]> {
-  const now = new Date();
-  const thisMonth = now.getMonth() + 1;
+  const { month: thisMonth } = zonedParts(new Date());
   const nextMonth = (thisMonth % 12) + 1;
   const snap = await customersCol(storeId)
     .where("birthday.month", "in", [thisMonth, nextMonth])
