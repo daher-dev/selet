@@ -6,9 +6,12 @@ import { requireAccess } from "@/lib/access";
 import {
   applyMovement,
   createStockItem,
+  deleteMovement,
   deleteStockItem,
+  getStockItem,
   markPackageEmpty,
   openNextPackage,
+  updateMovement,
   updateStockItem,
 } from "@/data/stock";
 import { logActivity } from "@/data/activity";
@@ -192,6 +195,14 @@ export async function listMovementsAction(
   return listMovements(storeId, itemId, 15);
 }
 
+export async function getStockItemAction(
+  storeId: string,
+  itemId: string,
+): Promise<import("@/lib/types").StockItem | null> {
+  await requireAccess(storeId, "estoque");
+  return getStockItem(storeId, itemId);
+}
+
 export async function openNextPackageAction(
   storeId: string,
   itemId: string,
@@ -267,6 +278,58 @@ export async function applyMovementAction(
       by: user.email,
       section: "estoque",
     });
+    revalidatePath(`/s/${storeId}/estoque`);
+    revalidatePath(`/s/${storeId}`);
+  });
+}
+
+const updateMovementSchema = z.object({
+  storeId: z.string().min(1),
+  itemId: z.string().min(1),
+  movementId: z.string().min(1),
+  qty: z.number().positive("Informe a quantidade."),
+  byPackage: z.boolean().default(false),
+  price: z.number().int().nonnegative().optional(),
+}).superRefine((v, ctx) => {
+  if (v.byPackage && !Number.isInteger(v.qty)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Movimentações por embalagem precisam de quantidade inteira.",
+      path: ["qty"],
+    });
+  }
+});
+
+export type UpdateMovementFormInput = z.input<typeof updateMovementSchema>;
+
+export async function updateMovementAction(
+  input: UpdateMovementFormInput,
+): Promise<ActionResult> {
+  return run(async () => {
+    const parsed = updateMovementSchema.parse(input);
+    const { storeId, itemId, movementId, qty, price } = parsed;
+    await requireAccess(storeId, "estoque");
+    await updateMovement(storeId, itemId, movementId, { qty, price });
+    revalidatePath(`/s/${storeId}/estoque`);
+    revalidatePath(`/s/${storeId}`);
+  });
+}
+
+const deleteMovementSchema = z.object({
+  storeId: z.string().min(1),
+  itemId: z.string().min(1),
+  movementId: z.string().min(1),
+});
+
+export type DeleteMovementFormInput = z.input<typeof deleteMovementSchema>;
+
+export async function deleteMovementAction(
+  input: DeleteMovementFormInput,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { storeId, itemId, movementId } = deleteMovementSchema.parse(input);
+    await requireAccess(storeId, "estoque");
+    await deleteMovement(storeId, itemId, movementId);
     revalidatePath(`/s/${storeId}/estoque`);
     revalidatePath(`/s/${storeId}`);
   });

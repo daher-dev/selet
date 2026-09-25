@@ -36,9 +36,12 @@ import { formatBRL, formatRelative, formatQty, parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   applyMovementAction,
+  deleteMovementAction,
+  getStockItemAction,
   listMovementsAction,
   markPackageEmptyAction,
   openNextPackageAction,
+  updateMovementAction,
   updateStockItemAction,
   deleteStockItemAction,
 } from "@/actions/stock";
@@ -142,27 +145,37 @@ function DetailBody({
   usedIn: RecipeUsage[];
   onClose: () => void;
 }) {
-  const meta = STOCK_CATEGORY_META[item.category];
-  const pu = unitLabel(item.unit);
+  const [liveItem, setLiveItem] = useState(item);
+  const meta = STOCK_CATEGORY_META[liveItem.category];
+  const pu = unitLabel(liveItem.unit);
   const [movements, setMovements] = useState<StockMovement[] | null>(null);
   const [pending, startTransition] = useTransition();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [mode, setMode] = useState<"none" | "in" | "out">("none");
+  const [editingMovement, setEditingMovement] = useState<StockMovement | null>(null);
+  const [movementReloadKey, setMovementReloadKey] = useState(0);
+  const refreshDetail = () => setMovementReloadKey((v) => v + 1);
 
   useEffect(() => {
     let cancelled = false;
-    listMovementsAction(storeId, item.id)
-      .then((list) => {
-        if (!cancelled) setMovements(list);
+    Promise.all([
+      listMovementsAction(storeId, item.id),
+      getStockItemAction(storeId, item.id),
+    ])
+      .then(([list, nextItem]) => {
+        if (cancelled) return;
+        setMovements(list);
+        if (nextItem) setLiveItem(nextItem);
+        else onClose();
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [storeId, item.id, pending]);
+  }, [storeId, item.id, movementReloadKey, onClose]);
 
-  const embalagem = item.tracked
-    ? `${item.pkgLabel ?? "emb."} · ${formatQty(item.pkgSize ?? 0, pu)}`
+  const embalagem = liveItem.tracked
+    ? `${liveItem.pkgLabel ?? "emb."} · ${formatQty(liveItem.pkgSize ?? 0, pu)}`
     : "não embalado · comprado solto";
 
   return (
@@ -172,21 +185,27 @@ function DetailBody({
           {meta && <CategoryTile meta={meta} className="size-11" />}
           <div className="min-w-0 flex-1">
             <SheetTitle className="truncate text-[18px] font-bold leading-tight">
-              {item.name}
+              {liveItem.name}
             </SheetTitle>
             <p className="mt-0.5 truncate text-[12px] text-ink-faint">
-              {meta?.label ?? item.category} · {embalagem}
+              {meta?.label ?? liveItem.category} · {embalagem}
             </p>
           </div>
         </div>
       </SheetHeader>
 
       <div className="flex-1 space-y-4 p-5">
-        {item.continuousUse && (
-          <ContinuoCard storeId={storeId} item={item} pending={pending} startTransition={startTransition} />
+        {liveItem.continuousUse && (
+          <ContinuoCard
+            storeId={storeId}
+            item={liveItem}
+            pending={pending}
+            startTransition={startTransition}
+            onDone={refreshDetail}
+          />
         )}
 
-        {resaleNames.length > 0 && stockStatus(item) === "esgotado" && (
+        {resaleNames.length > 0 && stockStatus(liveItem) === "esgotado" && (
           <ResaleOutWarning names={resaleNames} />
         )}
 
@@ -194,7 +213,7 @@ function DetailBody({
 
         <EditPanel
           storeId={storeId}
-          item={item}
+          item={liveItem}
           open={detailsOpen}
           onToggle={() => setDetailsOpen((v) => !v)}
           onClose={onClose}
@@ -206,14 +225,20 @@ function DetailBody({
           </span>
           <SegBtn
             active={mode === "in"}
-            onClick={() => setMode((m) => (m === "in" ? "none" : "in"))}
+            onClick={() => {
+              setEditingMovement(null);
+              setMode((m) => (m === "in" ? "none" : "in"));
+            }}
             icon={ArrowDownToLine}
           >
             Entrada
           </SegBtn>
           <SegBtn
             active={mode === "out"}
-            onClick={() => setMode((m) => (m === "out" ? "none" : "out"))}
+            onClick={() => {
+              setEditingMovement(null);
+              setMode((m) => (m === "out" ? "none" : "out"));
+            }}
             icon={ArrowUpFromLine}
           >
             Saída
@@ -223,21 +248,48 @@ function DetailBody({
         {mode === "in" && (
           <EntradaForm
             storeId={storeId}
-            item={item}
-            onDone={() => setMode("none")}
+            item={liveItem}
+            onDone={() => {
+              setMode("none");
+              refreshDetail();
+            }}
           />
         )}
         {mode === "out" && (
           <SaidaForm
             storeId={storeId}
-            item={item}
+            item={liveItem}
             orders={orders}
             menuProducts={menuProducts}
-            onDone={() => setMode("none")}
+            onDone={() => {
+              setMode("none");
+              refreshDetail();
+            }}
           />
         )}
 
-        <Timeline movements={movements} item={item} />
+        {editingMovement && (
+          <MovementEditForm
+            key={editingMovement.id}
+            storeId={storeId}
+            item={liveItem}
+            movement={editingMovement}
+            onCancel={() => setEditingMovement(null)}
+            onDone={() => {
+              setEditingMovement(null);
+              refreshDetail();
+            }}
+          />
+        )}
+
+        <Timeline
+          movements={movements}
+          item={liveItem}
+          onEdit={(movement) => {
+            setMode("none");
+            setEditingMovement(movement);
+          }}
+        />
       </div>
     </>
   );
@@ -250,11 +302,13 @@ function ContinuoCard({
   item,
   pending,
   startTransition,
+  onDone,
 }: {
   storeId: string;
   item: StockItem;
   pending: boolean;
   startTransition: React.TransitionStartFunction;
+  onDone: () => void;
 }) {
   const stateLabel = item.openPkg
     ? `Embalagem aberta · ${item.usos} ${item.usos === 1 ? "uso" : "usos"}`
@@ -265,15 +319,19 @@ function ContinuoCard({
   function openNext() {
     startTransition(async () => {
       const r = await openNextPackageAction(storeId, item.id);
-      if (r.ok) toast.success("Nova embalagem aberta.");
-      else toast.error(r.error);
+      if (r.ok) {
+        toast.success("Nova embalagem aberta.");
+        onDone();
+      } else toast.error(r.error);
     });
   }
   function markEmpty() {
     startTransition(async () => {
       const r = await markPackageEmptyAction(storeId, item.id);
-      if (r.ok) toast.success("Embalagem marcada como vazia.");
-      else toast.error(r.error);
+      if (r.ok) {
+        toast.success("Embalagem marcada como vazia.");
+        onDone();
+      } else toast.error(r.error);
     });
   }
 
@@ -845,12 +903,171 @@ function RefPicker({
 
 /* ---------------------------------------------------------------- timeline */
 
+function isEditableTimelineMovement(m: StockMovement) {
+  return (m.type === "entrada" || m.type === "saida") && !m.refOrder && !m.refItem;
+}
+
+function MovementEditForm({
+  storeId,
+  item,
+  movement,
+  onCancel,
+  onDone,
+}: {
+  storeId: string;
+  item: StockItem;
+  movement: StockMovement;
+  onCancel: () => void;
+  onDone: () => void;
+}) {
+  const [qty, setQty] = useState(String(movement.qty).replace(".", ","));
+  const [price, setPrice] = useState(
+    movement.price != null ? formatBRL(movement.price).replace("R$", "").trim() : "",
+  );
+  const [pending, startTransition] = useTransition();
+  const isIn = movement.type === "entrada";
+  const unit = movement.byPackage
+    ? `${item.pkgLabel ?? "emb."}${movement.qty === 1 ? "" : "s"}`
+    : item.continuousUse
+      ? movement.qty === 1
+        ? "uso"
+        : "usos"
+      : unitLabel(item.unit, movement.qty !== 1);
+
+  function submit() {
+    const parsedQty = Number(qty.replace(",", "."));
+    if (!parsedQty || parsedQty <= 0) return toast.error("Informe a quantidade.");
+    if (movement.byPackage && !Number.isInteger(parsedQty)) {
+      return toast.error("Movimentações por embalagem precisam de quantidade inteira.");
+    }
+
+    let parsedPrice: number | undefined;
+    if (isIn && price.trim()) {
+      try {
+        parsedPrice = parseBRL(price);
+      } catch {
+        return toast.error("Preço inválido.");
+      }
+    }
+
+    startTransition(async () => {
+      const result = await updateMovementAction({
+        storeId,
+        itemId: item.id,
+        movementId: movement.id,
+        qty: parsedQty,
+        byPackage: movement.byPackage,
+        price: isIn ? parsedPrice : undefined,
+      });
+      if (result.ok) {
+        toast.success("Movimentação atualizada.");
+        onDone();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  function handleDelete() {
+    startTransition(async () => {
+      const result = await deleteMovementAction({
+        storeId,
+        itemId: item.id,
+        movementId: movement.id,
+      });
+      if (result.ok) {
+        toast.success("Movimentação excluída.");
+        onDone();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-3.5",
+        isIn ? "border-[#cde7d6] bg-[#f4faf5]" : "border-[#f1d6ce] bg-[#fdf5f2]",
+      )}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[13px] font-bold text-ink">
+            Editar {isIn ? "entrada" : "saída"}
+          </p>
+          <p className="text-[11px] text-ink-faint">{formatRelative(movement.at)}</p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={pending}
+          className="h-8 rounded-lg px-2 text-[12px]"
+        >
+          Cancelar
+        </Button>
+      </div>
+
+      <div className="flex gap-2.5">
+        <SmallField label="Quantidade" className="flex-1">
+          <InlineInput
+            value={qty}
+            onChange={setQty}
+            suffix={unit}
+            inputMode={movement.byPackage ? "numeric" : "decimal"}
+            green={isIn}
+            red={!isIn}
+          />
+        </SmallField>
+        {isIn && (
+          <SmallField label="Preço de compra" className="flex-1">
+            <InlineInput
+              value={price}
+              onChange={setPrice}
+              prefix="R$"
+              inputMode="decimal"
+              green
+            />
+          </SmallField>
+        )}
+      </div>
+
+      <div className="mt-3 flex gap-2">
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={handleDelete}
+          disabled={pending}
+          className="flex-1 rounded-lg font-bold"
+        >
+          {pending && <Loader2 className="size-4 animate-spin" />}
+          Excluir
+        </Button>
+        <Button
+          onClick={submit}
+          disabled={pending}
+          className={cn(
+            "flex-1 rounded-lg font-bold",
+            isIn ? "bg-success hover:bg-success/90" : "bg-[#c0492f] hover:bg-[#c0492f]/90",
+          )}
+        >
+          {pending && <Loader2 className="size-4 animate-spin" />}
+          Salvar edição
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function Timeline({
   movements,
   item,
+  onEdit,
 }: {
   movements: StockMovement[] | null;
   item: StockItem;
+  onEdit: (movement: StockMovement) => void;
 }) {
   if (!movements || movements.length === 0) return null;
   return (
@@ -915,6 +1132,18 @@ function Timeline({
               {isIn ? "+" : "−"}
               {formatQty(m.qty, unit)}
             </span>
+            {isEditableTimelineMovement(m) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => onEdit(m)}
+                className="size-8 rounded-lg text-ink-faint hover:text-ink"
+                aria-label={`Editar movimentação de ${formatRelative(m.at)}`}
+              >
+                <Pencil className="size-4" />
+              </Button>
+            )}
           </div>
         );
       })}

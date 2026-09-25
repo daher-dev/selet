@@ -163,6 +163,7 @@ export async function createStockItem(
   const state = derive(input.tracked, input.pkgSize, initial.sealed, initial.open);
   const ref = stockCol(storeId).doc();
   const lowStock = computeLowStock({ ...input, ...state, openPkg: false });
+  const openingQty = input.tracked ? initial.sealed : initial.open;
   await ref.set({
     ...input,
     // In-app creation → mark manual so the catalog fresh-sync (importCatalog's
@@ -177,6 +178,7 @@ export async function createStockItem(
     ...state,
     openPkg: false,
     usos: 0,
+    movementSeq: openingQty > 0 ? 1 : 0,
     lowStock,
     updatedAt: FieldValue.serverTimestamp(),
   });
@@ -186,7 +188,6 @@ export async function createStockItem(
   const newLow = lowStockContribution(lowStock, input.archived ?? false);
   // Opening balance → a "Compra" (ENTRADA) history entry, so a freshly
   // created item shows where its stock came from (design: "geram uma entrada").
-  const openingQty = input.tracked ? initial.sealed : initial.open;
   let purchaseOut: { amount: number; mk: string } | null = null;
   if (openingQty > 0) {
     const at = Timestamp.now();
@@ -195,6 +196,7 @@ export async function createStockItem(
       type: "entrada",
       qty: openingQty,
       byPackage: input.tracked,
+      seq: 1,
       price: input.cost ?? null,
       reason: "ENTRADA",
       refOrder: null,
@@ -288,6 +290,195 @@ export interface MovementInput {
   by: string;
 }
 
+export interface UpdateMovementInput {
+  qty: number;
+  price?: number;
+}
+
+type MovementWrite = Record<string, unknown> & { seq?: number };
+
+function applyReplayCostPatch(
+  patch: Record<string, unknown>,
+  item: FirebaseFirestore.DocumentData,
+  prev: FirebaseFirestore.DocumentData,
+  latestPurchasePrice: number | undefined,
+): void {
+  if (latestPurchasePrice != null) {
+    patch.cost = latestPurchasePrice;
+    return;
+  }
+  if (
+    prev.type === "entrada" &&
+    prev.price != null &&
+    prev.price > 0 &&
+    item.cost === prev.price
+  ) {
+    patch.cost = FieldValue.delete();
+  }
+}
+
+function isEditableMovement(
+  d: FirebaseFirestore.DocumentData,
+): boolean {
+  return (
+    (d.type === "entrada" || d.type === "saida") &&
+    !d.refOrder &&
+    !d.refItem
+  );
+}
+
+function nextMovementSeq(d: FirebaseFirestore.DocumentData, count = 1): number {
+  return (d.movementSeq ?? 0) + count;
+}
+
+function replayMovementState(
+  item: FirebaseFirestore.DocumentData,
+  movements: FirebaseFirestore.DocumentData[],
+  baseline: Pick<StockWork, "sealed" | "open" | "openPkg" | "usos"> = {
+    sealed: 0,
+    open: 0,
+    openPkg: false,
+    usos: 0,
+  },
+): { work: StockWork; latestPurchasePrice?: number } {
+  const work: StockWork = {
+    tracked: item.tracked ?? false,
+    pkgSize: item.pkgSize ?? 0,
+    sealed: baseline.sealed,
+    open: baseline.open,
+    openPkg: baseline.openPkg,
+    usos: baseline.usos,
+    continuousUse: item.continuousUse ?? false,
+    consumptionMode: item.consumptionMode ?? (item.continuousUse ? "continuo" : "medido"),
+    reorderAt: item.reorderAt ?? 0,
+  };
+  let latestPurchasePrice: number | undefined;
+
+  for (const d of movements) {
+    const qty = d.qty ?? 0;
+    const byPackage = d.byPackage ?? false;
+    if (byPackage && !Number.isInteger(qty)) {
+      throw new Error("Movimentações por embalagem precisam de quantidade inteira.");
+    }
+
+    switch (d.type as StockMovementType) {
+      case "entrada":
+        if (work.continuousUse && !byPackage) {
+          work.usos = Math.max(0, work.usos - qty);
+        } else if (byPackage) {
+          if (!work.tracked) throw new Error("Movimentação inválida no histórico.");
+          work.sealed += qty;
+        } else {
+          work.open += qty;
+        }
+        if (d.price != null && d.price > 0) latestPurchasePrice = d.price;
+        break;
+
+      case "saida":
+        if (work.continuousUse && !byPackage) {
+          if (!work.openPkg) {
+            throw new Error("A edição deixaria um item contínuo sem embalagem aberta.");
+          }
+          work.usos += qty;
+          break;
+        }
+        if (byPackage) {
+          if (!work.tracked) throw new Error("Movimentação inválida no histórico.");
+          if (
+            d.reason === "PERDA" &&
+            typeof d.refItem === "string" &&
+            d.refItem.startsWith("Embalagem esvaziada")
+          ) {
+            if (!work.openPkg) {
+              throw new Error("A edição deixaria o histórico de embalagem inconsistente.");
+            }
+            work.openPkg = false;
+            work.usos = 0;
+            break;
+          }
+          if (qty > work.sealed) {
+            throw new Error("A edição deixaria o estoque atual insuficiente.");
+          }
+          work.sealed -= qty;
+        } else if (work.tracked && work.pkgSize > 0) {
+          if (qty > work.sealed * work.pkgSize + work.open) {
+            throw new Error("A edição deixaria o estoque atual insuficiente.");
+          }
+          if (qty > work.open) {
+            const toOpen = Math.ceil((qty - work.open) / work.pkgSize);
+            work.sealed -= toOpen;
+            work.open += toOpen * work.pkgSize;
+          }
+          work.open -= qty;
+        } else {
+          if (qty > work.open) {
+            throw new Error("A edição deixaria o estoque atual insuficiente.");
+          }
+          work.open -= qty;
+        }
+        break;
+
+      case "abertura":
+        if (!work.tracked || work.sealed < 1) {
+          throw new Error("A edição deixaria o histórico de embalagem inconsistente.");
+        }
+        work.sealed -= 1;
+        if (d.refItem === "Abriu embalagem") {
+          if (work.openPkg) {
+            throw new Error("A edição deixaria duas embalagens abertas ao mesmo tempo.");
+          }
+          work.openPkg = true;
+          work.usos = 0;
+        } else {
+          work.open += work.pkgSize;
+        }
+        break;
+    }
+  }
+
+  return { work, latestPurchasePrice };
+}
+
+function replayBaselineState(
+  item: FirebaseFirestore.DocumentData,
+  movements: FirebaseFirestore.DocumentData[],
+): Pick<StockWork, "sealed" | "open" | "openPkg" | "usos"> {
+  const replayBaseline = item.replayBaseline;
+  if (replayBaseline && typeof replayBaseline === "object") {
+    const baseline = replayBaseline as FirebaseFirestore.DocumentData;
+    return {
+      sealed: baseline.sealed ?? 0,
+      open: baseline.open ?? 0,
+      openPkg: baseline.openPkg ?? false,
+      usos: baseline.usos ?? 0,
+    };
+  }
+  if (!(item.tracked ?? false) || (item.continuousUse ?? false)) {
+    return { sealed: 0, open: 0, openPkg: false, usos: 0 };
+  }
+  const { work } = replayMovementState(item, movements);
+  return {
+    sealed: 0,
+    open: Math.max(0, (item.qty ?? 0) - derive(work.tracked, work.pkgSize, work.sealed, work.open).qty),
+    openPkg: false,
+    usos: 0,
+  };
+}
+
+function compareMovementDocs(
+  a: FirebaseFirestore.QueryDocumentSnapshot,
+  b: FirebaseFirestore.QueryDocumentSnapshot,
+): number {
+  const aSeq = a.data().seq;
+  const bSeq = b.data().seq;
+  if (typeof aSeq === "number" && typeof bSeq === "number" && aSeq !== bSeq) {
+    return aSeq - bSeq;
+  }
+  const aCreated = a.createTime?.toMillis() ?? 0;
+  const bCreated = b.createTime?.toMillis() ?? 0;
+  return aCreated === bCreated ? a.id.localeCompare(b.id) : aCreated - bCreated;
+}
+
 /**
  * Applies a stock movement atomically and keeps sealed/open/qty/lowStock
  * consistent. Loose saída on a tracked item auto-opens sealed packages
@@ -359,6 +550,7 @@ export async function applyMovement(
     const state = derive(tracked, pkgSize || undefined, sealed, open);
     const patch: Record<string, unknown> = {
       ...state,
+      movementSeq: nextMovementSeq(d),
       lowStock: computeLowStock({
         tracked,
         continuousUse: d.continuousUse ?? false,
@@ -379,6 +571,7 @@ export async function applyMovement(
       type: input.type,
       qty: input.type === "abertura" ? 1 : input.qty,
       byPackage: input.type === "abertura" ? true : input.byPackage,
+      seq: nextMovementSeq(d),
       price: input.price ?? null,
       reason: input.reason ?? (input.type === "entrada" ? "ENTRADA" : "SAIDA"),
       refOrder: input.refOrder ?? null,
@@ -418,6 +611,169 @@ export async function applyMovement(
   return name;
 }
 
+export async function updateMovement(
+  storeId: string,
+  itemId: string,
+  movementId: string,
+  input: UpdateMovementInput,
+): Promise<void> {
+  const db = getDb();
+  const itemRef = stockCol(storeId).doc(itemId);
+  const movementRef = itemRef.collection("movements").doc(movementId);
+
+  await db.runTransaction(async (tx) => {
+    const itemSnap = await tx.get(itemRef);
+    if (!itemSnap.exists) throw new Error("Item não encontrado.");
+    const item = itemSnap.data()!;
+
+    const movementSnap = await tx.get(movementRef);
+    if (!movementSnap.exists) throw new Error("Movimentação não encontrada.");
+    const prev = movementSnap.data()!;
+    if (!isEditableMovement(prev)) {
+      throw new Error("Movimentações automáticas ou vinculadas são somente leitura.");
+    }
+    if ((prev.byPackage ?? false) && !Number.isInteger(input.qty)) {
+      throw new Error("Movimentações por embalagem precisam de quantidade inteira.");
+    }
+
+    const allMovements = await tx.get(itemRef.collection("movements").orderBy("at", "asc"));
+    const baseline = replayBaselineState(
+      item,
+      allMovements.docs.map((doc) => doc.data()),
+    );
+    const nextPrice = prev.type === "entrada" ? (input.price ?? null) : null;
+    const merged = [...allMovements.docs]
+      .sort(compareMovementDocs)
+      .map((doc) =>
+        doc.id === movementId
+          ? {
+              ...doc.data(),
+              qty: input.qty,
+              price: nextPrice,
+            }
+          : doc.data(),
+      );
+    const { work, latestPurchasePrice } = replayMovementState(item, merged, baseline);
+    const patch = stockPatch(work);
+    applyReplayCostPatch(patch, item, prev, latestPurchasePrice);
+
+    const summary = await readSummaryTx(tx, storeId);
+    const lowDelta =
+      lowStockContribution(patch.lowStock as boolean, item.archived ?? false) -
+      lowStockContribution(item.lowStock ?? false, item.archived ?? false);
+    if (lowDelta !== 0) summaryLowStockDelta(summary, lowDelta);
+
+    const at = prev.at as Timestamp | undefined;
+    const oldPurchase =
+      prev.type === "entrada" && prev.price != null && prev.price > 0
+        ? prev.price * (prev.qty ?? 0)
+        : 0;
+    const newPurchase =
+      prev.type === "entrada" && nextPrice != null && nextPrice > 0
+        ? nextPrice * input.qty
+        : 0;
+    // summaryFinance expects a signed delta on the chosen direction bucket.
+    const purchaseDelta = newPurchase - oldPurchase;
+    if (at && purchaseDelta !== 0) {
+      summaryFinance(summary, {
+        mk: monthKey(at.toDate()),
+        direction: "out",
+        amount: purchaseDelta,
+      });
+    }
+
+    tx.update(itemRef, patch);
+    tx.update(movementRef, { qty: input.qty, price: nextPrice });
+
+    if (prev.type === "entrada") {
+      const financeRef = financeDoc(storeId, stockPurchaseFinanceId(movementId));
+      if (at && newPurchase > 0) {
+        tx.set(
+          financeRef,
+          stockPurchaseTxData({
+            itemId,
+            itemName: item.name ?? "",
+            amount: newPurchase,
+            date: at,
+          }),
+        );
+      } else if (oldPurchase > 0) {
+        tx.delete(financeRef);
+      }
+    }
+
+    if (lowDelta !== 0 || oldPurchase !== newPurchase) {
+      writeSummaryTx(tx, storeId, summary);
+    }
+  });
+}
+
+export async function deleteMovement(
+  storeId: string,
+  itemId: string,
+  movementId: string,
+): Promise<void> {
+  const db = getDb();
+  const itemRef = stockCol(storeId).doc(itemId);
+  const movementRef = itemRef.collection("movements").doc(movementId);
+
+  await db.runTransaction(async (tx) => {
+    const itemSnap = await tx.get(itemRef);
+    if (!itemSnap.exists) throw new Error("Item não encontrado.");
+    const item = itemSnap.data()!;
+
+    const movementSnap = await tx.get(movementRef);
+    if (!movementSnap.exists) throw new Error("Movimentação não encontrada.");
+    const prev = movementSnap.data()!;
+    if (!isEditableMovement(prev)) {
+      throw new Error("Movimentações automáticas ou vinculadas são somente leitura.");
+    }
+
+    const allMovements = await tx.get(itemRef.collection("movements").orderBy("at", "asc"));
+    const baseline = replayBaselineState(
+      item,
+      allMovements.docs.map((doc) => doc.data()),
+    );
+    const remaining = [...allMovements.docs]
+      .sort(compareMovementDocs)
+      .filter((doc) => doc.id !== movementId)
+      .map((doc) => doc.data());
+    const { work, latestPurchasePrice } = replayMovementState(item, remaining, baseline);
+    const patch = stockPatch(work);
+    applyReplayCostPatch(patch, item, prev, latestPurchasePrice);
+
+    const summary = await readSummaryTx(tx, storeId);
+    const lowDelta =
+      lowStockContribution(patch.lowStock as boolean, item.archived ?? false) -
+      lowStockContribution(item.lowStock ?? false, item.archived ?? false);
+    if (lowDelta !== 0) summaryLowStockDelta(summary, lowDelta);
+
+    const at = prev.at as Timestamp | undefined;
+    const oldPurchase =
+      prev.type === "entrada" && prev.price != null && prev.price > 0
+        ? prev.price * (prev.qty ?? 0)
+        : 0;
+    if (at && oldPurchase > 0) {
+      summaryFinance(summary, {
+        mk: monthKey(at.toDate()),
+        direction: "out",
+        amount: -oldPurchase,
+      });
+    }
+
+    tx.update(itemRef, patch);
+    tx.delete(movementRef);
+
+    if (oldPurchase > 0) {
+      tx.delete(financeDoc(storeId, stockPurchaseFinanceId(movementId)));
+    }
+
+    if (lowDelta !== 0 || oldPurchase > 0) {
+      writeSummaryTx(tx, storeId, summary);
+    }
+  });
+}
+
 /**
  * contínuo: opens the next sealed package. Decrements sealed, marks a package
  * open, and resets the usos counter. Logs an abertura movement so the timeline
@@ -453,6 +809,7 @@ export async function openNextPackage(
       sealed,
       openPkg: true,
       usos: 0,
+      movementSeq: nextMovementSeq(d),
       lowStock: newLow,
       updatedAt: Timestamp.now(),
     });
@@ -460,6 +817,7 @@ export async function openNextPackage(
       type: "abertura",
       qty: 1,
       byPackage: true,
+      seq: nextMovementSeq(d),
       price: null,
       reason: "AJUSTE",
       refOrder: null,
@@ -502,6 +860,7 @@ export async function markPackageEmpty(
     tx.update(ref, {
       openPkg: false,
       usos: 0,
+      movementSeq: nextMovementSeq(d),
       lowStock: newLow,
       updatedAt: Timestamp.now(),
     });
@@ -509,6 +868,7 @@ export async function markPackageEmpty(
       type: "saida",
       qty: 1,
       byPackage: true,
+      seq: nextMovementSeq(d),
       price: null,
       reason: "PERDA",
       refOrder: null,
