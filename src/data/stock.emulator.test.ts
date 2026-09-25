@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyMovement,
   createStockItem,
+  deleteMovement,
   getStockItem,
   listMovements,
   updateMovement,
@@ -211,5 +212,20 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
       open: 300,
       qty: 300,
     });
+  });
+
+  it("deleting a manual entrada recomputes stock and removes its mirrored purchase", async () => {
+    const storeId = `test-stock-j-${Date.now()}`;
+    const id = await createStockItem(storeId, GRANOLA, { sealed: 2, open: 0 });
+    const [opening] = await listMovements(storeId, id);
+
+    await deleteMovement(storeId, id, opening.id);
+
+    expect(await getStockItem(storeId, id)).toMatchObject({
+      sealed: 0,
+      open: 0,
+      qty: 0,
+    });
+    expect(await listTransactions(storeId)).toHaveLength(0);
   });
 });

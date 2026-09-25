@@ -36,6 +36,8 @@ import { formatBRL, formatRelative, formatQty, parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   applyMovementAction,
+  deleteMovementAction,
+  getStockItemAction,
   listMovementsAction,
   markPackageEmptyAction,
   openNextPackageAction,
@@ -143,8 +145,9 @@ function DetailBody({
   usedIn: RecipeUsage[];
   onClose: () => void;
 }) {
-  const meta = STOCK_CATEGORY_META[item.category];
-  const pu = unitLabel(item.unit);
+  const [liveItem, setLiveItem] = useState(item);
+  const meta = STOCK_CATEGORY_META[liveItem.category];
+  const pu = unitLabel(liveItem.unit);
   const [movements, setMovements] = useState<StockMovement[] | null>(null);
   const [pending, startTransition] = useTransition();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -154,18 +157,24 @@ function DetailBody({
 
   useEffect(() => {
     let cancelled = false;
-    listMovementsAction(storeId, item.id)
-      .then((list) => {
-        if (!cancelled) setMovements(list);
+    Promise.all([
+      listMovementsAction(storeId, item.id),
+      getStockItemAction(storeId, item.id),
+    ])
+      .then(([list, nextItem]) => {
+        if (cancelled) return;
+        setMovements(list);
+        if (nextItem) setLiveItem(nextItem);
+        else onClose();
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [storeId, item.id, pending, movementReloadKey]);
+  }, [storeId, item.id, pending, movementReloadKey, onClose]);
 
-  const embalagem = item.tracked
-    ? `${item.pkgLabel ?? "emb."} · ${formatQty(item.pkgSize ?? 0, pu)}`
+  const embalagem = liveItem.tracked
+    ? `${liveItem.pkgLabel ?? "emb."} · ${formatQty(liveItem.pkgSize ?? 0, pu)}`
     : "não embalado · comprado solto";
 
   return (
@@ -175,21 +184,21 @@ function DetailBody({
           {meta && <CategoryTile meta={meta} className="size-11" />}
           <div className="min-w-0 flex-1">
             <SheetTitle className="truncate text-[18px] font-bold leading-tight">
-              {item.name}
+              {liveItem.name}
             </SheetTitle>
             <p className="mt-0.5 truncate text-[12px] text-ink-faint">
-              {meta?.label ?? item.category} · {embalagem}
+              {meta?.label ?? liveItem.category} · {embalagem}
             </p>
           </div>
         </div>
       </SheetHeader>
 
       <div className="flex-1 space-y-4 p-5">
-        {item.continuousUse && (
-          <ContinuoCard storeId={storeId} item={item} pending={pending} startTransition={startTransition} />
+        {liveItem.continuousUse && (
+          <ContinuoCard storeId={storeId} item={liveItem} pending={pending} startTransition={startTransition} />
         )}
 
-        {resaleNames.length > 0 && stockStatus(item) === "esgotado" && (
+        {resaleNames.length > 0 && stockStatus(liveItem) === "esgotado" && (
           <ResaleOutWarning names={resaleNames} />
         )}
 
@@ -197,7 +206,7 @@ function DetailBody({
 
         <EditPanel
           storeId={storeId}
-          item={item}
+          item={liveItem}
           open={detailsOpen}
           onToggle={() => setDetailsOpen((v) => !v)}
           onClose={onClose}
@@ -232,14 +241,14 @@ function DetailBody({
         {mode === "in" && (
           <EntradaForm
             storeId={storeId}
-            item={item}
+            item={liveItem}
             onDone={() => setMode("none")}
           />
         )}
         {mode === "out" && (
           <SaidaForm
             storeId={storeId}
-            item={item}
+            item={liveItem}
             orders={orders}
             menuProducts={menuProducts}
             onDone={() => setMode("none")}
@@ -250,7 +259,7 @@ function DetailBody({
           <MovementEditForm
             key={editingMovement.id}
             storeId={storeId}
-            item={item}
+            item={liveItem}
             movement={editingMovement}
             onCancel={() => setEditingMovement(null)}
             onDone={() => {
@@ -262,7 +271,7 @@ function DetailBody({
 
         <Timeline
           movements={movements}
-          item={item}
+          item={liveItem}
           onEdit={(movement) => {
             setMode("none");
             setEditingMovement(movement);
@@ -940,6 +949,22 @@ function MovementEditForm({
     });
   }
 
+  function handleDelete() {
+    startTransition(async () => {
+      const result = await deleteMovementAction({
+        storeId,
+        itemId: item.id,
+        movementId: movement.id,
+      });
+      if (result.ok) {
+        toast.success("Movimentação excluída.");
+        onDone();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
   return (
     <div
       className={cn(
@@ -989,17 +1014,29 @@ function MovementEditForm({
         )}
       </div>
 
-      <Button
-        onClick={submit}
-        disabled={pending}
-        className={cn(
-          "mt-3 w-full rounded-lg font-bold",
-          isIn ? "bg-success hover:bg-success/90" : "bg-[#c0492f] hover:bg-[#c0492f]/90",
-        )}
-      >
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Salvar edição
-      </Button>
+      <div className="mt-3 flex gap-2">
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={handleDelete}
+          disabled={pending}
+          className="flex-1 rounded-lg font-bold"
+        >
+          {pending && <Loader2 className="size-4 animate-spin" />}
+          Excluir
+        </Button>
+        <Button
+          onClick={submit}
+          disabled={pending}
+          className={cn(
+            "flex-1 rounded-lg font-bold",
+            isIn ? "bg-success hover:bg-success/90" : "bg-[#c0492f] hover:bg-[#c0492f]/90",
+          )}
+        >
+          {pending && <Loader2 className="size-4 animate-spin" />}
+          Salvar edição
+        </Button>
+      </div>
     </div>
   );
 }

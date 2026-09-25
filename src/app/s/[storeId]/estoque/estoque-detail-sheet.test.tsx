@@ -7,6 +7,8 @@ import { StockDetailSheet } from "./estoque-detail-sheet";
 
 const stockActions = vi.hoisted(() => ({
   applyMovementAction: vi.fn(),
+  deleteMovementAction: vi.fn(),
+  getStockItemAction: vi.fn(),
   listMovementsAction: vi.fn(),
   markPackageEmptyAction: vi.fn(),
   openNextPackageAction: vi.fn(),
@@ -60,6 +62,8 @@ function movement(overrides: Partial<StockMovement> = {}): StockMovement {
 describe("StockDetailSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    stockActions.deleteMovementAction.mockResolvedValue({ ok: true });
+    stockActions.getStockItemAction.mockResolvedValue(stockItem());
     stockActions.updateMovementAction.mockResolvedValue({ ok: true });
   });
 
@@ -125,5 +129,34 @@ describe("StockDetailSheet", () => {
 
     await screen.findByText("Pedido #P123");
     expect(screen.queryByLabelText(/Editar movimentação/)).not.toBeInTheDocument();
+  });
+
+  it("allows deleting a manual stock movement from the timeline", async () => {
+    stockActions.listMovementsAction.mockResolvedValue([movement()]);
+    const user = userEvent.setup();
+
+    render(
+      <StockDetailSheet
+        storeId="s1"
+        item={stockItem()}
+        orders={[]}
+        menuProducts={[]}
+        resaleNames={[]}
+        usedIn={[]}
+        open
+        onOpenChange={() => {}}
+      />,
+    );
+
+    await user.click(await screen.findByLabelText(/Editar movimentação/));
+    await user.click(screen.getByRole("button", { name: "Excluir" }));
+
+    await waitFor(() =>
+      expect(stockActions.deleteMovementAction).toHaveBeenCalledWith({
+        storeId: "s1",
+        itemId: "item-1",
+        movementId: "mov-1",
+      }),
+    );
   });
 });

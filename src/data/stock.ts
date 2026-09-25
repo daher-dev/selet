@@ -293,6 +293,26 @@ export interface UpdateMovementInput {
   price?: number;
 }
 
+function applyReplayCostPatch(
+  patch: Record<string, unknown>,
+  item: FirebaseFirestore.DocumentData,
+  prev: FirebaseFirestore.DocumentData,
+  latestPurchasePrice: number | undefined,
+): void {
+  if (latestPurchasePrice != null) {
+    patch.cost = latestPurchasePrice;
+    return;
+  }
+  if (
+    prev.type === "entrada" &&
+    prev.price != null &&
+    prev.price > 0 &&
+    item.cost === prev.price
+  ) {
+    patch.cost = FieldValue.delete();
+  }
+}
+
 function isEditableMovement(
   d: FirebaseFirestore.DocumentData,
 ): boolean {
@@ -564,21 +584,17 @@ export async function updateMovement(
     const merged = [...allMovements.docs]
       .sort(compareMovementDocs)
       .map((doc) =>
-      doc.id === movementId
-        ? {
-            ...doc.data(),
-            qty: input.qty,
-            price: nextPrice,
-          }
-        : doc.data(),
+        doc.id === movementId
+          ? {
+              ...doc.data(),
+              qty: input.qty,
+              price: nextPrice,
+            }
+          : doc.data(),
       );
     const { work, latestPurchasePrice } = replayMovementState(item, merged);
     const patch = stockPatch(work);
-    if (latestPurchasePrice != null) {
-      patch.cost = latestPurchasePrice;
-    } else if (prev.type === "entrada") {
-      patch.cost = FieldValue.delete();
-    }
+    applyReplayCostPatch(patch, item, prev, latestPurchasePrice);
 
     const summary = await readSummaryTx(tx, storeId);
     const lowDelta =
@@ -626,6 +642,68 @@ export async function updateMovement(
     }
 
     if (lowDelta !== 0 || oldPurchase !== newPurchase) {
+      writeSummaryTx(tx, storeId, summary);
+    }
+  });
+}
+
+export async function deleteMovement(
+  storeId: string,
+  itemId: string,
+  movementId: string,
+): Promise<void> {
+  const db = getDb();
+  const itemRef = stockCol(storeId).doc(itemId);
+  const movementRef = itemRef.collection("movements").doc(movementId);
+
+  await db.runTransaction(async (tx) => {
+    const itemSnap = await tx.get(itemRef);
+    if (!itemSnap.exists) throw new Error("Item não encontrado.");
+    const item = itemSnap.data()!;
+
+    const movementSnap = await tx.get(movementRef);
+    if (!movementSnap.exists) throw new Error("Movimentação não encontrada.");
+    const prev = movementSnap.data()!;
+    if (!isEditableMovement(prev)) {
+      throw new Error("Movimentações automáticas ou vinculadas são somente leitura.");
+    }
+
+    const allMovements = await tx.get(itemRef.collection("movements").orderBy("at", "asc"));
+    const remaining = [...allMovements.docs]
+      .sort(compareMovementDocs)
+      .filter((doc) => doc.id !== movementId)
+      .map((doc) => doc.data());
+    const { work, latestPurchasePrice } = replayMovementState(item, remaining);
+    const patch = stockPatch(work);
+    applyReplayCostPatch(patch, item, prev, latestPurchasePrice);
+
+    const summary = await readSummaryTx(tx, storeId);
+    const lowDelta =
+      lowStockContribution(patch.lowStock as boolean, item.archived ?? false) -
+      lowStockContribution(item.lowStock ?? false, item.archived ?? false);
+    if (lowDelta !== 0) summaryLowStockDelta(summary, lowDelta);
+
+    const at = prev.at as Timestamp | undefined;
+    const oldPurchase =
+      prev.type === "entrada" && prev.price != null && prev.price > 0
+        ? prev.price * (prev.qty ?? 0)
+        : 0;
+    if (at && oldPurchase > 0) {
+      summaryFinance(summary, {
+        mk: monthKey(at.toDate()),
+        direction: "out",
+        amount: -oldPurchase,
+      });
+    }
+
+    tx.update(itemRef, patch);
+    tx.delete(movementRef);
+
+    if (oldPurchase > 0) {
+      tx.delete(financeDoc(storeId, stockPurchaseFinanceId(movementId)));
+    }
+
+    if (lowDelta !== 0 || oldPurchase > 0) {
       writeSummaryTx(tx, storeId, summary);
     }
   });
