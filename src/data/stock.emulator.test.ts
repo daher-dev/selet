@@ -186,4 +186,30 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
       updateMovement(storeId, id, sale!.id, { qty: 2 }),
     ).rejects.toThrow("somente leitura");
   });
+
+  it("editing a manual saída replays tracked stock correctly", async () => {
+    const storeId = `test-stock-i-${Date.now()}`;
+    const id = await createStockItem(storeId, GRANOLA, { sealed: 2, open: 0 });
+
+    await applyMovement(storeId, id, {
+      ...mv,
+      type: "saida",
+      qty: 300,
+      byPackage: false,
+      reason: "AJUSTE",
+    });
+
+    const manualOut = (await listMovements(storeId, id)).find(
+      (m) => m.type === "saida" && m.reason === "AJUSTE" && !m.refOrder && !m.refItem,
+    );
+    expect(manualOut).toBeDefined();
+
+    await updateMovement(storeId, id, manualOut!.id, { qty: 700 });
+
+    expect(await getStockItem(storeId, id)).toMatchObject({
+      sealed: 0,
+      open: 300,
+      qty: 300,
+    });
+  });
 });

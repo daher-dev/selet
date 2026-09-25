@@ -595,11 +595,13 @@ export async function updateMovement(
       prev.type === "entrada" && nextPrice != null && nextPrice > 0
         ? nextPrice * input.qty
         : 0;
-    if (at && oldPurchase !== newPurchase) {
+    // summaryFinance expects a signed delta on the chosen direction bucket.
+    const purchaseDelta = newPurchase - oldPurchase;
+    if (at && purchaseDelta !== 0) {
       summaryFinance(summary, {
         mk: monthKey(at.toDate()),
         direction: "out",
-        amount: newPurchase - oldPurchase,
+        amount: purchaseDelta,
       });
     }
 

@@ -209,14 +209,20 @@ function DetailBody({
           </span>
           <SegBtn
             active={mode === "in"}
-            onClick={() => setMode((m) => (m === "in" ? "none" : "in"))}
+            onClick={() => {
+              setEditingMovement(null);
+              setMode((m) => (m === "in" ? "none" : "in"));
+            }}
             icon={ArrowDownToLine}
           >
             Entrada
           </SegBtn>
           <SegBtn
             active={mode === "out"}
-            onClick={() => setMode((m) => (m === "out" ? "none" : "out"))}
+            onClick={() => {
+              setEditingMovement(null);
+              setMode((m) => (m === "out" ? "none" : "out"));
+            }}
             icon={ArrowUpFromLine}
           >
             Saída
