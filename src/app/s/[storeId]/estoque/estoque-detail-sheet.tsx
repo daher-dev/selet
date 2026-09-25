@@ -393,14 +393,16 @@ function EditPanel({
   const [name, setName] = useState(item.name);
   const [category, setCategory] = useState<StockCategory>(item.category);
   const [unit, setUnit] = useState<StockUnit>(item.unit);
+  const [pkgLabel, setPkgLabel] = useState(item.pkgLabel ?? "caixa");
   const [pkgSize, setPkgSize] = useState(item.pkgSize ? String(item.pkgSize) : "");
   const [reorder, setReorder] = useState(String(item.reorderAt));
   const [pending, startTransition] = useTransition();
 
   const isCount = unit === "un" || unit === "sache";
+  const pkgLabelValue = pkgLabel.trim() || "caixa";
   // UNIT RULE: consumption mode is DERIVED from the unit, never toggled here.
   const isWeightVol = isWeightVolumeUnit(unit);
-  const reorderUnit = item.tracked ? `${item.pkgLabel ?? "emb."}s` : unit;
+  const reorderUnit = item.tracked ? `${pkgLabelValue}s` : unit;
 
   function save() {
     if (!name.trim()) return toast.error("Informe o nome do item.");
@@ -411,7 +413,7 @@ function EditPanel({
         category,
         unit,
         tracked: item.tracked,
-        pkgLabel: item.pkgLabel,
+        pkgLabel: item.tracked ? pkgLabelValue : undefined,
         pkgSize: pkgSize ? Number(pkgSize.replace(",", ".")) : item.pkgSize,
         continuousUse: isWeightVol,
         consumptionMode: consumptionModeForUnit(unit),
@@ -518,6 +520,17 @@ function EditPanel({
 
           <UnitGroups value={unit} onChange={setUnit} />
 
+          {item.tracked && (
+            <div>
+              <FieldLabel>Embalagem</FieldLabel>
+              <InlineInput
+                value={pkgLabel}
+                onChange={setPkgLabel}
+                inputMode="text"
+              />
+            </div>
+          )}
+
           <div>
             <FieldLabel>Baixa no estoque</FieldLabel>
             <div className="rounded-lg border border-border bg-surface px-3.5 py-2.5">
@@ -540,7 +553,7 @@ function EditPanel({
               <InlineInput
                 value={pkgSize}
                 onChange={setPkgSize}
-                suffix={`${unitLabel(unit)} / ${item.pkgLabel ?? "caixa"}`}
+                suffix={`${unitLabel(unit)} / ${pkgLabelValue}`}
                 inputMode="decimal"
               />
             </div>
