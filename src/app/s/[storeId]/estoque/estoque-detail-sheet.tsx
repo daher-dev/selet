@@ -909,6 +909,9 @@ function MovementEditForm({
   function submit() {
     const parsedQty = Number(qty.replace(",", "."));
     if (!parsedQty || parsedQty <= 0) return toast.error("Informe a quantidade.");
+    if (movement.byPackage && !Number.isInteger(parsedQty)) {
+      return toast.error("Movimentações por embalagem precisam de quantidade inteira.");
+    }
 
     let parsedPrice: number | undefined;
     if (isIn && price.trim()) {
@@ -925,6 +928,7 @@ function MovementEditForm({
         itemId: item.id,
         movementId: movement.id,
         qty: parsedQty,
+        byPackage: movement.byPackage,
         price: isIn ? parsedPrice : undefined,
       });
       if (result.ok) {
@@ -963,7 +967,14 @@ function MovementEditForm({
 
       <div className="flex gap-2.5">
         <SmallField label="Quantidade" className="flex-1">
-          <InlineInput value={qty} onChange={setQty} suffix={unit} inputMode="decimal" green={isIn} red={!isIn} />
+          <InlineInput
+            value={qty}
+            onChange={setQty}
+            suffix={unit}
+            inputMode={movement.byPackage ? "numeric" : "decimal"}
+            green={isIn}
+            red={!isIn}
+          />
         </SmallField>
         {isIn && (
           <SmallField label="Preço de compra" className="flex-1">

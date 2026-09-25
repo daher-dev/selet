@@ -278,7 +278,16 @@ const updateMovementSchema = z.object({
   itemId: z.string().min(1),
   movementId: z.string().min(1),
   qty: z.number().positive("Informe a quantidade."),
+  byPackage: z.boolean().default(false),
   price: z.number().int().nonnegative().optional(),
+}).superRefine((v, ctx) => {
+  if (v.byPackage && !Number.isInteger(v.qty)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Movimentações por embalagem precisam de quantidade inteira.",
+      path: ["qty"],
+    });
+  }
 });
 
 export type UpdateMovementFormInput = z.input<typeof updateMovementSchema>;
@@ -287,10 +296,10 @@ export async function updateMovementAction(
   input: UpdateMovementFormInput,
 ): Promise<ActionResult> {
   return run(async () => {
-    const { storeId, itemId, movementId, ...data } =
-      updateMovementSchema.parse(input);
+    const parsed = updateMovementSchema.parse(input);
+    const { storeId, itemId, movementId, qty, price } = parsed;
     await requireAccess(storeId, "estoque");
-    await updateMovement(storeId, itemId, movementId, data);
+    await updateMovement(storeId, itemId, movementId, { qty, price });
     revalidatePath(`/s/${storeId}/estoque`);
     revalidatePath(`/s/${storeId}`);
   });

@@ -92,6 +92,7 @@ describe("StockDetailSheet", () => {
         itemId: "item-1",
         movementId: "mov-1",
         qty: 3,
+        byPackage: true,
         price: 1800,
       }),
     );
