@@ -343,6 +343,9 @@ function replayMovementState(
   for (const d of movements) {
     const qty = d.qty ?? 0;
     const byPackage = d.byPackage ?? false;
+    if (byPackage && !Number.isInteger(qty)) {
+      throw new Error("Movimentações por embalagem precisam de quantidade inteira.");
+    }
 
     switch (d.type as StockMovementType) {
       case "entrada":
