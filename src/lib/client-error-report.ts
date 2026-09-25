@@ -14,10 +14,12 @@ export function reportClientError(error: Error & { digest?: string }) {
     return;
   }
 
-  fetch("/api/client-error", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-    keepalive: true,
-  }).catch(() => {});
+  try {
+    fetch("/api/client-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  } catch {}
 }

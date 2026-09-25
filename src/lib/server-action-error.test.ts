@@ -20,6 +20,14 @@ describe("isMissingServerActionError", () => {
     ).toBe(true);
   });
 
+  it("matches the runtime UnrecognizedActionError signature", () => {
+    expect(
+      isMissingServerActionError(
+        'UnrecognizedActionError: Server Action "402170d61b1a41afeee3141fd0091154c25d9c812c" was not found on the server.',
+      ),
+    ).toBe(true);
+  });
+
   it("ignores unrelated errors", () => {
     expect(isMissingServerActionError(new Error("Preço inválido."))).toBe(false);
   });
