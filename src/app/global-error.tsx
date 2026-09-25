@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { isMissingServerActionError } from "@/lib/server-action-error";
 
 /**
  * Last-resort boundary: replaces the root layout when it crashes, so no
@@ -13,6 +14,9 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const missingServerAction = isMissingServerActionError(error);
+  const reloadedRef = useRef(false);
+
   useEffect(() => {
     fetch("/api/client-error", {
       method: "POST",
@@ -24,7 +28,11 @@ export default function GlobalError({
         url: window.location.href,
       }),
     }).catch(() => {});
-  }, [error]);
+    if (missingServerAction && !reloadedRef.current) {
+      reloadedRef.current = true;
+      window.location.reload();
+    }
+  }, [error, missingServerAction]);
 
   return (
     <html lang="pt-BR">
@@ -43,13 +51,17 @@ export default function GlobalError({
         }}
       >
         <div>
-          <h2 style={{ fontSize: 22, margin: 0 }}>Algo deu errado</h2>
+          <h2 style={{ fontSize: 22, margin: 0 }}>
+            {missingServerAction ? "Atualizando a página" : "Algo deu errado"}
+          </h2>
           <p style={{ fontSize: 14, color: "#5c6b61" }}>
-            O erro foi registrado. Tente novamente.
+            {missingServerAction
+              ? "A página ficou desatualizada depois de uma publicação. Vamos recarregar para tentar de novo."
+              : "O erro foi registrado. Tente novamente."}
           </p>
           <button
             type="button"
-            onClick={reset}
+            onClick={missingServerAction ? () => window.location.reload() : reset}
             style={{
               marginTop: 16,
               padding: "10px 20px",
@@ -62,7 +74,7 @@ export default function GlobalError({
               cursor: "pointer",
             }}
           >
-            Tentar novamente
+            {missingServerAction ? "Atualizar página" : "Tentar novamente"}
           </button>
         </div>
       </body>
