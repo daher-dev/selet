@@ -154,6 +154,7 @@ function DetailBody({
   const [mode, setMode] = useState<"none" | "in" | "out">("none");
   const [editingMovement, setEditingMovement] = useState<StockMovement | null>(null);
   const [movementReloadKey, setMovementReloadKey] = useState(0);
+  const refreshDetail = () => setMovementReloadKey((v) => v + 1);
 
   useEffect(() => {
     let cancelled = false;
@@ -171,7 +172,7 @@ function DetailBody({
     return () => {
       cancelled = true;
     };
-  }, [storeId, item.id, pending, movementReloadKey, onClose]);
+  }, [storeId, item.id, movementReloadKey, onClose]);
 
   const embalagem = liveItem.tracked
     ? `${liveItem.pkgLabel ?? "emb."} · ${formatQty(liveItem.pkgSize ?? 0, pu)}`
@@ -195,7 +196,13 @@ function DetailBody({
 
       <div className="flex-1 space-y-4 p-5">
         {liveItem.continuousUse && (
-          <ContinuoCard storeId={storeId} item={liveItem} pending={pending} startTransition={startTransition} />
+          <ContinuoCard
+            storeId={storeId}
+            item={liveItem}
+            pending={pending}
+            startTransition={startTransition}
+            onDone={refreshDetail}
+          />
         )}
 
         {resaleNames.length > 0 && stockStatus(liveItem) === "esgotado" && (
@@ -242,7 +249,10 @@ function DetailBody({
           <EntradaForm
             storeId={storeId}
             item={liveItem}
-            onDone={() => setMode("none")}
+            onDone={() => {
+              setMode("none");
+              refreshDetail();
+            }}
           />
         )}
         {mode === "out" && (
@@ -251,7 +261,10 @@ function DetailBody({
             item={liveItem}
             orders={orders}
             menuProducts={menuProducts}
-            onDone={() => setMode("none")}
+            onDone={() => {
+              setMode("none");
+              refreshDetail();
+            }}
           />
         )}
 
@@ -264,7 +277,7 @@ function DetailBody({
             onCancel={() => setEditingMovement(null)}
             onDone={() => {
               setEditingMovement(null);
-              setMovementReloadKey((v) => v + 1);
+              refreshDetail();
             }}
           />
         )}
@@ -289,11 +302,13 @@ function ContinuoCard({
   item,
   pending,
   startTransition,
+  onDone,
 }: {
   storeId: string;
   item: StockItem;
   pending: boolean;
   startTransition: React.TransitionStartFunction;
+  onDone: () => void;
 }) {
   const stateLabel = item.openPkg
     ? `Embalagem aberta · ${item.usos} ${item.usos === 1 ? "uso" : "usos"}`
@@ -304,15 +319,19 @@ function ContinuoCard({
   function openNext() {
     startTransition(async () => {
       const r = await openNextPackageAction(storeId, item.id);
-      if (r.ok) toast.success("Nova embalagem aberta.");
-      else toast.error(r.error);
+      if (r.ok) {
+        toast.success("Nova embalagem aberta.");
+        onDone();
+      } else toast.error(r.error);
     });
   }
   function markEmpty() {
     startTransition(async () => {
       const r = await markPackageEmptyAction(storeId, item.id);
-      if (r.ok) toast.success("Embalagem marcada como vazia.");
-      else toast.error(r.error);
+      if (r.ok) {
+        toast.success("Embalagem marcada como vazia.");
+        onDone();
+      } else toast.error(r.error);
     });
   }
 
