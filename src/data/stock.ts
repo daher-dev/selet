@@ -405,6 +405,9 @@ function replayMovementState(
         if (!work.tracked || work.sealed < 1) {
           throw new Error("A edição deixaria o histórico de embalagem inconsistente.");
         }
+        if (work.openPkg) {
+          throw new Error("A edição deixaria duas embalagens abertas ao mesmo tempo.");
+        }
         work.sealed -= 1;
         work.openPkg = true;
         work.usos = 0;

@@ -228,4 +228,54 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
     });
     expect(await listTransactions(storeId)).toHaveLength(0);
   });
+
+  it("keeps the latest purchase cost when editing an older priced entrada", async () => {
+    const storeId = `test-stock-k-${Date.now()}`;
+    const id = await createStockItem(storeId, GRANOLA, { sealed: 1, open: 0 });
+    await applyMovement(storeId, id, {
+      ...mv,
+      type: "entrada",
+      qty: 2,
+      byPackage: true,
+      price: 3000,
+    });
+
+    const opening = (await listMovements(storeId, id)).find((m) => m.price === GRANOLA.cost);
+    expect(opening).toBeDefined();
+
+    await updateMovement(storeId, id, opening!.id, { qty: 2, price: 1500 });
+
+    expect(await getStockItem(storeId, id)).toMatchObject({
+      sealed: 4,
+      qty: 2000,
+      cost: 3000,
+    });
+  });
+
+  it("keeps the latest purchase cost when deleting an older priced entrada", async () => {
+    const storeId = `test-stock-l-${Date.now()}`;
+    const id = await createStockItem(storeId, GRANOLA, { sealed: 1, open: 0 });
+    await applyMovement(storeId, id, {
+      ...mv,
+      type: "entrada",
+      qty: 2,
+      byPackage: true,
+      price: 3000,
+    });
+
+    const opening = (await listMovements(storeId, id)).find((m) => m.price === GRANOLA.cost);
+    expect(opening).toBeDefined();
+
+    await deleteMovement(storeId, id, opening!.id);
+
+    expect(await getStockItem(storeId, id)).toMatchObject({
+      sealed: 2,
+      qty: 1000,
+      cost: 3000,
+    });
+
+    const txs = await listTransactions(storeId);
+    expect(txs).toHaveLength(1);
+    expect(txs[0]).toMatchObject({ amount: 6000, stockItemId: id });
+  });
 });
