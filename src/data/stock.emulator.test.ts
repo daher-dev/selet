@@ -179,10 +179,11 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
       refOrder: "P123",
     });
 
-    const [sale] = await listMovements(storeId, id);
+    const sale = (await listMovements(storeId, id)).find((m) => m.refOrder === "P123");
+    expect(sale).toBeDefined();
 
     await expect(
-      updateMovement(storeId, id, sale.id, { qty: 2 }),
+      updateMovement(storeId, id, sale!.id, { qty: 2 }),
     ).rejects.toThrow("somente leitura");
   });
 });

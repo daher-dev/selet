@@ -592,18 +592,11 @@ export async function updateMovement(
       prev.type === "entrada" && nextPrice != null && nextPrice > 0
         ? nextPrice * input.qty
         : 0;
-    if (at && oldPurchase !== 0) {
+    if (at && oldPurchase !== newPurchase) {
       summaryFinance(summary, {
         mk: monthKey(at.toDate()),
         direction: "out",
-        amount: -oldPurchase,
-      });
-    }
-    if (at && newPurchase !== 0) {
-      summaryFinance(summary, {
-        mk: monthKey(at.toDate()),
-        direction: "out",
-        amount: newPurchase,
+        amount: newPurchase - oldPurchase,
       });
     }
 
