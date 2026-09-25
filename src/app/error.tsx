@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { RefreshCcw, TriangleAlert } from "lucide-react";
+import { reportClientError } from "@/lib/client-error-report";
 import { isMissingServerActionError } from "@/lib/server-action-error";
 
 export default function ErrorBoundary({
@@ -15,16 +16,7 @@ export default function ErrorBoundary({
   const reloadedRef = useRef(false);
 
   useEffect(() => {
-    fetch("/api/client-error", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: error.message,
-        stack: error.stack,
-        digest: error.digest,
-        url: window.location.href,
-      }),
-    }).catch(() => {});
+    reportClientError(error);
     if (missingServerAction && !reloadedRef.current) {
       reloadedRef.current = true;
       window.location.reload();
