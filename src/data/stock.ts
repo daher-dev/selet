@@ -395,6 +395,15 @@ function replayMovementState(
   return { work, latestPurchasePrice };
 }
 
+function compareMovementDocs(
+  a: FirebaseFirestore.QueryDocumentSnapshot,
+  b: FirebaseFirestore.QueryDocumentSnapshot,
+): number {
+  const aAt = (a.data().at as Timestamp | undefined)?.toMillis() ?? 0;
+  const bAt = (b.data().at as Timestamp | undefined)?.toMillis() ?? 0;
+  return aAt === bAt ? a.id.localeCompare(b.id) : aAt - bAt;
+}
+
 /**
  * Applies a stock movement atomically and keeps sealed/open/qty/lowStock
  * consistent. Loose saída on a tracked item auto-opens sealed packages
@@ -547,11 +556,11 @@ export async function updateMovement(
       throw new Error("Movimentações automáticas ou vinculadas são somente leitura.");
     }
 
-    const allMovements = await tx.get(
-      itemRef.collection("movements").orderBy("at", "asc"),
-    );
+    const allMovements = await tx.get(itemRef.collection("movements").orderBy("at", "asc"));
     const nextPrice = prev.type === "entrada" ? (input.price ?? null) : null;
-    const merged = allMovements.docs.map((doc) =>
+    const merged = [...allMovements.docs]
+      .sort(compareMovementDocs)
+      .map((doc) =>
       doc.id === movementId
         ? {
             ...doc.data(),
@@ -559,7 +568,7 @@ export async function updateMovement(
             price: nextPrice,
           }
         : doc.data(),
-    );
+      );
     const { work, latestPurchasePrice } = replayMovementState(item, merged);
     const patch = stockPatch(work);
     if (latestPurchasePrice != null) {

@@ -150,6 +150,7 @@ function DetailBody({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [mode, setMode] = useState<"none" | "in" | "out">("none");
   const [editingMovement, setEditingMovement] = useState<StockMovement | null>(null);
+  const [movementReloadKey, setMovementReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,7 +162,7 @@ function DetailBody({
     return () => {
       cancelled = true;
     };
-  }, [storeId, item.id, pending]);
+  }, [storeId, item.id, pending, movementReloadKey]);
 
   const embalagem = item.tracked
     ? `${item.pkgLabel ?? "emb."} · ${formatQty(item.pkgSize ?? 0, pu)}`
@@ -245,7 +246,10 @@ function DetailBody({
             item={item}
             movement={editingMovement}
             onCancel={() => setEditingMovement(null)}
-            onDone={() => setEditingMovement(null)}
+            onDone={() => {
+              setEditingMovement(null);
+              setMovementReloadKey((v) => v + 1);
+            }}
           />
         )}
 
