@@ -10,6 +10,7 @@ import { createCustomer, setCustomerArchived } from "./customers";
 import { applyMovement, createStockItem } from "./stock";
 import { computeSummary, readSummary } from "./summary";
 import { fastPath, slowPath } from "@/app/s/[storeId]/dashboard-data";
+import { addZonedMonths } from "@/lib/timezone";
 import { monthKey } from "@/lib/summary-core";
 
 const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -297,8 +298,8 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     );
 
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const startOfMonth = addZonedMonths(now, 0);
+    const startOfLastMonth = addZonedMonths(now, -1);
     const thisKey = monthKey(startOfMonth);
     const lastKey = monthKey(startOfLastMonth);
     const perms = { canPedidos: true, canClientes: true, canEstoque: true };
