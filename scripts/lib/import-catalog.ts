@@ -187,9 +187,16 @@ export async function importCatalog(
       ? { sealed, open, openPkg, usos }
       : undefined;
     if (snap.exists) {
+      const existing = snap.data()!;
       // Preserve live counts (sealed/open/qty/usos) and archived; only refresh
       // catalog metadata.
-      await ref.set(prune({ ...catalogFields, replayBaseline }), { merge: true });
+      await ref.set(
+        prune({
+          ...catalogFields,
+          replayBaseline: existing.replayBaseline ?? replayBaseline,
+        }),
+        { merge: true },
+      );
     } else {
       // First insert. Opening ledger: seedOpeningLedger seeds the realistic
       // hbl-stock.json counts (emulator/demo); otherwise a real store starts at
