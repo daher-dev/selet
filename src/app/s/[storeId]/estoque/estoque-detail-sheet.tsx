@@ -400,9 +400,10 @@ function EditPanel({
 
   const isCount = unit === "un" || unit === "sache";
   const pkgLabelValue = pkgLabel.trim() || "caixa";
+  const pkgLabelPlural = pkgLabelValue.endsWith("s") ? pkgLabelValue : `${pkgLabelValue}s`;
   // UNIT RULE: consumption mode is DERIVED from the unit, never toggled here.
   const isWeightVol = isWeightVolumeUnit(unit);
-  const reorderUnit = item.tracked ? `${pkgLabelValue}s` : unit;
+  const reorderUnit = item.tracked ? pkgLabelPlural : unit;
 
   function save() {
     if (!name.trim()) return toast.error("Informe o nome do item.");
