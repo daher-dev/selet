@@ -7,11 +7,11 @@ export function reportClientError(error: Error & { digest?: string }) {
   });
 
   if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-    navigator.sendBeacon(
+    const queued = navigator.sendBeacon(
       "/api/client-error",
       new Blob([body], { type: "application/json" }),
     );
-    return;
+    if (queued) return;
   }
 
   try {
