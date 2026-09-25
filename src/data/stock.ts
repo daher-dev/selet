@@ -288,6 +288,113 @@ export interface MovementInput {
   by: string;
 }
 
+export interface UpdateMovementInput {
+  qty: number;
+  price?: number;
+}
+
+function isEditableMovement(
+  d: FirebaseFirestore.DocumentData,
+): boolean {
+  return (
+    (d.type === "entrada" || d.type === "saida") &&
+    !d.refOrder &&
+    !d.refItem
+  );
+}
+
+function replayMovementState(
+  item: FirebaseFirestore.DocumentData,
+  movements: FirebaseFirestore.DocumentData[],
+): { work: StockWork; latestPurchasePrice?: number } {
+  const work: StockWork = {
+    tracked: item.tracked ?? false,
+    pkgSize: item.pkgSize ?? 0,
+    sealed: 0,
+    open: 0,
+    openPkg: false,
+    usos: 0,
+    continuousUse: item.continuousUse ?? false,
+    consumptionMode: item.consumptionMode ?? (item.continuousUse ? "continuo" : "medido"),
+    reorderAt: item.reorderAt ?? 0,
+  };
+  let latestPurchasePrice: number | undefined;
+
+  for (const d of movements) {
+    const qty = d.qty ?? 0;
+    const byPackage = d.byPackage ?? false;
+
+    switch (d.type as StockMovementType) {
+      case "entrada":
+        if (work.continuousUse && !byPackage) {
+          work.usos = Math.max(0, work.usos - qty);
+        } else if (byPackage) {
+          if (!work.tracked) throw new Error("Movimentação inválida no histórico.");
+          work.sealed += qty;
+        } else {
+          work.open += qty;
+        }
+        if (d.price != null && d.price > 0) latestPurchasePrice = d.price;
+        break;
+
+      case "saida":
+        if (work.continuousUse && !byPackage) {
+          if (!work.openPkg) {
+            throw new Error("A edição deixaria um item contínuo sem embalagem aberta.");
+          }
+          work.usos += qty;
+          break;
+        }
+        if (byPackage) {
+          if (!work.tracked) throw new Error("Movimentação inválida no histórico.");
+          if (
+            d.reason === "PERDA" &&
+            typeof d.refItem === "string" &&
+            d.refItem.startsWith("Embalagem esvaziada")
+          ) {
+            if (!work.openPkg) {
+              throw new Error("A edição deixaria o histórico de embalagem inconsistente.");
+            }
+            work.openPkg = false;
+            work.usos = 0;
+            break;
+          }
+          if (qty > work.sealed) {
+            throw new Error("A edição deixaria o estoque atual insuficiente.");
+          }
+          work.sealed -= qty;
+        } else if (work.tracked && work.pkgSize > 0) {
+          if (qty > work.sealed * work.pkgSize + work.open) {
+            throw new Error("A edição deixaria o estoque atual insuficiente.");
+          }
+          if (qty > work.open) {
+            const toOpen = Math.ceil((qty - work.open) / work.pkgSize);
+            work.sealed -= toOpen;
+            work.open += toOpen * work.pkgSize;
+          }
+          work.open -= qty;
+        } else {
+          if (qty > work.open) {
+            throw new Error("A edição deixaria o estoque atual insuficiente.");
+          }
+          work.open -= qty;
+        }
+        break;
+
+      case "abertura":
+        if (!work.tracked || work.sealed < 1) {
+          throw new Error("A edição deixaria o histórico de embalagem inconsistente.");
+        }
+        work.sealed -= 1;
+        work.openPkg = true;
+        work.usos = 0;
+        break;
+    }
+  }
+
+  return { work, latestPurchasePrice };
+}
+
 /**
  * Applies a stock movement atomically and keeps sealed/open/qty/lowStock
  * consistent. Loose saída on a tracked item auto-opens sealed packages
@@ -416,6 +523,105 @@ export async function applyMovement(
     if (lowDelta !== 0 || purchaseOut > 0) writeSummaryTx(tx, storeId, summary);
   });
   return name;
+}
+
+export async function updateMovement(
+  storeId: string,
+  itemId: string,
+  movementId: string,
+  input: UpdateMovementInput,
+): Promise<void> {
+  const db = getDb();
+  const itemRef = stockCol(storeId).doc(itemId);
+  const movementRef = itemRef.collection("movements").doc(movementId);
+
+  await db.runTransaction(async (tx) => {
+    const itemSnap = await tx.get(itemRef);
+    if (!itemSnap.exists) throw new Error("Item não encontrado.");
+    const item = itemSnap.data()!;
+
+    const movementSnap = await tx.get(movementRef);
+    if (!movementSnap.exists) throw new Error("Movimentação não encontrada.");
+    const prev = movementSnap.data()!;
+    if (!isEditableMovement(prev)) {
+      throw new Error("Movimentações automáticas ou vinculadas são somente leitura.");
+    }
+
+    const allMovements = await tx.get(
+      itemRef.collection("movements").orderBy("at", "asc"),
+    );
+    const nextPrice = prev.type === "entrada" ? (input.price ?? null) : null;
+    const merged = allMovements.docs.map((doc) =>
+      doc.id === movementId
+        ? {
+            ...doc.data(),
+            qty: input.qty,
+            price: nextPrice,
+          }
+        : doc.data(),
+    );
+    const { work, latestPurchasePrice } = replayMovementState(item, merged);
+    const patch = stockPatch(work);
+    if (latestPurchasePrice != null) {
+      patch.cost = latestPurchasePrice;
+    } else if (prev.type === "entrada") {
+      patch.cost = FieldValue.delete();
+    }
+
+    const summary = await readSummaryTx(tx, storeId);
+    const lowDelta =
+      lowStockContribution(patch.lowStock as boolean, item.archived ?? false) -
+      lowStockContribution(item.lowStock ?? false, item.archived ?? false);
+    if (lowDelta !== 0) summaryLowStockDelta(summary, lowDelta);
+
+    const at = prev.at as Timestamp | undefined;
+    const oldPurchase =
+      prev.type === "entrada" && prev.price != null && prev.price > 0
+        ? prev.price * (prev.qty ?? 0)
+        : 0;
+    const newPurchase =
+      prev.type === "entrada" && nextPrice != null && nextPrice > 0
+        ? nextPrice * input.qty
+        : 0;
+    if (at && oldPurchase !== 0) {
+      summaryFinance(summary, {
+        mk: monthKey(at.toDate()),
+        direction: "out",
+        amount: -oldPurchase,
+      });
+    }
+    if (at && newPurchase !== 0) {
+      summaryFinance(summary, {
+        mk: monthKey(at.toDate()),
+        direction: "out",
+        amount: newPurchase,
+      });
+    }
+
+    tx.update(itemRef, patch);
+    tx.update(movementRef, { qty: input.qty, price: nextPrice });
+
+    if (prev.type === "entrada") {
+      const financeRef = financeDoc(storeId, stockPurchaseFinanceId(movementId));
+      if (at && newPurchase > 0) {
+        tx.set(
+          financeRef,
+          stockPurchaseTxData({
+            itemId,
+            itemName: item.name ?? "",
+            amount: newPurchase,
+            date: at,
+          }),
+        );
+      } else if (oldPurchase > 0) {
+        tx.delete(financeRef);
+      }
+    }
+
+    if (lowDelta !== 0 || oldPurchase !== newPurchase) {
+      writeSummaryTx(tx, storeId, summary);
+    }
+  });
 }
 
 /**

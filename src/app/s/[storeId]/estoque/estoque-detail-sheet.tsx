@@ -39,6 +39,7 @@ import {
   listMovementsAction,
   markPackageEmptyAction,
   openNextPackageAction,
+  updateMovementAction,
   updateStockItemAction,
   deleteStockItemAction,
 } from "@/actions/stock";
@@ -148,6 +149,7 @@ function DetailBody({
   const [pending, startTransition] = useTransition();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [mode, setMode] = useState<"none" | "in" | "out">("none");
+  const [editingMovement, setEditingMovement] = useState<StockMovement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -237,7 +239,24 @@ function DetailBody({
           />
         )}
 
-        <Timeline movements={movements} item={item} />
+        {editingMovement && (
+          <MovementEditForm
+            storeId={storeId}
+            item={item}
+            movement={editingMovement}
+            onCancel={() => setEditingMovement(null)}
+            onDone={() => setEditingMovement(null)}
+          />
+        )}
+
+        <Timeline
+          movements={movements}
+          item={item}
+          onEdit={(movement) => {
+            setMode("none");
+            setEditingMovement(movement);
+          }}
+        />
       </div>
     </>
   );
@@ -845,12 +864,132 @@ function RefPicker({
 
 /* ---------------------------------------------------------------- timeline */
 
+function isEditableTimelineMovement(m: StockMovement) {
+  return (m.type === "entrada" || m.type === "saida") && !m.refOrder && !m.refItem;
+}
+
+function MovementEditForm({
+  storeId,
+  item,
+  movement,
+  onCancel,
+  onDone,
+}: {
+  storeId: string;
+  item: StockItem;
+  movement: StockMovement;
+  onCancel: () => void;
+  onDone: () => void;
+}) {
+  const [qty, setQty] = useState(String(movement.qty).replace(".", ","));
+  const [price, setPrice] = useState(
+    movement.price != null ? formatBRL(movement.price).replace("R$", "").trim() : "",
+  );
+  const [pending, startTransition] = useTransition();
+  const isIn = movement.type === "entrada";
+  const unit = movement.byPackage
+    ? `${item.pkgLabel ?? "emb."}${movement.qty === 1 ? "" : "s"}`
+    : item.continuousUse
+      ? movement.qty === 1
+        ? "uso"
+        : "usos"
+      : unitLabel(item.unit, movement.qty !== 1);
+
+  function submit() {
+    const parsedQty = Number(qty.replace(",", "."));
+    if (!parsedQty || parsedQty <= 0) return toast.error("Informe a quantidade.");
+
+    let parsedPrice: number | undefined;
+    if (isIn && price.trim()) {
+      try {
+        parsedPrice = parseBRL(price);
+      } catch {
+        return toast.error("Preço inválido.");
+      }
+    }
+
+    startTransition(async () => {
+      const result = await updateMovementAction({
+        storeId,
+        itemId: item.id,
+        movementId: movement.id,
+        qty: parsedQty,
+        price: isIn ? parsedPrice : undefined,
+      });
+      if (result.ok) {
+        toast.success("Movimentação atualizada.");
+        onDone();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-3.5",
+        isIn ? "border-[#cde7d6] bg-[#f4faf5]" : "border-[#f1d6ce] bg-[#fdf5f2]",
+      )}
+    >
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[13px] font-bold text-ink">
+            Editar {isIn ? "entrada" : "saída"}
+          </p>
+          <p className="text-[11px] text-ink-faint">{formatRelative(movement.at)}</p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={pending}
+          className="h-8 rounded-lg px-2 text-[12px]"
+        >
+          Cancelar
+        </Button>
+      </div>
+
+      <div className="flex gap-2.5">
+        <SmallField label="Quantidade" className="flex-1">
+          <InlineInput value={qty} onChange={setQty} suffix={unit} inputMode="decimal" green={isIn} red={!isIn} />
+        </SmallField>
+        {isIn && (
+          <SmallField label="Preço de compra" className="flex-1">
+            <InlineInput
+              value={price}
+              onChange={setPrice}
+              prefix="R$"
+              inputMode="decimal"
+              green
+            />
+          </SmallField>
+        )}
+      </div>
+
+      <Button
+        onClick={submit}
+        disabled={pending}
+        className={cn(
+          "mt-3 w-full rounded-lg font-bold",
+          isIn ? "bg-success hover:bg-success/90" : "bg-[#c0492f] hover:bg-[#c0492f]/90",
+        )}
+      >
+        {pending && <Loader2 className="size-4 animate-spin" />}
+        Salvar edição
+      </Button>
+    </div>
+  );
+}
+
 function Timeline({
   movements,
   item,
+  onEdit,
 }: {
   movements: StockMovement[] | null;
   item: StockItem;
+  onEdit: (movement: StockMovement) => void;
 }) {
   if (!movements || movements.length === 0) return null;
   return (
@@ -915,6 +1054,18 @@ function Timeline({
               {isIn ? "+" : "−"}
               {formatQty(m.qty, unit)}
             </span>
+            {isEditableTimelineMovement(m) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => onEdit(m)}
+                className="size-8 rounded-lg text-ink-faint hover:text-ink"
+                aria-label={`Editar movimentação de ${formatRelative(m.at)}`}
+              >
+                <Pencil className="size-4" />
+              </Button>
+            )}
           </div>
         );
       })}

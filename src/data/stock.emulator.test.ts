@@ -4,6 +4,7 @@ import {
   createStockItem,
   getStockItem,
   listMovements,
+  updateMovement,
   updateStockItem,
 } from "./stock";
 import type { StockItemInput } from "./stock";
@@ -140,5 +141,48 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
       amount: 3600 * 2,
       direction: "out",
     });
+  });
+
+  it("editing a manual entrada recomputes stock and its mirrored purchase", async () => {
+    const storeId = `test-stock-g-${Date.now()}`;
+    const id = await createStockItem(storeId, GRANOLA, { sealed: 5, open: 0 });
+    const [opening] = await listMovements(storeId, id);
+
+    await updateMovement(storeId, id, opening.id, { qty: 3, price: 1900 });
+
+    expect(await getStockItem(storeId, id)).toMatchObject({
+      sealed: 3,
+      open: 0,
+      qty: 1500,
+      cost: 1900,
+    });
+
+    const [tx] = await listTransactions(storeId);
+    expect(tx).toMatchObject({
+      source: "stock",
+      stockItemId: id,
+      amount: 1900 * 3,
+      direction: "out",
+    });
+  });
+
+  it("refuses to edit linked automatic movements", async () => {
+    const storeId = `test-stock-h-${Date.now()}`;
+    const id = await createStockItem(storeId, GRANOLA, { sealed: 3, open: 0 });
+
+    await applyMovement(storeId, id, {
+      ...mv,
+      type: "saida",
+      qty: 1,
+      byPackage: true,
+      reason: "VENDA",
+      refOrder: "P123",
+    });
+
+    const [sale] = await listMovements(storeId, id);
+
+    await expect(
+      updateMovement(storeId, id, sale.id, { qty: 2 }),
+    ).rejects.toThrow("somente leitura");
   });
 });

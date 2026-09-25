@@ -9,6 +9,7 @@ import {
   deleteStockItem,
   markPackageEmpty,
   openNextPackage,
+  updateMovement,
   updateStockItem,
 } from "@/data/stock";
 import { logActivity } from "@/data/activity";
@@ -267,6 +268,29 @@ export async function applyMovementAction(
       by: user.email,
       section: "estoque",
     });
+    revalidatePath(`/s/${storeId}/estoque`);
+    revalidatePath(`/s/${storeId}`);
+  });
+}
+
+const updateMovementSchema = z.object({
+  storeId: z.string().min(1),
+  itemId: z.string().min(1),
+  movementId: z.string().min(1),
+  qty: z.number().positive("Informe a quantidade."),
+  price: z.number().int().nonnegative().optional(),
+});
+
+export type UpdateMovementFormInput = z.input<typeof updateMovementSchema>;
+
+export async function updateMovementAction(
+  input: UpdateMovementFormInput,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { storeId, itemId, movementId, ...data } =
+      updateMovementSchema.parse(input);
+    await requireAccess(storeId, "estoque");
+    await updateMovement(storeId, itemId, movementId, data);
     revalidatePath(`/s/${storeId}/estoque`);
     revalidatePath(`/s/${storeId}`);
   });
