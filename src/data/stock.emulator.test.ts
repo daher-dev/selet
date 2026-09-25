@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getDb } from "@/lib/firebase-admin";
 import {
   applyMovement,
   createStockItem,
@@ -31,6 +32,10 @@ const GRANOLA: StockItemInput = {
 };
 
 const mv = { by: "test@selet.com" };
+const db = getDb();
+
+const stockDoc = (storeId: string, itemId: string) =>
+  db.collection("stores").doc(storeId).collection("stockItems").doc(itemId);
 
 describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
   it("tracked item keeps qty = sealed*pkgSize + open through the ledger", async () => {
@@ -266,6 +271,88 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
       sealed: 0,
       open: 400,
       qty: 400,
+    });
+  });
+
+  it("editing a manual entrada preserves an import replay baseline", async () => {
+    const storeId = `test-stock-j-import-${Date.now()}`;
+    const id = await createStockItem(storeId, GRANOLA);
+    await stockDoc(storeId, id).set(
+      {
+        source: "import",
+        replayBaseline: { sealed: 2, open: 200, openPkg: false, usos: 0 },
+        sealed: 2,
+        open: 200,
+        qty: 1200,
+        lowStock: false,
+      },
+      { merge: true },
+    );
+
+    await applyMovement(storeId, id, {
+      ...mv,
+      type: "entrada",
+      qty: 1,
+      byPackage: true,
+      reason: "AJUSTE",
+    });
+
+    const manualIn = (await listMovements(storeId, id)).find(
+      (m) => m.type === "entrada" && m.reason === "AJUSTE" && !m.refOrder && !m.refItem,
+    );
+    expect(manualIn).toBeDefined();
+
+    await updateMovement(storeId, id, manualIn!.id, { qty: 2, price: undefined });
+
+    expect(await getStockItem(storeId, id)).toMatchObject({
+      sealed: 4,
+      open: 200,
+      qty: 2200,
+    });
+  });
+
+  it("deleting a manual entrada preserves a continuous import replay baseline", async () => {
+    const storeId = `test-stock-j-import-continuo-${Date.now()}`;
+    const id = await createStockItem(storeId, {
+      ...GRANOLA,
+      name: "Café",
+      continuousUse: true,
+      consumptionMode: "continuo",
+    });
+    await stockDoc(storeId, id).set(
+      {
+        source: "import",
+        replayBaseline: { sealed: 3, open: 0, openPkg: true, usos: 14 },
+        sealed: 3,
+        open: 0,
+        qty: 1500,
+        openPkg: true,
+        usos: 14,
+        lowStock: false,
+      },
+      { merge: true },
+    );
+
+    await applyMovement(storeId, id, {
+      ...mv,
+      type: "entrada",
+      qty: 1,
+      byPackage: true,
+      reason: "AJUSTE",
+    });
+
+    const manualIn = (await listMovements(storeId, id)).find(
+      (m) => m.type === "entrada" && m.reason === "AJUSTE" && !m.refOrder && !m.refItem,
+    );
+    expect(manualIn).toBeDefined();
+
+    await deleteMovement(storeId, id, manualIn!.id);
+
+    expect(await getStockItem(storeId, id)).toMatchObject({
+      sealed: 3,
+      openPkg: true,
+      usos: 14,
+      qty: 1500,
     });
   });
 

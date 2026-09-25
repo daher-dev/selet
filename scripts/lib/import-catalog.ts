@@ -179,18 +179,21 @@ export async function importCatalog(
       // docs with source !== "manual" — protecting in-app-created items.
       source: "import",
     };
+    const sealed = seedOpeningLedger ? (s.sealed ?? 0) : 0;
+    const open = seedOpeningLedger ? (s.open ?? 0) : 0;
+    const openPkg = seedOpeningLedger ? (s.openPkg ?? false) : false;
+    const usos = seedOpeningLedger ? (s.usos ?? 0) : 0;
+    const replayBaseline = seedOpeningLedger
+      ? { sealed, open, openPkg, usos }
+      : undefined;
     if (snap.exists) {
       // Preserve live counts (sealed/open/qty/usos) and archived; only refresh
       // catalog metadata.
-      await ref.set(prune(catalogFields), { merge: true });
+      await ref.set(prune({ ...catalogFields, replayBaseline }), { merge: true });
     } else {
       // First insert. Opening ledger: seedOpeningLedger seeds the realistic
       // hbl-stock.json counts (emulator/demo); otherwise a real store starts at
       // ZERO and counts in via entrada movements (prod bootstrap — no demo data).
-      const sealed = seedOpeningLedger ? (s.sealed ?? 0) : 0;
-      const open = seedOpeningLedger ? (s.open ?? 0) : 0;
-      const openPkg = seedOpeningLedger ? (s.openPkg ?? false) : false;
-      const usos = seedOpeningLedger ? (s.usos ?? 0) : 0;
       const state = derive(s.tracked, s.pkgSize, sealed, open);
       const usable = continuousUse ? sealed + (openPkg ? 1 : 0) : state.qty;
       const thr =
@@ -201,6 +204,7 @@ export async function importCatalog(
         prune({
           ...catalogFields,
           archived: s.archived ?? false,
+          replayBaseline,
           ...state,
           openPkg,
           usos,

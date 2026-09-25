@@ -326,15 +326,20 @@ function isEditableMovement(
 function replayMovementState(
   item: FirebaseFirestore.DocumentData,
   movements: FirebaseFirestore.DocumentData[],
-  openingOpen = 0,
+  baseline: Pick<StockWork, "sealed" | "open" | "openPkg" | "usos"> = {
+    sealed: 0,
+    open: 0,
+    openPkg: false,
+    usos: 0,
+  },
 ): { work: StockWork; latestPurchasePrice?: number } {
   const work: StockWork = {
     tracked: item.tracked ?? false,
     pkgSize: item.pkgSize ?? 0,
-    sealed: 0,
-    open: openingOpen,
-    openPkg: false,
-    usos: 0,
+    sealed: baseline.sealed,
+    open: baseline.open,
+    openPkg: baseline.openPkg,
+    usos: baseline.usos,
     continuousUse: item.continuousUse ?? false,
     consumptionMode: item.consumptionMode ?? (item.continuousUse ? "continuo" : "medido"),
     reorderAt: item.reorderAt ?? 0,
@@ -422,13 +427,30 @@ function replayMovementState(
   return { work, latestPurchasePrice };
 }
 
-function hiddenOpeningOpenQty(
+function replayBaselineState(
   item: FirebaseFirestore.DocumentData,
   movements: FirebaseFirestore.DocumentData[],
-): number {
-  if (!(item.tracked ?? false) || (item.continuousUse ?? false)) return 0;
+): Pick<StockWork, "sealed" | "open" | "openPkg" | "usos"> {
+  const replayBaseline = item.replayBaseline;
+  if (replayBaseline && typeof replayBaseline === "object") {
+    const baseline = replayBaseline as FirebaseFirestore.DocumentData;
+    return {
+      sealed: baseline.sealed ?? 0,
+      open: baseline.open ?? 0,
+      openPkg: baseline.openPkg ?? false,
+      usos: baseline.usos ?? 0,
+    };
+  }
+  if (!(item.tracked ?? false) || (item.continuousUse ?? false)) {
+    return { sealed: 0, open: 0, openPkg: false, usos: 0 };
+  }
   const { work } = replayMovementState(item, movements);
-  return Math.max(0, (item.qty ?? 0) - derive(work.tracked, work.pkgSize, work.sealed, work.open).qty);
+  return {
+    sealed: 0,
+    open: Math.max(0, (item.qty ?? 0) - derive(work.tracked, work.pkgSize, work.sealed, work.open).qty),
+    openPkg: false,
+    usos: 0,
+  };
 }
 
 function compareMovementDocs(
@@ -596,7 +618,7 @@ export async function updateMovement(
     }
 
     const allMovements = await tx.get(itemRef.collection("movements").orderBy("at", "asc"));
-    const baselineOpen = hiddenOpeningOpenQty(
+    const baseline = replayBaselineState(
       item,
       allMovements.docs.map((doc) => doc.data()),
     );
@@ -612,7 +634,7 @@ export async function updateMovement(
             }
           : doc.data(),
       );
-    const { work, latestPurchasePrice } = replayMovementState(item, merged, baselineOpen);
+    const { work, latestPurchasePrice } = replayMovementState(item, merged, baseline);
     const patch = stockPatch(work);
     applyReplayCostPatch(patch, item, prev, latestPurchasePrice);
 
@@ -689,7 +711,7 @@ export async function deleteMovement(
     }
 
     const allMovements = await tx.get(itemRef.collection("movements").orderBy("at", "asc"));
-    const baselineOpen = hiddenOpeningOpenQty(
+    const baseline = replayBaselineState(
       item,
       allMovements.docs.map((doc) => doc.data()),
     );
@@ -697,7 +719,7 @@ export async function deleteMovement(
       .sort(compareMovementDocs)
       .filter((doc) => doc.id !== movementId)
       .map((doc) => doc.data());
-    const { work, latestPurchasePrice } = replayMovementState(item, remaining, baselineOpen);
+    const { work, latestPurchasePrice } = replayMovementState(item, remaining, baseline);
     const patch = stockPatch(work);
     applyReplayCostPatch(patch, item, prev, latestPurchasePrice);
 

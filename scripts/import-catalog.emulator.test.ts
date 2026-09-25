@@ -64,6 +64,7 @@ describe.skipIf(!hasEmulator)("importCatalog (emulator)", () => {
       usos: 14,
       lowStock: false,
       archived: false,
+      replayBaseline: { sealed: 3, open: 0, openPkg: true, usos: 14 },
     });
 
     // An esgotado resale insumo derives lowStock from its reorder threshold.
@@ -153,6 +154,12 @@ describe.skipIf(!hasEmulator)("importCatalog (emulator)", () => {
     expect(insumo?.qty).toBe(7);
     expect(insumo?.open).toBe(7);
     expect(insumo?.usos).toBe(99);
+    expect(insumo?.replayBaseline).toMatchObject({
+      sealed: 3,
+      open: 0,
+      openPkg: true,
+      usos: 14,
+    });
   });
 
   it("fresh sync: DELETES import/legacy docs absent from the JSON, PRESERVES in-app (manual) docs", async () => {
