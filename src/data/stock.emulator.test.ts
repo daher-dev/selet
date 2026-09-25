@@ -214,6 +214,32 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
     });
   });
 
+  it("editing a manual saída preserves tracked opening loose stock", async () => {
+    const storeId = `test-stock-i-open-${Date.now()}`;
+    const id = await createStockItem(storeId, GRANOLA, { sealed: 2, open: 400 });
+
+    await applyMovement(storeId, id, {
+      ...mv,
+      type: "saida",
+      qty: 700,
+      byPackage: false,
+      reason: "AJUSTE",
+    });
+
+    const manualOut = (await listMovements(storeId, id)).find(
+      (m) => m.type === "saida" && m.reason === "AJUSTE" && !m.refOrder && !m.refItem,
+    );
+    expect(manualOut).toBeDefined();
+
+    await updateMovement(storeId, id, manualOut!.id, { qty: 900 });
+
+    expect(await getStockItem(storeId, id)).toMatchObject({
+      sealed: 1,
+      open: 0,
+      qty: 500,
+    });
+  });
+
   it("deleting a manual entrada recomputes stock and removes its mirrored purchase", async () => {
     const storeId = `test-stock-j-${Date.now()}`;
     const id = await createStockItem(storeId, GRANOLA, { sealed: 2, open: 0 });
@@ -227,6 +253,20 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
       qty: 0,
     });
     expect(await listTransactions(storeId)).toHaveLength(0);
+  });
+
+  it("deleting a manual entrada preserves tracked opening loose stock", async () => {
+    const storeId = `test-stock-j-open-${Date.now()}`;
+    const id = await createStockItem(storeId, GRANOLA, { sealed: 2, open: 400 });
+    const [opening] = await listMovements(storeId, id);
+
+    await deleteMovement(storeId, id, opening.id);
+
+    expect(await getStockItem(storeId, id)).toMatchObject({
+      sealed: 0,
+      open: 400,
+      qty: 400,
+    });
   });
 
   it("keeps the latest purchase cost when editing an older priced entrada", async () => {

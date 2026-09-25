@@ -326,12 +326,13 @@ function isEditableMovement(
 function replayMovementState(
   item: FirebaseFirestore.DocumentData,
   movements: FirebaseFirestore.DocumentData[],
+  openingOpen = 0,
 ): { work: StockWork; latestPurchasePrice?: number } {
   const work: StockWork = {
     tracked: item.tracked ?? false,
     pkgSize: item.pkgSize ?? 0,
     sealed: 0,
-    open: 0,
+    open: openingOpen,
     openPkg: false,
     usos: 0,
     continuousUse: item.continuousUse ?? false,
@@ -419,6 +420,15 @@ function replayMovementState(
   }
 
   return { work, latestPurchasePrice };
+}
+
+function hiddenOpeningOpenQty(
+  item: FirebaseFirestore.DocumentData,
+  movements: FirebaseFirestore.DocumentData[],
+): number {
+  if (!(item.tracked ?? false) || (item.continuousUse ?? false)) return 0;
+  const { work } = replayMovementState(item, movements);
+  return Math.max(0, (item.qty ?? 0) - derive(work.tracked, work.pkgSize, work.sealed, work.open).qty);
 }
 
 function compareMovementDocs(
@@ -586,6 +596,10 @@ export async function updateMovement(
     }
 
     const allMovements = await tx.get(itemRef.collection("movements").orderBy("at", "asc"));
+    const baselineOpen = hiddenOpeningOpenQty(
+      item,
+      allMovements.docs.map((doc) => doc.data()),
+    );
     const nextPrice = prev.type === "entrada" ? (input.price ?? null) : null;
     const merged = [...allMovements.docs]
       .sort(compareMovementDocs)
@@ -598,7 +612,7 @@ export async function updateMovement(
             }
           : doc.data(),
       );
-    const { work, latestPurchasePrice } = replayMovementState(item, merged);
+    const { work, latestPurchasePrice } = replayMovementState(item, merged, baselineOpen);
     const patch = stockPatch(work);
     applyReplayCostPatch(patch, item, prev, latestPurchasePrice);
 
@@ -675,11 +689,15 @@ export async function deleteMovement(
     }
 
     const allMovements = await tx.get(itemRef.collection("movements").orderBy("at", "asc"));
+    const baselineOpen = hiddenOpeningOpenQty(
+      item,
+      allMovements.docs.map((doc) => doc.data()),
+    );
     const remaining = [...allMovements.docs]
       .sort(compareMovementDocs)
       .filter((doc) => doc.id !== movementId)
       .map((doc) => doc.data());
-    const { work, latestPurchasePrice } = replayMovementState(item, remaining);
+    const { work, latestPurchasePrice } = replayMovementState(item, remaining, baselineOpen);
     const patch = stockPatch(work);
     applyReplayCostPatch(patch, item, prev, latestPurchasePrice);
 
