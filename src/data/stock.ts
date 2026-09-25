@@ -555,6 +555,9 @@ export async function updateMovement(
     if (!isEditableMovement(prev)) {
       throw new Error("Movimentações automáticas ou vinculadas são somente leitura.");
     }
+    if ((prev.byPackage ?? false) && !Number.isInteger(input.qty)) {
+      throw new Error("Movimentações por embalagem precisam de quantidade inteira.");
+    }
 
     const allMovements = await tx.get(itemRef.collection("movements").orderBy("at", "asc"));
     const nextPrice = prev.type === "entrada" ? (input.price ?? null) : null;

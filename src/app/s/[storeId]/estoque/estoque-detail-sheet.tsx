@@ -242,6 +242,7 @@ function DetailBody({
 
         {editingMovement && (
           <MovementEditForm
+            key={editingMovement.id}
             storeId={storeId}
             item={item}
             movement={editingMovement}
