@@ -71,6 +71,7 @@ function StockItemForm({
   const [name, setName] = useState("");
   const [category, setCategory] = useState<StockCategory>("bebidas");
   const [unit, setUnit] = useState<StockUnit>("un");
+  const [pkgLabel, setPkgLabel] = useState("caixa");
   const [pkgSize, setPkgSize] = useState("12");
   const [sealed, setSealed] = useState("");
   const [cost, setCost] = useState("");
@@ -79,6 +80,8 @@ function StockItemForm({
   const [pending, startTransition] = useTransition();
 
   const isCount = unit === "un" || unit === "sache";
+  const pkgLabelValue = pkgLabel.trim() || "caixa";
+  const pkgLabelPlural = pkgLabelValue.endsWith("s") ? pkgLabelValue : `${pkgLabelValue}s`;
   // UNIT RULE: the consumption mode is DERIVED from the unit, never chosen —
   // weight/volume → contínuo (manual, mark-as-empty); countable → medido (auto).
   const isWeightVol = isWeightVolumeUnit(unit);
@@ -107,7 +110,7 @@ function StockItemForm({
         category,
         unit,
         tracked: true,
-        pkgLabel: "caixa",
+        pkgLabel: pkgLabelValue,
         pkgSize: size,
         continuousUse: isWeightVol,
         consumptionMode: consumptionModeForUnit(unit),
@@ -166,6 +169,16 @@ function StockItemForm({
         </div>
 
         <div>
+          <FieldLabel>Embalagem</FieldLabel>
+          <InlineInput
+            value={pkgLabel}
+            onChange={setPkgLabel}
+            placeholder="Ex: caixa, pote, saco"
+            inputMode="text"
+          />
+        </div>
+
+        <div>
           <FieldLabel>Unidade de uso</FieldLabel>
           <div className="flex gap-2">
             {UNIT_GROUPS.map((group, gi) => (
@@ -199,7 +212,7 @@ function StockItemForm({
             <InlineInput
               value={pkgSize}
               onChange={setPkgSize}
-              suffix={`${unitLabel(unit)} / caixa`}
+              suffix={`${unitLabel(unit)} / ${pkgLabelValue}`}
               inputMode="decimal"
             />
           </div>
@@ -236,7 +249,12 @@ function StockItemForm({
           </span>
           <div className="flex gap-2.5">
             <SmallField label="Quantidade" className="flex-1">
-              <InlineInput value={sealed} onChange={setSealed} suffix="caixas" inputMode="numeric" />
+              <InlineInput
+                value={sealed}
+                onChange={setSealed}
+                suffix={pkgLabelPlural}
+                inputMode="numeric"
+              />
             </SmallField>
             <SmallField label="Preço de compra" className="flex-1">
               <InlineInput value={cost} onChange={setCost} prefix="R$" inputMode="decimal" />
@@ -253,7 +271,7 @@ function StockItemForm({
             value={reorder}
             onChange={setReorder}
             prefix="avisar abaixo de"
-            suffix="caixas"
+            suffix={pkgLabelPlural}
             placeholder="auto"
             inputMode="decimal"
           />
