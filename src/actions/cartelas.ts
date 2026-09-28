@@ -6,6 +6,7 @@ import { requireAccess } from "@/lib/access";
 import { cancelCartela, listCartelasByCustomer, markManualCartelaUse } from "@/data/cartelas";
 import { logActivity } from "@/data/activity";
 import { cartelaCode } from "@/lib/cartelas";
+import { orderCode } from "@/lib/format";
 import { CARTELA_MANUAL_REASONS, type Cartela } from "@/lib/types";
 import type { ActionResult } from "./products";
 
@@ -27,6 +28,10 @@ async function run(fn: () => Promise<void>): Promise<ActionResult> {
 function revalidate(storeId: string) {
   revalidatePath(`/s/${storeId}/cartelas`);
   revalidatePath(`/s/${storeId}/clientes`);
+  // Cancelling a cartela can now cascade-cancel orders too (see cancelCartela's
+  // cascade in data/cartelas.ts), which touches both of these.
+  revalidatePath(`/s/${storeId}/pedidos`);
+  revalidatePath(`/s/${storeId}/financeiro`);
   revalidatePath(`/s/${storeId}`);
 }
 
@@ -41,7 +46,7 @@ export async function cancelCartelaAction(
   return run(async () => {
     const { storeId, cartelaId } = cancelSchema.parse(input);
     const user = await requireAccess(storeId, "cartelas");
-    await cancelCartela(storeId, cartelaId);
+    const { cancelledOrderIds } = await cancelCartela(storeId, cartelaId, user.email);
     await logActivity(storeId, {
       icon: "ban",
       label: `Cancelou cartela #${cartelaCode(cartelaId)}`,
@@ -49,6 +54,15 @@ export async function cancelCartelaAction(
       by: user.email,
       section: "cartelas",
     });
+    for (const orderId of cancelledOrderIds) {
+      await logActivity(storeId, {
+        icon: "ban",
+        label: `Cancelou pedido #${orderCode(orderId)} (cartela #${cartelaCode(cartelaId)} cancelada)`,
+        detail: "Pedidos",
+        by: user.email,
+        section: "pedidos",
+      });
+    }
     revalidate(storeId);
   });
 }
