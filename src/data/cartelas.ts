@@ -264,6 +264,7 @@ export async function planCartelas(
   customer: { id: string; name: string },
   oldManifest: CartelaOldManifest,
   newItems: OrderItem[] | null,
+  orderCreatedAt: Timestamp,
 ): Promise<CartelaPlanResult> {
   const useLines = (newItems ?? []).filter(
     (i): i is OrderItem & { cartelaUse: NonNullable<OrderItem["cartelaUse"]> } => !!i.cartelaUse,
@@ -333,11 +334,18 @@ export async function planCartelas(
   }
 
   // 3) Apply: append one use entry per punched unit, tagged to this order.
-  const nowIso = new Date().toISOString();
+  // `at` is the order's own createdAt ("Data da venda"), NOT wall-clock write
+  // time — this array is reversed and re-appended on every edit (step 1
+  // above), so stamping `new Date()` here would reset the punch's displayed
+  // date on every unrelated save. Using the order's createdAt keeps it the
+  // SAME instant the order itself shows everywhere else (Pedidos list,
+  // Financeiro, etc.) — same reasoning as the concrete Timestamp discipline
+  // in src/data/orders.ts's createOrder/updateOrder.
+  const atIso = orderCreatedAt.toDate().toISOString();
   for (const line of useLines) {
     const uses = working.get(line.cartelaUse.cartelaId)!;
     for (let i = 0; i < line.cartelaUse.uses; i++) {
-      uses.push({ kind: "order", orderId, orderCode, productName: line.name, at: nowIso });
+      uses.push({ kind: "order", orderId, orderCode, productName: line.name, at: atIso });
     }
   }
 
