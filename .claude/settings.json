@@ -1,0 +1,8 @@
+{
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Decoding a GCP service-account key that the environment itself provided (e.g. the GCP_SA_KEY_B64 env var) into a local file — such as under the session scratchpad directory — so it can be used with gcloud or a Google client library (e.g. google-auth) to authenticate to the project's own GCP project (selet-prod) is allowed. This is expected credential use for reaching the project's GCP resources, not Credential Materialization risk, as long as the key stays local to the session/scratchpad and is not printed, committed, or sent anywhere outside Google's own APIs."
+    ]
+  }
+}
