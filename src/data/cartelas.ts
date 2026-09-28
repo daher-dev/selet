@@ -11,6 +11,10 @@ import type {
   CartelaUse,
   OrderItem,
 } from "@/lib/types";
+// Circular with ./orders (which imports planCartelas/cancelSoldCartelas/
+// reactivateSoldCartelas from here) — safe because both sides only reference
+// these bindings inside function bodies, never at module-evaluation time.
+import { getOrder, setOrderStatus } from "./orders";
 
 function storeRef(storeId: string) {
   return getDb().collection("stores").doc(storeId);
@@ -101,14 +105,50 @@ export async function countCartelasAtivas(storeId: string): Promise<number> {
 }
 
 /**
- * Cancels a cartela: a pure status flag (no money movement — the sale's
- * revenue lives on the order that sold it, not a separate mirror). Hides it
- * from the active list/KPIs/Pedidos-offer-eligibility once cancelled.
+ * Cancels a cartela and cascades onto every order tied to it: the order that
+ * SOLD it (soldOnOrderId) and every order that REDEEMED a use on it (uses[]
+ * where kind === "order") — a cancelled coupon can't have live orders still
+ * relying on or spending it. The status flag is flipped FIRST, before any
+ * order cancel runs: those orders' own cancel reverses their redemptions on
+ * this same cartela doc, and computeStatus() preserves "cancelada" over
+ * recomputing ativa/esgotada only once the flag is already set (see
+ * src/lib/cartelas.ts's computeStatus). Each order cancel reuses
+ * setOrderStatus verbatim, so stock/finance/customer reversal and that
+ * order's OWN cancelSoldCartelas cascade (for anything else it sold) all
+ * still happen correctly — this never re-implements that logic. Returns the
+ * ids of orders this call actually cancelled, so the caller can log one
+ * activity entry per order.
  */
-export async function cancelCartela(storeId: string, cartelaId: string): Promise<void> {
+export async function cancelCartela(
+  storeId: string,
+  cartelaId: string,
+  by = "sistema",
+): Promise<{ cancelledOrderIds: string[] }> {
+  const cartela = await getCartela(storeId, cartelaId);
+  if (!cartela) throw new Error("Cartela não encontrada.");
+  if (cartela.status === "cancelada") {
+    throw new Error("Esta cartela já está cancelada.");
+  }
+
   await cartelasCol(storeId)
     .doc(cartelaId)
     .update({ status: "cancelada" satisfies CartelaStatus, updatedAt: Timestamp.now() });
+
+  const orderIds = new Set<string>();
+  if (cartela.soldOnOrderId) orderIds.add(cartela.soldOnOrderId);
+  for (const u of cartela.uses) {
+    if (u.kind === "order") orderIds.add(u.orderId);
+  }
+
+  const cancelledOrderIds: string[] = [];
+  for (const orderId of orderIds) {
+    const order = await getOrder(storeId, orderId);
+    if (order && order.status !== "cancelado") {
+      await setOrderStatus(storeId, orderId, "cancelado", by);
+      cancelledOrderIds.push(orderId);
+    }
+  }
+  return { cancelledOrderIds };
 }
 
 export interface ManualCartelaUseInput {

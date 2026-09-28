@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Minus } from "lucide-react";
 import { toast } from "sonner";
 import type { Cartela } from "@/lib/types";
-import { formatBRL, formatDateShort } from "@/lib/format";
+import { formatBRL, formatDateShort, orderCode } from "@/lib/format";
 import {
   balanceValue,
   CARTELA_MANUAL_REASON_LABELS,
@@ -13,6 +13,15 @@ import {
 } from "@/lib/cartelas";
 import { cn } from "@/lib/utils";
 import { cancelCartelaAction } from "@/actions/cartelas";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -38,6 +47,7 @@ export function CartelaHistorySheet({
 }: CartelaHistorySheetProps) {
   const [pending, startTransition] = useTransition();
   const [manualOpen, setManualOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function cancel() {
     if (!cartela) return;
@@ -55,10 +65,24 @@ export function CartelaHistorySheet({
     });
   }
 
+  function confirmCancel() {
+    setConfirmOpen(false);
+    cancel();
+  }
+
   const groups = cartela ? usesByOrder(cartela) : [];
   const manualGroups = cartela ? manualUseGroups(cartela) : [];
 
   const hasHistory = manualGroups.length > 0 || groups.length > 0;
+
+  // What cancelling this cartela cascades onto — the order that sold it, plus
+  // every order that redeemed a use on it (see cancelCartela's cascade in
+  // data/cartelas.ts) — shown in the confirm dialog below.
+  const soldOrderCode = cartela ? orderCode(cartela.soldOnOrderId) : "";
+  const usingOrderCodes = groups
+    .map((g) => g.orderCode)
+    .filter((code) => code !== soldOrderCode);
+  const affectedOrderCount = cartela ? 1 + usingOrderCodes.length : 0;
 
   return (
     <>
@@ -76,6 +100,9 @@ export function CartelaHistorySheet({
                 <SheetTitle className="mt-0.5 text-[19px] font-bold">
                   {cartela.paidUses} × {formatBRL(cartela.unitValue)}
                 </SheetTitle>
+                <p className="mt-1 text-[12.5px] text-ink-faint">
+                  Vendida no pedido #{soldOrderCode}
+                </p>
                 <div className="mt-3.5 flex items-center gap-3.5">
                   <CartelaPunchDots cartela={cartela} />
                   <span className="flex-1" />
@@ -159,7 +186,7 @@ export function CartelaHistorySheet({
               <div className="flex shrink-0 items-center gap-2.5 border-t border-muted p-4">
                 <button
                   type="button"
-                  onClick={cancel}
+                  onClick={() => setConfirmOpen(true)}
                   disabled={pending}
                   className="shrink-0 rounded-xl border border-border bg-card px-4 py-2.5 text-[13.5px] font-semibold text-ink-soft transition-colors hover:border-destructive/40 hover:text-destructive disabled:opacity-50"
                 >
@@ -188,6 +215,38 @@ export function CartelaHistorySheet({
         open={manualOpen}
         onOpenChange={setManualOpen}
       />
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cancelar esta cartela?</DialogTitle>
+            <DialogDescription>
+              Isso também vai cancelar o pedido #{soldOrderCode} (que vendeu
+              essa cartela)
+              {usingOrderCodes.length > 0
+                ? ` e mais ${usingOrderCodes.length} pedido${usingOrderCodes.length === 1 ? "" : "s"} que usaram essa cartela: ${usingOrderCodes.map((c) => `#${c}`).join(", ")}.`
+                : "."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmOpen(false)}
+              disabled={pending}
+            >
+              Voltar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmCancel}
+              disabled={pending}
+            >
+              Cancelar cartela e {affectedOrderCount} pedido
+              {affectedOrderCount === 1 ? "" : "s"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

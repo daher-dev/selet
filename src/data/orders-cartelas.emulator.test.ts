@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getCartela } from "./cartelas";
+import { cancelCartela, getCartela } from "./cartelas";
 import { createCustomer } from "./customers";
 import { createOrder, getOrder, setOrderStatus, updateOrder } from "./orders";
 
@@ -193,6 +193,34 @@ describe.skipIf(!hasEmulator)("orders repository · cartela lines (emulator)", (
     // Uncancel recomputes from the cartela's OWN uses vs totalUses (esgotada
     // here, since the earlier punch order was never touched) — not a blind "ativa".
     expect((await getCartela(storeId, cartelaId))?.status).toBe("esgotada");
+  });
+
+  it("cancelling a cartela cancels the order that sold it and every order that redeemed it", async () => {
+    const storeId = `test-orders-cartela-cancel-coupon-${Date.now()}`;
+    const customerId = await createCustomer(storeId, { name: "Fabio", tags: [] });
+    const { orderId: sellOrderId, cartelaId } = await sellCartela(storeId, customerId, "Fabio", {
+      paidUses: 1,
+      unitValue: 1500,
+    }); // totalUses: 2, so one punch below leaves it "ativa", not "esgotada".
+    const code = (await getCartela(storeId, cartelaId))!.code;
+
+    const punchOrderId = await createOrder(storeId, {
+      customerId,
+      customerName: "Fabio",
+      channel: "loja",
+      items: [punchLine(cartelaId, code, 1, 2000, 1500)],
+    });
+
+    const { cancelledOrderIds } = await cancelCartela(storeId, cartelaId, "teste");
+
+    expect((await getCartela(storeId, cartelaId))?.status).toBe("cancelada");
+    expect((await getOrder(storeId, sellOrderId))?.status).toBe("cancelado");
+    expect((await getOrder(storeId, punchOrderId))?.status).toBe("cancelado");
+    expect(new Set(cancelledOrderIds)).toEqual(new Set([sellOrderId, punchOrderId]));
+
+    // Idempotent guard — cancelling an already-cancelled cartela throws
+    // instead of silently re-running the cascade.
+    await expect(cancelCartela(storeId, cartelaId)).rejects.toThrow();
   });
 
   it("rejects over-redemption: applying more uses than the cartela has remaining", async () => {
