@@ -452,6 +452,7 @@ export async function createOrder(
       { id: input.customerId, name: input.customerName },
       { consumed: [], soldCount: 0 },
       input.items,
+      now,
     );
     cartelaConsumed = cartelaPlan.consumed;
     cartelaSold = cartelaPlan.soldIds;
@@ -530,6 +531,15 @@ export async function updateOrder(
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Pedido não encontrado.");
     const current = snap.data()!;
+    // The order's month is no longer immutable — `createdAt` can move on edit
+    // ("Data da venda" is editable). oldCreatedAt from the CURRENTLY STORED
+    // value, newCreatedAt from the (possibly updated) one. Computed up front
+    // (read phase) since planCartelas needs newCreatedAt to stamp cartela
+    // punches with the order's own date, not wall-clock write time.
+    const oldCreatedAt = current.createdAt as Timestamp;
+    const newCreatedAt = createdAtISO
+      ? Timestamp.fromDate(new Date(createdAtISO))
+      : oldCreatedAt;
     const summary = await readSummaryTx(tx, storeId);
     const cancelled = current.status === "cancelado";
     const money = orderMoney(input.items, discountInput);
@@ -571,6 +581,7 @@ export async function updateOrder(
       { id: input.customerId, name: input.customerName },
       { consumed: oldCartelaConsumed, soldCount: oldCartelaSold.length },
       cancelled ? null : input.items,
+      newCreatedAt,
     );
 
     // (a) paidBefore/paidAfter tracked SEPARATELY — an edit can DEMOTE payment
@@ -578,14 +589,6 @@ export async function updateOrder(
     // single `paid` var couldn't express.
     const paidBefore = current.paid ?? false;
     const paidAfter = paidBefore && total > 0;
-
-    // (b) the order's month is no longer immutable — `createdAt` can move on
-    // edit ("Data da venda" is editable). oldMk from the CURRENTLY STORED
-    // createdAt, newMk from the (possibly updated) createdAt.
-    const oldCreatedAt = current.createdAt as Timestamp;
-    const newCreatedAt = createdAtISO
-      ? Timestamp.fromDate(new Date(createdAtISO))
-      : oldCreatedAt;
 
     const affected = new Set<string>();
     if (current.customerId) affected.add(current.customerId);
@@ -633,7 +636,7 @@ export async function updateOrder(
       });
     }
 
-    // (c) Finance mirror: exists iff paid (the existing invariant). A discount
+    // (b) Finance mirror: exists iff paid (the existing invariant). A discount
     // demoting an already-paid order to "nada a cobrar" DELETES the mirror and
     // reverses its amount out of the month it was posted in — never leave a
     // stale mirror, and never write a R$0 mirror for a comped order. Staying
@@ -653,7 +656,7 @@ export async function updateOrder(
     cartelaPlan.commit();
     for (const commit of aggregateCommits) commit();
     writeSummaryTx(tx, storeId, summary);
-    // (d) ignoreUndefinedProperties trap: tx.update(ref, {...input}) with
+    // (c) ignoreUndefinedProperties trap: tx.update(ref, {...input}) with
     // discount: undefined would SILENTLY KEEP the old stored discount instead
     // of clearing it. discount/notes are always written explicitly so "no
     // discount"/"no notes" persists as null, never a silent no-op.
@@ -736,6 +739,7 @@ export async function setOrderStatus(
         customer,
         { consumed: oldCartelaConsumed, soldCount: cartelaSold.length },
         null,
+        current.createdAt as Timestamp,
       );
     } else if (wasCancelled && !willBeCancelled) {
       plan = await planConsumption(
@@ -758,6 +762,7 @@ export async function setOrderStatus(
         customer,
         { consumed: [], soldCount: cartelaSold.length },
         (current.items ?? []) as OrderItem[],
+        current.createdAt as Timestamp,
       );
       if (cartelaSold.length > 0) {
         reactivateSold = await reactivateSoldCartelas(tx, storeId, cartelaSold);

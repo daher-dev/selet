@@ -217,6 +217,41 @@ describe.skipIf(!hasEmulator)("orders repository · cartela lines (emulator)", (
     expect((await getCartela(storeId, cartelaId))?.uses).toEqual([]);
   });
 
+  it("stamps a punch's date from the order's createdAt, not write time — and keeps it on edit", async () => {
+    const storeId = `test-orders-cartela-punch-date-${Date.now()}`;
+    const customerId = await createCustomer(storeId, { name: "Gisele", tags: [] });
+    const { cartelaId } = await sellCartela(storeId, customerId, "Gisele", {
+      paidUses: 1,
+      unitValue: 2000,
+    });
+    const code = (await getCartela(storeId, cartelaId))!.code;
+
+    const backdated = "2025-01-15T12:00:00.000Z";
+    const punchOrderId = await createOrder(storeId, {
+      customerId,
+      customerName: "Gisele",
+      channel: "loja",
+      createdAt: backdated,
+      items: [punchLine(cartelaId, code, 1, 2500, 2000)],
+    });
+
+    let cartela = await getCartela(storeId, cartelaId);
+    expect(cartela?.uses[0]).toMatchObject({ orderId: punchOrderId, at: backdated });
+
+    // Editing an unrelated field re-runs planCartelas' reverse-then-reapply —
+    // the punch's `at` must still be the order's (unchanged) createdAt, never
+    // this edit's wall-clock time (the exact CARTELA drawer date-drift bug).
+    await updateOrder(storeId, punchOrderId, {
+      customerId,
+      customerName: "Gisele",
+      channel: "whatsapp",
+      items: [punchLine(cartelaId, code, 1, 2500, 2000)],
+    });
+
+    cartela = await getCartela(storeId, cartelaId);
+    expect(cartela?.uses[0]).toMatchObject({ orderId: punchOrderId, at: backdated });
+  });
+
   it("rejects a line priced below the cartela's fixed unit value (never forfeits the difference)", async () => {
     const storeId = `test-orders-cartela-below-${Date.now()}`;
     const customerId = await createCustomer(storeId, { name: "Fabio", tags: [] });
