@@ -1,23 +1,36 @@
 /**
- * One-off backfill: the CARTELA history drawer shows, next to each "Pedido
- * #..." group, the LATEST CartelaOrderUse.at in that group (see
- * usesByOrder() in src/lib/cartelas.ts). Until this fix, planCartelas
- * (src/data/cartelas.ts) stamped `at` with the wall-clock instant the order
- * was SAVED — and since every edit reverses and re-appends the order's
- * punches, that stamp got reset to "now" on every unrelated save. The
- * drawer's date then drifted from the order's own createdAt ("Data da
- * venda"), which is what the Pedidos list actually shows for the same
- * order.
+ * One-off backfill for two related date-drift bugs, both caused by
+ * planCartelas (src/data/cartelas.ts) stamping cartela dates with the
+ * wall-clock instant a transaction ran instead of the relevant order's own
+ * createdAt ("Data da venda"):
  *
- * The code fix makes planCartelas stamp `at` from the order's own createdAt
- * going forward, which self-heals a cartela the next time its order is
- * edited. This script corrects what's already stored: for every
- * `kind: "order"` entry in every cartela's `uses[]`, it looks up the
- * referenced order's real createdAt and rewrites `at` to match. Manual
- * adjustments (`kind: "manual"`) have no order to derive a date from and
- * are left untouched. An entry whose orderId doesn't resolve to a real
- * order (e.g. deleted order, or synthetic demo-seed ids) is left untouched
- * too, with a warning — never invent a date.
+ *  1. The CARTELA history drawer shows, next to each "Pedido #..." group,
+ *     the LATEST CartelaOrderUse.at in that group (see usesByOrder() in
+ *     src/lib/cartelas.ts). `at` used to be stamped with `new Date()` at
+ *     write time — and since every order edit reverses and re-appends its
+ *     punches, that stamp reset to "now" on every unrelated save, drifting
+ *     from the order's own createdAt shown in the Pedidos list.
+ *  2. The cartelas list and customer detail sheet show "comprada <date>"
+ *     from Cartela.purchasedAt (Cartela.createdAt mirrors it but isn't
+ *     displayed). This too was stamped with `new Date()` at the moment the
+ *     selling order's transaction committed, instead of that order's own
+ *     createdAt.
+ *
+ * The code fix makes planCartelas stamp both from the relevant order's own
+ * createdAt going forward — punches self-heal the next time their order is
+ * edited, but purchasedAt/createdAt are written once at sale and never
+ * revisited, so they need this backfill regardless. This script corrects
+ * what's already stored:
+ *  - For every `kind: "order"` entry in every cartela's `uses[]`, look up
+ *    the referenced order's real createdAt and rewrite `at` to match.
+ *    Manual adjustments (`kind: "manual"`) have no order to derive a date
+ *    from and are left untouched.
+ *  - For every cartela, look up its `soldOnOrderId` order's real createdAt
+ *    and rewrite `purchasedAt`/`createdAt` to match (leaving `updatedAt`
+ *    alone — it's a genuine last-touched bookkeeping field).
+ * An orderId that doesn't resolve to a real order (deleted order, or
+ * synthetic demo-seed ids) is left untouched, with a warning — never
+ * invent a date.
  *
  * Defaults to a dry run (prints what would change, writes nothing). Pass
  * --apply to actually write.
@@ -53,17 +66,21 @@ async function migrate() {
 
   const stores = await db.collection("stores").get();
   let totalCartelas = 0;
-  let totalEntries = 0;
+  let totalUseEntries = 0;
+  let totalPurchases = 0;
   let totalUnresolved = 0;
 
   for (const store of stores.docs) {
     const cartelasSnap = await db.collection(`stores/${store.id}/cartelas`).get();
     if (cartelasSnap.empty) continue;
 
-    // Collect every orderId any "order"-kind use references, dedupe, batch-fetch.
+    // Collect every orderId any "order"-kind use, or a cartela's own sale,
+    // references, dedupe, batch-fetch.
     const orderIds = new Set<string>();
     for (const doc of cartelasSnap.docs) {
-      const uses = (doc.data().uses ?? []) as Record<string, unknown>[];
+      const d = doc.data();
+      if (typeof d.soldOnOrderId === "string") orderIds.add(d.soldOnOrderId);
+      const uses = (d.uses ?? []) as Record<string, unknown>[];
       for (const u of uses) {
         if (u.kind === "order" && typeof u.orderId === "string") orderIds.add(u.orderId);
       }
@@ -72,45 +89,66 @@ async function migrate() {
 
     const orderRefs = [...orderIds].map((id) => db.doc(`stores/${store.id}/orders/${id}`));
     const orderSnaps = await db.getAll(...orderRefs);
-    const orderCreatedAt = new Map<string, string>();
+    const orderCreatedAt = new Map<string, Timestamp>();
     for (const snap of orderSnaps) {
-      if (snap.exists) orderCreatedAt.set(snap.id, toIso(snap.data()!.createdAt));
+      if (snap.exists) orderCreatedAt.set(snap.id, snap.data()!.createdAt as Timestamp);
     }
 
     console.log(`\n=== STORE: ${store.id} ===`);
 
     const batch = db.batch();
     let storeCartelas = 0;
-    let storeEntries = 0;
+    let storeUseEntries = 0;
+    let storePurchases = 0;
 
     for (const doc of cartelasSnap.docs) {
-      const uses = (doc.data().uses ?? []) as Record<string, unknown>[];
-      let changed = 0;
+      const d = doc.data();
+      const uses = (d.uses ?? []) as Record<string, unknown>[];
+      let changedUses = 0;
       let unresolved = 0;
       const nextUses = uses.map((u) => {
         if (u.kind !== "order" || typeof u.orderId !== "string") return u;
-        const correctAt = orderCreatedAt.get(u.orderId);
-        if (correctAt === undefined) {
+        const correctTs = orderCreatedAt.get(u.orderId);
+        if (correctTs === undefined) {
           unresolved += 1;
           return u;
         }
+        const correctAt = correctTs.toDate().toISOString();
         if (toIso(u.at) === correctAt) return u;
-        changed += 1;
+        changedUses += 1;
         return { ...u, at: correctAt };
       });
+
+      const saleTs =
+        typeof d.soldOnOrderId === "string" ? orderCreatedAt.get(d.soldOnOrderId) : undefined;
+      const purchaseChanged = saleTs !== undefined && toIso(d.purchasedAt) !== saleTs.toDate().toISOString();
+      if (saleTs === undefined) unresolved += 1;
 
       if (unresolved > 0) {
         totalUnresolved += unresolved;
         console.log(
-          `  [aviso] cartela ${doc.id}: ${unresolved} uso(s) com orderId sem pedido correspondente — mantido(s) como está.`,
+          `  [aviso] cartela ${doc.id}: ${unresolved} referência(s) a pedido sem correspondência — mantido(s) como está.`,
         );
       }
-      if (changed === 0) continue;
+      if (changedUses === 0 && !purchaseChanged) continue;
 
       storeCartelas += 1;
-      storeEntries += changed;
-      console.log(`  cartela ${doc.id}: ${changed} uso(s) com data corrigida`);
-      if (apply) batch.update(doc.ref, { uses: nextUses });
+      storeUseEntries += changedUses;
+      if (purchaseChanged) storePurchases += 1;
+      const parts = [];
+      if (changedUses > 0) parts.push(`${changedUses} uso(s) com data corrigida`);
+      if (purchaseChanged) parts.push("purchasedAt/createdAt corrigido(s)");
+      console.log(`  cartela ${doc.id}: ${parts.join(", ")}`);
+
+      if (apply) {
+        const update: Record<string, unknown> = {};
+        if (changedUses > 0) update.uses = nextUses;
+        if (purchaseChanged) {
+          update.purchasedAt = saleTs;
+          update.createdAt = saleTs;
+        }
+        batch.update(doc.ref, update);
+      }
     }
 
     if (storeCartelas === 0) {
@@ -119,16 +157,17 @@ async function migrate() {
     }
 
     totalCartelas += storeCartelas;
-    totalEntries += storeEntries;
+    totalUseEntries += storeUseEntries;
+    totalPurchases += storePurchases;
     if (apply) await batch.commit();
   }
 
   console.log(
-    `\n${totalCartelas} cartela(s) / ${totalEntries} uso(s) ${apply ? "corrigido(s)." : "seriam corrigido(s) — rode com --apply para escrever."}`,
+    `\n${totalCartelas} cartela(s) ${apply ? "corrigida(s)" : "seriam corrigida(s)"}: ${totalUseEntries} uso(s) de pedido, ${totalPurchases} data(s) de compra${apply ? "." : " — rode com --apply para escrever."}`,
   );
   if (totalUnresolved > 0) {
     console.log(
-      `${totalUnresolved} uso(s) com orderId sem pedido correspondente foram ignorados (nunca invente uma data).`,
+      `${totalUnresolved} referência(s) a pedido sem correspondência foram ignoradas (nunca invente uma data).`,
     );
   }
 }
