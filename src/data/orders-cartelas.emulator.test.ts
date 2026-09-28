@@ -280,6 +280,34 @@ describe.skipIf(!hasEmulator)("orders repository · cartela lines (emulator)", (
     expect(cartela?.uses[0]).toMatchObject({ orderId: punchOrderId, at: backdated });
   });
 
+  it("stamps a sold cartela's purchasedAt/createdAt from the selling order's createdAt", async () => {
+    const storeId = `test-orders-cartela-purchase-date-${Date.now()}`;
+    const customerId = await createCustomer(storeId, { name: "Helena", tags: [] });
+
+    const backdated = "2025-02-20T15:30:00.000Z";
+    const orderId = await createOrder(storeId, {
+      customerId,
+      customerName: "Helena",
+      channel: "loja",
+      createdAt: backdated,
+      items: [
+        {
+          productId: "cartela",
+          name: "Cartela · 3 usos",
+          qty: 1,
+          unitPrice: 6000,
+          cartelaSale: { paidUses: 2, totalUses: 3, unitValue: 3000 },
+        },
+      ],
+    });
+    const order = await getOrder(storeId, orderId);
+    const cartelaId = order!.cartelaSold[0];
+
+    const cartela = await getCartela(storeId, cartelaId);
+    expect(cartela?.purchasedAt).toBe(backdated);
+    expect(cartela?.createdAt).toBe(backdated);
+  });
+
   it("rejects a line priced below the cartela's fixed unit value (never forfeits the difference)", async () => {
     const storeId = `test-orders-cartela-below-${Date.now()}`;
     const customerId = await createCustomer(storeId, { name: "Fabio", tags: [] });

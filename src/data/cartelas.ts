@@ -359,7 +359,13 @@ export async function planCartelas(
   }
   const soldIds: string[] = [];
   const newCartelaWrites: { ref: FirebaseFirestore.DocumentReference; doc: Record<string, unknown> }[] = [];
-  const nowTs = Timestamp.now();
+  // purchasedAt/createdAt are the order's own createdAt (same reasoning as
+  // `atIso` above) — the cartelas list and customer detail sheet display
+  // purchasedAt as "comprada <date>", which must match the selling order's
+  // date, not the wall-clock instant this transaction happened to commit.
+  // updatedAt stays the real write time — it's a genuine last-touched
+  // bookkeeping field, updated again on every later punch/cancel.
+  const writeNow = Timestamp.now();
   for (const line of newSaleLines) {
     const sale = line.cartelaSale!;
     const ref = cartelasCol(storeId).doc();
@@ -376,9 +382,9 @@ export async function planCartelas(
         uses: [],
         status: "ativa" satisfies CartelaStatus,
         soldOnOrderId: orderId,
-        purchasedAt: nowTs,
-        createdAt: nowTs,
-        updatedAt: nowTs,
+        purchasedAt: orderCreatedAt,
+        createdAt: orderCreatedAt,
+        updatedAt: writeNow,
       },
     });
   }
