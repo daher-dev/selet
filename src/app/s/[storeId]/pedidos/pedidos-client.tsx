@@ -405,10 +405,14 @@ export function PedidosClient({
                   <span>
                     <StatusBadge status={order.status} />
                   </span>
-                  <span className="flex items-center justify-end gap-2">
-                    {covered > 0 && <CartelaCoverageChip amount={covered} />}
-                    {unpaid && <ReceberChip />}
-                    {nadaACobrar && <NadaACobrarChip />}
+                  <span className="flex flex-col items-end gap-1">
+                    {(covered > 0 || unpaid || nadaACobrar) && (
+                      <span className="flex flex-wrap items-center justify-end gap-1.5">
+                        {covered > 0 && <CartelaCoverageChip amount={covered} />}
+                        {unpaid && <ReceberChip />}
+                        {nadaACobrar && <NadaACobrarChip />}
+                      </span>
+                    )}
                     <span className="tabular text-[14px] font-bold text-ink">
                       {formatBRL(order.total)}
                     </span>
@@ -474,10 +478,14 @@ export function PedidosClient({
                         <Clock className="size-3" />
                         {formatRelative(order.createdAt)}
                       </span>
-                      <span className="flex items-center gap-2">
-                        {covered > 0 && <CartelaCoverageChip amount={covered} />}
-                        {unpaid && <ReceberChip />}
-                        {nadaACobrar && <NadaACobrarChip />}
+                      <span className="flex flex-col items-end gap-1">
+                        {(covered > 0 || unpaid || nadaACobrar) && (
+                          <span className="flex flex-wrap items-center justify-end gap-1.5">
+                            {covered > 0 && <CartelaCoverageChip amount={covered} />}
+                            {unpaid && <ReceberChip />}
+                            {nadaACobrar && <NadaACobrarChip />}
+                          </span>
+                        )}
                         <span className="tabular text-[19px] font-bold text-ink">
                           {formatBRL(order.total)}
                         </span>
