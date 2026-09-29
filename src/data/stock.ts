@@ -39,6 +39,7 @@ function toItem(id: string, d: FirebaseFirestore.DocumentData): StockItem {
     unit: d.unit,
     tracked: d.tracked ?? false,
     pkgLabel: d.pkgLabel,
+    pkgLabelPlural: d.pkgLabelPlural,
     pkgSize: d.pkgSize,
     sealed: d.sealed ?? 0,
     open: d.open ?? 0,
@@ -143,6 +144,7 @@ export interface StockItemInput {
   unit: StockUnit;
   tracked: boolean;
   pkgLabel?: string;
+  pkgLabelPlural?: string;
   pkgSize?: number;
   continuousUse: boolean;
   consumptionMode: ConsumptionMode;
@@ -251,6 +253,9 @@ export async function updateStockItem(
     }
     tx.update(ref, {
       ...input,
+      // update() ignores undefined fields, so clearing the manual plural
+      // (back to the derived "+s") needs an explicit field delete.
+      pkgLabelPlural: input.pkgLabelPlural || FieldValue.delete(),
       ...state,
       lowStock: newLow,
       updatedAt: Timestamp.now(),

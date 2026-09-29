@@ -90,6 +90,7 @@ export const STOCK_CATEGORIES = [
   "hortifruti",
   "suplementos",
   "beleza",
+  "descartaveis",
 ] as const;
 export type StockCategory = (typeof STOCK_CATEGORIES)[number];
 
@@ -321,6 +322,8 @@ export interface StockItem {
   /** rastreado: packaging ledger (sealed packages + open loose amount) */
   tracked: boolean;
   pkgLabel?: string;
+  /** Manual plural of pkgLabel (irregular plurals); absent → derived by appending "s". */
+  pkgLabelPlural?: string;
   pkgSize?: number; // base units per package
   sealed: number; // sealed package count (tracked items)
   open: number; // loose amount in base unit

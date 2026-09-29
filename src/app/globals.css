@@ -58,6 +58,9 @@
   --color-cat-suplementos-wash: #e2f2ef;
   --color-cat-beleza: #a94f8f;
   --color-cat-beleza-wash: #f6e9f1;
+  /* Descartáveis (copos, tampas, guardanapos…) — slate. */
+  --color-cat-descartaveis: #6b7a86;
+  --color-cat-descartaveis-wash: #eaeef1;
 
   --color-success: #3a9d5d;
   --color-info: #2f6fb5;
