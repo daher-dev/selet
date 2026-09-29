@@ -14,6 +14,19 @@ export function unitLabel(unit: string, plural = false): string {
   return unit;
 }
 
+/** Plural of an embalagem label: the manual plural when set, else append "s". */
+export function pkgPlural(label: string, custom?: string): string {
+  const c = custom?.trim();
+  if (c) return c;
+  return label.endsWith("s") ? label : `${label}s`;
+}
+
+/** Label for a package count: singular for exactly 1, plural otherwise. */
+export function pkgCount(item: Pick<StockItem, "pkgLabel" | "pkgLabelPlural">, n: number): string {
+  const label = item.pkgLabel ?? "emb.";
+  return n === 1 ? label : pkgPlural(label, item.pkgLabelPlural);
+}
+
 /**
  * "Fractional" items are consumed from an open package (grams from a pote, a
  * sachê from a caixa). Whole-unit items (Morango, CR7 garrafa · pkgSize 1)
@@ -135,7 +148,7 @@ export function buildStockCard(item: StockItem): StockCardView {
     low,
     leftLabel: item.tracked ? "Fechados" : "Em estoque",
     leftMain: item.tracked
-      ? `${item.sealed} ${item.sealed === 1 ? pkgLabel : pkgLabel + "s"}`
+      ? `${item.sealed} ${pkgCount(item, item.sealed)}`
       : `${formatQty(item.qty, pu)}`,
     leftSub: item.tracked
       ? frac

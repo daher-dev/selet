@@ -54,7 +54,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { CategoryTile, STOCK_CATEGORY_META } from "@/components/category-meta";
-import { isFrac, stockStatus, unitLabel } from "./stock-view";
+import { isFrac, pkgCount, pkgPlural, stockStatus, unitLabel } from "./stock-view";
 
 export interface OrderRef {
   id: string;
@@ -313,8 +313,7 @@ function ContinuoCard({
   const stateLabel = item.openPkg
     ? `Embalagem aberta · ${item.usos} ${item.usos === 1 ? "uso" : "usos"}`
     : "Nenhuma embalagem aberta";
-  const pkg = item.pkgLabel ?? "emb.";
-  const sealedLabel = `${item.sealed} ${item.sealed === 1 ? pkg : pkg + "s"} fechada${item.sealed === 1 ? "" : "s"}`;
+  const sealedLabel = `${item.sealed} ${pkgCount(item, item.sealed)} fechada${item.sealed === 1 ? "" : "s"}`;
 
   function openNext() {
     startTransition(async () => {
@@ -452,13 +451,14 @@ function EditPanel({
   const [category, setCategory] = useState<StockCategory>(item.category);
   const [unit, setUnit] = useState<StockUnit>(item.unit);
   const [pkgLabel, setPkgLabel] = useState(item.pkgLabel ?? "caixa");
+  const [pkgLabelPluralInput, setPkgLabelPluralInput] = useState(item.pkgLabelPlural ?? "");
   const [pkgSize, setPkgSize] = useState(item.pkgSize ? String(item.pkgSize) : "");
   const [reorder, setReorder] = useState(String(item.reorderAt));
   const [pending, startTransition] = useTransition();
 
   const isCount = unit === "un" || unit === "sache";
   const pkgLabelValue = pkgLabel.trim() || "caixa";
-  const pkgLabelPlural = pkgLabelValue.endsWith("s") ? pkgLabelValue : `${pkgLabelValue}s`;
+  const pkgLabelPlural = pkgPlural(pkgLabelValue, pkgLabelPluralInput);
   // UNIT RULE: consumption mode is DERIVED from the unit, never toggled here.
   const isWeightVol = isWeightVolumeUnit(unit);
   const reorderUnit = item.tracked ? pkgLabelPlural : unit;
@@ -473,6 +473,7 @@ function EditPanel({
         unit,
         tracked: item.tracked,
         pkgLabel: item.tracked ? pkgLabelValue : undefined,
+        pkgLabelPlural: item.tracked ? pkgLabelPluralInput.trim() || undefined : undefined,
         pkgSize: pkgSize ? Number(pkgSize.replace(",", ".")) : item.pkgSize,
         continuousUse: isWeightVol,
         consumptionMode: consumptionModeForUnit(unit),
@@ -497,6 +498,7 @@ function EditPanel({
         unit: item.unit,
         tracked: item.tracked,
         pkgLabel: item.pkgLabel,
+        pkgLabelPlural: item.pkgLabelPlural,
         pkgSize: item.pkgSize,
         continuousUse: item.continuousUse,
         consumptionMode: item.consumptionMode,
@@ -585,6 +587,13 @@ function EditPanel({
               <InlineInput
                 value={pkgLabel}
                 onChange={setPkgLabel}
+                inputMode="text"
+              />
+              <FieldLabel>Embalagem (plural)</FieldLabel>
+              <InlineInput
+                value={pkgLabelPluralInput}
+                onChange={setPkgLabelPluralInput}
+                placeholder={pkgPlural(pkgLabelValue)}
                 inputMode="text"
               />
             </div>
@@ -927,7 +936,7 @@ function MovementEditForm({
   const [pending, startTransition] = useTransition();
   const isIn = movement.type === "entrada";
   const unit = movement.byPackage
-    ? `${item.pkgLabel ?? "emb."}${movement.qty === 1 ? "" : "s"}`
+    ? pkgCount(item, movement.qty)
     : item.continuousUse
       ? movement.qty === 1
         ? "uso"
@@ -1084,7 +1093,7 @@ function Timeline({
             : "";
         // contínuo items measure loose movements in uses, not base units.
         const unit = m.byPackage
-          ? `${item.pkgLabel ?? "emb."}${m.qty === 1 ? "" : "s"}`
+          ? pkgCount(item, m.qty)
           : item.continuousUse
             ? m.qty === 1
               ? "uso"
@@ -1222,6 +1231,7 @@ function InlineInput({
   onChange,
   prefix,
   suffix,
+  placeholder,
   inputMode,
   green,
   red,
@@ -1230,6 +1240,7 @@ function InlineInput({
   onChange: (v: string) => void;
   prefix?: string;
   suffix?: string;
+  placeholder?: string;
   inputMode?: "decimal" | "numeric" | "text";
   green?: boolean;
   red?: boolean;
@@ -1245,6 +1256,7 @@ function InlineInput({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
         inputMode={inputMode}
         className="tabular w-full min-w-0 bg-transparent text-[14px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-ink-faint"
       />

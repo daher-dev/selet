@@ -8,6 +8,7 @@ import {
   Pill,
   Pizza,
   PlusCircle,
+  Utensils,
   Sandwich,
   Sparkles,
   Wheat,
@@ -39,6 +40,7 @@ export const STOCK_CATEGORY_META: Record<string, CategoryMeta> = {
   hortifruti: { label: "Hortifrúti", icon: Carrot, fg: "text-cat-hortifruti", bg: "bg-cat-hortifruti-wash" },
   suplementos: { label: "Suplementos", icon: Pill, fg: "text-cat-suplementos", bg: "bg-cat-suplementos-wash" },
   beleza: { label: "Beleza", icon: Sparkles, fg: "text-cat-beleza", bg: "bg-cat-beleza-wash" },
+  descartaveis: { label: "Descartáveis", icon: Utensils, fg: "text-cat-descartaveis", bg: "bg-cat-descartaveis-wash" },
 };
 
 export const PRODUCT_TYPE_TAG_LABELS: Record<string, string> = {

@@ -42,6 +42,7 @@ const itemSchema = z
     unit: z.enum(STOCK_UNITS),
     tracked: z.boolean(),
     pkgLabel: z.string().trim().optional(),
+    pkgLabelPlural: z.string().trim().optional(),
     pkgSize: z.number().positive().optional(),
     continuousUse: z.boolean().default(false),
     consumptionMode: z.enum(CONSUMPTION_MODES).optional(),
@@ -113,6 +114,7 @@ export async function updateStockItemAction(
       unit: parsed.unit,
       tracked: parsed.tracked,
       pkgLabel: parsed.pkgLabel,
+      pkgLabelPlural: parsed.pkgLabelPlural,
       pkgSize: parsed.pkgSize,
       // UNIT RULE: derived from unit, never trusted from the client.
       continuousUse: isWeightVolumeUnit(parsed.unit),

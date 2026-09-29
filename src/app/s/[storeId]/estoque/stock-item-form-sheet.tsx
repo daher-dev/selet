@@ -22,7 +22,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { STOCK_CATEGORY_META } from "@/components/category-meta";
-import { unitLabel } from "./stock-view";
+import { pkgPlural, unitLabel } from "./stock-view";
 
 interface Props {
   storeId: string;
@@ -72,6 +72,7 @@ function StockItemForm({
   const [category, setCategory] = useState<StockCategory>("bebidas");
   const [unit, setUnit] = useState<StockUnit>("un");
   const [pkgLabel, setPkgLabel] = useState("caixa");
+  const [pkgLabelPluralInput, setPkgLabelPluralInput] = useState("");
   const [pkgSize, setPkgSize] = useState("12");
   const [sealed, setSealed] = useState("");
   const [cost, setCost] = useState("");
@@ -81,7 +82,7 @@ function StockItemForm({
 
   const isCount = unit === "un" || unit === "sache";
   const pkgLabelValue = pkgLabel.trim() || "caixa";
-  const pkgLabelPlural = pkgLabelValue.endsWith("s") ? pkgLabelValue : `${pkgLabelValue}s`;
+  const pkgLabelPlural = pkgPlural(pkgLabelValue, pkgLabelPluralInput);
   // UNIT RULE: the consumption mode is DERIVED from the unit, never chosen —
   // weight/volume → contínuo (manual, mark-as-empty); countable → medido (auto).
   const isWeightVol = isWeightVolumeUnit(unit);
@@ -111,6 +112,7 @@ function StockItemForm({
         unit,
         tracked: true,
         pkgLabel: pkgLabelValue,
+        pkgLabelPlural: pkgLabelPluralInput.trim() || undefined,
         pkgSize: size,
         continuousUse: isWeightVol,
         consumptionMode: consumptionModeForUnit(unit),
@@ -174,6 +176,13 @@ function StockItemForm({
             value={pkgLabel}
             onChange={setPkgLabel}
             placeholder="Ex: caixa, pote, saco"
+            inputMode="text"
+          />
+          <FieldLabel>Embalagem (plural)</FieldLabel>
+          <InlineInput
+            value={pkgLabelPluralInput}
+            onChange={setPkgLabelPluralInput}
+            placeholder={pkgPlural(pkgLabelValue)}
             inputMode="text"
           />
         </div>
