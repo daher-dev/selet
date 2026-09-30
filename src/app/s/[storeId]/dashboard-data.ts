@@ -1,25 +1,41 @@
 import "server-only";
 
 import { listOrders } from "@/data/orders";
-import { listCustomers, listUpcomingBirthdays } from "@/data/customers";
-import { listStockItems, listLowStock } from "@/data/stock";
+import { listUpcomingBirthdays } from "@/data/customers";
+import { listLowStock } from "@/data/stock";
+import { listShakeFlavors } from "@/data/shakes";
+import { listPudimFlavors } from "@/data/pudim";
 import type { SummaryData } from "@/data/summary";
-import type { Customer, StockItem } from "@/lib/types";
-import { zonedParts, zonedTimeToUtc } from "@/lib/timezone";
-import type { KpiCard } from "./dashboard-client";
+import {
+  monthlySeries,
+  summarizeRecent,
+  trailingMonthKeys,
+  type MonthPoint,
+  type RankedItem,
+} from "@/lib/dashboard-core";
+import { computeSummaryFrom, monthKey } from "@/lib/summary-core";
+import { addZonedMonths, zonedParts, zonedTimeToUtc } from "@/lib/timezone";
+import type { Customer } from "@/lib/types";
 
-/** The four widgets DashboardClient renders — same shape from either path. */
+/** Everything DashboardClient renders — same shape with or without a summary. */
 export interface DashboardView {
-  kpis: KpiCard[];
-  byChannel: { instagram: number; whatsapp: number; loja: number };
-  topSellers: { name: string; qty: number }[];
-  lowStock: { id: string; name: string; qty: number; unit: string }[];
-  /** Gates the stock card entirely — members without estoque access see neither
-   *  the low-stock alert nor the "estoque em ordem" confirmation. */
-  canEstoque: boolean;
+  /** null when the section is hidden for this member */
+  kpis: {
+    activeCustomers: number | null;
+    orders: number | null;
+    birthdays: number | null;
+    lowStock: number | null;
+  };
+  topProducts: RankedItem[] | null;
+  topFlavors: RankedItem[] | null;
+  /** 12 months, oldest first; null without pedidos access */
+  months: MonthPoint[] | null;
 }
 
-const NO_CHANNELS = { instagram: 0, whatsapp: 0, loja: 0 };
+/** Rolling window of the "Resumo" block. */
+export const RECENT_DAYS = 30;
+/** Months shown in "Evolução mensal". */
+export const EVOLUTION_MONTHS = 12;
 
 /** Active customers whose next birthday lands within the next 30 days. */
 export function countUpcomingBirthdays(customers: Customer[], now: Date): number {
@@ -35,208 +51,68 @@ export function countUpcomingBirthdays(customers: Customer[], now: Date): number
   }).length;
 }
 
-function lowStockChips(items: StockItem[]) {
-  return items
-    .filter((i) => i.lowStock)
-    .map((i) => ({ id: i.id, name: i.name, qty: i.qty, unit: i.unit }))
-    .slice(0, 6);
-}
-
-function pctDelta(thisMonth: number, lastMonth: number): number {
-  if (lastMonth > 0) {
-    return Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
-  }
-  return thisMonth > 0 ? 100 : 0;
-}
-
-/** Assemble the four KPI cards from already-resolved numbers (path-agnostic). */
-function buildKpis(input: {
-  storeId: string;
-  activeCustomers: number;
-  newThisMonth: number;
-  newLastMonth: number;
-  orderCount: number;
-  orderDelta: number;
-  upcomingBirthdays: number;
-}): KpiCard[] {
-  return [
-    {
-      label: "Clientes ativos",
-      value: String(input.activeCustomers),
-      sub: "vs. período anterior",
-      trend: trendPill(input.newThisMonth, "green"),
-    },
-    {
-      label: "Novos clientes",
-      value: String(input.newThisMonth),
-      sub: "últimos 30 dias",
-      trend: trendPill(input.newThisMonth - input.newLastMonth, "blue"),
-    },
-    {
-      label: "Pedidos no período",
-      value: String(input.orderCount),
-      sub: "este mês",
-      trend: trendPill(input.orderDelta, "green", true),
-    },
-    {
-      label: "Aniversários próximos",
-      value: String(input.upcomingBirthdays),
-      sub:
-        input.upcomingBirthdays > 0
-          ? "próximos 30 dias · ver clientes"
-          : "próximos 30 dias",
-      href:
-        input.upcomingBirthdays > 0
-          ? `/s/${input.storeId}/clientes?seg=aniversarios`
-          : undefined,
-    },
-  ];
-}
-
 /**
- * Summary-backed path: KPIs / donut / sellers straight from the materialized
- * doc; the low-stock strip and birthday count from two bounded queries. No
- * whole-collection scan.
+ * Loads the Visão geral widgets.
+ *
+ * The "últimos 30 dias" block always comes from ONE bounded orders query
+ * (createdAt >= now − 30d) — the summary is bucketed by calendar month and
+ * can't answer a rolling window. The 12-month evolution PREFERS the
+ * materialized summary; when it's absent, it recomputes the same buckets from
+ * a bounded 12-month orders scan so the page never breaks.
  */
-export async function fastPath(ctx: {
+export async function loadDashboard(ctx: {
   storeId: string;
-  summary: SummaryData;
+  summary: SummaryData | null;
   now: Date;
-  thisKey: string;
-  lastKey: string;
   canPedidos: boolean;
   canClientes: boolean;
   canEstoque: boolean;
 }): Promise<DashboardView> {
-  const { storeId, summary, now, thisKey, lastKey } = ctx;
+  const { storeId, summary, now, canPedidos, canClientes, canEstoque } = ctx;
+  const since = new Date(now.getTime() - RECENT_DAYS * 86_400_000);
+  const currentKey = monthKey(now);
+  const keys = trailingMonthKeys(currentKey, EVOLUTION_MONTHS);
 
-  const [lowItems, birthdayCustomers] = await Promise.all([
-    ctx.canEstoque ? listLowStock(storeId) : Promise.resolve([]),
-    ctx.canClientes ? listUpcomingBirthdays(storeId) : Promise.resolve([]),
-  ]);
+  const [recentOrders, shakeFlavors, pudimFlavors, birthdayCustomers, lowItems] =
+    await Promise.all([
+      canPedidos || canClientes ? listOrders(storeId, { since }) : Promise.resolve([]),
+      canPedidos ? listShakeFlavors(storeId) : Promise.resolve([]),
+      canPedidos ? listPudimFlavors(storeId) : Promise.resolve([]),
+      canClientes ? listUpcomingBirthdays(storeId) : Promise.resolve([]),
+      // The summary already counts low-stock items; only scan without it.
+      canEstoque && !summary ? listLowStock(storeId, 500) : Promise.resolve([]),
+    ]);
 
-  const thisM = summary.months[thisKey];
-  const lastM = summary.months[lastKey];
+  const flavorNames = new Map<string, string>();
+  for (const f of [...shakeFlavors, ...pudimFlavors]) flavorNames.set(f.id, f.name);
+  const recent = summarizeRecent(recentOrders, flavorNames);
 
-  const orderCount = ctx.canPedidos ? (thisM?.orderCount ?? 0) : 0;
-  const lastCount = ctx.canPedidos ? (lastM?.orderCount ?? 0) : 0;
-
-  const byChannel = ctx.canPedidos
-    ? {
-        instagram: thisM?.channels.instagram ?? 0,
-        whatsapp: thisM?.channels.whatsapp ?? 0,
-        loja: thisM?.channels.loja ?? 0,
-      }
-    : NO_CHANNELS;
-
-  const topSellers = ctx.canPedidos
-    ? Object.values(thisM?.sellers ?? {})
-        .sort((a, b) => b.qty - a.qty)
-        .slice(0, 4)
-        .map((s) => ({ name: s.name, qty: s.qty }))
-    : [];
-
-  const kpis = buildKpis({
-    storeId,
-    activeCustomers: ctx.canClientes ? summary.activeCustomers : 0,
-    newThisMonth: ctx.canClientes ? (thisM?.newCustomers ?? 0) : 0,
-    newLastMonth: ctx.canClientes ? (lastM?.newCustomers ?? 0) : 0,
-    orderCount,
-    orderDelta: pctDelta(orderCount, lastCount),
-    upcomingBirthdays: countUpcomingBirthdays(birthdayCustomers, now),
-  });
-
-  return {
-    kpis,
-    byChannel,
-    topSellers,
-    lowStock: lowStockChips(lowItems),
-    canEstoque: ctx.canEstoque,
-  };
-}
-
-/**
- * Fallback path (missing/older summary): the original scan-and-compute, so the
- * dashboard is always correct even before the summary is backfilled.
- */
-export async function slowPath(ctx: {
-  storeId: string;
-  now: Date;
-  startOfMonth: Date;
-  startOfLastMonth: Date;
-  canPedidos: boolean;
-  canClientes: boolean;
-  canEstoque: boolean;
-}): Promise<DashboardView> {
-  const { storeId, now, startOfMonth, startOfLastMonth } = ctx;
-
-  const [orders, customers, stockItems] = await Promise.all([
-    ctx.canPedidos
-      ? listOrders(storeId, { since: startOfLastMonth })
-      : Promise.resolve([]),
-    ctx.canClientes ? listCustomers(storeId) : Promise.resolve([]),
-    ctx.canEstoque ? listStockItems(storeId) : Promise.resolve([]),
-  ]);
-
-  const active = customers.filter((c) => !c.archived);
-
-  const thisMonthOrders = orders.filter(
-    (o) => new Date(o.createdAt) >= startOfMonth && o.status !== "cancelado",
-  );
-  const lastMonthOrders = orders.filter(
-    (o) => new Date(o.createdAt) < startOfMonth && o.status !== "cancelado",
-  );
-
-  const newThisMonth = active.filter(
-    (c) => c.since && new Date(c.since) >= startOfMonth,
-  ).length;
-  const newLastMonth = active.filter((c) => {
-    if (!c.since) return false;
-    const d = new Date(c.since);
-    return d >= startOfLastMonth && d < startOfMonth;
-  }).length;
-
-  const byChannel = { instagram: 0, whatsapp: 0, loja: 0 };
-  const sellers = new Map<string, { name: string; qty: number }>();
-  for (const order of thisMonthOrders) {
-    byChannel[order.channel] += 1;
-    for (const item of order.items) {
-      const s = sellers.get(item.productId) ?? { name: item.name, qty: 0 };
-      s.qty += item.qty;
-      sellers.set(item.productId, s);
+  let months: MonthPoint[] | null = null;
+  if (canPedidos) {
+    let source = summary;
+    if (!source) {
+      // Fallback: one month extra so the first bar still gets a MoM base.
+      const start = addZonedMonths(now, -EVOLUTION_MONTHS);
+      const orders = await listOrders(storeId, { since: start });
+      source = computeSummaryFrom({
+        orders: orders.map((o) => ({ ...o, createdAt: new Date(o.createdAt) })),
+        finance: [],
+        stock: [],
+        customers: [],
+      });
     }
+    months = monthlySeries(source, keys, currentKey);
   }
-  const topSellers = [...sellers.values()]
-    .sort((a, b) => b.qty - a.qty)
-    .slice(0, 4);
-
-  const kpis = buildKpis({
-    storeId,
-    activeCustomers: active.length,
-    newThisMonth,
-    newLastMonth,
-    orderCount: thisMonthOrders.length,
-    orderDelta: pctDelta(thisMonthOrders.length, lastMonthOrders.length),
-    upcomingBirthdays: countUpcomingBirthdays(active, now),
-  });
 
   return {
-    kpis,
-    byChannel,
-    topSellers,
-    lowStock: lowStockChips(stockItems),
-    canEstoque: ctx.canEstoque,
+    kpis: {
+      activeCustomers: canClientes ? recent.activeCustomers : null,
+      orders: canPedidos ? recent.orderCount : null,
+      birthdays: canClientes ? countUpcomingBirthdays(birthdayCustomers, now) : null,
+      lowStock: canEstoque ? (summary ? summary.lowStock : lowItems.length) : null,
+    },
+    topProducts: canPedidos ? recent.topProducts : null,
+    topFlavors: canPedidos ? recent.topFlavors : null,
+    months,
   };
-}
-
-/** Build a KPI trend pill from a delta; null when there's nothing to show. */
-function trendPill(
-  delta: number,
-  tone: "green" | "blue",
-  percent = false,
-): KpiCard["trend"] {
-  if (delta === 0) return null;
-  const sign = delta > 0 ? "+" : "−";
-  const text = `${sign}${Math.abs(delta)}${percent ? "%" : ""}`;
-  return { text, tone: delta > 0 ? tone : "red" };
 }

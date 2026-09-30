@@ -93,7 +93,7 @@ test("full flow: login → product → customer → order → paid → dashboard
 
   // --- Dashboard KPIs reflect everything
   await page.goto("/s/vila-velha");
-  await expect(page.getByText("Pedidos por canal")).toBeVisible();
+  await expect(page.getByText("Canais de venda")).toBeVisible();
   await expect(page.getByText("Bowl de salmão")).toBeVisible(); // top seller
 });
 

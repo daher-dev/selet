@@ -9,9 +9,8 @@ import { createManualTx, deleteManualTx, updateManualTx } from "./finance";
 import { createCustomer, setCustomerArchived } from "./customers";
 import { applyMovement, createStockItem } from "./stock";
 import { computeSummary, readSummary } from "./summary";
-import { fastPath, slowPath } from "@/app/s/[storeId]/dashboard-data";
+import { loadDashboard } from "@/app/s/[storeId]/dashboard-data";
 import { monthKey } from "@/lib/summary-core";
-import { addZonedMonths } from "@/lib/timezone";
 
 const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 
@@ -298,47 +297,41 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     );
 
     const now = new Date();
-    const startOfMonth = addZonedMonths(now, 0);
-    const startOfLastMonth = addZonedMonths(now, -1);
-    const thisKey = monthKey(startOfMonth);
-    const lastKey = monthKey(startOfLastMonth);
     const perms = { canPedidos: true, canClientes: true, canEstoque: true };
 
-    // The materialized doc exists (writes maintained it) → the page takes fastPath.
+    // The materialized doc exists (writes maintained it) → evolution + low-stock
+    // count come from it.
     const summary = await readSummary(storeId);
     expect(summary).not.toBeNull();
-
-    const fast = await fastPath({
-      storeId,
-      summary: summary!,
-      now,
-      thisKey,
-      lastKey,
-      ...perms,
-    });
+    const fast = await loadDashboard({ storeId, summary, now, ...perms });
 
     // The fallback: exactly what the page would render if the summary were absent.
-    const slow = await slowPath({
-      storeId,
-      now,
-      startOfMonth,
-      startOfLastMonth,
-      ...perms,
-    });
+    const slow = await loadDashboard({ storeId, summary: null, now, ...perms });
 
     // The whole promise of the pre-computation: identical dashboard either way.
-    expect(fast).toEqual(slow);
-    // Spot-check the summary-derived widgets carry the seeded signal.
-    expect(fast.byChannel).toEqual({ instagram: 1, whatsapp: 1, loja: 0 });
-    expect(fast.topSellers).toEqual([
+    // (Finance in/out ride along on each month point but Visão geral doesn't
+    // render them, so its fallback skips the finance scan.)
+    const withoutFinance = (v: typeof fast) => ({
+      ...v,
+      months: v.months?.map((m) => ({ ...m, in: 0, out: 0 })),
+    });
+    expect(withoutFinance(fast)).toEqual(withoutFinance(slow));
+    // Spot-check the widgets carry the seeded signal.
+    const current = fast.months!.at(-1)!;
+    expect(current.partial).toBe(true);
+    expect(current.channels).toEqual({ instagram: 1, whatsapp: 1, loja: 0 });
+    expect(current.novos).toBe(2);
+    expect(current.recorrentes).toBe(0);
+    expect(fast.topProducts).toEqual([
       { name: "Shake", qty: 5 },
       { name: "Barra", qty: 1 },
     ]);
-    expect(fast.lowStock.map((i) => i.name)).toContain("Whey");
-    expect(fast.kpis.find((k) => k.label === "Clientes ativos")?.value).toBe("2");
-    expect(
-      fast.kpis.find((k) => k.label === "Aniversários próximos")?.value,
-    ).toBe("1");
+    expect(fast.kpis).toEqual({
+      activeCustomers: 2,
+      orders: 2,
+      birthdays: 1,
+      lowStock: 1,
+    });
   });
 
   it("tracks a priced restock movement's expense and low-stock flip", async () => {

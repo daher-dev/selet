@@ -13,6 +13,8 @@
  *  - openOrders:      count of orders in an open status (novo|preparando|entrega).
  *  - lowStock:        count of active (non-archived) low-stock items.
  *  - activeCustomers: count of non-archived customer docs (the whole base).
+ *  - firstOrderMonth: customerKey -> "YYYY-MM" of that customer's earliest
+ *                     non-cancelled order (drives "novos vs recorrentes").
  *  - months[YYYY-MM]:
  *      in / out      — finance income/expense (centavos) that month
  *      orderCount    — non-cancelled orders opened that month
@@ -61,6 +63,12 @@ export interface SummaryData {
   lowStock: number;
   /** count of non-archived customer docs across the whole base */
   activeCustomers: number;
+  /**
+   * customerKey -> month of the customer's earliest non-cancelled order. A
+   * customer is "novo" in month M when this equals M, "recorrente" otherwise.
+   * Kept outside `months` so pruning old buckets never forgets who is new.
+   */
+  firstOrderMonth: Record<string, string>;
   months: Record<string, MonthAgg>;
 }
 
@@ -118,7 +126,13 @@ export function emptyMonth(): MonthAgg {
 }
 
 export function emptySummary(): SummaryData {
-  return { openOrders: 0, lowStock: 0, activeCustomers: 0, months: {} };
+  return {
+    openOrders: 0,
+    lowStock: 0,
+    activeCustomers: 0,
+    firstOrderMonth: {},
+    months: {},
+  };
 }
 
 function bucket(s: SummaryData, mk: string): MonthAgg {
@@ -135,6 +149,28 @@ function decCustomer(b: MonthAgg, key: string | null): void {
   const n = (b.customers[key] ?? 0) - 1;
   if (n <= 0) delete b.customers[key];
   else b.customers[key] = n;
+}
+
+/** Record `mk` as the customer's first-order month when it's earlier. */
+function noteFirstOrder(s: SummaryData, key: string | null, mk: string): void {
+  if (!key) return;
+  const cur = s.firstOrderMonth[key];
+  if (!cur || mk < cur) s.firstOrderMonth[key] = mk;
+}
+
+/**
+ * After an order leaves month `mk`: if that was the customer's first-order
+ * month and they no longer have orders there, move it to the earliest retained
+ * bucket that still holds them (or forget them entirely).
+ */
+function forgetFirstOrder(s: SummaryData, key: string | null, mk: string): void {
+  if (!key || s.firstOrderMonth[key] !== mk) return;
+  if (s.months[mk]?.customers[key]) return;
+  const next = Object.keys(s.months)
+    .filter((k) => k > mk && s.months[k].customers[key])
+    .sort()[0];
+  if (next) s.firstOrderMonth[key] = next;
+  else delete s.firstOrderMonth[key];
 }
 
 /** Add each line's quantity to the month's top-seller tallies. */
@@ -188,6 +224,7 @@ export function summaryAddOrder(s: SummaryData, o: OrderAggInput): void {
   b.orderCount += 1;
   b.ticketSum += o.total;
   incCustomer(b, o.custKey);
+  noteFirstOrder(s, o.custKey, o.mk);
   b.channels[o.channel] += 1;
   addSellers(b, o.items);
   if (o.open) s.openOrders += 1;
@@ -203,6 +240,7 @@ export function summaryRemoveOrder(s: SummaryData, o: OrderAggInput): void {
   b.orderCount = Math.max(0, b.orderCount - 1);
   b.ticketSum = Math.max(0, b.ticketSum - o.total);
   decCustomer(b, o.custKey);
+  forgetFirstOrder(s, o.custKey, o.mk);
   b.channels[o.channel] = Math.max(0, b.channels[o.channel] - 1);
   removeSellers(b, o.items);
   if (o.open) s.openOrders = Math.max(0, s.openOrders - 1);
@@ -360,6 +398,7 @@ export function pruneMonths(s: SummaryData, keep = 18): SummaryData {
     openOrders: s.openOrders,
     lowStock: s.lowStock,
     activeCustomers: s.activeCustomers,
+    firstOrderMonth: s.firstOrderMonth,
     months,
   };
 }
@@ -367,4 +406,19 @@ export function pruneMonths(s: SummaryData, keep = 18): SummaryData {
 /** activeCustomers for a month bucket = number of distinct customer keys. */
 export function activeCustomerCount(b: MonthAgg | undefined): number {
   return b ? Object.keys(b.customers).length : 0;
+}
+
+/**
+ * Splits a month's active customers into "novos" (their first-ever order is in
+ * this month) and "recorrentes" (they had ordered before). Customers missing
+ * from firstOrderMonth (summary not yet backfilled) count as recorrentes.
+ */
+export function monthCustomerSplit(
+  s: SummaryData,
+  mk: string,
+): { novos: number; recorrentes: number } {
+  const keys = Object.keys(s.months[mk]?.customers ?? {});
+  let novos = 0;
+  for (const k of keys) if (s.firstOrderMonth[k] === mk) novos += 1;
+  return { novos, recorrentes: keys.length - novos };
 }

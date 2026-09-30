@@ -12,7 +12,7 @@ import type {
   Product,
 } from "@/lib/types";
 import { orderCode } from "@/lib/format";
-import { orderMoney, type DiscountInput } from "@/lib/order-money";
+import { orderMoney, revendaShare, type DiscountInput } from "@/lib/order-money";
 import {
   cancelSoldCartelas,
   planCartelas,
@@ -264,6 +264,21 @@ async function fetchLineProducts(
 }
 
 /**
+ * Snapshots each line's product saleType onto the line (Consumo vs Revenda
+ * split in Financeiro). Lines whose product can't be resolved default to
+ * "menu" — never undefined, so the stored shape is uniform.
+ */
+function stampSaleTypes(
+  items: OrderItem[],
+  products: Map<string, Product>,
+): OrderItem[] {
+  return items.map((item) => ({
+    ...item,
+    saleType: products.get(item.productId)?.saleType ?? item.saleType ?? "menu",
+  }));
+}
+
+/**
  * Read-only planner for an order's stock consumption. Reverses `oldDraws` (the
  * order's currently-held manifest) and applies `newItems` (null = hold nothing,
  * e.g. a cancel) onto a SINGLE working copy per item — reverse-then-apply on the
@@ -424,6 +439,7 @@ export async function createOrder(
   const products = await fetchLineProducts(storeId, input.items);
   const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
   const pudimCatalogs = await loadPudimCatalogsForItems(storeId, input.items);
+  const items = stampSaleTypes(input.items, products);
 
   let stockConsumed: ConsumptionDraw[] = [];
   let cartelaConsumed: CartelaConsumedEntry[] = [];
@@ -484,6 +500,7 @@ export async function createOrder(
     writeSummaryTx(tx, storeId, summary);
     tx.set(ref, {
       ...rest,
+      items,
       total,
       status: NEW_ORDER_STATUS,
       paid: payment.paid,
@@ -501,6 +518,7 @@ export async function createOrder(
         label: `Pedido #${orderCode(ref.id)} · ${input.customerName}`,
         category: "vendas",
         amount: total,
+        revendaAmount: revendaShare(items, total),
         direction: "in",
         source: "order",
         orderId: ref.id,
@@ -526,6 +544,7 @@ export async function updateOrder(
   const products = await fetchLineProducts(storeId, input.items);
   const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
   const pudimCatalogs = await loadPudimCatalogsForItems(storeId, input.items);
+  const items = stampSaleTypes(input.items, products);
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -662,6 +681,7 @@ export async function updateOrder(
     // discount"/"no notes" persists as null, never a silent no-op.
     tx.update(ref, {
       ...rest,
+      items,
       total,
       // paidAfter reflects the demotion computed above (a) — a "Grátis"
       // discount zeroing the total flips the order's own paid/payMethod back
@@ -679,7 +699,10 @@ export async function updateOrder(
     if (paidBefore && !paidAfter) {
       tx.delete(financeMirrorRef);
     } else if (paidAfter) {
-      tx.update(financeMirrorRef, { amount: total });
+      tx.update(financeMirrorRef, {
+        amount: total,
+        revendaAmount: revendaShare(items, total),
+      });
     }
   });
 }
@@ -847,6 +870,7 @@ export async function setOrderStatus(
         label: `Pedido #${orderCode(orderId)} · ${current.customerName}`,
         category: "vendas",
         amount: total,
+        revendaAmount: revendaShare(items, total),
         direction: "in",
         source: "order",
         orderId,
@@ -922,6 +946,7 @@ export async function setOrderPayment(
         label: `Pedido #${orderCode(orderId)} · ${current.customerName}`,
         category: "vendas",
         amount: total,
+        revendaAmount: revendaShare((current.items ?? []) as OrderItem[], total),
         direction: "in",
         source: "order",
         orderId,

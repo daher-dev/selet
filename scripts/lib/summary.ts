@@ -63,6 +63,7 @@ export async function refreshStoreSummary(
     openOrders: summary.openOrders,
     lowStock: summary.lowStock,
     activeCustomers: summary.activeCustomers,
+    firstOrderMonth: summary.firstOrderMonth,
     months: summary.months,
     updatedAt: Timestamp.now(),
   });

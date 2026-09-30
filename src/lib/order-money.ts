@@ -74,3 +74,21 @@ export function orderMoney(items: OrderItem[], d?: DiscountInput | null): OrderM
     total: afterCartela - amount,
   };
 }
+
+/**
+ * Portion of `total` (the discounted amount actually charged) that came from
+ * "revenda" lines — resold stock items, as opposed to prepared café items. The
+ * order-level discount is prorated across lines by their coverage-netted value,
+ * so Consumo + Revenda always add back up to `total`. Lines without a
+ * `saleType` snapshot (legacy orders) count as prepared/consumo.
+ */
+export function revendaShare(items: OrderItem[], total: number): number {
+  const net = netOfCartela(items);
+  if (net <= 0 || total <= 0) return 0;
+  const revenda = items.reduce(
+    (sum, item) => sum + (item.saleType === "revenda" ? item.qty * item.unitPrice : 0),
+    0,
+  );
+  if (revenda <= 0) return 0;
+  return Math.min(total, Math.round((total * revenda) / net));
+}

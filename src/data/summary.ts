@@ -17,6 +17,7 @@ export {
   activeCustomerCount,
   customerKey,
   isOpenStatus,
+  monthCustomerSplit,
   lowStockContribution,
   monthKey,
   summaryAddCustomer,
@@ -64,6 +65,7 @@ function mapSummary(d: FirebaseFirestore.DocumentData): SummaryData {
     openOrders: d.openOrders ?? 0,
     lowStock: d.lowStock ?? 0,
     activeCustomers: d.activeCustomers ?? 0,
+    firstOrderMonth: (d.firstOrderMonth ?? {}) as Record<string, string>,
     months,
   };
 }
@@ -75,6 +77,7 @@ function serialize(s: SummaryData): Record<string, unknown> {
     openOrders: Math.max(0, pruned.openOrders),
     lowStock: Math.max(0, pruned.lowStock),
     activeCustomers: Math.max(0, pruned.activeCustomers),
+    firstOrderMonth: pruned.firstOrderMonth,
     months: pruned.months,
     updatedAt: Timestamp.now(),
   };

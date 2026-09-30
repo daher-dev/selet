@@ -2,51 +2,38 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check } from "lucide-react";
-import { formatQty } from "@/lib/format";
+import {
+  ArrowUpRight,
+  Cake,
+  ChartPie,
+  CircleDollarSign,
+  Package,
+  ShoppingBag,
+  Sparkles,
+  Trophy,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePageAction } from "@/components/shell/app-shell-context";
-import { ChannelDonut } from "@/components/charts/channel-donut";
-
-export interface KpiCard {
-  label: string;
-  value: string;
-  sub: string;
-  trend?: { text: string; tone: "green" | "blue" | "red" } | null;
-  href?: string;
-}
-
-interface LowStockChip {
-  id: string;
-  name: string;
-  qty: number;
-  unit: string;
-}
-
-interface DashboardClientProps {
-  storeId: string;
-  kpis: KpiCard[];
-  byChannel: { instagram: number; whatsapp: number; loja: number };
-  topSellers: { name: string; qty: number }[];
-  lowStock: LowStockChip[];
-  canEstoque: boolean;
-}
-
-const TREND_TONE: Record<"green" | "blue" | "red", string> = {
-  green: "text-success bg-mint-wash",
-  blue: "text-info bg-info-wash",
-  red: "text-destructive bg-danger-wash",
-};
+import { SectionHeading, TintedCard, TONES, type Tone } from "@/components/tinted-card";
+import { Legend } from "@/components/charts/chart-kit";
+import {
+  CHANNEL_SERIES,
+  ChannelStackChart,
+  CustomerSplitChart,
+  MonthlySalesChart,
+} from "@/components/charts/evolution-charts";
+import type { RankedItem } from "@/lib/dashboard-core";
+import type { DashboardView } from "./dashboard-data";
 
 export function DashboardClient({
   storeId,
-  kpis,
-  byChannel,
-  topSellers,
-  lowStock,
-  canEstoque,
-}: DashboardClientProps) {
-  const maxSellerQty = Math.max(1, ...topSellers.map((s) => s.qty));
+  view,
+}: {
+  storeId: string;
+  view: DashboardView;
+}) {
   const base = `/s/${storeId}`;
   const router = useRouter();
 
@@ -58,171 +45,214 @@ export function DashboardClient({
     onClick: () => router.push(`${base}/pedidos?novo=1`),
   });
 
+  const { kpis, topProducts, topFlavors, months } = view;
+  const kpiCards: {
+    key: string;
+    label: string;
+    value: number | null;
+    tone: Tone;
+    icon: LucideIcon;
+    href: string;
+  }[] = [
+    { key: "clientes", label: "Clientes ativos", value: kpis.activeCustomers, tone: "green", icon: Users, href: `${base}/clientes` },
+    { key: "pedidos", label: "Pedidos", value: kpis.orders, tone: "blue", icon: ShoppingBag, href: `${base}/pedidos` },
+    { key: "aniversarios", label: "Aniversários próximos", value: kpis.birthdays, tone: "pink", icon: Cake, href: `${base}/clientes?seg=aniversarios` },
+    { key: "estoque", label: "Estoque baixo", value: kpis.lowStock, tone: "amber", icon: Package, href: `${base}/estoque` },
+  ];
+  const visibleKpis = kpiCards.filter((k) => k.value !== null);
+
   return (
     <>
-      {/* KPI grid — 2-up mobile, 4-up desktop */}
-      <div className="mb-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-4">
-        {kpis.map((kpi) => (
-          <Kpi key={kpi.label} kpi={kpi} />
-        ))}
-      </div>
-
-      {/* Channel donut + top sellers */}
-      <div className="mb-4 grid gap-2.5 lg:grid-cols-[1.1fr_0.9fr] lg:gap-4">
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <h3 className="text-[15px] font-semibold text-ink">
-            Pedidos por canal
-          </h3>
-          <p className="mb-3.5 mt-0.5 text-[12.5px] text-ink-faint">
-            Distribuição dos pedidos no período
-          </p>
-          <ChannelDonut byChannel={byChannel} />
+      <SectionHeading title="Resumo" chip="Últimos 30 dias" />
+      {visibleKpis.length > 0 && (
+        <div className="mb-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-4">
+          {visibleKpis.map(({ key, ...k }) => (
+            <KpiCard key={key} {...k} value={k.value ?? 0} />
+          ))}
         </div>
+      )}
 
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <h3 className="mb-3.5 text-[15px] font-semibold text-ink">
-            Mais vendidos
-          </h3>
-          {topSellers.length === 0 ? (
-            <p className="py-6 text-center text-[12.5px] text-ink-faint">
-              Sem vendas neste período ainda.
-            </p>
-          ) : (
-            <ul className="space-y-3.5">
-              {topSellers.map((seller) => (
-                <li key={seller.name}>
-                  <div className="mb-1.5 flex items-center justify-between gap-2 text-[13px]">
-                    <span className="truncate font-semibold text-ink">
-                      {seller.name}
-                    </span>
-                    <span className="tabular shrink-0 text-ink-faint">
-                      {seller.qty} un.
-                    </span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-wash">
-                    <div
-                      className="h-full rounded-full bg-leaf"
-                      style={{ width: `${(seller.qty / maxSellerQty) * 100}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+      {topProducts && topFlavors && (
+        <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-4">
+          <TintedCard
+            tone="amber"
+            icon={Trophy}
+            iconBg="#D9A21B"
+            title="Top produtos"
+            caps
+            bodyClassName="px-3.5 pt-3 pb-3.5"
+          >
+            <Ranking items={topProducts} barColor="#E9BE4A" empty="Sem vendas nos últimos 30 dias." />
+          </TintedCard>
+          <TintedCard
+            tone="pink"
+            icon={Sparkles}
+            title="Top sabores"
+            caps
+            bodyClassName="px-3.5 pt-3 pb-3.5"
+          >
+            <Ranking
+              items={topFlavors}
+              barColor="#D98AB0"
+              empty="Nenhum shake ou pudim nos últimos 30 dias."
+            />
+          </TintedCard>
         </div>
-      </div>
+      )}
 
-      {/* Low stock — cream alert with 3-col chip grid, or a green all-clear
-          confirmation. Hidden entirely for members without estoque access. */}
-      {canEstoque &&
-        (lowStock.length > 0 ? (
-          <div className="rounded-2xl border border-[#F0E4C8] bg-[#FBF6EC] p-5">
-            <div className="mb-3.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <AlertTriangle className="size-[18px] text-amber" />
-                <h3 className="text-[15px] font-bold text-[#8A6312]">
-                  Estoque baixo
-                </h3>
+      {months && (
+        <>
+          <div className="mt-[34px] mb-7 h-px bg-[#E1EADC]" />
+          <SectionHeading title="Evolução mensal" chip="Últimos 12 meses" />
+          <TintedCard
+            tone="green"
+            icon={CircleDollarSign}
+            title="Vendas"
+            subtitle="Faturamento mensal em R$ mil"
+            className="mb-2.5 lg:mb-4"
+          >
+            <MonthlySalesChart months={months} />
+          </TintedCard>
+          <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-4">
+            <TintedCard tone="pink" icon={ChartPie} title="Canais de venda">
+              <div className="mb-2">
+                <Legend items={CHANNEL_SERIES.map((c) => ({ label: c.label, color: c.color }))} />
               </div>
-              <Link
-                href={`${base}/estoque`}
-                className="shrink-0 text-[12.5px] font-semibold text-amber transition-opacity hover:opacity-80"
-              >
-                Ver estoque →
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-              {lowStock.map((item) => {
-                const out = item.qty <= 0;
-                return (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-2.5 rounded-xl border border-[#F0E4C8] bg-card px-3.5 py-3"
-                  >
-                    <span
-                      className={cn(
-                        "size-2.5 shrink-0 rounded-full",
-                        out ? "bg-destructive" : "bg-amber",
-                      )}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-semibold text-[#5C4F2A]">
-                        {item.name}
-                      </span>
-                      <span className="tabular block text-[11.5px] font-semibold text-amber">
-                        {out
-                          ? "Esgotado"
-                          : `${formatQty(item.qty, item.unit)} em estoque`}
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+              <ChannelStackChart months={months} />
+            </TintedCard>
+            <TintedCard tone="blue" icon={Users} title="Clientes ativos">
+              <div className="mb-2">
+                <Legend
+                  items={[
+                    { label: "Recorrentes", color: "#186B41" },
+                    { label: "Novos", color: "#2F6FB5" },
+                  ]}
+                />
+              </div>
+              <CustomerSplitChart months={months} />
+            </TintedCard>
           </div>
-        ) : (
-          <div className="flex items-center gap-[13px] rounded-2xl border border-[#DDEBD5] bg-surface px-5 py-[18px]">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-mint-wash text-primary">
-              <Check className="size-[18px]" strokeWidth={2.2} />
-            </span>
-            <span className="flex-1">
-              <span className="block text-[14px] font-bold text-primary">
-                Estoque em ordem
-              </span>
-              <span className="mt-0.5 block text-[12.5px] text-ink-soft">
-                Nenhum insumo abaixo do mínimo.
-              </span>
-            </span>
-            <Link
-              href={`${base}/estoque`}
-              className="shrink-0 text-[12.5px] font-semibold text-primary transition-opacity hover:opacity-80"
-            >
-              Ver estoque →
-            </Link>
-          </div>
-        ))}
+        </>
+      )}
     </>
   );
 }
 
-function Kpi({ kpi }: { kpi: KpiCard }) {
-  const isZero = kpi.value === "0";
-  const inner = (
-    <>
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-[12.5px] font-medium text-ink-faint">
-          {kpi.label}
+function KpiCard({
+  label,
+  value,
+  tone,
+  icon: Icon,
+  href,
+}: {
+  label: string;
+  value: number;
+  tone: Tone;
+  icon: LucideIcon;
+  href: string;
+}) {
+  const t = TONES[tone];
+  return (
+    <Link
+      href={href}
+      className="relative block min-h-[118px] overflow-hidden rounded-2xl border px-4 pt-4 pb-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_14px_30px_-16px_rgba(24,107,65,0.28)] lg:min-h-[138px] lg:px-5 lg:pt-[18px] lg:pb-5"
+      style={{ background: t.wash, borderColor: t.border }}
+    >
+      <Icon
+        aria-hidden
+        className="pointer-events-none absolute -right-3.5 -bottom-[18px] size-[92px] opacity-[.16] lg:size-[118px]"
+        strokeWidth={1.6}
+        style={{ color: t.watermark }}
+      />
+      <div className="relative flex items-center gap-2.5">
+        <span
+          className="flex size-[30px] shrink-0 items-center justify-center rounded-[10px] text-white lg:size-[34px]"
+          style={{ background: t.solid }}
+        >
+          <Icon className="size-4 lg:size-[18px]" strokeWidth={2} />
         </span>
-        {kpi.trend && (
-          <span
-            className={cn(
-              "shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
-              TREND_TONE[kpi.trend.tone],
-            )}
-          >
-            {kpi.trend.text}
-          </span>
-        )}
+        <span
+          className="min-w-0 flex-1 text-[12.5px] leading-tight font-bold lg:text-[13px]"
+          style={{ color: t.ink }}
+        >
+          {label}
+        </span>
+        <span className="-mr-1 hidden size-7 shrink-0 items-center justify-center rounded-lg bg-white/70 sm:flex">
+          <ArrowUpRight className="size-4" strokeWidth={2.2} style={{ color: t.ink }} />
+        </span>
       </div>
       <p
-        className={cn(
-          "tabular mt-2 whitespace-nowrap text-[38px] font-semibold leading-none tracking-[-0.4px]",
-          isZero ? "text-ink-faint/70" : "text-ink",
-        )}
+        className="tabular relative mt-4 text-[44px] leading-none font-bold tracking-[-1.5px] lg:mt-[22px] lg:text-[58px]"
+        style={{ color: t.ink }}
       >
-        {kpi.value}
+        {value}
       </p>
-      <p className="mt-0.5 text-[11.5px] text-ink-faint">{kpi.sub}</p>
-    </>
+    </Link>
   );
-  const cardBase =
-    "rounded-2xl border border-border bg-card p-[18px] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:border-[#D6E6CE] hover:shadow-[0_14px_30px_-16px_rgba(24,107,65,0.28)]";
-  if (kpi.href) {
-    return (
-      <Link href={kpi.href} className={cn(cardBase, "block")}>
-        {inner}
-      </Link>
-    );
+}
+
+const MEDALS = ["#D9A21B", "#8C9A93", "#B9773F"];
+
+function Ranking({
+  items,
+  barColor,
+  empty,
+}: {
+  items: RankedItem[];
+  barColor: string;
+  empty: string;
+}) {
+  if (items.length === 0) {
+    return <p className="py-8 text-center text-[12.5px] text-ink-faint">{empty}</p>;
   }
-  return <div className={cardBase}>{inner}</div>;
+  const max = Math.max(1, ...items.map((i) => i.qty));
+  return (
+    <ol className="flex flex-col gap-0.5">
+      {items.map((item, i) => {
+        const first = i === 0;
+        return (
+          <li
+            key={item.name}
+            className={cn(
+              "flex items-center gap-3 rounded-[10px] px-2.5 py-[7px]",
+              first && "bg-amber-wash",
+            )}
+          >
+            <span
+              className="flex size-[26px] shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
+              style={
+                i < 3
+                  ? { background: MEDALS[i], color: "#fff" }
+                  : { background: "#EEF2EB", color: "#5C6B62" }
+              }
+            >
+              {i + 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div
+                className={cn(
+                  "mb-[5px] truncate text-[13px] text-ink",
+                  first ? "font-bold" : "font-semibold",
+                )}
+              >
+                {item.name}
+              </div>
+              <div className="h-[5px] overflow-hidden rounded bg-wash">
+                <div
+                  className="h-full rounded"
+                  style={{
+                    width: `${(item.qty / max) * 100}%`,
+                    background: first ? "#D9A21B" : barColor,
+                  }}
+                />
+              </div>
+            </div>
+            <span className="tabular min-w-[34px] text-right text-[18px] font-bold text-ink">
+              {item.qty}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
 }

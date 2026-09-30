@@ -9,6 +9,7 @@ import {
   setOrderStatus,
   updateOrder,
 } from "./orders";
+import { createProduct } from "./products";
 
 const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 
@@ -358,5 +359,72 @@ describe.skipIf(!hasEmulator)("orders repository (emulator)", () => {
     expect(order?.paid).toBe(false);
     expect(order?.payMethod).toBeNull();
     expect(await financeDoc(storeId, orderId)).toBeNull();
+  });
+
+  it("snapshots saleType on lines and splits the paid mirror into revenda", async () => {
+    const storeId = `test-orders-saletype-${Date.now()}`;
+    const base = {
+      category: "bebidas",
+      typeTags: [],
+      active: true,
+      recipe: [],
+      adicionais: [],
+      stockManaged: false,
+    };
+    const shake = await createProduct(storeId, {
+      ...base,
+      name: "Shake",
+      price: 2000,
+      saleType: "menu",
+      tiers: [{ qty: 1, price: 2000 }],
+    });
+    const pote = await createProduct(storeId, {
+      ...base,
+      name: "Pote Herbalife",
+      price: 6000,
+      saleType: "revenda",
+      tiers: [{ qty: 1, price: 6000 }],
+    });
+
+    const customerId = await createCustomer(storeId, { name: "Balcão", tags: [] });
+    const orderId = await createOrder(
+      storeId,
+      {
+        customerId,
+        customerName: "Balcão",
+        channel: "loja",
+        items: [
+          { productId: shake, name: "Shake", qty: 2, unitPrice: 2000 },
+          { productId: pote, name: "Pote Herbalife", qty: 1, unitPrice: 6000 },
+        ],
+        discount: { kind: "percent", value: 10, reason: "combinado" },
+      },
+      { paid: true, payMethod: "pix" },
+    );
+
+    const order = await getOrder(storeId, orderId);
+    expect(order?.items.map((i) => i.saleType)).toEqual(["menu", "revenda"]);
+    // 10000 − 10% = 9000; revenda keeps its 60% share.
+    expect(await financeDoc(storeId, orderId)).toMatchObject({
+      amount: 9000,
+      revendaAmount: 5400,
+    });
+
+    // Editing the order restamps + recomputes the mirror's revenda share.
+    await updateOrder(storeId, orderId, {
+      customerId,
+      customerName: "Balcão",
+      channel: "loja",
+      items: [{ productId: pote, name: "Pote Herbalife", qty: 2, unitPrice: 6000 }],
+    });
+    expect(await financeDoc(storeId, orderId)).toMatchObject({
+      amount: 12000,
+      revendaAmount: 12000,
+    });
+
+    // Unpay → repay re-derives it from the stored lines.
+    await setOrderPayment(storeId, orderId, false, null);
+    await setOrderPayment(storeId, orderId, true, "dinheiro");
+    expect(await financeDoc(storeId, orderId)).toMatchObject({ revendaAmount: 12000 });
   });
 });

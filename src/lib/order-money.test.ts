@@ -6,6 +6,7 @@ import {
   itemsSubtotal,
   netOfCartela,
   orderMoney,
+  revendaShare,
 } from "./order-money";
 
 function item(over: Partial<OrderItem> = {}): OrderItem {
@@ -139,5 +140,34 @@ describe("orderMoney — flat discount", () => {
     const money = orderMoney(items, { kind: "flat", value: 1200 });
     expect(money.discount?.amount).toBe(1200);
     expect(money.total).toBe(3800);
+  });
+});
+
+describe("revendaShare", () => {
+  const line = (unitPrice: number, qty: number, saleType?: OrderItem["saleType"]): OrderItem => ({
+    productId: `p${unitPrice}`,
+    name: "x",
+    qty,
+    unitPrice,
+    saleType,
+  });
+
+  it("is the revenda lines' value when there is no discount", () => {
+    const items = [line(2000, 2, "menu"), line(6000, 1, "revenda")];
+    expect(revendaShare(items, 10000)).toBe(6000);
+  });
+
+  it("prorates an order-level discount across consumo and revenda", () => {
+    const items = [line(2000, 2, "menu"), line(6000, 1, "revenda")];
+    // 10% off 10000 → total 9000; revenda keeps its 60% share.
+    expect(revendaShare(items, 9000)).toBe(5400);
+  });
+
+  it("treats legacy lines without a saleType as consumo", () => {
+    expect(revendaShare([line(2000, 1)], 2000)).toBe(0);
+  });
+
+  it("is zero for a comped (R$0) order", () => {
+    expect(revendaShare([line(6000, 1, "revenda")], 0)).toBe(0);
   });
 });
