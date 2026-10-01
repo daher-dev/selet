@@ -118,38 +118,26 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
     expect((await getStockItem(storeId, id))?.lowStock).toBe(true);
   });
 
-  it("a priced opening balance mirrors a finance doc carrying the item's stockItemId", async () => {
+  it("a priced opening balance does NOT create a finance entry", async () => {
     const storeId = `test-stock-e-${Date.now()}`;
     const id = await createStockItem(storeId, GRANOLA, { sealed: 3, open: 0 });
 
-    const [tx] = await listTransactions(storeId);
-    expect(tx).toMatchObject({
-      source: "stock",
-      stockItemId: id,
-      amount: GRANOLA.cost! * 3,
-      direction: "out",
-    });
+    expect(await listTransactions(storeId)).toHaveLength(0);
+    const [opening] = await listMovements(storeId, id);
+    expect(opening.price).toBe(GRANOLA.cost);
   });
 
-  it("a priced entrada movement mirrors a finance doc carrying the item's stockItemId", async () => {
+  it("a priced entrada movement does NOT create a finance entry", async () => {
     const storeId = `test-stock-f-${Date.now()}`;
-    // No opening cost, so no mirror is created at creation time — isolates
-    // the applyMovement path's own stockItemId threading.
     const id = await createStockItem(storeId, { ...GRANOLA, cost: undefined }, { sealed: 1, open: 0 });
-    expect(await listTransactions(storeId)).toHaveLength(0);
 
     await applyMovement(storeId, id, { ...mv, type: "entrada", qty: 2, byPackage: true, price: 3600 });
 
-    const [tx] = await listTransactions(storeId);
-    expect(tx).toMatchObject({
-      source: "stock",
-      stockItemId: id,
-      amount: 3600 * 2,
-      direction: "out",
-    });
+    expect(await listTransactions(storeId)).toHaveLength(0);
+    expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 3, cost: 3600 });
   });
 
-  it("editing a manual entrada recomputes stock and its mirrored purchase", async () => {
+  it("editing a manual entrada recomputes stock without touching finance", async () => {
     const storeId = `test-stock-g-${Date.now()}`;
     const id = await createStockItem(storeId, GRANOLA, { sealed: 5, open: 0 });
     const [opening] = await listMovements(storeId, id);
@@ -163,13 +151,7 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
       cost: 1900,
     });
 
-    const [tx] = await listTransactions(storeId);
-    expect(tx).toMatchObject({
-      source: "stock",
-      stockItemId: id,
-      amount: 1900 * 3,
-      direction: "out",
-    });
+    expect(await listTransactions(storeId)).toHaveLength(0);
   });
 
   it("refuses to edit linked automatic movements", async () => {
@@ -245,7 +227,7 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
     });
   });
 
-  it("deleting a manual entrada recomputes stock and removes its mirrored purchase", async () => {
+  it("deleting a manual entrada recomputes stock and leaves finance untouched", async () => {
     const storeId = `test-stock-j-${Date.now()}`;
     const id = await createStockItem(storeId, GRANOLA, { sealed: 2, open: 0 });
     const [opening] = await listMovements(storeId, id);
