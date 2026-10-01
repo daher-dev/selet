@@ -141,7 +141,7 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(s.activeCustomers).toBe(3);
   });
 
-  it("tracks low-stock count and purchase expenses via stock writes", async () => {
+  it("tracks low-stock count (not purchases) via stock writes", async () => {
     const storeId = `test-summary-stock-${Date.now()}`;
 
     // A tracked item created below its reorder point → low-stock badge +1, and a
@@ -166,8 +166,8 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     );
     const s = await expectConsistent(storeId);
     expect(s.lowStock).toBe(1);
-    const mk = Object.keys(s.months)[0];
-    expect(s.months[mk].out).toBe(5000); // 1 package × 5000
+    // Stock purchases never reach finance, so no month bucket is created.
+    expect(Object.keys(s.months)).toHaveLength(0);
   });
 
   it("tracks manual finance in/out", async () => {

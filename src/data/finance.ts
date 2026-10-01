@@ -162,38 +162,3 @@ export async function updateManualTx(
   });
 }
 
-// ---------------------------------------------------------------------------
-// Auto-expense capture (Stage 2). A stock ENTRADA that carries a purchase price
-// mirrors into a deterministic finance OUT row, exactly like an order-payment
-// mirrors into an income row. The id is derived from the movement id so a
-// re-applied write overwrites in place (idempotent) instead of duplicating.
-// Scope: only purchases (event-driven). Payroll/rent/marketing stay MANUAL
-// recurring lançamentos — they are not posted from any stock event.
-// ---------------------------------------------------------------------------
-
-/** Deterministic finance doc id mirroring a stock purchase movement. */
-export function stockPurchaseFinanceId(movementId: string): string {
-  return `stock-${movementId}`;
-}
-
-/**
- * Finance OUT payload for a stock purchase. `amount` is the total spent on the
- * entrada (unit price × quantity, in centavos) — the movement stores `price` as
- * the per-unit/per-package purchase price, so the caller multiplies by qty.
- */
-export function stockPurchaseTxData(input: {
-  itemId: string;
-  itemName: string;
-  amount: number; // centavos, total, positive
-  date: Timestamp;
-}) {
-  return {
-    label: `Compra · ${input.itemName}`,
-    category: "compras",
-    amount: input.amount,
-    direction: "out" as const,
-    source: "stock" as const,
-    stockItemId: input.itemId,
-    date: input.date,
-  };
-}

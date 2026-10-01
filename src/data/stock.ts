@@ -2,13 +2,10 @@ import "server-only";
 
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
-import { stockPurchaseFinanceId, stockPurchaseTxData } from "./finance";
 import {
   bumpSummary,
   lowStockContribution,
-  monthKey,
   readSummaryTx,
-  summaryFinance,
   summaryLowStockDelta,
   writeSummaryTx,
 } from "./summary";
@@ -25,10 +22,6 @@ import type {
 
 function stockCol(storeId: string) {
   return getDb().collection("stores").doc(storeId).collection("stockItems");
-}
-
-function financeDoc(storeId: string, id: string) {
-  return getDb().collection("stores").doc(storeId).collection("finance").doc(id);
 }
 
 function toItem(id: string, d: FirebaseFirestore.DocumentData): StockItem {
@@ -190,7 +183,6 @@ export async function createStockItem(
   const newLow = lowStockContribution(lowStock, input.archived ?? false);
   // Opening balance → a "Compra" (ENTRADA) history entry, so a freshly
   // created item shows where its stock came from (design: "geram uma entrada").
-  let purchaseOut: { amount: number; mk: string } | null = null;
   if (openingQty > 0) {
     const at = Timestamp.now();
     const movRef = ref.collection("movements").doc();
@@ -206,24 +198,9 @@ export async function createStockItem(
       by: by ?? "sistema",
       at,
     });
-    // Opening purchase with a known unit cost → auto-expense mirror (idempotent).
-    if (input.cost != null && input.cost > 0) {
-      await financeDoc(storeId, stockPurchaseFinanceId(movRef.id)).set(
-        stockPurchaseTxData({
-          itemId: ref.id,
-          itemName: input.name,
-          amount: input.cost * openingQty,
-          date: at,
-        }),
-      );
-      purchaseOut = { amount: input.cost * openingQty, mk: monthKey(at.toDate()) };
-    }
   }
-  if (newLow || purchaseOut) {
-    await bumpSummary(storeId, (s) => {
-      if (newLow) summaryLowStockDelta(s, newLow);
-      if (purchaseOut) summaryFinance(s, { mk: purchaseOut.mk, direction: "out", amount: purchaseOut.amount });
-    });
+  if (newLow) {
+    await bumpSummary(storeId, (s) => summaryLowStockDelta(s, newLow));
   }
   return ref.id;
 }
@@ -584,34 +561,14 @@ export async function applyMovement(
       by: input.by,
       at,
     });
-    // Auto-expense: a priced entrada is a purchase → mirror into finance.
-    // Deterministic id (stock-{movementId}) keeps it idempotent on re-run.
-    let purchaseOut = 0;
-    if (input.type === "entrada" && input.price != null && input.price > 0) {
-      purchaseOut = input.price * input.qty;
-      tx.set(
-        financeDoc(storeId, stockPurchaseFinanceId(movRef.id)),
-        stockPurchaseTxData({
-          itemId,
-          itemName: name,
-          amount: purchaseOut,
-          date: at,
-        }),
-      );
-    }
-    // Summary: low-stock badge delta (+ the purchase's finance `out`).
+    // Stock prices never reach finance: bills are entered manually when paid.
     const lowDelta =
       lowStockContribution(patch.lowStock as boolean, archived) -
       lowStockContribution(oldLow, archived);
-    if (lowDelta !== 0) summaryLowStockDelta(summary, lowDelta);
-    if (purchaseOut > 0) {
-      summaryFinance(summary, {
-        mk: monthKey(at.toDate()),
-        direction: "out",
-        amount: purchaseOut,
-      });
+    if (lowDelta !== 0) {
+      summaryLowStockDelta(summary, lowDelta);
+      writeSummaryTx(tx, storeId, summary);
     }
-    if (lowDelta !== 0 || purchaseOut > 0) writeSummaryTx(tx, storeId, summary);
   });
   return name;
 }
@@ -668,48 +625,10 @@ export async function updateMovement(
       lowStockContribution(item.lowStock ?? false, item.archived ?? false);
     if (lowDelta !== 0) summaryLowStockDelta(summary, lowDelta);
 
-    const at = prev.at as Timestamp | undefined;
-    const oldPurchase =
-      prev.type === "entrada" && prev.price != null && prev.price > 0
-        ? prev.price * (prev.qty ?? 0)
-        : 0;
-    const newPurchase =
-      prev.type === "entrada" && nextPrice != null && nextPrice > 0
-        ? nextPrice * input.qty
-        : 0;
-    // summaryFinance expects a signed delta on the chosen direction bucket.
-    const purchaseDelta = newPurchase - oldPurchase;
-    if (at && purchaseDelta !== 0) {
-      summaryFinance(summary, {
-        mk: monthKey(at.toDate()),
-        direction: "out",
-        amount: purchaseDelta,
-      });
-    }
-
     tx.update(itemRef, patch);
     tx.update(movementRef, { qty: input.qty, price: nextPrice });
 
-    if (prev.type === "entrada") {
-      const financeRef = financeDoc(storeId, stockPurchaseFinanceId(movementId));
-      if (at && newPurchase > 0) {
-        tx.set(
-          financeRef,
-          stockPurchaseTxData({
-            itemId,
-            itemName: item.name ?? "",
-            amount: newPurchase,
-            date: at,
-          }),
-        );
-      } else if (oldPurchase > 0) {
-        tx.delete(financeRef);
-      }
-    }
-
-    if (lowDelta !== 0 || oldPurchase !== newPurchase) {
-      writeSummaryTx(tx, storeId, summary);
-    }
+    if (lowDelta !== 0) writeSummaryTx(tx, storeId, summary);
   });
 }
 
@@ -753,27 +672,10 @@ export async function deleteMovement(
       lowStockContribution(item.lowStock ?? false, item.archived ?? false);
     if (lowDelta !== 0) summaryLowStockDelta(summary, lowDelta);
 
-    const at = prev.at as Timestamp | undefined;
-    const oldPurchase =
-      prev.type === "entrada" && prev.price != null && prev.price > 0
-        ? prev.price * (prev.qty ?? 0)
-        : 0;
-    if (at && oldPurchase > 0) {
-      summaryFinance(summary, {
-        mk: monthKey(at.toDate()),
-        direction: "out",
-        amount: -oldPurchase,
-      });
-    }
-
     tx.update(itemRef, patch);
     tx.delete(movementRef);
 
-    if (oldPurchase > 0) {
-      tx.delete(financeDoc(storeId, stockPurchaseFinanceId(movementId)));
-    }
-
-    if (lowDelta !== 0 || oldPurchase > 0) {
+    if (lowDelta !== 0) {
       writeSummaryTx(tx, storeId, summary);
     }
   });

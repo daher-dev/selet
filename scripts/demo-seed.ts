@@ -553,7 +553,6 @@ async function seedStockHistory(
   // Mirror a few opening purchases into Financeiro "compras" saídas so the
   // movimentações + saídas totals look realistic (matches the app's event-driven
   // stock→finance auto-expense; deterministic id per item stays idempotent).
-  let mirroredPurchases = 0;
   for (const doc of snap.docs) {
     const d = doc.data();
     if (!d.tracked) continue;
@@ -568,8 +567,7 @@ async function seedStockHistory(
     const resellable: boolean = d.resellable ?? false;
     const ref = CONSUMO_REF[d.name] ?? "Produção";
 
-    // 1) Opening purchase (green "Compra"). Deterministic movement id so the
-    // finance mirror below (stock-<movementId>) is stable across re-seeds.
+    // 1) Opening purchase (green "Compra"). Stock prices don't create finance entries.
     const openQty = (d.sealed ?? 0) + 2;
     const openMovId = `open-${doc.id}`;
     const openAt = daysAgo(8);
@@ -584,17 +582,6 @@ async function seedStockHistory(
       by: "joao@daher.dev",
       at: openAt,
     });
-    if (cost && cost > 0 && mirroredPurchases < 3) {
-      await store.collection("finance").doc(`stock-${openMovId}`).set({
-        label: `Compra · ${d.name}`,
-        category: "compras",
-        amount: cost * openQty,
-        direction: "out",
-        source: "stock",
-        date: openAt,
-      });
-      mirroredPurchases += 1;
-    }
 
     // 2) A sale (VENDA, blue) for resellable items, else consumption (CONSUMO, purple).
     if (resellable && refOrderCode) {
