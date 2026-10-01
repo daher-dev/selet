@@ -4,6 +4,7 @@ import type { MonthPoint } from "@/lib/dashboard-core";
 import {
   AXIS_TEXT,
   ChartFrame,
+  countAxisMax,
   CURRENT_BG,
   GRID,
   Hatch,
@@ -57,11 +58,9 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
                 </text>
               </g>
             ))}
-            {!compact && (
-              <text x={0} y={244} fontSize={10.5} fontWeight={700} fill={AXIS_TEXT}>
-                MoM
-              </text>
-            )}
+            <text x={0} y={244} fontSize={compact ? 9 : 10.5} fontWeight={700} fill={AXIS_TEXT}>
+              {compact ? "MoM %" : "MoM"}
+            </text>
             {months.map((m, i) => {
               const cx = left + slot * i + slot / 2;
               const barTop = y(m.sales / 100);
@@ -126,20 +125,20 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
                       fontWeight={700}
                       fill={POSITIVE}
                     >
-                      parcial
+                      {compact ? "parc." : "parcial"}
                     </text>
                   ) : (
-                    !compact &&
                     m.mom !== null && (
                       <text
                         x={cx}
                         y={244}
                         textAnchor="middle"
-                        fontSize={11}
+                        fontSize={compact ? 9 : 11}
                         fontWeight={700}
                         fill={m.mom < 0 ? NEGATIVE : POSITIVE}
                       >
-                        {pctLabel(m.mom)}
+                        {/* Phones: whole percent, no "%" (the row is labelled "MoM %"). */}
+                        {compact ? pctLabel(Math.round(m.mom)).replace("%", "") : pctLabel(m.mom)}
                       </text>
                     )
                   )}
@@ -295,7 +294,7 @@ export function CustomerSplitChart({ months }: { months: CustomerPoint[] }) {
         const f = smallFrame(W, months.length);
         const compact = f.slot < 30;
         const maxTotal = Math.max(0, ...months.map((m) => m.novos + m.recorrentes));
-        const axisMax = niceMax(maxTotal, 3);
+        const axisMax = countAxisMax(maxTotal, 3);
         const h = f.base - f.top;
         const y = (v: number) => f.base - 1 - (v / axisMax) * (h - 1);
         return (

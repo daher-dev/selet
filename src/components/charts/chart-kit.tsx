@@ -87,6 +87,15 @@ export function niceMax(max: number, steps = 4): number {
   return nice * mag * steps;
 }
 
+/**
+ * Axis top for a COUNT axis split into `steps` ticks: like niceMax, but always
+ * an integer divisible by `steps`, so every tick is a distinct whole number
+ * (niceMax(1, 3) = 1.5 would label 0, 1, 1, 2).
+ */
+export function countAxisMax(max: number, steps: number): number {
+  return Math.max(steps, Math.ceil(niceMax(max, steps) / steps) * steps);
+}
+
 /** Axis tick label: 10000 → "10k", 250 → "250". Input in reais. */
 export function kLabel(value: number): string {
   if (value >= 1000) {

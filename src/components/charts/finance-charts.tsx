@@ -8,6 +8,7 @@ import {
   LABEL_TEXT,
   MONTH_TEXT,
   STRONG_TEXT,
+  countAxisMax,
   kLabel,
   milLabel,
   niceMax,
@@ -114,7 +115,7 @@ export function TicketChart({ months }: { months: TicketPoint[] }) {
         const step = [1, 2, 5, 10, 20, 25, 50, 100].find((n) => n >= rawStep) ?? Math.ceil(rawStep);
         const hi = lo + step * 4;
         const yT = (v: number) => base - ((v - lo) / (hi - lo)) * (base - top);
-        const custMax = niceMax(Math.max(0, ...months.map((m) => m.activeCustomers)), 2);
+        const custMax = countAxisMax(Math.max(0, ...months.map((m) => m.activeCustomers)), 2);
         const yC = (v: number) => base - (v / custMax) * (base - top);
         const points = months
           .map((m, i) => ({ m, x: left + slot * i + slot / 2 }))

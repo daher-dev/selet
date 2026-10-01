@@ -20,12 +20,15 @@ export default async function FinanceiroPage({
 
   const now = new Date();
 
-  // The transaction list (and the client-side selected-month totals + splits)
-  // always needs the raw txs. The per-month figures + receivables PREFER the
+  // The selected-month hero (totals + Consumo/Revenda, Insumos/Operação
+  // splits) and the recent list are computed client-side from the raw txs, so
+  // load the WHOLE evolution window — never a row cap, which would silently
+  // undercount a busy month. The per-month figures + receivables PREFER the
   // summary doc; when it's absent they're recomputed from a bounded 12-month
-  // orders scan plus the txs already loaded, with the exact same math.
+  // orders scan plus these txs, with the exact same math.
+  const windowStart = addZonedMonths(now, -(EVOLUTION_MONTHS - 1));
   const [txs, stored] = await Promise.all([
-    listTransactions(storeId, { limit: 500 }),
+    listTransactions(storeId, { since: windowStart }),
     readSummary(storeId),
   ]);
 
