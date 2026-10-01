@@ -195,7 +195,7 @@ function StockCategoryForm({ storeId, onOpenChange, category }: DialogProps & { 
         </div>
         <div>
           <span className={LABEL}>Ícone</span>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {CATEGORY_ICON_KEYS.map((key) => {
               const Icon = CATEGORY_ICONS[key];
               const on = icon === key;
@@ -207,12 +207,12 @@ function StockCategoryForm({ storeId, onOpenChange, category }: DialogProps & { 
                   aria-pressed={on}
                   onClick={() => setIcon(key)}
                   className={cn(
-                    "flex size-10 items-center justify-center rounded-xl border bg-white",
+                    "flex size-8 items-center justify-center rounded-[10px] border bg-white",
                     on ? "" : "border-[#E7EEE6] text-ink-soft",
                   )}
                   style={on ? { borderColor: swatch.hex, backgroundColor: swatch.wash, color: swatch.hex } : undefined}
                 >
-                  <Icon className="size-[17px]" strokeWidth={1.8} />
+                  <Icon className="size-4" strokeWidth={1.8} />
                 </button>
               );
             })}
