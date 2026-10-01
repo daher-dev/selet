@@ -64,7 +64,7 @@ export function LojaClient({ store }: { store: Store }) {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 maxLength={60}
-                className={FIELD}
+                className={`${FIELD} font-bold`}
               />
             </div>
             <div>

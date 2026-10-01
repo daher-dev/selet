@@ -164,21 +164,25 @@ function StockItemForm({
           </div>
         </div>
 
-        <div>
-          <FieldLabel>Embalagem</FieldLabel>
-          <InlineInput
-            value={pkgLabel}
-            onChange={setPkgLabel}
-            placeholder="Ex: caixa, pote, saco"
-            inputMode="text"
-          />
-          <FieldLabel>Embalagem (plural)</FieldLabel>
-          <InlineInput
-            value={pkgLabelPluralInput}
-            onChange={setPkgLabelPluralInput}
-            placeholder={pkgPlural(pkgLabelValue)}
-            inputMode="text"
-          />
+        <div className="space-y-3.5">
+          <div>
+            <FieldLabel>Embalagem</FieldLabel>
+            <InlineInput
+              value={pkgLabel}
+              onChange={setPkgLabel}
+              placeholder="Ex: caixa, pote, saco"
+              inputMode="text"
+            />
+          </div>
+          <div>
+            <FieldLabel>Embalagem (plural)</FieldLabel>
+            <InlineInput
+              value={pkgLabelPluralInput}
+              onChange={setPkgLabelPluralInput}
+              placeholder={pkgPlural(pkgLabelValue)}
+              inputMode="text"
+            />
+          </div>
         </div>
 
         <div>

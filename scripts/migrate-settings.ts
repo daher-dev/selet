@@ -28,7 +28,6 @@ import {
   DEFAULT_STOCK_CATEGORIES,
   DEFAULT_STOCK_UNITS,
   LEGACY_FINANCE_CATEGORY_MAP,
-  SALES_CATEGORY_ID,
   type StockCategoryDef,
   type StockUnitDef,
 } from "../src/lib/stock-settings";
@@ -85,7 +84,7 @@ async function migrateFinance(storeId: string) {
   const tally = new Map<string, number>();
   for (const doc of txs.docs) {
     const { category, direction, source } = doc.data();
-    if (source === "order" || category === SALES_CATEGORY_ID) continue;
+    if (source === "order") continue; // mirrors keep "vendas"
     const to = targetCategory(direction, category);
     if (to === category) continue;
     moves.set(doc.id, { ref: doc.ref, to });
