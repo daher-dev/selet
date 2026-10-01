@@ -23,6 +23,9 @@
  *      channels      — order count per sales channel {instagram, whatsapp, loja}
  *      sellers       — top-sellers as productId -> { name, qty } (Σ line qty)
  *      newCustomers  — customers whose `since` falls in that month
+ *      novos         — registered customers whose FIRST non-cancelled order
+ *                      falls in that month (customer.firstOrderAt); the rest
+ *                      of the month's active customers are "recorrentes"
  *
  * Money is integer centavos throughout.
  */
@@ -54,6 +57,8 @@ export interface MonthAgg {
   sellers: Record<string, SellerAgg>;
   /** customers whose `since` falls in this month */
   newCustomers: number;
+  /** registered customers whose first non-cancelled order is in this month */
+  novos: number;
 }
 
 export interface SummaryData {
@@ -114,11 +119,17 @@ export function emptyMonth(): MonthAgg {
     channels: emptyChannels(),
     sellers: {},
     newCustomers: 0,
+    novos: 0,
   };
 }
 
 export function emptySummary(): SummaryData {
-  return { openOrders: 0, lowStock: 0, activeCustomers: 0, months: {} };
+  return {
+    openOrders: 0,
+    lowStock: 0,
+    activeCustomers: 0,
+    months: {},
+  };
 }
 
 function bucket(s: SummaryData, mk: string): MonthAgg {
@@ -237,6 +248,24 @@ export function summaryReceivable(
   b.unpaidCount = Math.max(0, b.unpaidCount + input.sign);
 }
 
+/**
+ * A registered customer's first-order month moved (first order placed,
+ * cancelled, backdated…): `from`/`to` are monthKeys, null when the customer
+ * had / now has no active order. Source of truth: customer.firstOrderAt,
+ * recomputed from the customer's orders in the same transaction.
+ */
+export function summaryFirstOrderShift(
+  s: SummaryData,
+  input: { from: string | null; to: string | null },
+): void {
+  if (input.from === input.to) return;
+  if (input.from) {
+    const b = bucket(s, input.from);
+    b.novos = Math.max(0, b.novos - 1);
+  }
+  if (input.to) bucket(s, input.to).novos += 1;
+}
+
 /** Low-stock badge count delta. */
 export function summaryLowStockDelta(s: SummaryData, delta: number): void {
   s.lowStock = Math.max(0, s.lowStock + delta);
@@ -308,6 +337,15 @@ export function computeSummaryFrom(input: {
       items: o.items ?? [],
     });
   }
+  // novos: each registered customer counts once, in the month of their
+  // earliest non-cancelled order (mirrors customer.firstOrderAt).
+  const firstOrder = new Map<string, Date>();
+  for (const o of input.orders) {
+    if (o.status === "cancelado" || !o.customerId) continue;
+    const cur = firstOrder.get(o.customerId);
+    if (!cur || o.createdAt < cur) firstOrder.set(o.customerId, o.createdAt);
+  }
+  for (const d of firstOrder.values()) bucket(s, monthKey(d)).novos += 1;
   for (const f of input.finance) {
     summaryFinance(s, {
       mk: monthKey(f.date),
@@ -335,6 +373,7 @@ export function isEmptyMonth(b: MonthAgg): boolean {
     b.unpaidTotal === 0 &&
     b.unpaidCount === 0 &&
     b.newCustomers === 0 &&
+    b.novos === 0 &&
     Object.keys(b.customers).length === 0 &&
     Object.keys(b.sellers).length === 0 &&
     b.channels.instagram === 0 &&
@@ -367,4 +406,16 @@ export function pruneMonths(s: SummaryData, keep = 18): SummaryData {
 /** activeCustomers for a month bucket = number of distinct customer keys. */
 export function activeCustomerCount(b: MonthAgg | undefined): number {
   return b ? Object.keys(b.customers).length : 0;
+}
+
+/**
+ * Splits a month's active customers into "novos" (their first-ever order is in
+ * this month) and "recorrentes" (they had ordered before).
+ */
+export function monthCustomerSplit(
+  b: MonthAgg | undefined,
+): { novos: number; recorrentes: number } {
+  const active = activeCustomerCount(b);
+  const novos = Math.min(active, b?.novos ?? 0);
+  return { novos, recorrentes: active - novos };
 }

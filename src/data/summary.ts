@@ -17,11 +17,13 @@ export {
   activeCustomerCount,
   customerKey,
   isOpenStatus,
+  monthCustomerSplit,
   lowStockContribution,
   monthKey,
   summaryAddCustomer,
   summaryAddOrder,
   summaryArchiveCustomer,
+  summaryFirstOrderShift,
   summaryFinance,
   summaryLowStockDelta,
   summaryOpenDelta,
@@ -58,6 +60,7 @@ function mapSummary(d: FirebaseFirestore.DocumentData): SummaryData {
       },
       sellers: v.sellers ?? {},
       newCustomers: v.newCustomers ?? 0,
+      novos: v.novos ?? 0,
     };
   }
   return {

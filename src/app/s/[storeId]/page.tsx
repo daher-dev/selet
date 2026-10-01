@@ -1,9 +1,7 @@
 import { requireSessionUser, canAccessSection } from "@/lib/access";
 import { readSummary } from "@/data/summary";
-import { monthKey } from "@/lib/summary-core";
-import { addZonedMonths } from "@/lib/timezone";
 import { DashboardClient } from "./dashboard-client";
-import { fastPath, slowPath } from "./dashboard-data";
+import { loadDashboard } from "./dashboard-data";
 
 export default async function DashboardPage({
   params,
@@ -13,55 +11,23 @@ export default async function DashboardPage({
   const { storeId } = await params;
   const user = await requireSessionUser();
 
-  const now = new Date();
-  const startOfMonth = addZonedMonths(now, 0);
-  const startOfLastMonth = addZonedMonths(now, -1);
-  const thisKey = monthKey(startOfMonth);
-  const lastKey = monthKey(startOfLastMonth);
-
   const canPedidos = canAccessSection(user, "pedidos");
   const canClientes = canAccessSection(user, "clientes");
   const canEstoque = canAccessSection(user, "estoque");
 
-  // PREFER the pre-computed summary (one small read). It serves the pedidos and
-  // clientes aggregates, so read it whenever either section is visible. When it's
-  // present the dashboard does NO growing full-collection scan — every KPI, the
-  // channel donut and the top-sellers come from the summary, and only two tiny
-  // bounded queries (low-stock strip + upcoming birthdays) hit collections.
-  // Absent/older summary → fall back to the old scan-and-compute path below so the
-  // dashboard never breaks.
+  // One small read for the 12-month evolution + low-stock count. A missing
+  // summary makes loadDashboard fall back to a bounded orders scan.
   const summary =
-    canPedidos || canClientes ? await readSummary(storeId) : null;
+    canPedidos || canEstoque ? await readSummary(storeId) : null;
 
-  const view = summary
-    ? await fastPath({
-        storeId,
-        summary,
-        now,
-        thisKey,
-        lastKey,
-        canPedidos,
-        canClientes,
-        canEstoque,
-      })
-    : await slowPath({
-        storeId,
-        now,
-        startOfMonth,
-        startOfLastMonth,
-        canPedidos,
-        canClientes,
-        canEstoque,
-      });
+  const view = await loadDashboard({
+    storeId,
+    summary,
+    now: new Date(),
+    canPedidos,
+    canClientes,
+    canEstoque,
+  });
 
-  return (
-    <DashboardClient
-      storeId={storeId}
-      kpis={view.kpis}
-      byChannel={view.byChannel}
-      topSellers={view.topSellers}
-      lowStock={view.lowStock}
-      canEstoque={view.canEstoque}
-    />
-  );
+  return <DashboardClient storeId={storeId} view={view} />;
 }

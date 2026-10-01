@@ -9,7 +9,7 @@ const TITLES: Record<
   string,
   { title: string; subtitle: string | ((store: Store) => string) }
 > = {
-  "": { title: "Visão geral", subtitle: (s) => `Resumo de hoje · ${s.name}` },
+  "": { title: "Visão geral", subtitle: (s) => s.name },
   pedidos: {
     title: "Pedidos",
     subtitle: "Acompanhe vendas do Instagram, WhatsApp e loja",

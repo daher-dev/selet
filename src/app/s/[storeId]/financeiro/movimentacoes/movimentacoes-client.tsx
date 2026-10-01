@@ -2,24 +2,17 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  ExternalLink,
-  Lock,
-  Pencil,
-  Trash2,
-  Wallet,
-} from "lucide-react";
+import { ExternalLink, Lock, Pencil, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import type { FinanceTx } from "@/lib/types";
-import { formatBRL, orderCode } from "@/lib/format";
+import { orderCode } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { deleteManualTxAction } from "@/actions/finance";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DataList, DataListHeader, DataListRow } from "@/components/ui/data-list";
 import { usePageAction, usePageHeader } from "@/components/shell/app-shell-context";
-import { monthLabel, txMeta } from "../finance-shared";
+import { competenciaLabel, txShortMeta } from "../finance-shared";
+import { TxAmount, TxIcon } from "../tx-visuals";
 import { ManualTxSheet } from "../manual-tx-sheet";
 
 type FilterTab = "todos" | "entradas" | "saidas" | "avulsos" | "vinculados";
@@ -50,7 +43,7 @@ export function MovimentacoesClient({
   const count = transactions.length;
   usePageHeader({
     title: "Movimentações",
-    subtitle: `${monthLabel(mes)} · ${count} ${count === 1 ? "lançamento" : "lançamentos"}`,
+    subtitle: `${competenciaLabel(mes)} · ${count} ${count === 1 ? "lançamento" : "lançamentos"}`,
   });
   usePageAction({ label: "Novo lançamento", onClick: () => setCreating(true) });
 
@@ -91,7 +84,7 @@ export function MovimentacoesClient({
             type="button"
             onClick={() => setTab(t.value)}
             className={cn(
-              "shrink-0 rounded-xl px-3.5 py-2 text-[12.5px] font-semibold transition-colors",
+              "inline-flex h-[34px] shrink-0 items-center rounded-[9px] px-3.5 text-[12.5px] font-semibold transition-colors",
               tab === t.value
                 ? "bg-ink text-white"
                 : "border border-border bg-card text-ink-soft hover:border-primary/40",
@@ -130,15 +123,7 @@ export function MovimentacoesClient({
               <DataListRow key={tx.id} onClick={() => setSelectedId(tx.id)}>
                 <LancamentoCell tx={tx} />
                 <OrigemCell tx={tx} storeId={storeId} stockItemNames={stockItemNames} />
-                <span
-                  className={cn(
-                    "tabular text-right text-[14px] font-bold",
-                    tx.direction === "in" ? "text-primary" : "text-destructive",
-                  )}
-                >
-                  {tx.direction === "in" ? "+ " : "− "}
-                  {formatBRL(tx.amount)}
-                </span>
+                <TxAmount tx={tx} className="text-right text-[14px]" />
                 <AcoesCell tx={tx} onDelete={handleDelete} />
               </DataListRow>
             ))}
@@ -164,37 +149,16 @@ export function MovimentacoesClient({
                   className="w-full cursor-pointer rounded-2xl border border-border bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(24,107,65,.28)]"
                 >
                   <div className="flex items-center gap-3">
-                    <span
-                      className={cn(
-                        "flex size-8 shrink-0 items-center justify-center rounded-lg",
-                        tx.direction === "in"
-                          ? "bg-mint-wash text-primary"
-                          : "bg-danger-wash text-destructive",
-                      )}
-                    >
-                      {tx.direction === "in" ? (
-                        <ArrowUpRight className="size-4" />
-                      ) : (
-                        <ArrowDownRight className="size-4" />
-                      )}
-                    </span>
+                    <TxIcon direction={tx.direction} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[13.5px] font-semibold text-ink">
                         {tx.label}
                       </span>
-                      <span className="block truncate text-[11.5px] text-ink-faint">
-                        {txMeta(tx)}
+                      <span className="block truncate text-[11.5px] text-[#A0AC9D]">
+                        {txShortMeta(tx)}
                       </span>
                     </span>
-                    <span
-                      className={cn(
-                        "tabular shrink-0 text-[14px] font-bold",
-                        tx.direction === "in" ? "text-primary" : "text-destructive",
-                      )}
-                    >
-                      {tx.direction === "in" ? "+ " : "− "}
-                      {formatBRL(tx.amount)}
-                    </span>
+                    <TxAmount tx={tx} className="shrink-0 text-[14px]" />
                   </div>
                   <div className="mt-2.5 flex items-center justify-between border-t border-muted pt-2.5">
                     <span className="text-[11.5px] font-semibold text-ink-faint">
@@ -205,7 +169,7 @@ export function MovimentacoesClient({
                         type="button"
                         onClick={(e) => handleDelete(tx, e)}
                         aria-label="Excluir lançamento"
-                        className="flex size-7 items-center justify-center rounded-lg text-destructive"
+                        className="flex size-8 items-center justify-center rounded-[9px] border border-[#DDE7D8] bg-white text-ink-soft"
                       >
                         <Trash2 className="size-3.5" />
                       </button>
@@ -242,21 +206,10 @@ export function MovimentacoesClient({
 function LancamentoCell({ tx }: { tx: FinanceTx }) {
   return (
     <span className="flex min-w-0 items-center gap-3">
-      <span
-        className={cn(
-          "flex size-8.5 shrink-0 items-center justify-center rounded-lg",
-          tx.direction === "in" ? "bg-mint-wash text-primary" : "bg-danger-wash text-destructive",
-        )}
-      >
-        {tx.direction === "in" ? (
-          <ArrowUpRight className="size-4" />
-        ) : (
-          <ArrowDownRight className="size-4" />
-        )}
-      </span>
+      <TxIcon direction={tx.direction} />
       <span className="min-w-0">
         <span className="block truncate text-[13.5px] font-semibold text-ink">{tx.label}</span>
-        <span className="block truncate text-[11.5px] text-ink-faint">{txMeta(tx)}</span>
+        <span className="block truncate text-[11.5px] text-[#A0AC9D]">{txShortMeta(tx)}</span>
       </span>
     </span>
   );
@@ -273,7 +226,7 @@ function OrigemCell({
 }) {
   if (tx.source === "manual") {
     return (
-      <span className="inline-flex w-fit items-center rounded-lg bg-wash px-2.5 py-1 text-[12px] font-semibold text-ink-faint">
+      <span className="inline-flex h-7 w-full max-w-full items-center truncate rounded-lg bg-[#F1F4EF] px-2.5 text-[12px] font-semibold text-ink-faint">
         Avulso
       </span>
     );
@@ -293,7 +246,7 @@ function OrigemCell({
 
   if (!href) {
     return (
-      <span className="inline-flex w-fit items-center rounded-lg bg-wash px-2.5 py-1 text-[12px] font-semibold text-ink-faint">
+      <span className="inline-flex h-7 w-full max-w-full items-center truncate rounded-lg bg-[#F1F4EF] px-2.5 text-[12px] font-semibold text-ink-faint">
         {label}
       </span>
     );
@@ -303,7 +256,7 @@ function OrigemCell({
     <Link
       href={href}
       onClick={(e) => e.stopPropagation()}
-      className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-lg bg-mint-wash px-2.5 py-1 text-[12px] font-semibold text-primary"
+      className="inline-flex h-7 w-full max-w-full items-center gap-1.5 rounded-lg bg-[#EEF3EA] px-2.5 text-[12px] font-semibold text-primary transition-colors hover:bg-mint-wash"
     >
       <ExternalLink className="size-3.5 shrink-0" />
       <span className="truncate">{label}</span>
@@ -327,7 +280,7 @@ function AcoesCell({
       <span className="flex justify-end">
         <span
           title={title}
-          className="flex size-8 items-center justify-center rounded-lg border border-border text-ink-faint/60"
+          className="flex size-8 items-center justify-center rounded-[9px] border border-[#EFF3EC] text-[#C5CFC7]"
         >
           <Lock className="size-3.5" />
         </span>
@@ -340,7 +293,7 @@ function AcoesCell({
           this just signals "editable" and relies on click bubbling. */}
       <span
         aria-hidden
-        className="flex size-8 items-center justify-center rounded-lg text-ink-soft"
+        className="flex size-8 items-center justify-center rounded-[9px] border border-[#DDE7D8] bg-white text-primary"
       >
         <Pencil className="size-3.5" />
       </span>
@@ -348,7 +301,7 @@ function AcoesCell({
         type="button"
         aria-label="Excluir lançamento"
         onClick={(e) => onDelete(tx, e)}
-        className="flex size-8 items-center justify-center rounded-lg text-destructive transition-colors hover:bg-danger-wash"
+        className="flex size-8 items-center justify-center rounded-[9px] border border-[#DDE7D8] bg-white text-ink-soft transition-colors hover:border-destructive/40 hover:text-destructive"
       >
         <Trash2 className="size-3.5" />
       </button>

@@ -34,21 +34,20 @@
   <section style="display:flex; flex-direction:column; gap:26px;">
     <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
       <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">1</span>
-      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Começo do dia — nenhum pedido ainda e estoque em ordem</h2>
+      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Visão geral — últimos 30 dias no topo, evolução mensal abaixo</h2>
     </div>
     <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
 <div id="1a" style="display:flex; flex-direction:column; gap:14px;">
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">1a</span>
-          <span style="font-size:14px; color:#5C6B62;">Zeros nos KPIs, gráficos vazios com instrução e o bloco de alerta trocado por confirmação verde.</span>
+          <span style="font-size:14px; color:#5C6B62;">Página única: KPIs e mais vendidos dos últimos 30 dias no topo; evolução mensal de 12 meses (vendas, canais, clientes novos e recorrentes) abaixo.</span>
         </div>
-        <div style="display:flex; width:1360px; height:830px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
+        <div style="display:flex; width:1360px; height:1760px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
           <dc-import name="SeletNav" active="dashboard" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
           <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
             <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
               <div style="flex:1; min-width:0;">
                 <h1 style="margin:0; font-size:19px; font-weight:700; letter-spacing:-.2px;">Visão geral</h1>
-                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Resumo de hoje · Vila Velha/ES</p>
               </div>
               <div style="display:flex; align-items:center; gap:8px; width:280px; height:38px; padding:0 13px; background:#F6FAF4; border:1px solid #E7EEE6; border-radius:10px;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
@@ -59,390 +58,24 @@
                 <span>Novo pedido</span>
               </div>
             </div>
-            <div style="flex:1; overflow-y:auto; padding:26px 28px 40px;">
-              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:18px;">
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
-                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Clientes ativos</span>
-                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">18</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">vs. período anterior</div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
-                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Novos clientes</span>
-                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px; color:#C3CDBF;">0</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">hoje</div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
-                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Pedidos no período</span>
-                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px; color:#C3CDBF;">0</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">hoje · loja abriu às 09:00</div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
-                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Aniversários próximos</span>
-                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">3</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">próximos 30 dias · ver clientes</div>
-                </div>
-              </div>
-
-              <div style="display:grid; grid-template-columns:1.1fr .9fr; gap:16px; margin-bottom:16px;">
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
-                  <h3 style="margin:0 0 2px; font-size:15px; font-weight:600;">Pedidos por canal</h3>
-                  <p style="margin:0 0 14px; font-size:12.5px; color:#8A968D;">Distribuição dos pedidos no período</p>
-                  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:26px 0 22px;">
-                    <svg width="104" height="104" viewBox="0 0 118 118"><circle cx="59" cy="59" r="48" fill="none" stroke="#F0F4ED" stroke-width="16"></circle></svg>
-                    <span style="font-size:13.5px; font-weight:600; color:#5C6B62;">Nenhum pedido registrado hoje</span>
-                    <span style="font-size:12.5px; color:#A0AC9D; text-align:center; max-width:280px;">Os canais aparecem aqui conforme os pedidos entram pelo Instagram, WhatsApp ou loja.</span>
-                  </div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
-                  <h3 style="margin:0 0 13px; font-size:15px; font-weight:600;">Mais vendidos</h3>
-                  <div style="display:flex; flex-direction:column; gap:14px; opacity:.55;">
-                    <div>
-                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-size:13px; font-weight:600; color:#8A968D;">Shake Frutas Vermelhas</span>
-                        <span style="font-size:12px; color:#A8B4AC;">— un.</span>
-                      </div>
-                      <div style="height:6px; border-radius:4px; background:#F0F4ED;"></div>
-                    </div>
-                    <div>
-                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-size:13px; font-weight:600; color:#8A968D;">Hype Drink</span>
-                        <span style="font-size:12px; color:#A8B4AC;">— un.</span>
-                      </div>
-                      <div style="height:6px; border-radius:4px; background:#F0F4ED;"></div>
-                    </div>
-                    <div>
-                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-size:13px; font-weight:600; color:#8A968D;">Pizza Proteica</span>
-                        <span style="font-size:12px; color:#A8B4AC;">— un.</span>
-                      </div>
-                      <div style="height:6px; border-radius:4px; background:#F0F4ED;"></div>
-                    </div>
-                  </div>
-                  <p style="margin:16px 0 0; font-size:12.5px; color:#A0AC9D;">O ranking do dia começa a se formar no primeiro pedido.</p>
-                </div>
-              </div>
-
-              <div style="display:flex; align-items:center; gap:13px; background:#F3F8EF; border:1px solid #DDEBD5; border-radius:14px; padding:18px 20px;">
-                <span style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:10px; background:#E2F0DA; color:#186B41; flex-shrink:0;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"></path></svg>
-                </span>
-                <span style="flex:1;">
-                  <span style="display:block; font-size:14px; font-weight:700; color:#186B41;">Estoque em ordem</span>
-                  <span style="display:block; font-size:12.5px; color:#5C6B62; margin-top:2px;">Nenhum insumo abaixo do mínimo. Última conferência hoje às 08:40.</span>
-                </span>
-                <span style="color:#186B41; font-size:12.5px; font-weight:600;">Ver estoque →</span>
-              </div>
-            </div>
+            <div style="flex:1; overflow:hidden; padding:26px 28px 40px;">
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><h2 style="margin:0; font-size:16px; font-weight:700;">Resumo</h2><span style="font-size:12px; font-weight:700; color:#186B41; background:#E2F0DA; padding:4px 10px; border-radius:20px;">Últimos 30 dias</span></div>
+<div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:16px;">
+<a href="Mock Clientes.dc.html" style="position:relative; overflow:hidden; display:block; color:inherit; background:#E9F3E4; border:1px solid #D3E6CA; border-radius:16px; padding:18px 20px 20px; min-height:138px;"><div style="position:absolute; right:-14px; bottom:-18px; opacity:.16;"><svg width="118" height="118" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div><div style="position:relative; display:flex; align-items:center; gap:10px;"><span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; background:#186B41; color:#fff;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span><span style="flex:1; font-size:13px; font-weight:700; color:#124F30;">Clientes ativos</span><span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; margin-right:-4px; border-radius:8px; background:rgba(255,255,255,.7);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#124F30" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M8 7h9v9"></path></svg></span></div><div style="position:relative; font-variant-numeric:tabular-nums; letter-spacing:-1.5px; font-weight:700; font-size:58px; line-height:1; margin-top:22px; color:#124F30;">48</div></a>
+<a href="Mock Pedidos.dc.html" style="position:relative; overflow:hidden; display:block; color:inherit; background:#E6EFF8; border:1px solid #CFE0F1; border-radius:16px; padding:18px 20px 20px; min-height:138px;"><div style="position:absolute; right:-14px; bottom:-18px; opacity:.16;"><svg width="118" height="118" viewBox="0 0 24 24" fill="none" stroke="#2F6FB5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg></div><div style="position:relative; display:flex; align-items:center; gap:10px;"><span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; background:#2F6FB5; color:#fff;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path></svg></span><span style="flex:1; font-size:13px; font-weight:700; color:#1F4F82;">Pedidos</span><span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; margin-right:-4px; border-radius:8px; background:rgba(255,255,255,.7);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1F4F82" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M8 7h9v9"></path></svg></span></div><div style="position:relative; font-variant-numeric:tabular-nums; letter-spacing:-1.5px; font-weight:700; font-size:58px; line-height:1; margin-top:22px; color:#1F4F82;">142</div></a>
+<a href="Mock Clientes.dc.html" style="position:relative; overflow:hidden; display:block; color:inherit; background:#F9EAF2; border:1px solid #F1D3E3; border-radius:16px; padding:18px 20px 20px; min-height:138px;"><div style="position:absolute; right:-14px; bottom:-18px; opacity:.16;"><svg width="118" height="118" viewBox="0 0 24 24" fill="none" stroke="#C2407E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"></path><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"></path><path d="M2 21h20"></path><path d="M7 8v3M12 8v3M17 8v3"></path><path d="M7 4h.01M12 4h.01M17 4h.01"></path></svg></div><div style="position:relative; display:flex; align-items:center; gap:10px;"><span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; background:#C2407E; color:#fff;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"></path><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"></path><path d="M2 21h20"></path><path d="M7 8v3M12 8v3M17 8v3"></path><path d="M7 4h.01M12 4h.01M17 4h.01"></path></svg></span><span style="flex:1; font-size:13px; font-weight:700; color:#8F2C5B;">Aniversários próximos</span><span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; margin-right:-4px; border-radius:8px; background:rgba(255,255,255,.7);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8F2C5B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M8 7h9v9"></path></svg></span></div><div style="position:relative; font-variant-numeric:tabular-nums; letter-spacing:-1.5px; font-weight:700; font-size:58px; line-height:1; margin-top:22px; color:#8F2C5B;">3</div></a>
+<a href="Mock Estoque.dc.html" style="position:relative; overflow:hidden; display:block; color:inherit; background:#FBF1DC; border:1px solid #F0E0B8; border-radius:16px; padding:18px 20px 20px; min-height:138px;"><div style="position:absolute; right:-14px; bottom:-18px; opacity:.16;"><svg width="118" height="118" viewBox="0 0 24 24" fill="none" stroke="#B7791F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg></div><div style="position:relative; display:flex; align-items:center; gap:10px;"><span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; background:#B7791F; color:#fff;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg></span><span style="flex:1; font-size:13px; font-weight:700; color:#7A5410;">Estoque baixo</span><span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; margin-right:-4px; border-radius:8px; background:rgba(255,255,255,.7);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A5410" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"></path><path d="M8 7h9v9"></path></svg></span></div><div style="position:relative; font-variant-numeric:tabular-nums; letter-spacing:-1.5px; font-weight:700; font-size:58px; line-height:1; margin-top:22px; color:#7A5410;">3</div></a>
+</div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;"><div style="background:#fff; border:1px solid #E7EEE6; border-radius:16px; overflow:hidden;"><div style="position:relative; overflow:hidden; background:#FBF1DC; border-bottom:1px solid #F0E0B8; padding:12px 20px; display:flex; align-items:center; gap:12px;"><div style="position:absolute; right:-6px; top:-24px; opacity:.16;"><svg width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="#D9A21B" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg></div><span style="position:relative; display:flex; align-items:center; justify-content:center; width:30px; height:30px; flex-shrink:0; border-radius:9px; background:#D9A21B;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg></span><h3 style="position:relative; margin:0; font-size:14px; font-weight:700; letter-spacing:.6px;">TOP PRODUTOS</h3></div><div style="display:flex; flex-direction:column; gap:2px; padding:12px 14px 14px;"><div style="display:flex; align-items:center; gap:12px; padding:7px 10px; border-radius:10px; background:#FBF1DC;"><span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; flex-shrink:0; border-radius:50%; background:#D9A21B; color:#fff; font-size:13px; font-weight:700;">1</span><div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:700; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Shake Frutas Vermelhas</div><div style="height:5px; border-radius:4px; background:#EEF2EB; overflow:hidden;"><div style="height:100%; width:100%; border-radius:4px; background:#D9A21B;"></div></div></div><span style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; min-width:34px; text-align:right;">86</span></div><div style="display:flex; align-items:center; gap:12px; padding:7px 10px; border-radius:10px; "><span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; flex-shrink:0; border-radius:50%; background:#8C9A93; color:#fff; font-size:13px; font-weight:700;">2</span><div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:600; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Hype Drink</div><div style="height:5px; border-radius:4px; background:#EEF2EB; overflow:hidden;"><div style="height:100%; width:74%; border-radius:4px; background:#E9BE4A;"></div></div></div><span style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; min-width:34px; text-align:right;">64</span></div><div style="display:flex; align-items:center; gap:12px; padding:7px 10px; border-radius:10px; "><span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; flex-shrink:0; border-radius:50%; background:#B9773F; color:#fff; font-size:13px; font-weight:700;">3</span><div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:600; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Pizza Proteica</div><div style="height:5px; border-radius:4px; background:#EEF2EB; overflow:hidden;"><div style="height:100%; width:48%; border-radius:4px; background:#E9BE4A;"></div></div></div><span style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; min-width:34px; text-align:right;">41</span></div><div style="display:flex; align-items:center; gap:12px; padding:7px 10px; border-radius:10px; "><span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; flex-shrink:0; border-radius:50%; background:#EEF2EB; color:#5C6B62; font-size:13px; font-weight:700;">4</span><div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:600; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Coxinha Proteica</div><div style="height:5px; border-radius:4px; background:#EEF2EB; overflow:hidden;"><div style="height:100%; width:38%; border-radius:4px; background:#E9BE4A;"></div></div></div><span style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; min-width:34px; text-align:right;">33</span></div><div style="display:flex; align-items:center; gap:12px; padding:7px 10px; border-radius:10px; "><span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; flex-shrink:0; border-radius:50%; background:#EEF2EB; color:#5C6B62; font-size:13px; font-weight:700;">5</span><div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:600; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Sopa Instantânea Frango</div><div style="height:5px; border-radius:4px; background:#EEF2EB; overflow:hidden;"><div style="height:100%; width:31%; border-radius:4px; background:#E9BE4A;"></div></div></div><span style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; min-width:34px; text-align:right;">27</span></div></div></div><div style="background:#fff; border:1px solid #E7EEE6; border-radius:16px; overflow:hidden;"><div style="position:relative; overflow:hidden; background:#F9EAF2; border-bottom:1px solid #F1D3E3; padding:12px 20px; display:flex; align-items:center; gap:12px;"><div style="position:absolute; right:-6px; top:-24px; opacity:.16;"><svg width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="#C2407E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 15v4M17 17h4"></path></svg></div><span style="position:relative; display:flex; align-items:center; justify-content:center; width:30px; height:30px; flex-shrink:0; border-radius:9px; background:#C2407E;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 15v4M17 17h4"></path></svg></span><h3 style="position:relative; margin:0; font-size:14px; font-weight:700; letter-spacing:.6px;">TOP SABORES</h3></div><div style="display:flex; flex-direction:column; gap:2px; padding:12px 14px 14px;"><div style="display:flex; align-items:center; gap:12px; padding:7px 10px; border-radius:10px; background:#FBF1DC;"><span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; flex-shrink:0; border-radius:50%; background:#D9A21B; color:#fff; font-size:13px; font-weight:700;">1</span><div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:700; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Frutas Vermelhas</div><div style="height:5px; border-radius:4px; background:#EEF2EB; overflow:hidden;"><div style="height:100%; width:100%; border-radius:4px; background:#D9A21B;"></div></div></div><span style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; min-width:34px; text-align:right;">58</span></div><div style="display:flex; align-items:center; gap:12px; padding:7px 10px; border-radius:10px; "><span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; flex-shrink:0; border-radius:50%; background:#8C9A93; color:#fff; font-size:13px; font-weight:700;">2</span><div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:600; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Chocolate</div><div style="height:5px; border-radius:4px; background:#EEF2EB; overflow:hidden;"><div style="height:100%; width:81%; border-radius:4px; background:#D98AB0;"></div></div></div><span style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; min-width:34px; text-align:right;">47</span></div><div style="display:flex; align-items:center; gap:12px; padding:7px 10px; border-radius:10px; "><span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; flex-shrink:0; border-radius:50%; background:#B9773F; color:#fff; font-size:13px; font-weight:700;">3</span><div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:600; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Morango</div><div style="height:5px; border-radius:4px; background:#EEF2EB; overflow:hidden;"><div style="height:100%; width:67%; border-radius:4px; background:#D98AB0;"></div></div></div><span style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; min-width:34px; text-align:right;">39</span></div><div style="display:flex; align-items:center; gap:12px; padding:7px 10px; border-radius:10px; "><span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; flex-shrink:0; border-radius:50%; background:#EEF2EB; color:#5C6B62; font-size:13px; font-weight:700;">4</span><div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:600; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Baunilha</div><div style="height:5px; border-radius:4px; background:#EEF2EB; overflow:hidden;"><div style="height:100%; width:53%; border-radius:4px; background:#D98AB0;"></div></div></div><span style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; min-width:34px; text-align:right;">31</span></div><div style="display:flex; align-items:center; gap:12px; padding:7px 10px; border-radius:10px; "><span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; flex-shrink:0; border-radius:50%; background:#EEF2EB; color:#5C6B62; font-size:13px; font-weight:700;">5</span><div style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:600; margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Cookies & Cream</div><div style="height:5px; border-radius:4px; background:#EEF2EB; overflow:hidden;"><div style="height:100%; width:41%; border-radius:4px; background:#D98AB0;"></div></div></div><span style="font-variant-numeric:tabular-nums; font-weight:700; font-size:18px; min-width:34px; text-align:right;">24</span></div></div></div>
+</div>
+<div style="height:1px; background:#E1EADC; margin:34px 0 28px;"></div>
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;"><h2 style="margin:0; font-size:16px; font-weight:700;">Evolução mensal</h2><span style="font-size:12px; font-weight:700; color:#186B41; background:#E2F0DA; padding:4px 10px; border-radius:20px;">Últimos 12 meses</span></div>
+<div style="background:#fff; border:1px solid #E7EEE6; border-radius:16px; overflow:hidden; margin-bottom:16px;"><div style="position:relative; overflow:hidden; background:#E9F3E4; border-bottom:1px solid #D3E6CA; padding:14px 20px; display:flex; align-items:center; gap:12px;"><div style="position:absolute; right:-6px; top:-20px; opacity:.16;"><svg width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg></div><span style="position:relative; display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:10px; background:#186B41;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg></span><div style="position:relative; flex:1;"><div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:0;"><div><h3 style="margin:0 0 2px; font-size:15px; font-weight:600;">Vendas</h3><p style="margin:0; font-size:12.5px; color:#8A968D;">Faturamento mensal em R$ mil</p></div></div></div></div><div style="padding:16px 20px 20px;"><svg width="100%" viewBox="0 0 1016 252" style="display:block;"><defs><pattern id="hatch1" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="7" fill="#fff" fill-opacity=".7"></rect></pattern></defs><line x1="40" x2="1016" y1="200" y2="200" stroke="#EEF2EB"></line><text x="32" y="204" text-anchor="end" font-size="11" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">0</text><line x1="40" x2="1016" y1="155" y2="155" stroke="#EEF2EB"></line><text x="32" y="159" text-anchor="end" font-size="11" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">10k</text><line x1="40" x2="1016" y1="110" y2="110" stroke="#EEF2EB"></line><text x="32" y="114" text-anchor="end" font-size="11" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">20k</text><line x1="40" x2="1016" y1="65" y2="65" stroke="#EEF2EB"></line><text x="32" y="69" text-anchor="end" font-size="11" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">30k</text><line x1="40" x2="1016" y1="20" y2="20" stroke="#EEF2EB"></line><text x="32" y="24" text-anchor="end" font-size="11" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">40k</text><rect x="57.66666666666666" y="118.10000000000001" width="46" height="81.89999999999999" rx="6" fill="#92C17D"></rect><text x="80.66666666666666" y="111.10000000000001" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">18,2</text><text x="80.66666666666666" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Out</text><rect x="139" y="111.8" width="46" height="88.2" rx="6" fill="#92C17D"></rect><text x="162" y="104.8" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">19,6</text><text x="162" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Nov</text><text x="162" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#3A9D5D" font-family="Albert Sans, sans-serif">+7,7%</text><rect x="220.33333333333331" y="119.45" width="46" height="80.55" rx="6" fill="#92C17D"></rect><text x="243.33333333333331" y="112.45" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">17,9</text><text x="243.33333333333331" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Dez</text><text x="243.33333333333331" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#C0492F" font-family="Albert Sans, sans-serif">−8,7%</text><rect x="301.6666666666667" y="103.70000000000002" width="46" height="96.29999999999998" rx="6" fill="#92C17D"></rect><text x="324.6666666666667" y="96.70000000000002" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">21,4</text><text x="324.6666666666667" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Jan</text><text x="324.6666666666667" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#3A9D5D" font-family="Albert Sans, sans-serif">+19,6%</text><rect x="383" y="97.39999999999999" width="46" height="102.60000000000001" rx="6" fill="#92C17D"></rect><text x="406" y="90.39999999999999" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">22,8</text><text x="406" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Fev</text><text x="406" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#3A9D5D" font-family="Albert Sans, sans-serif">+6,5%</text><rect x="464.3333333333333" y="91.55" width="46" height="108.45" rx="6" fill="#92C17D"></rect><text x="487.3333333333333" y="84.55" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">24,1</text><text x="487.3333333333333" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Mar</text><text x="487.3333333333333" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#3A9D5D" font-family="Albert Sans, sans-serif">+5,7%</text><rect x="545.6666666666666" y="94.25" width="46" height="105.75" rx="6" fill="#92C17D"></rect><text x="568.6666666666666" y="87.25" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">23,5</text><text x="568.6666666666666" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Abr</text><text x="568.6666666666666" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#C0492F" font-family="Albert Sans, sans-serif">−2,5%</text><rect x="626.9999999999999" y="81.65" width="46" height="118.35" rx="6" fill="#92C17D"></rect><text x="649.9999999999999" y="74.65" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">26,3</text><text x="649.9999999999999" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Mai</text><text x="649.9999999999999" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#3A9D5D" font-family="Albert Sans, sans-serif">+11,9%</text><rect x="708.3333333333333" y="74.00000000000001" width="46" height="125.99999999999999" rx="6" fill="#92C17D"></rect><text x="731.3333333333333" y="67.00000000000001" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">28</text><text x="731.3333333333333" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Jun</text><text x="731.3333333333333" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#3A9D5D" font-family="Albert Sans, sans-serif">+6,5%</text><rect x="789.6666666666666" y="66.80000000000001" width="46" height="133.2" rx="6" fill="#92C17D"></rect><text x="812.6666666666666" y="59.80000000000001" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">29,6</text><text x="812.6666666666666" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Jul</text><text x="812.6666666666666" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#3A9D5D" font-family="Albert Sans, sans-serif">+5,7%</text><rect x="870.9999999999999" y="59.599999999999994" width="46" height="140.4" rx="6" fill="#92C17D"></rect><text x="893.9999999999999" y="52.599999999999994" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">31,2</text><text x="893.9999999999999" y="220" text-anchor="middle" font-size="12" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Ago</text><text x="893.9999999999999" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#3A9D5D" font-family="Albert Sans, sans-serif">+5,4%</text><rect x="938.6666666666666" y="8" width="73.33333333333333" height="240" rx="10" fill="#F3F8EF"></rect><rect x="952.3333333333333" y="47.900000000000006" width="46" height="152.1" rx="6" fill="#186B41"></rect><text x="975.3333333333333" y="40.900000000000006" text-anchor="middle" font-size="11.5" font-weight="700" fill="#15231C" font-family="Albert Sans, sans-serif">33,8</text><text x="975.3333333333333" y="220" text-anchor="middle" font-size="12" font-weight="700" fill="#15231C" font-family="Albert Sans, sans-serif">Set</text><text x="975.3333333333333" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#3A9D5D" font-family="Albert Sans, sans-serif">parcial</text><text x="0" y="244" text-anchor="start" font-size="10.5" font-weight="700" fill="#A0AC9D" font-family="Albert Sans, sans-serif">MoM</text><rect x="938.6666666666666" y="8" width="73.33333333333333" height="192" fill="url(#hatch1)" stroke="#186B41" stroke-opacity=".35" stroke-dasharray="3 3" rx="6"></rect></svg></div></div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+<div style="background:#fff; border:1px solid #E7EEE6; border-radius:16px; overflow:hidden;"><div style="position:relative; overflow:hidden; background:#F9EAF2; border-bottom:1px solid #F1D3E3; padding:14px 20px; display:flex; align-items:center; gap:12px;"><div style="position:absolute; right:-6px; top:-20px; opacity:.16;"><svg width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="#C2407E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg></div><span style="position:relative; display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:10px; background:#C2407E;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg></span><div style="position:relative; flex:1;"><div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:0;"><div><h3 style="margin:0 0 2px; font-size:15px; font-weight:600;">Canais de venda</h3></div></div></div></div><div style="padding:16px 20px 20px;"><div style="display:flex; gap:14px; margin-bottom:8px;"><span style="display:flex; align-items:center; gap:6px; font-size:12px; color:#5C6B62;"><span style="width:10px; height:10px; border-radius:3px; background:#C2407E;"></span>Instagram</span><span style="display:flex; align-items:center; gap:6px; font-size:12px; color:#5C6B62;"><span style="width:10px; height:10px; border-radius:3px; background:#1E9E54;"></span>WhatsApp</span><span style="display:flex; align-items:center; gap:6px; font-size:12px; color:#5C6B62;"><span style="width:10px; height:10px; border-radius:3px; background:#9DB394;"></span>Loja física</span></div><svg width="100%" viewBox="0 0 480 218" style="display:block;"><defs><pattern id="hatch2" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="7" fill="#fff" fill-opacity=".7"></rect></pattern></defs><line x1="32" x2="480" y1="190" y2="190" stroke="#EEF2EB"></line><text x="26" y="194" text-anchor="end" font-size="10.5" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">0%</text><line x1="32" x2="480" y1="115" y2="115" stroke="#EEF2EB"></line><text x="26" y="119" text-anchor="end" font-size="10.5" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">50%</text><line x1="32" x2="480" y1="40" y2="40" stroke="#EEF2EB"></line><text x="26" y="44" text-anchor="end" font-size="10.5" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">100%</text><rect x="38.66666666666667" y="130" width="24" height="59" rx="2" fill="#9DB394"></rect><rect x="38.66666666666667" y="85" width="24" height="44" rx="2" fill="#1E9E54"></rect><rect x="38.66666666666667" y="40" width="24" height="44" rx="2" fill="#C2407E"></rect><text x="50.66666666666667" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Out</text><rect x="76.00000000000001" y="133" width="24" height="56" rx="2" fill="#9DB394"></rect><rect x="76.00000000000001" y="88" width="24" height="44" rx="2" fill="#1E9E54"></rect><rect x="76.00000000000001" y="40" width="24" height="47" rx="2" fill="#C2407E"></rect><text x="88.00000000000001" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Nov</text><rect x="113.33333333333334" y="127" width="24" height="62" rx="2" fill="#9DB394"></rect><rect x="113.33333333333334" y="85" width="24" height="41" rx="2" fill="#1E9E54"></rect><rect x="113.33333333333334" y="40" width="24" height="44" rx="2" fill="#C2407E"></rect><text x="125.33333333333334" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Dez</text><rect x="150.66666666666666" y="136" width="24" height="53" rx="2" fill="#9DB394"></rect><rect x="150.66666666666666" y="91" width="24" height="44" rx="2" fill="#1E9E54"></rect><rect x="150.66666666666666" y="40" width="24" height="50" rx="2" fill="#C2407E"></rect><text x="162.66666666666666" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Jan</text><rect x="188" y="139" width="24" height="50" rx="2" fill="#9DB394"></rect><rect x="188" y="94" width="24" height="44" rx="2" fill="#1E9E54"></rect><rect x="188" y="40" width="24" height="53" rx="2" fill="#C2407E"></rect><text x="200" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Fev</text><rect x="225.33333333333334" y="143.5" width="24" height="45.5" rx="2" fill="#9DB394"></rect><rect x="225.33333333333334" y="97" width="24" height="45.5" rx="2" fill="#1E9E54"></rect><rect x="225.33333333333334" y="40" width="24" height="56" rx="2" fill="#C2407E"></rect><text x="237.33333333333334" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Mar</text><rect x="262.6666666666667" y="146.5" width="24" height="42.5" rx="2" fill="#9DB394"></rect><rect x="262.6666666666667" y="98.5" width="24" height="47" rx="2" fill="#1E9E54"></rect><rect x="262.6666666666667" y="40" width="24" height="57.5" rx="2" fill="#C2407E"></rect><text x="274.6666666666667" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Abr</text><rect x="300.00000000000006" y="148" width="24" height="41" rx="2" fill="#9DB394"></rect><rect x="300.00000000000006" y="100" width="24" height="47" rx="2" fill="#1E9E54"></rect><rect x="300.00000000000006" y="40" width="24" height="59" rx="2" fill="#C2407E"></rect><text x="312.00000000000006" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Mai</text><rect x="337.33333333333337" y="151" width="24" height="38" rx="2" fill="#9DB394"></rect><rect x="337.33333333333337" y="101.5" width="24" height="48.5" rx="2" fill="#1E9E54"></rect><rect x="337.33333333333337" y="40" width="24" height="60.5" rx="2" fill="#C2407E"></rect><text x="349.33333333333337" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Jun</text><rect x="374.6666666666667" y="152.5" width="24" height="36.5" rx="2" fill="#9DB394"></rect><rect x="374.6666666666667" y="103" width="24" height="48.5" rx="2" fill="#1E9E54"></rect><rect x="374.6666666666667" y="40" width="24" height="62" rx="2" fill="#C2407E"></rect><text x="386.6666666666667" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Jul</text><rect x="412.00000000000006" y="154" width="24" height="35" rx="2" fill="#9DB394"></rect><rect x="412.00000000000006" y="104.5" width="24" height="48.5" rx="2" fill="#1E9E54"></rect><rect x="412.00000000000006" y="40" width="24" height="63.5" rx="2" fill="#C2407E"></rect><text x="424.00000000000006" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Ago</text><rect x="443.6666666666667" y="30" width="35.333333333333336" height="188" rx="6" fill="#F3F8EF"></rect><rect x="449.33333333333337" y="155.5" width="24" height="33.5" rx="2" fill="#9DB394"></rect><rect x="449.33333333333337" y="106" width="24" height="48.5" rx="2" fill="#1E9E54"></rect><rect x="449.33333333333337" y="40" width="24" height="65" rx="2" fill="#C2407E"></rect><text x="461.33333333333337" y="209" text-anchor="middle" font-size="11" font-weight="700" fill="#15231C" font-family="Albert Sans, sans-serif">Set</text><rect x="443.6666666666667" y="30" width="35.333333333333336" height="160" fill="url(#hatch2)" stroke="#186B41" stroke-opacity=".35" stroke-dasharray="3 3" rx="6"></rect></svg></div></div>
+<div style="background:#fff; border:1px solid #E7EEE6; border-radius:16px; overflow:hidden;"><div style="position:relative; overflow:hidden; background:#E6EFF8; border-bottom:1px solid #CFE0F1; padding:14px 20px; display:flex; align-items:center; gap:12px;"><div style="position:absolute; right:-6px; top:-20px; opacity:.16;"><svg width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="#2F6FB5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div><span style="position:relative; display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:10px; background:#2F6FB5;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span><div style="position:relative; flex:1;"><div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:0;"><div><h3 style="margin:0 0 2px; font-size:15px; font-weight:600;">Clientes ativos</h3></div></div></div></div><div style="padding:16px 20px 20px;"><div style="display:flex; gap:14px; margin-bottom:8px;"><span style="display:flex; align-items:center; gap:6px; font-size:12px; color:#5C6B62;"><span style="width:10px; height:10px; border-radius:3px; background:#186B41;"></span>Recorrentes</span><span style="display:flex; align-items:center; gap:6px; font-size:12px; color:#5C6B62;"><span style="width:10px; height:10px; border-radius:3px; background:#2F6FB5;"></span>Novos</span></div><svg width="100%" viewBox="0 0 480 218" style="display:block;"><defs><pattern id="hatch3" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="7" fill="#fff" fill-opacity=".7"></rect></pattern></defs><line x1="32" x2="480" y1="190" y2="190" stroke="#EEF2EB"></line><text x="26" y="194" text-anchor="end" font-size="10.5" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">0</text><line x1="32" x2="480" y1="140" y2="140" stroke="#EEF2EB"></line><text x="26" y="144" text-anchor="end" font-size="10.5" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">20</text><line x1="32" x2="480" y1="90" y2="90" stroke="#EEF2EB"></line><text x="26" y="94" text-anchor="end" font-size="10.5" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">40</text><line x1="32" x2="480" y1="40" y2="40" stroke="#EEF2EB"></line><text x="26" y="44" text-anchor="end" font-size="10.5" font-weight="500" fill="#A0AC9D" font-family="Albert Sans, sans-serif">60</text><rect x="38.66666666666667" y="155" width="24" height="34" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="38.66666666666667" y="142.5" width="24" height="11.5" rx="2" fill="#2F6FB5"></rect><text x="50.66666666666667" y="136.5" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">19</text><text x="50.66666666666667" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Out</text><rect x="76.00000000000001" y="147.5" width="24" height="41.5" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="76.00000000000001" y="132.5" width="24" height="14" rx="2" fill="#2F6FB5"></rect><text x="88.00000000000001" y="126.5" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">23</text><text x="88.00000000000001" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Nov</text><rect x="113.33333333333334" y="145" width="24" height="44" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="113.33333333333334" y="135" width="24" height="9" rx="2" fill="#2F6FB5"></rect><text x="125.33333333333334" y="129" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">22</text><text x="125.33333333333334" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Dez</text><rect x="150.66666666666666" y="137.5" width="24" height="51.5" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="150.66666666666666" y="120" width="24" height="16.5" rx="2" fill="#2F6FB5"></rect><text x="162.66666666666666" y="114" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">28</text><text x="162.66666666666666" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Jan</text><rect x="188" y="132.5" width="24" height="56.50000000000001" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="188" y="112.5" width="24" height="19" rx="2" fill="#2F6FB5"></rect><text x="200" y="106.5" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">31</text><text x="200" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Fev</text><rect x="225.33333333333334" y="125" width="24" height="64" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="225.33333333333334" y="110" width="24" height="14" rx="2" fill="#2F6FB5"></rect><text x="237.33333333333334" y="104" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">32</text><text x="237.33333333333334" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Mar</text><rect x="262.6666666666667" y="120" width="24" height="69" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="262.6666666666667" y="102.5" width="24" height="16.5" rx="2" fill="#2F6FB5"></rect><text x="274.6666666666667" y="96.5" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">35</text><text x="274.6666666666667" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Abr</text><rect x="300.00000000000006" y="112.49999999999999" width="24" height="76.50000000000001" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="300.00000000000006" y="89.99999999999999" width="24" height="21.5" rx="2" fill="#2F6FB5"></rect><text x="312.00000000000006" y="83.99999999999999" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">40</text><text x="312.00000000000006" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Mai</text><rect x="337.33333333333337" y="102.5" width="24" height="86.5" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="337.33333333333337" y="82.5" width="24" height="19" rx="2" fill="#2F6FB5"></rect><text x="349.33333333333337" y="76.5" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">43</text><text x="349.33333333333337" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Jun</text><rect x="374.6666666666667" y="97.5" width="24" height="91.5" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="374.6666666666667" y="82.5" width="24" height="14" rx="2" fill="#2F6FB5"></rect><text x="386.6666666666667" y="76.5" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">43</text><text x="386.6666666666667" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Jul</text><rect x="412.00000000000006" y="97.5" width="24" height="91.5" rx="2" fill="#186B41" opacity="0.8"></rect><rect x="412.00000000000006" y="85" width="24" height="11.5" rx="2" fill="#2F6FB5"></rect><text x="424.00000000000006" y="79" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5C6B62" font-family="Albert Sans, sans-serif">42</text><text x="424.00000000000006" y="209" text-anchor="middle" font-size="11" font-weight="500" fill="#8A968D" font-family="Albert Sans, sans-serif">Ago</text><rect x="443.6666666666667" y="30" width="35.333333333333336" height="188" rx="6" fill="#F3F8EF"></rect><rect x="449.33333333333337" y="87.5" width="24" height="101.5" rx="2" fill="#186B41" opacity="1"></rect><rect x="449.33333333333337" y="70" width="24" height="16.5" rx="2" fill="#2F6FB5"></rect><text x="461.33333333333337" y="64" text-anchor="middle" font-size="10.5" font-weight="700" fill="#15231C" font-family="Albert Sans, sans-serif">48</text><text x="461.33333333333337" y="209" text-anchor="middle" font-size="11" font-weight="700" fill="#15231C" font-family="Albert Sans, sans-serif">Set</text><rect x="443.6666666666667" y="30" width="35.333333333333336" height="160" fill="url(#hatch3)" stroke="#186B41" stroke-opacity=".35" stroke-dasharray="3 3" rx="6"></rect></svg></div></div>
+</div>
           </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section style="display:flex; flex-direction:column; gap:26px;">
-    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
-      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">2</span>
-      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Dia em andamento — movimento normal, com alerta de estoque</h2>
-    </div>
-    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
-<div id="2a" style="display:flex; flex-direction:column; gap:14px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">2a</span>
-          <span style="font-size:14px; color:#5C6B62;">Estado padrão: KPIs do período, canais, mais vendidos e o bloco de estoque baixo.</span>
-        </div>
-        <div style="display:flex; width:1360px; height:830px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
-          <dc-import name="SeletNav" active="dashboard" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
-          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
-            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
-              <div style="flex:1; min-width:0;">
-                <h1 style="margin:0; font-size:19px; font-weight:700; letter-spacing:-.2px;">Visão geral</h1>
-                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Resumo de hoje · Vila Velha/ES</p>
-              </div>
-              <div style="display:flex; align-items:center; gap:8px; width:280px; height:38px; padding:0 13px; background:#F6FAF4; border:1px solid #E7EEE6; border-radius:10px;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A968D" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-                <span style="font-size:13px; color:#A8B4AC;">Buscar pedido, cliente…</span>
-              </div>
-              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>
-                <span>Novo pedido</span>
-              </div>
-            </div>
-            <div style="flex:1; overflow-y:auto; padding:26px 28px 40px;">
-              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:18px;">
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
-                  <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Clientes ativos</span>
-                    <span style="font-size:11px; font-weight:700; color:#3A9D5D; background:#E7F4EC; padding:2px 8px; border-radius:20px;">+6</span>
-                  </div>
-                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">18</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">vs. período anterior</div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
-                  <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Novos clientes</span>
-                    <span style="font-size:11px; font-weight:700; color:#2F6FB5; background:#E6EFF8; padding:2px 8px; border-radius:20px;">+2</span>
-                  </div>
-                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">7</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">últimos 30 dias</div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
-                  <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Pedidos no período</span>
-                    <span style="font-size:11px; font-weight:700; color:#3A9D5D; background:#E7F4EC; padding:2px 8px; border-radius:20px;">+8%</span>
-                  </div>
-                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">9</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">este mês</div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px 18px 16px;">
-                  <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Aniversários próximos</span>
-                  </div>
-                  <div style="font-variant-numeric:tabular-nums; letter-spacing:-.4px; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">3</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">próximos 30 dias · ver clientes</div>
-                </div>
-              </div>
-
-              <div style="display:grid; grid-template-columns:1.1fr .9fr; gap:16px; margin-bottom:16px;">
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
-                  <h3 style="margin:0 0 2px; font-size:15px; font-weight:600;">Pedidos por canal</h3>
-                  <p style="margin:0 0 14px; font-size:12.5px; color:#8A968D;">Distribuição dos pedidos no período</p>
-                  <div style="display:flex; align-items:center; gap:18px;">
-                    <svg width="118" height="118" viewBox="0 0 118 118" style="transform:rotate(-90deg); flex-shrink:0;">
-                      <circle cx="59" cy="59" r="48" fill="none" stroke="#F0F4ED" stroke-width="16"></circle>
-                      <circle cx="59" cy="59" r="48" fill="none" stroke="#C2407E" stroke-width="16" stroke-dasharray="134 301.6" stroke-dashoffset="0"></circle>
-                      <circle cx="59" cy="59" r="48" fill="none" stroke="#1E9E54" stroke-width="16" stroke-dasharray="101 301.6" stroke-dashoffset="-134"></circle>
-                      <circle cx="59" cy="59" r="48" fill="none" stroke="#9DB394" stroke-width="16" stroke-dasharray="67 301.6" stroke-dashoffset="-235"></circle>
-                    </svg>
-                    <div style="flex:1; display:flex; flex-direction:column; gap:11px;">
-                      <div style="display:flex; align-items:center; gap:9px;">
-                        <span style="width:10px; height:10px; border-radius:3px; background:#C2407E;"></span>
-                        <span style="flex:1; font-size:13px; color:#3D4A42;">Instagram</span>
-                        <span style="font-size:13px; font-weight:700;">4</span>
-                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">44%</span>
-                      </div>
-                      <div style="display:flex; align-items:center; gap:9px;">
-                        <span style="width:10px; height:10px; border-radius:3px; background:#1E9E54;"></span>
-                        <span style="flex:1; font-size:13px; color:#3D4A42;">WhatsApp</span>
-                        <span style="font-size:13px; font-weight:700;">3</span>
-                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">33%</span>
-                      </div>
-                      <div style="display:flex; align-items:center; gap:9px;">
-                        <span style="width:10px; height:10px; border-radius:3px; background:#9DB394;"></span>
-                        <span style="flex:1; font-size:13px; color:#3D4A42;">Loja física</span>
-                        <span style="font-size:13px; font-weight:700;">2</span>
-                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">23%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
-                  <h3 style="margin:0 0 13px; font-size:15px; font-weight:600;">Mais vendidos</h3>
-                  <div style="display:flex; flex-direction:column; gap:14px;">
-                    <div>
-                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-size:13px; font-weight:600;">Shake Frutas Vermelhas</span>
-                        <span style="font-size:12px; color:#8A968D;">86 un.</span>
-                      </div>
-                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:100%;"></div></div>
-                    </div>
-                    <div>
-                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-size:13px; font-weight:600;">Hype Drink</span>
-                        <span style="font-size:12px; color:#8A968D;">64 un.</span>
-                      </div>
-                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:74%;"></div></div>
-                    </div>
-                    <div>
-                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-size:13px; font-weight:600;">Pizza Proteica</span>
-                        <span style="font-size:12px; color:#8A968D;">41 un.</span>
-                      </div>
-                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:48%;"></div></div>
-                    </div>
-                    <div>
-                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-size:13px; font-weight:600;">Coxinha Proteica</span>
-                        <span style="font-size:12px; color:#8A968D;">33 un.</span>
-                      </div>
-                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:38%;"></div></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div style="background:#FBF6EC; border:1px solid #F0E4C8; border-radius:14px; padding:20px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-                  <div style="display:flex; align-items:center; gap:9px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B7791F" stroke-width="2"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>
-                    <h3 style="margin:0; font-size:15px; font-weight:700; color:#8A6312;">Estoque baixo</h3>
-                  </div>
-                  <span style="color:#B7791F; font-size:12.5px; font-weight:600;">Ver estoque →</span>
-                </div>
-                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
-                  <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; background:#fff; border:1px solid #F0E4C8; border-radius:11px;">
-                    <span style="width:9px; height:9px; border-radius:50%; flex-shrink:0; background:#C0492F;"></span>
-                    <span style="flex:1; min-width:0;">
-                      <span style="display:block; font-size:13px; font-weight:600; color:#5C4F2A;">Fiber Concentrate</span>
-                      <span style="display:block; font-size:11.5px; color:#B7791F; font-weight:600;">Esgotado</span>
-                    </span>
-                  </div>
-                  <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; background:#fff; border:1px solid #F0E4C8; border-radius:11px;">
-                    <span style="width:9px; height:9px; border-radius:50%; flex-shrink:0; background:#B7791F;"></span>
-                    <span style="flex:1; min-width:0;">
-                      <span style="display:block; font-size:13px; font-weight:600; color:#5C4F2A;">Sopa Instantânea Frango</span>
-                      <span style="display:block; font-size:11.5px; color:#B7791F; font-weight:600;">2 em estoque</span>
-                    </span>
-                  </div>
-                  <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; background:#fff; border:1px solid #F0E4C8; border-radius:11px;">
-                    <span style="width:9px; height:9px; border-radius:50%; flex-shrink:0; background:#B7791F;"></span>
-                    <span style="flex:1; min-width:0;">
-                      <span style="display:block; font-size:13px; font-weight:600; color:#5C4F2A;">Beauty Drink Colágeno</span>
-                      <span style="display:block; font-size:11.5px; color:#B7791F; font-weight:600;">6 em estoque</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section style="display:flex; flex-direction:column; gap:26px;">
-    <div style="display:flex; align-items:center; gap:14px; max-width:1100px;">
-      <span style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:#15231C; color:#fff; font-size:16px; font-weight:700;">3</span>
-      <h2 style="margin:0; font-size:20px; font-weight:700; letter-spacing:-.2px; text-wrap:pretty;">Troca de loja — seletor aberto e painel da franquia de Passos/MG</h2>
-    </div>
-    <div style="display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start;">
-<div id="3a" style="display:flex; flex-direction:column; gap:14px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3a</span>
-          <span style="font-size:14px; color:#5C6B62;">Dropdown de loja ativa aberto sobre o painel; a matriz aparece marcada.</span>
-        </div>
-        <div style="display:flex; width:1360px; height:660px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
-          <dc-import name="SeletNav" active="dashboard" store-menu="{{ true }}" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
-          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
-            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
-              <div style="flex:1; min-width:0;">
-                <h1 style="margin:0; font-size:19px; font-weight:700; letter-spacing:-.2px;">Visão geral</h1>
-                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Resumo de hoje · Vila Velha/ES</p>
-              </div>
-              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>
-                <span>Novo pedido</span>
-              </div>
-            </div>
-            <div style="flex:1; overflow:hidden; padding:26px 28px 40px; opacity:.5;">
-              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;">
-                <div style="height:112px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
-                <div style="height:112px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
-                <div style="height:112px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
-                <div style="height:112px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
-              </div>
-              <div style="display:grid; grid-template-columns:1.1fr .9fr; gap:16px; margin-top:16px;">
-                <div style="height:230px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
-                <div style="height:230px; background:#fff; border:1px solid #E7EEE6; border-radius:14px;"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-<div id="3b" style="display:flex; flex-direction:column; gap:14px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:12.5px; font-weight:700; color:#5C6B62; background:#DFE7DA; padding:4px 9px; border-radius:7px;">3b</span>
-          <span style="font-size:14px; color:#5C6B62;">Depois da troca: mesma estrutura, volume menor e um só canal ativo.</span>
-        </div>
-        <div style="display:flex; width:1360px; height:660px; overflow:hidden; border-radius:16px; border:1px solid #DDE7D8; background:#F6FAF4; box-shadow:0 26px 60px -34px rgba(21,40,30,.45);">
-          <dc-import name="SeletNav" active="dashboard" store="Passos/MG" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
-          <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
-            <div style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:20px;">
-              <div style="flex:1; min-width:0;">
-                <h1 style="margin:0; font-size:19px; font-weight:700; letter-spacing:-.2px;">Visão geral</h1>
-                <p style="margin:2px 0 0; font-size:12.5px; color:#8A968D;">Resumo de hoje · Passos/MG</p>
-              </div>
-              <div style="display:flex; align-items:center; gap:7px; height:38px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"></path></svg>
-                <span>Novo pedido</span>
-              </div>
-            </div>
-            <div style="flex:1; overflow-y:auto; padding:26px 28px 40px;">
-              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:18px;">
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px;">
-                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Clientes ativos</span>
-                  <div style="font-variant-numeric:tabular-nums; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">6</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">vs. período anterior</div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px;">
-                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Novos clientes</span>
-                  <div style="font-variant-numeric:tabular-nums; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">2</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">últimos 30 dias</div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px;">
-                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Pedidos no período</span>
-                  <div style="font-variant-numeric:tabular-nums; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px;">3</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">este mês</div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:18px;">
-                  <span style="font-size:12.5px; color:#8A968D; font-weight:500;">Aniversários próximos</span>
-                  <div style="font-variant-numeric:tabular-nums; font-weight:600; font-size:38px; line-height:1.1; margin-top:8px; color:#C3CDBF;">0</div>
-                  <div style="font-size:11.5px; color:#A0AC9D; margin-top:2px;">próximos 30 dias</div>
-                </div>
-              </div>
-              <div style="display:grid; grid-template-columns:1.1fr .9fr; gap:16px;">
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
-                  <h3 style="margin:0 0 2px; font-size:15px; font-weight:600;">Pedidos por canal</h3>
-                  <p style="margin:0 0 14px; font-size:12.5px; color:#8A968D;">Distribuição dos pedidos no período</p>
-                  <div style="display:flex; align-items:center; gap:18px;">
-                    <svg width="118" height="118" viewBox="0 0 118 118" style="transform:rotate(-90deg); flex-shrink:0;">
-                      <circle cx="59" cy="59" r="48" fill="none" stroke="#F0F4ED" stroke-width="16"></circle>
-                      <circle cx="59" cy="59" r="48" fill="none" stroke="#1E9E54" stroke-width="16" stroke-dasharray="201 301.6" stroke-dashoffset="0"></circle>
-                      <circle cx="59" cy="59" r="48" fill="none" stroke="#9DB394" stroke-width="16" stroke-dasharray="100 301.6" stroke-dashoffset="-201"></circle>
-                    </svg>
-                    <div style="flex:1; display:flex; flex-direction:column; gap:11px;">
-                      <div style="display:flex; align-items:center; gap:9px;">
-                        <span style="width:10px; height:10px; border-radius:3px; background:#1E9E54;"></span>
-                        <span style="flex:1; font-size:13px; color:#3D4A42;">WhatsApp</span>
-                        <span style="font-size:13px; font-weight:700;">2</span>
-                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">67%</span>
-                      </div>
-                      <div style="display:flex; align-items:center; gap:9px;">
-                        <span style="width:10px; height:10px; border-radius:3px; background:#9DB394;"></span>
-                        <span style="flex:1; font-size:13px; color:#3D4A42;">Loja física</span>
-                        <span style="font-size:13px; font-weight:700;">1</span>
-                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">33%</span>
-                      </div>
-                      <div style="display:flex; align-items:center; gap:9px; opacity:.5;">
-                        <span style="width:10px; height:10px; border-radius:3px; background:#C2407E;"></span>
-                        <span style="flex:1; font-size:13px; color:#3D4A42;">Instagram</span>
-                        <span style="font-size:13px; font-weight:700;">0</span>
-                        <span style="font-size:11.5px; color:#A0AC9D; width:38px; text-align:right;">0%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div style="background:#fff; border:1px solid #E7EEE6; border-radius:14px; padding:20px;">
-                  <h3 style="margin:0 0 13px; font-size:15px; font-weight:600;">Mais vendidos</h3>
-                  <div style="display:flex; flex-direction:column; gap:14px;">
-                    <div>
-                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-size:13px; font-weight:600;">Coxinha Proteica</span>
-                        <span style="font-size:12px; color:#8A968D;">21 un.</span>
-                      </div>
-                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:100%;"></div></div>
-                    </div>
-                    <div>
-                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-size:13px; font-weight:600;">Hype Drink</span>
-                        <span style="font-size:12px; color:#8A968D;">9 un.</span>
-                      </div>
-                      <div style="height:6px; border-radius:4px; background:#F0F4ED; overflow:hidden;"><div style="height:100%; border-radius:4px; background:#92C17D; width:43%;"></div></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

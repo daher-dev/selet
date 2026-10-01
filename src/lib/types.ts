@@ -144,6 +144,12 @@ export interface OrderItem {
   name: string;
   qty: number;
   unitPrice: number; // centavos
+  /**
+   * Product saleType snapshotted when the order is written — splits revenue
+   * into Consumo (menu/adicional) vs Revenda in Financeiro. Absent on legacy
+   * lines (treated as "menu").
+   */
+  saleType?: ProductSaleType;
   addons?: string[];
   /** Present only for "Montar shake" lines; mutually exclusive with `addons`. */
   shake?: ShakeSelection;
@@ -218,6 +224,8 @@ export interface Customer {
   archived: boolean;
   orderCount: number;
   totalSpent: number; // centavos
+  /** Date of the earliest non-cancelled order (drives "novo" vs "recorrente"). */
+  firstOrderAt?: string | null;
   lastOrderAt: string | null;
   avgReorderDays: number | null;
   /** Predicted repurchase product (names *what* to re-offer in the reorder card). */
@@ -398,6 +406,11 @@ export interface FinanceTx {
   direction: "in" | "out";
   source: "order" | "manual" | "stock";
   orderId?: string;
+  /**
+   * Order mirrors only: the part of `amount` that came from revenda lines
+   * (centavos). The rest of an order mirror's amount is Consumo.
+   */
+  revendaAmount?: number;
   /** The stock item this purchase mirrors — set only when source === "stock". */
   stockItemId?: string;
   payMethod?: PayMethod;

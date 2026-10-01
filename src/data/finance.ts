@@ -23,6 +23,7 @@ function toTx(id: string, d: FirebaseFirestore.DocumentData): FinanceTx {
     direction: d.direction,
     source: d.source,
     orderId: d.orderId,
+    revendaAmount: d.revendaAmount ?? undefined,
     stockItemId: d.stockItemId ?? undefined,
     payMethod: d.payMethod ?? undefined,
     date: d.date?.toDate().toISOString() ?? "",
