@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowDown,
   ArrowLeftRight,
@@ -13,28 +12,17 @@ import {
   ChevronRight,
   CircleDollarSign,
   Clock,
-  MoreVertical,
   ReceiptText,
-  Trash2,
   TrendingUp,
   TriangleAlert,
   Wallet,
 } from "lucide-react";
-import { toast } from "sonner";
 import type { FinanceTx } from "@/lib/types";
 import type { MonthPoint } from "@/lib/dashboard-core";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { deleteManualTxAction } from "@/actions/finance";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuItemIcon,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { usePageAction } from "@/components/shell/app-shell-context";
 import { SectionHeading, TintedCard } from "@/components/tinted-card";
 import { Legend } from "@/components/charts/chart-kit";
@@ -43,11 +31,13 @@ import { EntradaSaidaChart, TicketChart } from "@/components/charts/finance-char
 import { ManualTxSheet } from "./manual-tx-sheet";
 import {
   buildRange,
+  competenciaLabel,
   currentMonthKey as getCurrentMonthKey,
   monthKeyOf,
   monthNameOnly,
-  txMeta,
+  txShortMeta,
 } from "./finance-shared";
+import { TxAmount, TxIcon } from "./tx-visuals";
 import { monthBreakdown, type MonthBreakdown } from "./finance-breakdown";
 
 interface FinanceiroClientProps {
@@ -58,94 +48,25 @@ interface FinanceiroClientProps {
   transactions: FinanceTx[];
 }
 
-function MovementRow({
-  tx,
-  storeId,
-}: {
-  tx: FinanceTx;
-  storeId: string;
-}) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const isManual = tx.source === "manual";
-  const isIn = tx.direction === "in";
-
-  function handleDelete() {
-    startTransition(async () => {
-      const result = await deleteManualTxAction(storeId, tx.id);
-      if (result.ok) {
-        toast.success("Lançamento excluído.");
-        router.refresh();
-      } else {
-        toast.error(result.error);
-      }
-    });
-  }
-
+/**
+ * A recent-movement row (design: icon, label, short meta, signed value). Rows
+ * are read-only here; editing/deleting lives on Movimentações ("Ver todas").
+ */
+function MovementRow({ tx }: { tx: FinanceTx }) {
   return (
-    <li
-      className={cn(
-        "flex items-center gap-3 border-t border-[#F0F4ED] py-3",
-        pending && "opacity-50",
-      )}
-    >
-      <span
-        className={cn(
-          "flex size-[34px] shrink-0 items-center justify-center rounded-[9px]",
-          isIn ? "bg-[#E7F4EC] text-success" : "bg-amber-wash text-amber",
-        )}
-      >
-        {isIn ? <ArrowUp className="size-[17px]" /> : <ArrowDown className="size-[17px]" />}
-      </span>
+    <li className="flex items-center gap-3 border-t border-[#F0F4ED] py-3">
+      <TxIcon direction={tx.direction} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13.5px] font-semibold text-ink">
           {tx.label}
         </span>
         <span className="block truncate text-[11.5px] text-[#A0AC9D]">
-          {txMeta(tx)}
+          {txShortMeta(tx)}
         </span>
       </span>
-      <span
-        className={cn(
-          "tabular shrink-0 text-[14px] font-bold",
-          isIn ? "text-success" : "text-amber",
-        )}
-      >
-        {isIn ? "+ " : "− "}
-        {formatBRL(tx.amount)}
-      </span>
-      {isManual && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              aria-label="Ações do lançamento"
-              disabled={pending}
-              className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-mist hover:text-ink-soft data-[state=open]:bg-mist"
-            >
-              <MoreVertical className="size-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-48">
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive data-highlighted:text-destructive"
-              onSelect={handleDelete}
-            >
-              <DropdownMenuItemIcon className="bg-danger-wash text-destructive">
-                <Trash2 />
-              </DropdownMenuItemIcon>
-              Excluir lançamento
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+      <TxAmount tx={tx} className="shrink-0 text-[14px]" />
     </li>
   );
-}
-
-/** "2026-07" → "Julho 2026" (competência label, as in the design). */
-function competenciaLabel(key: string): string {
-  return `${monthNameOnly(key)} ${key.split("-")[0]}`;
 }
 
 /** Two-segment split bar + legend rows under Entradas / Saídas in the hero. */
@@ -227,7 +148,9 @@ function Hero({ b, net, isNegative }: { b: MonthBreakdown; net: number; isNegati
         {isNegative ? "− " : ""}
         {formatBRL(Math.abs(net))}
       </p>
-      <div className="relative mt-4 flex flex-col gap-4 border-t border-white/15 pt-3.5 min-[820px]:flex-row min-[820px]:gap-0">
+      {/* Top-aligned so Entradas/Saídas headers line up even when one side
+          has an extra legend row ("Outras"). */}
+      <div className="relative mt-4 flex flex-col gap-4 border-t border-white/15 pt-3.5 min-[820px]:flex-row min-[820px]:items-start min-[820px]:gap-0">
         <FlowColumn
           label="Entradas"
           value={b.in}
@@ -238,7 +161,7 @@ function Hero({ b, net, isNegative }: { b: MonthBreakdown; net: number; isNegati
             { label: "Outras", value: b.outrasEntradas, color: "#C9E9D3" },
           ]}
         />
-        <div className="hidden w-px bg-white/15 min-[820px]:mx-4 min-[820px]:block" />
+        <div className="hidden w-px self-stretch bg-white/15 min-[820px]:mx-4 min-[820px]:block" />
         <FlowColumn
           label="Saídas"
           value={b.out}
@@ -396,7 +319,7 @@ export function FinanceiroClient({
                 {largestOutflow.label} pesou no mês
               </span>
               <span className="mt-0.5 block text-[12.5px] text-ink-soft">
-                {formatBRL(largestOutflow.amount)} · {txMeta(largestOutflow)}
+                {formatBRL(largestOutflow.amount)} · {txShortMeta(largestOutflow)}
               </span>
             </span>
           </div>
@@ -490,7 +413,7 @@ export function FinanceiroClient({
           ) : (
             <ul className="flex flex-col [&>li:first-child]:border-t-0">
               {recentTxs.map((tx) => (
-                <MovementRow key={tx.id} tx={tx} storeId={storeId} />
+                <MovementRow key={tx.id} tx={tx} />
               ))}
             </ul>
           )}

@@ -81,6 +81,39 @@ export function monthBounds(key: string): { start: Date; end: Date } {
   return { start: zonedTimeToUtc(y, m, 1), end: zonedTimeToUtc(y, m + 1, 1) };
 }
 
+/** "2026-07" → "Julho 2026" (competência label, as in the design). */
+export function competenciaLabel(key: string): string {
+  return `${monthNameOnly(key)} ${key.split("-")[0]}`;
+}
+
+/** Store-day "dd/MM" for an ISO date ("dd/MM/yyyy" with `year`). */
+export function dayMonth(iso: string, year = false): string {
+  const { year: y, month, day } = zonedParts(new Date(iso));
+  const dm = `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`;
+  return year ? `${dm}/${y}` : dm;
+}
+
+/**
+ * Compact meta line for a movement row: "Hoje · Pix", "Ontem · Compras",
+ * "25/07 · Aluguel" — the store-day date (today/yesterday spelled out), then
+ * the pay method for an order mirror or the category otherwise.
+ */
+export function txShortMeta(tx: FinanceTx, now: Date = new Date()): string {
+  const parts: string[] = [];
+  if (tx.date) {
+    const day = dayMonth(tx.date, true);
+    const today = dayMonth(now.toISOString(), true);
+    const yesterday = dayMonth(new Date(now.getTime() - 86_400_000).toISOString(), true);
+    parts.push(day === today ? "Hoje" : day === yesterday ? "Ontem" : dayMonth(tx.date));
+  }
+  if (tx.source === "order") {
+    if (tx.payMethod) parts.push(PAY_METHOD_LABELS[tx.payMethod] ?? tx.payMethod);
+  } else if (CATEGORY_LABELS[tx.category]) {
+    parts.push(CATEGORY_LABELS[tx.category]);
+  }
+  return parts.join(" · ");
+}
+
 /** Transaction meta line: "Pedido #AB3F · Pix · hoje" or "Aluguel · ontem". */
 export function txMeta(tx: FinanceTx): string {
   const parts: string[] = [];

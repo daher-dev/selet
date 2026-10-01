@@ -3,8 +3,6 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   ChevronRight,
   Loader2,
   Lock,
@@ -22,7 +20,8 @@ import {
   deleteManualTxAction,
   updateManualTxAction,
 } from "@/actions/finance";
-import { CATEGORY_LABELS, todayDateInput } from "./finance-shared";
+import { CATEGORY_LABELS, dayMonth, todayDateInput } from "./finance-shared";
+import { TxAmount, TxIcon } from "./tx-visuals";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,7 +63,17 @@ export function ManualTxSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-md">
+      <SheetContent
+        side="right"
+        className="w-full gap-0 overflow-y-auto sm:max-w-md"
+        // Land focus on the first field (form) or nowhere (read-only view) —
+        // the default would focus the Entrada/Saída toggle, whose focus ring
+        // reads like a second selected option.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          if (!isLinked) document.getElementById("tx-label")?.focus();
+        }}
+      >
         <SheetHeader className="border-b border-border">
           <SheetTitle className="text-[17px] font-bold">
             {editingTx == null
@@ -77,7 +86,7 @@ export function ManualTxSheet({
             <SheetDescription className="text-[12px] text-ink-faint">
               {isLinked
                 ? "Gerado automaticamente · somente leitura"
-                : `Avulso · criado em ${formatDate(editingTx.date)}${
+                : `Avulso · criado em ${dayMonth(editingTx.date)}${
                     editingTx.createdBy ? ` por ${editingTx.createdBy}` : ""
                   }`}
             </SheetDescription>
@@ -97,6 +106,10 @@ export function ManualTxSheet({
     </Sheet>
   );
 }
+
+/** Design field label: small uppercase caption above a 44px input. */
+const FIELD_LABEL = "text-[11px] font-bold tracking-[.4px] text-ink-faint uppercase";
+const FIELD_INPUT = "h-11 rounded-[11px] border-[#DDE7D8] px-3.5 text-[14px] font-medium";
 
 function ManualTxForm({
   storeId,
@@ -164,52 +177,52 @@ function ManualTxForm({
 
   return (
     <>
-      <div className="flex-1 space-y-4 p-4">
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => setDirection("in")}
-            className={cn(
-              "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors",
-              direction === "in"
-                ? "border-primary bg-mint-wash text-primary"
-                : "border-border bg-card text-ink-soft",
-            )}
-          >
-            <ArrowUpRight className="size-4" />
-            Entrada
-          </button>
-          <button
-            type="button"
-            onClick={() => setDirection("out")}
-            className={cn(
-              "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors",
-              direction === "out"
-                ? "border-destructive bg-danger-wash text-destructive"
-                : "border-border bg-card text-ink-soft",
-            )}
-          >
-            <ArrowDownRight className="size-4" />
-            Saída
-          </button>
+      <div className="flex-1 space-y-4 p-[22px]">
+        <div
+          role="radiogroup"
+          aria-label="Tipo de lançamento"
+          className="flex gap-2 rounded-[11px] bg-[#F3F7F1] p-1"
+        >
+          {(
+            [
+              { value: "in", label: "Entrada", active: "text-success" },
+              { value: "out", label: "Saída", active: "text-amber" },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              role="radio"
+              aria-checked={direction === opt.value}
+              onClick={() => setDirection(opt.value)}
+              className={cn(
+                "flex h-9 flex-1 items-center justify-center rounded-lg text-[13px] transition-colors",
+                direction === opt.value
+                  ? cn("bg-white font-bold shadow-[0_1px_3px_rgba(21,40,30,.12)]", opt.active)
+                  : "font-semibold text-ink-faint hover:text-ink-soft",
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="tx-label">Descrição</Label>
+          <Label className={FIELD_LABEL} htmlFor="tx-label">Descrição</Label>
           <Input
             id="tx-label"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Compra de embalagens"
-            className="rounded-xl"
+            className={FIELD_INPUT}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="tx-amount">Valor</Label>
+            <Label className={FIELD_LABEL} htmlFor="tx-amount">Valor</Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-ink-faint">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[14px] font-bold text-ink">
                 R$
               </span>
               <Input
@@ -218,26 +231,26 @@ function ManualTxForm({
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="150,00"
                 inputMode="decimal"
-                className="rounded-xl pl-9 tabular"
+                className={cn(FIELD_INPUT, "tabular pl-10 text-[15px] font-bold")}
               />
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="tx-date">Data</Label>
+            <Label className={FIELD_LABEL} htmlFor="tx-date">Data</Label>
             <Input
               id="tx-date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="rounded-xl"
+              className={FIELD_INPUT}
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <Label>Categoria</Label>
+          <Label className={FIELD_LABEL}>Categoria</Label>
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-full rounded-xl">
+            <SelectTrigger className={cn(FIELD_INPUT, "w-full data-[size=default]:h-11")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -251,13 +264,13 @@ function ManualTxForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="tx-note">Observação</Label>
+          <Label className={FIELD_LABEL} htmlFor="tx-note">Observação</Label>
           <Textarea
             id="tx-note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Opcional"
-            className="rounded-xl"
+            className="min-h-16 rounded-[11px] border-[#DDE7D8] px-3.5 py-3 text-[13.5px]"
           />
         </div>
       </div>
@@ -271,10 +284,10 @@ function ManualTxForm({
         {editingTx && (
           <Button
             type="button"
-            variant="destructive"
+            variant="ghost"
             onClick={handleDelete}
             disabled={pending}
-            className="gap-1.5 rounded-xl"
+            className="h-[42px] gap-[7px] rounded-[11px] px-3.5 text-[13px] font-semibold text-[#C0492F] hover:bg-danger-wash hover:text-[#C0492F]"
           >
             <Trash2 className="size-4" />
             Excluir
@@ -285,14 +298,17 @@ function ManualTxForm({
             variant="outline"
             onClick={onClose}
             disabled={pending}
-            className={cn("rounded-xl", !editingTx && "flex-1")}
+            className={cn(
+              "h-[42px] rounded-[11px] border-[#DDE7D8] bg-white px-4 text-[13px] font-semibold text-ink-soft",
+              !editingTx && "flex-1",
+            )}
           >
             Cancelar
           </Button>
           <Button
             onClick={submit}
             disabled={pending || !label.trim() || !amount.trim()}
-            className={cn("rounded-xl font-semibold", !editingTx && "flex-1")}
+            className={cn("h-[42px] rounded-[11px] px-5 text-[13px] font-semibold", !editingTx && "flex-1")}
           >
             {pending && <Loader2 className="size-4 animate-spin" />}
             Salvar
@@ -325,44 +341,25 @@ function LinkedTxView({
       ? `Pedido #${orderCode(originId)}`
       : "Pedido removido";
   const originMeta = isStock
-    ? `Estoque · entrada de ${formatDate(tx.date)}`
-    : `Pedidos · ${formatDate(tx.date)}`;
+    ? `Estoque · entrada de ${dayMonth(tx.date)}`
+    : `Pedidos · ${dayMonth(tx.date)}`;
   const calloutText = isStock
     ? "Para alterar valor ou data, edite a entrada de estoque. A movimentação é atualizada junto."
     : "Para alterar valor ou data, edite o pedido. A movimentação é atualizada junto.";
 
   return (
-    <div className="flex-1 space-y-4 p-4">
+    <div className="flex-1 space-y-4 p-[22px]">
       <div className="flex items-center gap-3">
-        <span
-          className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-[10px]",
-            tx.direction === "in" ? "bg-mint-wash text-primary" : "bg-danger-wash text-destructive",
-          )}
-        >
-          {tx.direction === "in" ? (
-            <ArrowUpRight className="size-4.5" />
-          ) : (
-            <ArrowDownRight className="size-4.5" />
-          )}
-        </span>
+        <TxIcon direction={tx.direction} size="lg" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15px] font-bold text-ink">{tx.label}</span>
-          <span className="block text-[12px] text-ink-faint">{formatDate(tx.date)}</span>
+          <span className="block text-[12px] text-[#A0AC9D]">{formatDate(tx.date)}</span>
         </span>
-        <span
-          className={cn(
-            "tabular shrink-0 text-[18px] font-bold",
-            tx.direction === "in" ? "text-primary" : "text-destructive",
-          )}
-        >
-          {tx.direction === "in" ? "+ " : "− "}
-          {formatBRL(tx.amount)}
-        </span>
+        <TxAmount tx={tx} className="shrink-0 text-[18px]" />
       </div>
 
-      <div className="flex items-start gap-3 rounded-xl border border-border bg-surface p-3.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-ink-soft">
+      <div className="flex items-start gap-3 rounded-xl border border-border bg-[#F7FAF5] px-4 py-3.5">
+        <span className="flex size-[34px] shrink-0 items-center justify-center rounded-[9px] border border-border bg-white text-ink-soft">
           <Lock className="size-4" />
         </span>
         <span className="flex-1 text-[12.5px]">
@@ -371,21 +368,21 @@ function LinkedTxView({
         </span>
       </div>
 
-      <div className="space-y-1.5">
-        <Label>Origem</Label>
+      <div className="space-y-2">
+        <Label className={FIELD_LABEL}>Origem</Label>
         {originHref ? (
           <Link
             href={originHref}
-            className="flex items-center gap-3 rounded-xl border border-border p-3.5 transition-colors hover:bg-mist"
+            className="flex items-center gap-3 rounded-xl border border-[#DDE7D8] px-3.5 py-[13px] transition-colors hover:bg-mist"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-mint-wash text-primary">
+            <span className="flex size-[34px] shrink-0 items-center justify-center rounded-[9px] bg-[#EEF3EA] text-primary">
               {isStock ? <Package className="size-4" /> : <ShoppingBag className="size-4" />}
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13.5px] font-semibold text-ink">
                 {originLabel}
               </span>
-              <span className="block truncate text-[11.5px] text-ink-faint">{originMeta}</span>
+              <span className="block truncate text-[11.5px] text-[#A0AC9D]">{originMeta}</span>
             </span>
             <ChevronRight className="size-4 shrink-0 text-primary" />
           </Link>
