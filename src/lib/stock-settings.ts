@@ -42,7 +42,10 @@ export const PALETTE: Record<PaletteKey, PaletteSwatch> = {
   cinza: { label: "Cinza", hex: "#5C6B62", wash: "#EEF1EC", fg: "text-[#5C6B62]", bg: "bg-[#EEF1EC]" },
 };
 
-/** Icons offered for a stock category (keys map to lucide icons in category-meta.tsx). */
+/**
+ * Icons offered for a stock category (keys map to lucide icons in category-meta.tsx).
+ * Order is display order; the first eight are the original set.
+ */
 export const CATEGORY_ICON_KEYS = [
   "wheat",
   "drumstick",
@@ -52,6 +55,48 @@ export const CATEGORY_ICON_KEYS = [
   "sparkles",
   "utensils",
   "package",
+  "apple",
+  "banana",
+  "cherry",
+  "grape",
+  "citrus",
+  "salad",
+  "leafy-green",
+  "sprout",
+  "bean",
+  "nut",
+  "egg",
+  "milk",
+  "beef",
+  "fish",
+  "ham",
+  "croissant",
+  "sandwich",
+  "pizza",
+  "soup",
+  "cookie",
+  "cake-slice",
+  "candy",
+  "ice-cream-cone",
+  "donut",
+  "popcorn",
+  "coffee",
+  "beer",
+  "wine",
+  "glass-water",
+  "cooking-pot",
+  "chef-hat",
+  "spray-can",
+  "droplets",
+  "brush-cleaning",
+  "flask-conical",
+  "heart-pulse",
+  "box",
+  "boxes",
+  "shopping-basket",
+  "tag",
+  "snowflake",
+  "flame",
 ] as const;
 export type CategoryIconKey = (typeof CATEGORY_ICON_KEYS)[number];
 
