@@ -249,10 +249,6 @@ function stockItemRef(storeId: string, itemId: string) {
   return storeRef(storeId).collection("stockItems").doc(itemId);
 }
 
-function productRef(storeId: string, productId: string) {
-  return storeRef(storeId).collection("products").doc(productId);
-}
-
 /**
  * Loads the products referenced by an order's lines, keyed by id (misses
  * skipped). A shake/pudim line's brinde is also a Product join
@@ -319,16 +315,14 @@ async function planConsumption(
   const req =
     newItems && products
       ? buildConsumptionRequests(newItems, products, shakeCatalogs, pudimCatalogs)
-      : { insumos: new Map<string, { amount: number; uses: number }>(), produced: new Map<string, number>() };
+      : { insumos: new Map<string, { amount: number; uses: number }>() };
 
   const stockIds = new Set<string>();
-  const productIds = new Set<string>();
+  // Legacy "produced" draws (batch production was removed) are ignored.
   for (const d of oldDraws) {
     if (d.kind === "insumo") stockIds.add(d.refId);
-    else productIds.add(d.refId);
   }
   for (const id of req.insumos.keys()) stockIds.add(id);
-  for (const id of req.produced.keys()) productIds.add(id);
 
   // ---- READ phase: fetch every touched doc once. ----
   const stock = new Map<
@@ -353,13 +347,6 @@ async function planConsumption(
       });
     }
   }
-  const prod = new Map<string, { ref: FirebaseFirestore.DocumentReference; produced: number }>();
-  for (const id of productIds) {
-    const ref = productRef(storeId, id);
-    const snap = await tx.get(ref);
-    if (snap.exists) prod.set(id, { ref, produced: snap.data()!.producedStock ?? 0 });
-  }
-
   // ---- PLAN phase: pure math on the working copies, collecting writes. ----
   const code = orderCode(orderId);
   const movements: { itemId: string; doc: Record<string, unknown> }[] = [];
@@ -376,9 +363,6 @@ async function planConsumption(
         by,
       });
       for (const doc of ms) movements.push({ itemId: d.refId, doc });
-    } else {
-      const entry = prod.get(d.refId);
-      if (entry) entry.produced += d.amount ?? 0;
     }
   }
 
@@ -397,14 +381,6 @@ async function planConsumption(
     for (const doc of ms) movements.push({ itemId, doc });
     draws.push(draw);
   }
-  for (const [productId, qty] of req.produced) {
-    const entry = prod.get(productId);
-    if (!entry) continue;
-    const applied = Math.min(qty, entry.produced);
-    entry.produced -= applied;
-    draws.push({ kind: "produced", refId: productId, amount: applied });
-  }
-
   const commit = () => {
     let lowStockDelta = 0;
     for (const { ref, work, oldLow, archived } of stock.values()) {
@@ -415,7 +391,6 @@ async function planConsumption(
         lowStockContribution(oldLow, archived);
     }
     if (lowStockDelta !== 0) summaryLowStockDelta(summary, lowStockDelta);
-    for (const { ref, produced } of prod.values()) tx.update(ref, { producedStock: produced });
     for (const m of movements) {
       tx.set(stockItemRef(storeId, m.itemId).collection("movements").doc(), m.doc);
     }

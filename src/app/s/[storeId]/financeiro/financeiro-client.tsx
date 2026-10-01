@@ -39,6 +39,7 @@ import {
 } from "./finance-shared";
 import { TxAmount, TxIcon } from "./tx-visuals";
 import { monthBreakdown, type MonthBreakdown } from "./finance-breakdown";
+import { useCategoryLabels } from "@/components/finance-settings-context";
 
 interface FinanceiroClientProps {
   storeId: string;
@@ -53,6 +54,7 @@ interface FinanceiroClientProps {
  * are read-only here; editing/deleting lives on Movimentações ("Ver todas").
  */
 function MovementRow({ tx }: { tx: FinanceTx }) {
+  const categoryLabels = useCategoryLabels();
   return (
     <li className="flex items-center gap-3 border-t border-[#F0F4ED] py-3">
       <TxIcon direction={tx.direction} />
@@ -61,7 +63,7 @@ function MovementRow({ tx }: { tx: FinanceTx }) {
           {tx.label}
         </span>
         <span className="block truncate text-[11.5px] text-[#A0AC9D]">
-          {txShortMeta(tx)}
+          {txShortMeta(tx, categoryLabels)}
         </span>
       </span>
       <TxAmount tx={tx} className="shrink-0 text-[14px]" />
@@ -182,6 +184,7 @@ export function FinanceiroClient({
   months,
   transactions,
 }: FinanceiroClientProps) {
+  const categoryLabels = useCategoryLabels();
   const [formOpen, setFormOpen] = useState(false);
 
   const currentMonthKey = getCurrentMonthKey();
@@ -319,7 +322,7 @@ export function FinanceiroClient({
                 {largestOutflow.label} pesou no mês
               </span>
               <span className="mt-0.5 block text-[12.5px] text-ink-soft">
-                {formatBRL(largestOutflow.amount)} · {txShortMeta(largestOutflow)}
+                {formatBRL(largestOutflow.amount)} · {txShortMeta(largestOutflow, categoryLabels)}
               </span>
             </span>
           </div>

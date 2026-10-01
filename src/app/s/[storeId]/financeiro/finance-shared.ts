@@ -3,7 +3,8 @@ import { STORE_TIME_ZONE, zonedParts, zonedTimeToUtc } from "@/lib/timezone";
 import type { FinanceTx } from "@/lib/types";
 import { formatRelative, orderCode } from "@/lib/format";
 
-export const CATEGORY_LABELS: Record<string, string> = {
+/** Labels for the pre-configurable keys, used when a store has no matching category (legacy lançamentos). */
+export const LEGACY_CATEGORY_LABELS: Record<string, string> = {
   vendas: "Vendas",
   compras: "Compras",
   salarios: "Salários",
@@ -11,6 +12,11 @@ export const CATEGORY_LABELS: Record<string, string> = {
   marketing: "Marketing",
   outros: "Outros",
 };
+
+/** id → name for a store's categories, falling back to the legacy labels. */
+export function categoryLabelMap(categories: { id: string; name: string }[]): Record<string, string> {
+  return { ...LEGACY_CATEGORY_LABELS, ...Object.fromEntries(categories.map((c) => [c.id, c.name])) };
+}
 
 export const PAY_METHOD_LABELS: Record<string, string> = {
   pix: "Pix",
@@ -98,7 +104,11 @@ export function dayMonth(iso: string, year = false): string {
  * "25/07 · Aluguel" — the store-day date (today/yesterday spelled out), then
  * the pay method for an order mirror or the category otherwise.
  */
-export function txShortMeta(tx: FinanceTx, now: Date = new Date()): string {
+export function txShortMeta(
+  tx: FinanceTx,
+  labels: Record<string, string> = LEGACY_CATEGORY_LABELS,
+  now: Date = new Date(),
+): string {
   const parts: string[] = [];
   if (tx.date) {
     const day = dayMonth(tx.date, true);
@@ -108,20 +118,20 @@ export function txShortMeta(tx: FinanceTx, now: Date = new Date()): string {
   }
   if (tx.source === "order") {
     if (tx.payMethod) parts.push(PAY_METHOD_LABELS[tx.payMethod] ?? tx.payMethod);
-  } else if (CATEGORY_LABELS[tx.category]) {
-    parts.push(CATEGORY_LABELS[tx.category]);
+  } else if (labels[tx.category]) {
+    parts.push(labels[tx.category]);
   }
   return parts.join(" · ");
 }
 
 /** Transaction meta line: "Pedido #AB3F · Pix · hoje" or "Aluguel · ontem". */
-export function txMeta(tx: FinanceTx): string {
+export function txMeta(tx: FinanceTx, labels: Record<string, string> = LEGACY_CATEGORY_LABELS): string {
   const parts: string[] = [];
   if (tx.source === "order") {
     parts.push(tx.orderId ? `Pedido #${orderCode(tx.orderId)}` : "Pedido");
     if (tx.payMethod) parts.push(PAY_METHOD_LABELS[tx.payMethod] ?? tx.payMethod);
-  } else if (CATEGORY_LABELS[tx.category]) {
-    parts.push(CATEGORY_LABELS[tx.category]);
+  } else if (labels[tx.category]) {
+    parts.push(labels[tx.category]);
   } else {
     parts.push("Manual");
   }

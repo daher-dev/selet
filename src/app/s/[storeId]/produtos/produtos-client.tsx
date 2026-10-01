@@ -8,9 +8,7 @@ import {
   ChefHat,
   ChevronDown,
   Filter,
-  Hammer,
   List,
-  Package,
   Plus,
   Search,
   Tag,
@@ -38,11 +36,9 @@ import {
 import {
   CategoryTile,
   PRODUCT_CATEGORY_META,
-  STOCK_CATEGORY_META,
 } from "@/components/category-meta";
-import { unitLabel } from "../estoque/stock-view";
 import { ProductFormSheet } from "./product-form-sheet";
-import { ProduzirSheet } from "./produzir-sheet";
+import { useStockCategoryMeta, useUnits } from "@/components/stock-settings-context";
 
 interface ProdutosClientProps {
   storeId: string;
@@ -68,8 +64,6 @@ export function ProdutosClient({
   const [saleType, setSaleType] = useState<string>("all");
   const [editing, setEditing] = useState<Product | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [producing, setProducing] = useState<Product | null>(null);
-  const [produceOpen, setProduceOpen] = useState(false);
   const shellSearch = useShellSearch();
 
   /** Resolve a recipe/insumo reference to its full stock item (name, category, qty…). */
@@ -235,10 +229,6 @@ export function ProdutosClient({
                 setEditing(product);
                 setFormOpen(true);
               }}
-              onProduzir={() => {
-                setProducing(product);
-                setProduceOpen(true);
-              }}
             />
           ))}
         </div>
@@ -251,14 +241,6 @@ export function ProdutosClient({
         allProducts={products}
         open={formOpen}
         onOpenChange={setFormOpen}
-      />
-
-      <ProduzirSheet
-        storeId={storeId}
-        product={producing}
-        stockItems={stockItems}
-        open={produceOpen}
-        onOpenChange={setProduceOpen}
       />
     </>
   );
@@ -300,14 +282,14 @@ function ProductCard({
   categoryFor,
   stockItemFor,
   onClick,
-  onProduzir,
 }: {
   product: Product;
   categoryFor: (ref: { stockItemId?: string; name: string }) => string | null;
   stockItemFor: (ref: { stockItemId?: string; name: string }) => StockItem | undefined;
   onClick: () => void;
-  onProduzir: () => void;
 }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
+  const { unitLabel } = useUnits();
   const meta = PRODUCT_CATEGORY_META[product.category];
   const isMenu = product.saleType === "menu";
   // Only "menu" items have a BASE recipe/Opcionais/Produção — revenda and
@@ -321,7 +303,6 @@ function ProductCard({
   const unitTier =
     tiers.find((t) => t.qty === 1) ?? tiers[0] ?? { qty: 1, price: product.price };
   const batches = tiers.filter((t) => t !== unitTier);
-  const canProduce = usesRecipe && product.stockManaged && product.active;
 
   return (
     <div
@@ -471,32 +452,6 @@ function ProductCard({
         <span className="text-[11.5px] text-ink-faint">
           {unitTier.qty === 1 ? "/ unidade" : `/ ${formatQty(unitTier.qty, "un")}`}
         </span>
-        {canProduce && (
-          <>
-            <span
-              className={cn(
-                "tabular ml-auto inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-semibold",
-                product.producedStock > 0
-                  ? "border-[#cde7d6] bg-mint-wash text-success"
-                  : "border-border bg-paper text-ink-faint",
-              )}
-            >
-              <Package className="size-3.5" strokeWidth={1.9} />
-              {product.producedStock} em estoque
-            </span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onProduzir();
-              }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#cddcc4] bg-card px-3 text-[12.5px] font-semibold text-primary transition-colors hover:border-primary hover:bg-primary hover:text-white"
-            >
-              <Hammer className="size-3.5" strokeWidth={1.9} />
-              Produzir
-            </button>
-          </>
-        )}
       </div>
 
       {batches.length > 0 && (

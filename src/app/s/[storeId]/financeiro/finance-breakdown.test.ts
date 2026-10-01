@@ -35,6 +35,18 @@ describe("monthBreakdown", () => {
   });
 });
 
+describe("monthBreakdown — configurable categories", () => {
+  it("counts the Insumos category and the legacy compras key as Insumos", () => {
+    const m = monthBreakdown([
+      tx({ direction: "out", category: "insumos", amount: 1000 }),
+      tx({ direction: "out", category: "compras", amount: 500 }),
+      tx({ direction: "out", category: "custos-fixos", amount: 700 }),
+    ]).get("2026-07")!;
+    expect(m.insumos).toBe(1500);
+    expect(m.operacao).toBe(700);
+  });
+});
+
 describe("todayDateInput", () => {
   it("uses the store's calendar day, not the UTC one", () => {
     // 00:03 UTC on Oct 1 is still 21:03 on Sep 30 in São Paulo.

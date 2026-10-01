@@ -109,9 +109,6 @@ export async function importCatalog(
     const ref = productsCol.doc(p.slug);
     const snap = await ref.get();
     const rec = recipeFor(p, prices);
-    // Default prep duration (minutes): sob demanda ~1, lote ~4, revenda → none.
-    const duration =
-      rec.prep === "lote" ? 4 : rec.prep === "sob demanda" ? 1 : undefined;
     // Catalog metadata is refreshed on every import. `active`/`archived` are
     // NOT here: they carry a store's manual sell/hide choice and are set only on
     // first insert (below) so a re-import never force-reactivates or un-hides.
@@ -126,9 +123,6 @@ export async function importCatalog(
       adicionais: rec.adicionais,
       tiers: rec.tiers,
       insumoId: rec.insumoId,
-      stockManaged: rec.stockManaged,
-      prep: rec.prep,
-      duration,
       // Marks this doc import-managed. The fresh-sync pass below deletes only
       // docs with source !== "manual" — protecting in-app-created products.
       source: "import",

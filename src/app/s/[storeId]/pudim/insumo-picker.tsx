@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import type { StockItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { STOCK_CATEGORY_META } from "@/components/category-meta";
+import { useStockCategoryMeta } from "@/components/stock-settings-context";
 
 /**
  * Single-select searchable insumo picker (mirrors produtos/InsumoPicker's
@@ -30,6 +30,7 @@ export function InsumoPicker({
   value: string;
   onChange: (item: StockItem) => void;
 }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);

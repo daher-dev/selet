@@ -18,8 +18,8 @@ import {
   usePageAction,
   useShellSearch,
 } from "@/components/shell/app-shell-context";
-import { CategoryTile, STOCK_CATEGORY_META } from "@/components/category-meta";
-import { STOCK_CATEGORIES } from "@/lib/types";
+import { CategoryTile } from "@/components/category-meta";
+import { useStockCategoryMeta, useStockSettings, useUnits } from "@/components/stock-settings-context";
 import { StockItemFormSheet } from "./stock-item-form-sheet";
 import { StockDetailSheet, type OrderRef, type RecipeUsage } from "./estoque-detail-sheet";
 import { RegistrarCompraDialog } from "./registrar-compra-dialog";
@@ -57,6 +57,8 @@ export function EstoqueClient({
   const [formOpen, setFormOpen] = useState(false);
   const [compraOpen, setCompraOpen] = useState(false);
   const shellSearch = useShellSearch();
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
+  const { categories: stockCategories } = useStockSettings();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -107,7 +109,7 @@ export function EstoqueClient({
         `${item.name} ${cat}`.toLowerCase().includes(term),
       );
     });
-  }, [items, query, shellSearch, category, status, lowStockOnly]);
+  }, [items, query, shellSearch, category, status, lowStockOnly, STOCK_CATEGORY_META]);
 
   const categoryLabel =
     category === null ? "Todas as categorias" : STOCK_CATEGORY_META[category]?.label ?? "Todas as categorias";
@@ -163,7 +165,7 @@ export function EstoqueClient({
             </DropdownMenuItemIcon>
             Todas
           </DropdownMenuItem>
-          {STOCK_CATEGORIES.map((key) => {
+          {stockCategories.map(({ id: key }) => {
             const meta = STOCK_CATEGORY_META[key];
             const Icon = meta.icon;
             return (
@@ -328,8 +330,10 @@ function FilterDropdown({
 }
 
 function StockCard({ item, onOpen }: { item: StockItem; onOpen: () => void }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
+  const { units } = useUnits();
   const meta = STOCK_CATEGORY_META[item.category];
-  const view = buildStockCard(item);
+  const view = buildStockCard(item, units);
   const statusMeta = STATUS_META[view.status];
   const StatusIcon = statusMeta.icon;
   // Esgotado is the one status urgent enough to override the category tile's

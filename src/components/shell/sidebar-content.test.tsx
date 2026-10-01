@@ -65,3 +65,19 @@ describe("SidebarContent — Pudim nav item", () => {
     expect(pudimIdx).toBeLessThan(cartelasIdx);
   });
 });
+
+describe("SidebarContent — Configurações nav item", () => {
+  const labels = () =>
+    screen.getAllByRole("link").map((a) => a.textContent ?? "");
+
+  it("replaces Equipe for admins", () => {
+    renderSidebar(user({ role: "admin", storeIds: "all" }));
+    expect(labels().some((t) => t.startsWith("Configurações"))).toBe(true);
+    expect(labels().some((t) => t.startsWith("Equipe"))).toBe(false);
+  });
+
+  it("is hidden for a funcionário (not a grantable section)", () => {
+    renderSidebar(user({ sections: ["pedidos", "estoque", "financeiro"] }));
+    expect(labels().some((t) => t.startsWith("Configurações"))).toBe(false);
+  });
+});

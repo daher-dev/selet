@@ -5,7 +5,6 @@ import {
   Blocks,
   Boxes,
   ChefHat,
-  Clock,
   Loader2,
   Package,
   Plus,
@@ -47,9 +46,9 @@ import {
   CategoryTile,
   PRODUCT_CATEGORY_META,
   PRODUCT_TYPE_TAG_LABELS,
-  STOCK_CATEGORY_META,
 } from "@/components/category-meta";
-import { unitLabel, usableAmount } from "../estoque/stock-view";
+import { usableAmount } from "../estoque/stock-view";
+import { useStockCategoryMeta, useUnits } from "@/components/stock-settings-context";
 
 interface ProductFormSheetProps {
   storeId: string;
@@ -159,6 +158,8 @@ function ProductForm({
   allProducts: Product[];
   onClose: () => void;
 }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
+  const { unitLabel } = useUnits();
   const { byId, byName } = useMemo(() => {
     const byId = new Map<string, StockItem>();
     const byName = new Map<string, StockItem>();
@@ -185,7 +186,6 @@ function ProductForm({
   const [typeTags, setTypeTags] = useState<string[]>(product?.typeTags ?? []);
   const [description, setDescription] = useState(product?.description ?? "");
   const [active, setActive] = useState(product?.active ?? true);
-  const [stockManaged, setStockManaged] = useState(product?.stockManaged ?? false);
   const [insumoId, setInsumoId] = useState<string | undefined>(product?.insumoId);
   const [recipe, setRecipe] = useState<RecipeRow[]>(
     (product?.recipe ?? []).map((r) => ({
@@ -375,9 +375,6 @@ function ProductForm({
         adicionais: linkedAddons,
         tiers: parsedTiers,
         insumoId: linksInsumo ? insumoId : undefined,
-        stockManaged: usesRecipe ? stockManaged : false,
-        prep: usesRecipe ? (stockManaged ? "lote" : "sob demanda") : undefined,
-        duration: product?.duration,
       } as const;
       const result = product
         ? await updateProductAction(product.id, input)
@@ -598,29 +595,6 @@ function ProductForm({
           </div>
         )}
 
-        {/* -------------------------------------------------------------- MENU produção */}
-        {usesRecipe && (
-          <div className="space-y-1.5">
-            <Label>Produção</Label>
-            <div className="grid grid-cols-2 gap-2.5">
-              <ProducaoCard
-                active={!stockManaged}
-                onClick={() => setStockManaged(false)}
-                icon={<Clock className="size-[17px]" strokeWidth={1.8} />}
-                title="Sob demanda"
-                desc="Produzido na hora"
-              />
-              <ProducaoCard
-                active={stockManaged}
-                onClick={() => setStockManaged(true)}
-                icon={<Boxes className="size-[17px]" strokeWidth={1.8} />}
-                title="No estoque"
-                desc="Armazenado no estoque"
-              />
-            </div>
-          </div>
-        )}
-
         {/* ----------------------------------------------------- price tiers */}
         <div className="space-y-1.5">
           <Label>Faixa de preço</Label>
@@ -773,39 +747,6 @@ function SaleTypeButton({
   );
 }
 
-function ProducaoCard({
-  active,
-  onClick,
-  icon,
-  title,
-  desc,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex flex-col rounded-xl border p-3.5 text-left transition-all",
-        active
-          ? "border-primary bg-mist text-primary shadow-[0_2px_8px_-4px_rgba(24,107,65,.4)]"
-          : "border-border bg-paper text-ink-faint hover:border-primary/40",
-      )}
-    >
-      <span className="flex items-center gap-2">
-        {icon}
-        <span className="text-[13.5px] font-bold">{title}</span>
-      </span>
-      <span className="mt-2 text-[11.5px] leading-snug opacity-85">{desc}</span>
-    </button>
-  );
-}
-
 /** The Base (recipe) section: rows + a toggleable insumo picker. */
 function InsumoSection({
   title,
@@ -826,6 +767,7 @@ function InsumoSection({
   onRemove: (id: string) => void;
   renderRow: (row: RecipeRow) => React.ReactNode;
 }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   return (
@@ -1049,6 +991,7 @@ function InsumoPicker({
   exclude: Set<string>;
   onPick: (item: StockItem) => void;
 }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const options = stockItems.filter(
@@ -1125,6 +1068,7 @@ function OpcionalPicker({
   onPickStock: (item: StockItem) => void;
   onPickProduct: (item: Product) => void;
 }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const productOptions = adicionalProducts.filter(
@@ -1225,6 +1169,7 @@ function InsumoTriggerPicker({
   selected: StockItem | undefined;
   onPick: (item: StockItem) => void;
 }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
   const [open, setOpen] = useState(false);
   const meta = selected ? STOCK_CATEGORY_META[selected.category] : null;
 

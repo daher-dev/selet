@@ -153,22 +153,22 @@ const ORDERS: DemoOrder[] = [
 ];
 
 // Recurring / manual finance rows per store. Categories are restricted to
-// FINANCE_CATEGORIES (vendas/compras/salarios/aluguel/marketing/outros).
+// DEFAULT_FINANCE_CATEGORIES ids (src/lib/stock-settings.ts).
 interface DemoFinance {
   slug: string;
   label: string;
-  category: "vendas" | "compras" | "salarios" | "aluguel" | "marketing" | "outros";
+  category: string;
   amount: number; // centavos
   direction: "in" | "out";
   days: number;
 }
 
 const MANUAL_FINANCE: DemoFinance[] = [
-  { slug: "compra-insumos", label: "Compra de insumos Herbalife", category: "compras", amount: 128000, direction: "out", days: 8 },
-  { slug: "folha-salarios", label: "Folha de pagamento da equipe", category: "salarios", amount: 340000, direction: "out", days: 5 },
-  { slug: "aluguel", label: "Aluguel do ponto", category: "aluguel", amount: 120000, direction: "out", days: 5 },
+  { slug: "compra-insumos", label: "Compra de insumos Herbalife", category: "insumos", amount: 128000, direction: "out", days: 8 },
+  { slug: "folha-salarios", label: "Folha de pagamento da equipe", category: "custos-fixos", amount: 340000, direction: "out", days: 5 },
+  { slug: "aluguel", label: "Aluguel do ponto", category: "custos-fixos", amount: 120000, direction: "out", days: 5 },
   { slug: "marketing", label: "Tráfego pago · Instagram/Meta", category: "marketing", amount: 45000, direction: "out", days: 10 },
-  { slug: "venda-balcao", label: "Venda avulsa no balcão", category: "vendas", amount: 5400, direction: "in", days: 1 },
+  { slug: "venda-balcao", label: "Venda avulsa no balcão", category: "outras-receitas", amount: 5400, direction: "in", days: 1 },
 ];
 
 // ---------------------------------------------------------------------------
