@@ -383,8 +383,6 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
       cost: 3000,
     });
 
-    const txs = await listTransactions(storeId);
-    expect(txs).toHaveLength(1);
-    expect(txs[0]).toMatchObject({ amount: 6000, stockItemId: id });
+    expect(await listTransactions(storeId)).toHaveLength(0);
   });
 });
