@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { FinanceTx } from "@/lib/types";
 import { monthBreakdown } from "./finance-breakdown";
+import { todayDateInput } from "./finance-shared";
 
 const tx = (p: Partial<FinanceTx>): FinanceTx => ({
   id: Math.random().toString(36),
@@ -31,5 +32,13 @@ describe("monthBreakdown", () => {
       insumos: 1500,
       operacao: 4200,
     });
+  });
+});
+
+describe("todayDateInput", () => {
+  it("uses the store's calendar day, not the UTC one", () => {
+    // 00:03 UTC on Oct 1 is still 21:03 on Sep 30 in São Paulo.
+    expect(todayDateInput(new Date("2026-10-01T00:03:00Z"))).toBe("2026-09-30");
+    expect(todayDateInput(new Date("2026-10-01T03:30:00Z"))).toBe("2026-10-01");
   });
 });

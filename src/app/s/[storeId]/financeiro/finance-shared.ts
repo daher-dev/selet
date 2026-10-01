@@ -1,5 +1,5 @@
 import { monthKey } from "@/lib/summary-core";
-import { STORE_TIME_ZONE, zonedTimeToUtc } from "@/lib/timezone";
+import { STORE_TIME_ZONE, zonedParts, zonedTimeToUtc } from "@/lib/timezone";
 import type { FinanceTx } from "@/lib/types";
 import { formatRelative, orderCode } from "@/lib/format";
 
@@ -32,6 +32,17 @@ export function monthKeyOf(iso: string): string {
 /** "2026-07" → the current local-time competência key. */
 export function currentMonthKey(): string {
   return monthKey(new Date());
+}
+
+/**
+ * Today's calendar date in the STORE's timezone as "YYYY-MM-DD" (the value a
+ * date input expects). Never `toISOString().slice(0, 10)`: that is the UTC day,
+ * which is already tomorrow from 21h in São Paulo — a lançamento created late
+ * in the evening would land on the next day (or the next competência).
+ */
+export function todayDateInput(now: Date = new Date()): string {
+  const { year, month, day } = zonedParts(now);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 /** "2026-07" → "Julho de 2026" (competência label). */

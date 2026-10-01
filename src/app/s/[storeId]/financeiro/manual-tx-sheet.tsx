@@ -22,7 +22,7 @@ import {
   deleteManualTxAction,
   updateManualTxAction,
 } from "@/actions/finance";
-import { CATEGORY_LABELS } from "./finance-shared";
+import { CATEGORY_LABELS, todayDateInput } from "./finance-shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -114,7 +114,7 @@ function ManualTxForm({
     editingTx ? formatBRL(editingTx.amount).replace("R$", "").trim() : "",
   );
   const [date, setDate] = useState(() =>
-    editingTx ? editingTx.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    editingTx ? editingTx.date.slice(0, 10) : todayDateInput(),
   );
   const [note, setNote] = useState(editingTx?.note ?? "");
   const [pending, startTransition] = useTransition();
