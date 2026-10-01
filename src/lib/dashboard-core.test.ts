@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Order } from "./types";
-import { emptySummary, summaryAddOrder } from "./summary-core";
+import { emptySummary, summaryAddOrder, summaryFirstOrderShift } from "./summary-core";
 import { monthlySeries, summarizeRecent, trailingMonthKeys } from "./dashboard-core";
 
 function mkOrder(partial: Partial<Order>): Order {
@@ -104,6 +104,8 @@ describe("monthlySeries", () => {
     add("2025-12", 20000, "id_a");
     add("2026-01", 15000, "id_a");
     add("2026-01", 5000, "id_b");
+    summaryFirstOrderShift(s, { from: null, to: "2025-11" }); // id_a
+    summaryFirstOrderShift(s, { from: null, to: "2026-01" }); // id_b
 
     const keys = trailingMonthKeys("2026-01", 2);
     const series = monthlySeries(s, keys, "2026-01");

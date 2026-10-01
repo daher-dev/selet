@@ -32,6 +32,7 @@ import {
   readSummaryTx,
   summaryAddOrder,
   summaryFinance,
+  summaryFirstOrderShift,
   summaryLowStockDelta,
   summaryOpenDelta,
   summaryReceivable,
@@ -188,16 +189,22 @@ async function recomputeAggregates(
   storeId: string,
   customerId: string,
   /** pending change applied on top of stored docs (the tx hasn't committed) */
-  override?: { orderId: string; total: number | null; createdAt: Timestamp | null },
+  override: { orderId: string; total: number | null; createdAt: Timestamp | null } | undefined,
+  /** working summary — its per-month `novos` follows the customer's first order */
+  summary: SummaryData,
 ): Promise<() => void> {
   // Read + compute now (read phase); return a closure that writes later. Callers
   // may recompute several customers in one tx (e.g. a reassignment), so the
   // tx.update MUST be deferred — Firestore forbids a read after any write.
-  const snap = await tx.get(
-    ordersCol(storeId)
-      .where("customerId", "==", customerId)
-      .where("status", "!=", "cancelado"),
-  );
+  const customerRef = storeRef(storeId).collection("customers").doc(customerId);
+  const [snap, customerSnap] = await Promise.all([
+    tx.get(
+      ordersCol(storeId)
+        .where("customerId", "==", customerId)
+        .where("status", "!=", "cancelado"),
+    ),
+    tx.get(customerRef),
+  ]);
 
   const rows: { total: number; createdAt: Timestamp }[] = [];
   for (const doc of snap.docs) {
@@ -219,10 +226,19 @@ async function recomputeAggregates(
       ? (last.toMillis() - first.toMillis()) / (count - 1) / 86_400_000
       : null;
 
+  // "Novo" month bookkeeping: the customer counts as novo in the month of
+  // their first non-cancelled order. Move that +1 when it changes.
+  const prevFirst = customerSnap.data()?.firstOrderAt as Timestamp | null | undefined;
+  summaryFirstOrderShift(summary, {
+    from: prevFirst ? monthKey(prevFirst.toDate()) : null,
+    to: first ? monthKey(first.toDate()) : null,
+  });
+
   return () => {
-    tx.update(storeRef(storeId).collection("customers").doc(customerId), {
+    tx.update(customerRef, {
       orderCount: count,
       totalSpent,
+      firstOrderAt: first,
       lastOrderAt: last,
       avgReorderDays,
     });
@@ -477,7 +493,7 @@ export async function createOrder(
           orderId: ref.id,
           total,
           createdAt: now,
-        })
+        }, summary)
       : null;
     // Summary: a new order enters the current-month aggregates.
     const mk = monthKey(now.toDate());
@@ -621,7 +637,7 @@ export async function updateOrder(
           total: !cancelled && customerId === input.customerId ? total : null,
           createdAt:
             !cancelled && customerId === input.customerId ? newCreatedAt : null,
-        }),
+        }, summary),
       );
     }
 
@@ -798,7 +814,7 @@ export async function setOrderStatus(
             orderId,
             total: willBeCancelled ? null : (current.total ?? 0),
             createdAt: willBeCancelled ? null : current.createdAt,
-          })
+          }, summary)
         : null;
 
     // Summary: cancelling removes the order from the month aggregates; uncancel

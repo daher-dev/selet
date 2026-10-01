@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getDb } from "@/lib/firebase-admin";
 import {
   createOrder,
   setOrderPayment,
@@ -242,6 +243,41 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     expect(newMk).not.toBe(oldMk);
     expect(s.months[oldMk]?.in ?? 0).toBe(0);
     expect(s.months[newMk].in).toBe(135000);
+  });
+
+  it("novos follow the customer's first order across cancel and uncancel", async () => {
+    const storeId = `test-summary-novos-${Date.now()}`;
+    const customerId = await createCustomer(storeId, { name: "Nina", tags: [] });
+    const earlier = new Date();
+    earlier.setMonth(earlier.getMonth() - 2);
+    const items = [{ productId: "p1", name: "Shake", qty: 1, unitPrice: 2000 }];
+    const first = await createOrder(storeId, {
+      customerId,
+      customerName: "Nina",
+      channel: "loja",
+      items,
+      createdAt: earlier.toISOString(),
+    });
+    await createOrder(storeId, { customerId, customerName: "Nina", channel: "loja", items });
+    const oldMk = monthKey(earlier);
+    const nowMk = monthKey(new Date());
+
+    let s = await expectConsistent(storeId);
+    expect(s.months[oldMk].novos).toBe(1);
+    expect(s.months[nowMk].novos).toBe(0);
+
+    // Cancelling the first order makes this month her first → novo moves.
+    await setOrderStatus(storeId, first, "cancelado");
+    s = await expectConsistent(storeId);
+    expect(s.months[oldMk]?.novos ?? 0).toBe(0);
+    expect(s.months[nowMk].novos).toBe(1);
+    const customer = await getDb().doc(`stores/${storeId}/customers/${customerId}`).get();
+    expect(monthKey(customer.data()!.firstOrderAt.toDate())).toBe(nowMk);
+
+    await setOrderStatus(storeId, first, "concluido");
+    s = await expectConsistent(storeId);
+    expect(s.months[oldMk].novos).toBe(1);
+    expect(s.months[nowMk].novos).toBe(0);
   });
 
   it("dashboard fallback: summary-backed view == fresh scan-and-compute", async () => {

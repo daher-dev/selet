@@ -1,8 +1,8 @@
 import "server-only";
 
 import { listOrders } from "@/data/orders";
-import { listUpcomingBirthdays } from "@/data/customers";
-import { listLowStock } from "@/data/stock";
+import { listCustomers, listUpcomingBirthdays } from "@/data/customers";
+import { countLowStock } from "@/data/stock";
 import { listShakeFlavors } from "@/data/shakes";
 import { listPudimFlavors } from "@/data/pudim";
 import type { SummaryData } from "@/data/summary";
@@ -73,14 +73,14 @@ export async function loadDashboard(ctx: {
   const currentKey = monthKey(now);
   const keys = trailingMonthKeys(currentKey, EVOLUTION_MONTHS);
 
-  const [recentOrders, shakeFlavors, pudimFlavors, birthdayCustomers, lowItems] =
+  const [recentOrders, shakeFlavors, pudimFlavors, birthdayCustomers, lowCount] =
     await Promise.all([
       canPedidos || canClientes ? listOrders(storeId, { since }) : Promise.resolve([]),
       canPedidos ? listShakeFlavors(storeId) : Promise.resolve([]),
       canPedidos ? listPudimFlavors(storeId) : Promise.resolve([]),
       canClientes ? listUpcomingBirthdays(storeId) : Promise.resolve([]),
-      // The summary already counts low-stock items; only scan without it.
-      canEstoque && !summary ? listLowStock(storeId, 500) : Promise.resolve([]),
+      // The summary already counts low-stock items; only count without it.
+      canEstoque && !summary ? countLowStock(storeId) : Promise.resolve(0),
     ]);
 
   const flavorNames = new Map<string, string>();
@@ -93,13 +93,24 @@ export async function loadDashboard(ctx: {
     if (!source) {
       // Fallback: one month extra so the first bar still gets a MoM base.
       const start = addZonedMonths(now, -EVOLUTION_MONTHS);
-      const orders = await listOrders(storeId, { since: start });
+      const [orders, customers] = await Promise.all([
+        listOrders(storeId, { since: start }),
+        listCustomers(storeId),
+      ]);
       source = computeSummaryFrom({
         orders: orders.map((o) => ({ ...o, createdAt: new Date(o.createdAt) })),
         finance: [],
         stock: [],
         customers: [],
       });
+      // A 12-month scan can't see older orders, so "novos" come from each
+      // customer's stored firstOrderAt instead (complete history).
+      for (const b of Object.values(source.months)) b.novos = 0;
+      for (const c of customers) {
+        if (!c.firstOrderAt) continue;
+        const b = source.months[monthKey(new Date(c.firstOrderAt))];
+        if (b) b.novos += 1;
+      }
     }
     months = monthlySeries(source, keys, currentKey);
   }
@@ -109,7 +120,7 @@ export async function loadDashboard(ctx: {
       activeCustomers: canClientes ? recent.activeCustomers : null,
       orders: canPedidos ? recent.orderCount : null,
       birthdays: canClientes ? countUpcomingBirthdays(birthdayCustomers, now) : null,
-      lowStock: canEstoque ? (summary ? summary.lowStock : lowItems.length) : null,
+      lowStock: canEstoque ? (summary ? summary.lowStock : lowCount) : null,
     },
     topProducts: canPedidos ? recent.topProducts : null,
     topFlavors: canPedidos ? recent.topFlavors : null,

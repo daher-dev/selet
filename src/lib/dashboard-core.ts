@@ -134,7 +134,7 @@ export function monthlySeries(
         ? Math.round(((sales - prevSales) / prevSales) * 1000) / 10
         : null;
     prevSales = sales;
-    const split = monthCustomerSplit(summary, key);
+    const split = monthCustomerSplit(b);
     return {
       key,
       label: monthShort(key),

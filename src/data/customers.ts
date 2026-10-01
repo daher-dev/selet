@@ -35,6 +35,7 @@ export function toCustomer(
     archived: d.archived ?? false,
     orderCount: d.orderCount ?? 0,
     totalSpent: d.totalSpent ?? 0,
+    firstOrderAt: d.firstOrderAt?.toDate().toISOString() ?? null,
     lastOrderAt: d.lastOrderAt?.toDate().toISOString() ?? null,
     avgReorderDays: d.avgReorderDays ?? null,
     reorderProduct: d.reorderProduct ?? null,

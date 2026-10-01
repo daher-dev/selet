@@ -224,6 +224,8 @@ export interface Customer {
   archived: boolean;
   orderCount: number;
   totalSpent: number; // centavos
+  /** Date of the earliest non-cancelled order (drives "novo" vs "recorrente"). */
+  firstOrderAt?: string | null;
   lastOrderAt: string | null;
   avgReorderDays: number | null;
   /** Predicted repurchase product (names *what* to re-offer in the reorder card). */

@@ -5,66 +5,43 @@ import {
   monthCustomerSplit,
   pruneMonths,
   summaryAddOrder,
-  summaryRemoveOrder,
-  type OrderAggInput,
+  summaryFirstOrderShift,
+  type OrderLike,
 } from "./summary-core";
 
-function order(mk: string, custKey: string): OrderAggInput {
-  return {
-    mk,
-    total: 1000,
-    custKey,
-    open: false,
-    paid: true,
-    channel: "loja",
-    items: [],
-  };
-}
-
-describe("firstOrderMonth / monthCustomerSplit", () => {
-  it("counts a customer as novo only in the month of their first order", () => {
+describe("novos / recorrentes", () => {
+  it("moves the novo count when a customer's first-order month changes", () => {
     const s = emptySummary();
-    summaryAddOrder(s, order("2026-05", "id_a"));
-    summaryAddOrder(s, order("2026-06", "id_a"));
-    summaryAddOrder(s, order("2026-06", "id_b"));
-    expect(s.firstOrderMonth).toEqual({ id_a: "2026-05", id_b: "2026-06" });
-    expect(monthCustomerSplit(s, "2026-05")).toEqual({ novos: 1, recorrentes: 0 });
-    expect(monthCustomerSplit(s, "2026-06")).toEqual({ novos: 1, recorrentes: 1 });
+    summaryFirstOrderShift(s, { from: null, to: "2026-05" }); // first order
+    expect(s.months["2026-05"].novos).toBe(1);
+    summaryFirstOrderShift(s, { from: "2026-05", to: "2026-05" }); // no-op
+    expect(s.months["2026-05"].novos).toBe(1);
+    summaryFirstOrderShift(s, { from: "2026-05", to: "2026-07" }); // first cancelled
+    expect(s.months["2026-05"].novos).toBe(0);
+    expect(s.months["2026-07"].novos).toBe(1);
+    summaryFirstOrderShift(s, { from: "2026-07", to: null }); // no orders left
+    expect(s.months["2026-07"].novos).toBe(0);
   });
 
-  it("a backdated earlier order moves the first-order month back", () => {
+  it("splits a month's active customers, never exceeding them", () => {
     const s = emptySummary();
-    summaryAddOrder(s, order("2026-06", "id_a"));
-    summaryAddOrder(s, order("2026-04", "id_a"));
-    expect(s.firstOrderMonth.id_a).toBe("2026-04");
-    expect(monthCustomerSplit(s, "2026-06")).toEqual({ novos: 0, recorrentes: 1 });
+    const add = (custKey: string) =>
+      summaryAddOrder(s, { mk: "2026-06", total: 1000, custKey, open: false, paid: true, channel: "loja", items: [] });
+    add("id_a");
+    add("id_b");
+    add("n_walkin");
+    summaryFirstOrderShift(s, { from: null, to: "2026-06" });
+    expect(monthCustomerSplit(s.months["2026-06"])).toEqual({ novos: 1, recorrentes: 2 });
+    expect(monthCustomerSplit(undefined)).toEqual({ novos: 0, recorrentes: 0 });
   });
 
-  it("cancelling the first order hands 'novo' to the next month with orders", () => {
-    const s = emptySummary();
-    summaryAddOrder(s, order("2026-05", "id_a"));
-    summaryAddOrder(s, order("2026-07", "id_a"));
-    summaryRemoveOrder(s, order("2026-05", "id_a"));
-    expect(s.firstOrderMonth.id_a).toBe("2026-07");
-    summaryRemoveOrder(s, order("2026-07", "id_a"));
-    expect(s.firstOrderMonth.id_a).toBeUndefined();
-  });
-
-  it("keeps the first-order month while the customer still has orders in it", () => {
-    const s = emptySummary();
-    summaryAddOrder(s, order("2026-05", "id_a"));
-    summaryAddOrder(s, order("2026-05", "id_a"));
-    summaryRemoveOrder(s, order("2026-05", "id_a"));
-    expect(s.firstOrderMonth.id_a).toBe("2026-05");
-  });
-
-  it("incremental matches a recompute and survives pruning", () => {
+  it("recompute counts each registered customer once, in their earliest active order month", () => {
     const at = (iso: string) => new Date(iso);
-    const base = {
+    const base: Omit<OrderLike, "status" | "customerId" | "createdAt"> = {
       total: 1000,
       paid: true,
       customerName: "",
-      channel: "loja" as const,
+      channel: "loja",
       items: [],
     };
     const s = computeSummaryFrom({
@@ -73,15 +50,16 @@ describe("firstOrderMonth / monthCustomerSplit", () => {
         { ...base, status: "concluido", customerId: "a", createdAt: at("2026-06-10T15:00:00Z") },
         { ...base, status: "cancelado", customerId: "b", createdAt: at("2026-02-10T15:00:00Z") },
         { ...base, status: "concluido", customerId: "b", createdAt: at("2026-06-11T15:00:00Z") },
+        { ...base, status: "concluido", customerId: null, customerName: "Balcão", createdAt: at("2026-06-12T15:00:00Z") },
       ],
       finance: [],
       stock: [],
       customers: [],
     });
-    expect(s.firstOrderMonth).toEqual({ id_a: "2026-01", id_b: "2026-06" });
-    // Pruning old month buckets must not forget who is recurrent.
+    expect(s.months["2026-01"].novos).toBe(1);
+    expect(s.months["2026-06"].novos).toBe(1);
+    // Pruning old buckets doesn't change who is new in the kept months.
     const pruned = pruneMonths(s, 1);
-    expect(Object.keys(pruned.months)).toEqual(["2026-06"]);
-    expect(monthCustomerSplit(pruned, "2026-06")).toEqual({ novos: 1, recorrentes: 1 });
+    expect(monthCustomerSplit(pruned.months["2026-06"])).toEqual({ novos: 1, recorrentes: 2 });
   });
 });
