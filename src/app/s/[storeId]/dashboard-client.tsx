@@ -17,9 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { usePageAction } from "@/components/shell/app-shell-context";
 import { SectionHeading, TintedCard, TONES, type Tone } from "@/components/tinted-card";
-import { Legend } from "@/components/charts/chart-kit";
 import {
-  CHANNEL_SERIES,
   ChannelStackChart,
   CustomerSplitChart,
   MonthlySalesChart,
@@ -115,20 +113,9 @@ export function DashboardClient({
           </TintedCard>
           <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-4">
             <TintedCard tone="pink" icon={ChartPie} title="Canais de venda">
-              <div className="mb-2">
-                <Legend items={CHANNEL_SERIES.map((c) => ({ label: c.label, color: c.color }))} />
-              </div>
               <ChannelStackChart months={months} />
             </TintedCard>
             <TintedCard tone="blue" icon={Users} title="Clientes ativos">
-              <div className="mb-2">
-                <Legend
-                  items={[
-                    { label: "Recorrentes", color: "#186B41" },
-                    { label: "Novos", color: "#2F6FB5" },
-                  ]}
-                />
-              </div>
               <CustomerSplitChart months={months} />
             </TintedCard>
           </div>
