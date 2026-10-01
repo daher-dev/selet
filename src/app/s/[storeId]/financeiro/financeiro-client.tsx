@@ -25,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { usePageAction } from "@/components/shell/app-shell-context";
 import { SectionHeading, TintedCard } from "@/components/tinted-card";
-import { Legend } from "@/components/charts/chart-kit";
 import { MonthlySalesChart } from "@/components/charts/evolution-charts";
 import { EntradaSaidaChart, TicketChart } from "@/components/charts/finance-charts";
 import { ManualTxSheet } from "./manual-tx-sheet";
@@ -374,15 +373,6 @@ export function FinanceiroClient({
           {hasFlow ? (
             <>
               <EntradaSaidaChart months={lastSix} />
-              <div className="mt-3.5 border-t border-wash pt-3.5">
-                <Legend
-                  items={[
-                    { label: "Entradas", color: "#92C17D" },
-                    { label: "Saídas", color: "#E2C089" },
-                  ]}
-                  trailing="R$ mil"
-                />
-              </div>
             </>
           ) : (
             <p className="py-6 text-center text-[12.5px] text-ink-faint">
@@ -427,14 +417,6 @@ export function FinanceiroClient({
         {hasTicket ? (
           <>
             <TicketChart months={lastSix} />
-            <div className="mt-2">
-              <Legend
-                items={[
-                  { label: "Ticket médio", color: "#186B41", line: true },
-                  { label: "Clientes ativos", color: "#CDE3C2" },
-                ]}
-              />
-            </div>
           </>
         ) : (
           <p className="py-6 text-center text-[12.5px] text-ink-faint">

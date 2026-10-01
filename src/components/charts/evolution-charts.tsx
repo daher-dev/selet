@@ -1,6 +1,7 @@
 "use client";
 
 import type { MonthPoint } from "@/lib/dashboard-core";
+import { formatBRL } from "@/lib/format";
 import {
   AXIS_TEXT,
   ChartFrame,
@@ -8,27 +9,69 @@ import {
   CURRENT_BG,
   GRID,
   Hatch,
+  HoverColumns,
   LABEL_TEXT,
+  Legend,
   MONTH_TEXT,
   NEGATIVE,
   POSITIVE,
   STRONG_TEXT,
+  dimOpacity,
   kLabel,
   milLabel,
+  monthTitle,
   niceMax,
   pctLabel,
+  useSeriesVisibility,
+  type TooltipModel,
 } from "./chart-kit";
 
-type SalesPoint = Pick<MonthPoint, "key" | "label" | "sales" | "mom" | "partial">;
+type SalesPoint = Pick<MonthPoint, "key" | "label" | "sales" | "mom" | "partial" | "orderCount">;
+
+/** Month `<g>` style while another month is hovered. */
+function dimStyle(hover: number | null, i: number) {
+  return { opacity: dimOpacity(hover, i), transition: "opacity .12s" };
+}
+
+/** "1" → "1 pedido", "3" → "3 pedidos". */
+function pedidos(n: number): string {
+  return `${n.toLocaleString("pt-BR")} ${n === 1 ? "pedido" : "pedidos"}`;
+}
+
+/** Share of `total` as "33,3%" (one decimal, no sign). */
+function share(part: number, total: number): string {
+  if (total <= 0) return "0%";
+  return `${((part / total) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+}
 
 /**
  * 12-month faturamento bars (R$ mil) with a MoM row under the months. The
  * current month is darker, sits on a tinted column and is hatched ("parcial").
  */
 export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
+  const tooltip = (i: number): TooltipModel => {
+    const m = months[i];
+    return {
+      title: monthTitle(m.key),
+      badge: m.partial ? "parcial" : undefined,
+      rows: [
+        { label: "Faturamento", value: formatBRL(m.sales), color: m.partial ? "#186B41" : "#92C17D" },
+        { label: "Pedidos", value: m.orderCount.toLocaleString("pt-BR") },
+        ...(m.mom !== null && !m.partial
+          ? [
+              {
+                label: "vs. mês anterior",
+                value: pctLabel(m.mom),
+                tone: m.mom < 0 ? ("negative" as const) : ("positive" as const),
+              },
+            ]
+          : []),
+      ],
+    };
+  };
   return (
-    <ChartFrame height={252} fallback={1016} label="Vendas mensais">
-      {(W) => {
+    <ChartFrame height={252} fallback={1016} label="Vendas mensais" tooltip={tooltip}>
+      {(W, hover) => {
         const left = 40;
         const top = 20;
         const base = 200;
@@ -67,7 +110,7 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
               const h = Math.max(0, base - barTop);
               const col = { x: cx - slot * 0.45, w: slot * 0.9 };
               return (
-                <g key={m.key}>
+                <g key={m.key} style={dimStyle(hover, i)}>
                   {m.partial && (
                     <rect x={col.x} y={8} width={col.w} height={240} rx={10} fill={CURRENT_BG} />
                   )}
@@ -145,6 +188,7 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
                 </g>
               );
             })}
+            <HoverColumns n={months.length} x0={left} slot={slot} top={0} bottom={252} />
           </>
         );
       }}
@@ -221,148 +265,233 @@ function MonthLabel({ x, m, compact }: { x: number; m: { label: string; partial:
 
 type ChannelPoint = Pick<MonthPoint, "key" | "label" | "partial" | "channels">;
 
+const CHANNEL_KEYS = CHANNEL_SERIES.map((c) => c.key);
+
 /** 100% stacked bars of orders per channel (Loja bottom → Instagram top). */
 export function ChannelStackChart({ months }: { months: ChannelPoint[] }) {
+  const { hidden, isVisible, toggle } = useSeriesVisibility(CHANNEL_KEYS);
+  // Stack order, bottom → top; hidden channels drop out and the rest renormalise.
+  const order = (["loja", "whatsapp", "instagram"] as const).filter(isVisible);
+  const color = Object.fromEntries(CHANNEL_SERIES.map((c) => [c.key, c.color]));
+  const visibleTotal = (m: ChannelPoint) => order.reduce((sum, k) => sum + m.channels[k], 0);
+
+  const tooltip = (i: number): TooltipModel => {
+    const m = months[i];
+    const total = visibleTotal(m);
+    const rows = CHANNEL_SERIES.filter((c) => isVisible(c.key)).map((c) => ({
+      label: c.label,
+      value: `${pedidos(m.channels[c.key])} · ${share(m.channels[c.key], total)}`,
+      color: c.color,
+    }));
+    return {
+      title: monthTitle(m.key),
+      badge: m.partial ? "parcial" : undefined,
+      rows,
+      footer: rows.length > 1 ? { label: "Total", value: pedidos(total) } : undefined,
+    };
+  };
+
   return (
-    <ChartFrame height={218} label="Canais de venda por mês">
-      {(W) => {
-        const f = smallFrame(W, months.length);
-        const compact = f.slot < 30;
-        const h = f.base - f.top;
-        const order = ["loja", "whatsapp", "instagram"] as const;
-        const color = Object.fromEntries(CHANNEL_SERIES.map((c) => [c.key, c.color]));
-        return (
-          <>
-            <Hatch id="hatch-channels" />
-            {[0, 50, 100].map((t) => {
-              const yy = f.base - (t / 100) * h;
-              return (
-                <g key={t}>
-                  <line x1={f.left} x2={W} y1={yy} y2={yy} stroke={GRID} />
-                  <text x={f.left - 6} y={yy + 4} textAnchor="end" fontSize={10.5} fontWeight={500} fill={AXIS_TEXT}>
-                    {t}%
-                  </text>
-                </g>
-              );
-            })}
-            {months.map((m, i) => {
-              const cx = f.cx(i);
-              const total = m.channels.instagram + m.channels.whatsapp + m.channels.loja;
-              let cursor = f.base - 1;
-              return (
-                <g key={m.key}>
-                  {m.partial && <CurrentBg cx={cx} slot={f.slot} />}
-                  {total > 0 &&
-                    order.map((k) => {
-                      const v = m.channels[k];
-                      if (v <= 0) return null;
-                      const segH = (v / total) * (h - 1);
-                      cursor -= segH;
-                      return (
-                        <rect
-                          key={k}
-                          x={cx - f.bw / 2}
-                          y={cursor}
-                          width={f.bw}
-                          height={Math.max(0, segH - 1)}
-                          rx={2}
-                          fill={color[k]}
-                        />
-                      );
-                    })}
-                  <MonthLabel x={cx} m={m} compact={compact} />
-                  {m.partial && (
-                    <CurrentColumn cx={cx} slot={f.slot} hatchId="hatch-channels" base={f.base} />
-                  )}
-                </g>
-              );
-            })}
-          </>
-        );
-      }}
-    </ChartFrame>
+    <>
+      <div className="mb-2">
+        <Legend
+          items={CHANNEL_SERIES.map((c) => ({
+            key: c.key,
+            label: c.label,
+            color: c.color,
+            hidden: hidden.has(c.key),
+          }))}
+          onToggle={(k) => toggle(k as (typeof CHANNEL_KEYS)[number])}
+        />
+      </div>
+      <ChartFrame height={218} label="Canais de venda por mês" tooltip={tooltip}>
+        {(W, hover) => {
+          const f = smallFrame(W, months.length);
+          const compact = f.slot < 30;
+          const h = f.base - f.top;
+          return (
+            <>
+              <Hatch id="hatch-channels" />
+              {[0, 50, 100].map((t) => {
+                const yy = f.base - (t / 100) * h;
+                return (
+                  <g key={t}>
+                    <line x1={f.left} x2={W} y1={yy} y2={yy} stroke={GRID} />
+                    <text x={f.left - 6} y={yy + 4} textAnchor="end" fontSize={10.5} fontWeight={500} fill={AXIS_TEXT}>
+                      {t}%
+                    </text>
+                  </g>
+                );
+              })}
+              {months.map((m, i) => {
+                const cx = f.cx(i);
+                const total = visibleTotal(m);
+                let cursor = f.base - 1;
+                return (
+                  <g key={m.key} style={dimStyle(hover, i)}>
+                    {m.partial && <CurrentBg cx={cx} slot={f.slot} />}
+                    {total > 0 &&
+                      order.map((k) => {
+                        const v = m.channels[k];
+                        if (v <= 0) return null;
+                        const segH = (v / total) * (h - 1);
+                        cursor -= segH;
+                        return (
+                          <rect
+                            key={k}
+                            data-series={k}
+                            x={cx - f.bw / 2}
+                            y={cursor}
+                            width={f.bw}
+                            height={Math.max(0, segH - 1)}
+                            rx={2}
+                            fill={color[k]}
+                          />
+                        );
+                      })}
+                    <MonthLabel x={cx} m={m} compact={compact} />
+                    {m.partial && (
+                      <CurrentColumn cx={cx} slot={f.slot} hatchId="hatch-channels" base={f.base} />
+                    )}
+                  </g>
+                );
+              })}
+              <HoverColumns n={months.length} x0={f.left} slot={f.slot} top={0} bottom={f.base + 28} />
+            </>
+          );
+        }}
+      </ChartFrame>
+    </>
   );
 }
 
 type CustomerPoint = Pick<MonthPoint, "key" | "label" | "partial" | "novos" | "recorrentes">;
 
+const CUSTOMER_SERIES = [
+  { key: "recorrentes", label: "Recorrentes", color: "#186B41" },
+  { key: "novos", label: "Novos", color: "#2F6FB5" },
+] as const;
+
+const CUSTOMER_KEYS = CUSTOMER_SERIES.map((c) => c.key);
+
 /** Stacked recorrentes (bottom) + novos (top) per month, total on top. */
 export function CustomerSplitChart({ months }: { months: CustomerPoint[] }) {
+  const { hidden, isVisible, toggle } = useSeriesVisibility(CUSTOMER_KEYS);
+  const showRec = isVisible("recorrentes");
+  const showNov = isVisible("novos");
+  const parts = (m: CustomerPoint) => ({
+    rec: showRec ? m.recorrentes : 0,
+    nov: showNov ? m.novos : 0,
+  });
+
+  const tooltip = (i: number): TooltipModel => {
+    const m = months[i];
+    const { rec, nov } = parts(m);
+    const rows = CUSTOMER_SERIES.filter((c) => isVisible(c.key)).map((c) => ({
+      label: c.label,
+      value: (c.key === "recorrentes" ? rec : nov).toLocaleString("pt-BR"),
+      color: c.color,
+    }));
+    return {
+      title: monthTitle(m.key),
+      badge: m.partial ? "parcial" : undefined,
+      rows,
+      footer: rows.length > 1 ? { label: "Total", value: (rec + nov).toLocaleString("pt-BR") } : undefined,
+    };
+  };
+
   return (
-    <ChartFrame height={218} label="Clientes ativos por mês">
-      {(W) => {
-        const f = smallFrame(W, months.length);
-        const compact = f.slot < 30;
-        const maxTotal = Math.max(0, ...months.map((m) => m.novos + m.recorrentes));
-        const axisMax = countAxisMax(maxTotal, 3);
-        const h = f.base - f.top;
-        const y = (v: number) => f.base - 1 - (v / axisMax) * (h - 1);
-        return (
-          <>
-            <Hatch id="hatch-customers" />
-            {[0, 1, 2, 3].map((i) => {
-              const t = (axisMax / 3) * i;
-              const yy = f.base - (i / 3) * h;
-              return (
-                <g key={i}>
-                  <line x1={f.left} x2={W} y1={yy} y2={yy} stroke={GRID} />
-                  <text x={f.left - 6} y={yy + 4} textAnchor="end" fontSize={10.5} fontWeight={500} fill={AXIS_TEXT}>
-                    {Math.round(t)}
-                  </text>
-                </g>
-              );
-            })}
-            {months.map((m, i) => {
-              const cx = f.cx(i);
-              const total = m.novos + m.recorrentes;
-              const recTop = y(m.recorrentes);
-              const totTop = y(total);
-              return (
-                <g key={m.key}>
-                  {m.partial && <CurrentBg cx={cx} slot={f.slot} />}
-                  {m.recorrentes > 0 && (
-                    <rect
-                      x={cx - f.bw / 2}
-                      y={recTop}
-                      width={f.bw}
-                      height={f.base - 1 - recTop}
-                      rx={2}
-                      fill="#186B41"
-                      opacity={m.partial ? 1 : 0.8}
-                    />
-                  )}
-                  {m.novos > 0 && (
-                    <rect
-                      x={cx - f.bw / 2}
-                      y={totTop}
-                      width={f.bw}
-                      height={Math.max(0, recTop - totTop - 1)}
-                      rx={2}
-                      fill="#2F6FB5"
-                    />
-                  )}
-                  <MonthLabel x={cx} m={m} compact={compact} />
-                  {m.partial && (
-                    <CurrentColumn cx={cx} slot={f.slot} hatchId="hatch-customers" base={f.base} />
-                  )}
-                  {total > 0 && (!compact || m.partial) && (
-                    <text
-                      x={cx}
-                      y={totTop - 6}
-                      textAnchor="middle"
-                      fontSize={10.5}
-                      fontWeight={m.partial ? 700 : 600}
-                      fill={m.partial ? STRONG_TEXT : LABEL_TEXT}
-                    >
-                      {total}
+    <>
+      <div className="mb-2">
+        <Legend
+          items={CUSTOMER_SERIES.map((c) => ({
+            key: c.key,
+            label: c.label,
+            color: c.color,
+            hidden: hidden.has(c.key),
+          }))}
+          onToggle={(k) => toggle(k as (typeof CUSTOMER_KEYS)[number])}
+        />
+      </div>
+      <ChartFrame height={218} label="Clientes ativos por mês" tooltip={tooltip}>
+        {(W, hover) => {
+          const f = smallFrame(W, months.length);
+          const compact = f.slot < 30;
+          const maxTotal = Math.max(0, ...months.map((m) => parts(m).rec + parts(m).nov));
+          const axisMax = countAxisMax(maxTotal, 3);
+          const h = f.base - f.top;
+          const y = (v: number) => f.base - 1 - (v / axisMax) * (h - 1);
+          return (
+            <>
+              <Hatch id="hatch-customers" />
+              {[0, 1, 2, 3].map((i) => {
+                const t = (axisMax / 3) * i;
+                const yy = f.base - (i / 3) * h;
+                return (
+                  <g key={i}>
+                    <line x1={f.left} x2={W} y1={yy} y2={yy} stroke={GRID} />
+                    <text x={f.left - 6} y={yy + 4} textAnchor="end" fontSize={10.5} fontWeight={500} fill={AXIS_TEXT}>
+                      {Math.round(t)}
                     </text>
-                  )}
-                </g>
-              );
-            })}
-          </>
-        );
-      }}
-    </ChartFrame>
+                  </g>
+                );
+              })}
+              {months.map((m, i) => {
+                const cx = f.cx(i);
+                const { rec, nov } = parts(m);
+                const total = rec + nov;
+                const recTop = y(rec);
+                const totTop = y(total);
+                return (
+                  <g key={m.key} style={dimStyle(hover, i)}>
+                    {m.partial && <CurrentBg cx={cx} slot={f.slot} />}
+                    {rec > 0 && (
+                      <rect
+                        data-series="recorrentes"
+                        x={cx - f.bw / 2}
+                        y={recTop}
+                        width={f.bw}
+                        height={f.base - 1 - recTop}
+                        rx={2}
+                        fill="#186B41"
+                        opacity={m.partial ? 1 : 0.8}
+                      />
+                    )}
+                    {nov > 0 && (
+                      <rect
+                        data-series="novos"
+                        x={cx - f.bw / 2}
+                        y={totTop}
+                        width={f.bw}
+                        height={Math.max(0, recTop - totTop - 1)}
+                        rx={2}
+                        fill="#2F6FB5"
+                      />
+                    )}
+                    <MonthLabel x={cx} m={m} compact={compact} />
+                    {m.partial && (
+                      <CurrentColumn cx={cx} slot={f.slot} hatchId="hatch-customers" base={f.base} />
+                    )}
+                    {total > 0 && (!compact || m.partial) && (
+                      <text
+                        x={cx}
+                        y={totTop - 6}
+                        textAnchor="middle"
+                        fontSize={10.5}
+                        fontWeight={m.partial ? 700 : 600}
+                        fill={m.partial ? STRONG_TEXT : LABEL_TEXT}
+                      >
+                        {total}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+              <HoverColumns n={months.length} x0={f.left} slot={f.slot} top={0} bottom={f.base + 28} />
+            </>
+          );
+        }}
+      </ChartFrame>
+    </>
   );
 }
