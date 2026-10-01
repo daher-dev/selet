@@ -66,12 +66,14 @@ export function ManualTxSheet({
       <SheetContent
         side="right"
         className="w-full gap-0 overflow-y-auto sm:max-w-md"
-        // Land focus on the first field (form) or nowhere (read-only view) —
-        // the default would focus the Entrada/Saída toggle, whose focus ring
-        // reads like a second selected option.
+        // Form: land focus on Descrição — the default would focus the
+        // Entrada/Saída toggle, whose focus ring reads like a second selected
+        // option. Read-only linked view: keep Radix's default so focus still
+        // moves inside the dialog.
         onOpenAutoFocus={(e) => {
+          if (isLinked) return;
           e.preventDefault();
-          if (!isLinked) document.getElementById("tx-label")?.focus();
+          document.getElementById("tx-label")?.focus();
         }}
       >
         <SheetHeader className="border-b border-border">
@@ -179,7 +181,7 @@ function ManualTxForm({
     <>
       <div className="flex-1 space-y-4 p-[22px]">
         <div
-          role="radiogroup"
+          role="group"
           aria-label="Tipo de lançamento"
           className="flex gap-2 rounded-[11px] bg-[#F3F7F1] p-1"
         >
@@ -192,8 +194,7 @@ function ManualTxForm({
             <button
               key={opt.value}
               type="button"
-              role="radio"
-              aria-checked={direction === opt.value}
+              aria-pressed={direction === opt.value}
               onClick={() => setDirection(opt.value)}
               className={cn(
                 "flex h-9 flex-1 items-center justify-center rounded-lg text-[13px] transition-colors",
