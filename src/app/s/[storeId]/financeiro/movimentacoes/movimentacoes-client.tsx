@@ -14,6 +14,7 @@ import { usePageAction, usePageHeader } from "@/components/shell/app-shell-conte
 import { competenciaLabel, txShortMeta } from "../finance-shared";
 import { TxAmount, TxIcon } from "../tx-visuals";
 import { ManualTxSheet } from "../manual-tx-sheet";
+import { useCategoryLabels } from "@/components/finance-settings-context";
 
 type FilterTab = "todos" | "entradas" | "saidas" | "avulsos" | "vinculados";
 
@@ -36,6 +37,7 @@ export function MovimentacoesClient({
   transactions: FinanceTx[];
   stockItemNames: Record<string, string>;
 }) {
+  const categoryLabels = useCategoryLabels();
   const [tab, setTab] = useState<FilterTab>("todos");
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -155,7 +157,7 @@ export function MovimentacoesClient({
                         {tx.label}
                       </span>
                       <span className="block truncate text-[11.5px] text-[#A0AC9D]">
-                        {txShortMeta(tx)}
+                        {txShortMeta(tx, categoryLabels)}
                       </span>
                     </span>
                     <TxAmount tx={tx} className="shrink-0 text-[14px]" />
@@ -204,12 +206,13 @@ export function MovimentacoesClient({
 }
 
 function LancamentoCell({ tx }: { tx: FinanceTx }) {
+  const categoryLabels = useCategoryLabels();
   return (
     <span className="flex min-w-0 items-center gap-3">
       <TxIcon direction={tx.direction} />
       <span className="min-w-0">
         <span className="block truncate text-[13.5px] font-semibold text-ink">{tx.label}</span>
-        <span className="block truncate text-[11.5px] text-[#A0AC9D]">{txShortMeta(tx)}</span>
+        <span className="block truncate text-[11.5px] text-[#A0AC9D]">{txShortMeta(tx, categoryLabels)}</span>
       </span>
     </span>
   );

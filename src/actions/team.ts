@@ -73,7 +73,7 @@ export async function inviteMemberAction(
       by: actor.email,
       section: "equipe",
     });
-    revalidatePath(`/s/${storeId}/equipe`);
+    revalidatePath(`/s/${storeId}/configuracoes/equipe`);
   });
 }
 
@@ -95,7 +95,7 @@ export async function updateMemberAction(
       by: actor.email,
       section: "equipe",
     });
-    revalidatePath(`/s/${storeId}/equipe`);
+    revalidatePath(`/s/${storeId}/configuracoes/equipe`);
   });
 }
 
@@ -117,7 +117,7 @@ export async function setMemberStatusAction(
       by: actor.email,
       section: "equipe",
     });
-    revalidatePath(`/s/${storeId}/equipe`);
+    revalidatePath(`/s/${storeId}/configuracoes/equipe`);
   });
 }
 
@@ -142,7 +142,7 @@ export async function resendInviteAction(
       by: actor.email,
       section: "equipe",
     });
-    revalidatePath(`/s/${storeId}/equipe`);
+    revalidatePath(`/s/${storeId}/configuracoes/equipe`);
   });
 }
 

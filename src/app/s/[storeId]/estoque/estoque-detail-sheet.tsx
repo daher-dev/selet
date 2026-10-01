@@ -27,11 +27,6 @@ import type {
   StockMovementReason,
   StockUnit,
 } from "@/lib/types";
-import {
-  consumptionModeForUnit,
-  isWeightVolumeUnit,
-  STOCK_CATEGORIES,
-} from "@/lib/types";
 import { formatBRL, formatRelative, formatQty, parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -53,8 +48,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { CategoryTile, STOCK_CATEGORY_META } from "@/components/category-meta";
-import { isFrac, pkgCount, pkgPlural, stockStatus, unitLabel } from "./stock-view";
+import { CategoryTile } from "@/components/category-meta";
+import { useStockCategoryMeta, useStockSettings, useUnits } from "@/components/stock-settings-context";
+import { UnitPicker } from "./unit-picker";
+import { isFrac, pkgCount, pkgPlural, stockStatus } from "./stock-view";
 
 export interface OrderRef {
   id: string;
@@ -145,6 +142,8 @@ function DetailBody({
   usedIn: RecipeUsage[];
   onClose: () => void;
 }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
+  const { unitLabel } = useUnits();
   const [liveItem, setLiveItem] = useState(item);
   const meta = STOCK_CATEGORY_META[liveItem.category];
   const pu = unitLabel(liveItem.unit);
@@ -447,6 +446,9 @@ function EditPanel({
   onToggle: () => void;
   onClose: () => void;
 }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
+  const { categories: stockCategories } = useStockSettings();
+  const { unitLabel, unitKind } = useUnits();
   const [name, setName] = useState(item.name);
   const [category, setCategory] = useState<StockCategory>(item.category);
   const [unit, setUnit] = useState<StockUnit>(item.unit);
@@ -456,11 +458,11 @@ function EditPanel({
   const [reorder, setReorder] = useState(String(item.reorderAt));
   const [pending, startTransition] = useTransition();
 
-  const isCount = unit === "un" || unit === "sache";
+  const isCount = unitKind(unit) === "count";
   const pkgLabelValue = pkgLabel.trim() || "caixa";
   const pkgLabelPlural = pkgPlural(pkgLabelValue, pkgLabelPluralInput);
   // UNIT RULE: consumption mode is DERIVED from the unit, never toggled here.
-  const isWeightVol = isWeightVolumeUnit(unit);
+  const isWeightVol = unitKind(unit) === "measure";
   const reorderUnit = item.tracked ? pkgLabelPlural : unit;
 
   function save() {
@@ -476,7 +478,7 @@ function EditPanel({
         pkgLabelPlural: item.tracked ? pkgLabelPluralInput.trim() || undefined : undefined,
         pkgSize: pkgSize ? Number(pkgSize.replace(",", ".")) : item.pkgSize,
         continuousUse: isWeightVol,
-        consumptionMode: consumptionModeForUnit(unit),
+        consumptionMode: isWeightVol ? "continuo" : "medido",
         resellable: item.resellable,
         cost: item.cost,
         sellPrice: item.sellPrice,
@@ -555,7 +557,7 @@ function EditPanel({
           <div>
             <FieldLabel>Categoria</FieldLabel>
             <div className="flex flex-wrap gap-1.5">
-              {STOCK_CATEGORIES.map((key) => {
+              {stockCategories.map(({ id: key }) => {
                 const m = STOCK_CATEGORY_META[key];
                 const Icon = m.icon;
                 const on = category === key;
@@ -579,7 +581,10 @@ function EditPanel({
             </div>
           </div>
 
-          <UnitGroups value={unit} onChange={setUnit} />
+          <div>
+            <FieldLabel>Unidade de uso</FieldLabel>
+            <UnitPicker value={unit} onChange={setUnit} variant="compact" />
+          </div>
 
           {item.tracked && (
             <div>
@@ -684,6 +689,7 @@ function EntradaForm({
   item: StockItem;
   onDone: () => void;
 }) {
+  const { unitLabel } = useUnits();
   const [qty, setQty] = useState("");
   const [price, setPrice] = useState("");
   const [pending, startTransition] = useTransition();
@@ -752,6 +758,7 @@ function SaidaForm({
   menuProducts: Product[];
   onDone: () => void;
 }) {
+  const { unitLabel } = useUnits();
   const [reason, setReason] = useState<StockMovementReason>("AJUSTE");
   const [qty, setQty] = useState("");
   const [ref, setRef] = useState<{ value: string; label: string } | null>(null);
@@ -929,6 +936,7 @@ function MovementEditForm({
   onCancel: () => void;
   onDone: () => void;
 }) {
+  const { unitLabel } = useUnits();
   const [qty, setQty] = useState(String(movement.qty).replace(".", ","));
   const [price, setPrice] = useState(
     movement.price != null ? formatBRL(movement.price).replace("R$", "").trim() : "",
@@ -1078,6 +1086,7 @@ function Timeline({
   item: StockItem;
   onEdit: (movement: StockMovement) => void;
 }) {
+  const { unitLabel } = useUnits();
   if (!movements || movements.length === 0) return null;
   return (
     <div className="flex flex-col">
@@ -1261,47 +1270,6 @@ function InlineInput({
         className="tabular w-full min-w-0 bg-transparent text-[14px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-ink-faint"
       />
       {suffix && <span className="whitespace-nowrap text-[12.5px] text-ink-faint">{suffix}</span>}
-    </div>
-  );
-}
-
-function UnitGroups({
-  value,
-  onChange,
-}: {
-  value: StockUnit;
-  onChange: (u: StockUnit) => void;
-}) {
-  const groups: StockUnit[][] = [
-    ["un", "sache"],
-    ["g", "kg"],
-    ["ml", "L"],
-  ];
-  return (
-    <div>
-      <FieldLabel>Unidade de uso</FieldLabel>
-      <div className="flex gap-2">
-        {groups.map((group, gi) => (
-          <div
-            key={gi}
-            className="flex flex-1 gap-0.5 rounded-lg border border-border bg-surface p-0.5"
-          >
-            {group.map((u) => (
-              <button
-                key={u}
-                type="button"
-                onClick={() => onChange(u)}
-                className={cn(
-                  "flex-1 rounded-md py-2 text-[12.5px] font-semibold transition-colors",
-                  value === u ? "bg-primary text-white" : "text-ink-soft hover:text-ink",
-                )}
-              >
-                {unitLabel(u)}
-              </button>
-            ))}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

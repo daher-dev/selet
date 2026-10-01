@@ -37,8 +37,6 @@ function product(overrides: Partial<Product>): Product {
     recipe: [],
     adicionais: [],
     tiers: [{ qty: 1, price: 1200 }],
-    stockManaged: false,
-    producedStock: 0,
     archived: false,
     ...overrides,
   };

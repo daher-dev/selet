@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import { applyMovementAction } from "@/actions/stock";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CategoryTile, STOCK_CATEGORY_META } from "@/components/category-meta";
+import { CategoryTile } from "@/components/category-meta";
+import { useStockCategoryMeta } from "@/components/stock-settings-context";
 
 interface Props {
   storeId: string;
@@ -170,6 +171,7 @@ function ItemPicker({
   onChange: (id: string) => void;
   onCreateNew: () => void;
 }) {
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);

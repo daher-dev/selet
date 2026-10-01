@@ -1,26 +1,11 @@
-import { getSessionUser, requireAccess } from "@/lib/access";
-import { listUsers } from "@/data/users";
-import { listStores } from "@/data/stores";
-import { EquipeClient } from "./equipe-client";
+import { permanentRedirect } from "next/navigation";
 
-export default async function EquipePage({
+/** Equipe moved under Configurações → Equipe. */
+export default async function EquipeMoved({
   params,
 }: {
   params: Promise<{ storeId: string }>;
 }) {
   const { storeId } = await params;
-  await requireAccess(storeId, "equipe");
-  const me = await getSessionUser();
-
-  const [members, stores] = await Promise.all([listUsers(), listStores()]);
-
-  return (
-    <EquipeClient
-      storeId={storeId}
-      members={members}
-      stores={stores}
-      meEmail={me!.email}
-      meIsAdmin={me!.role === "admin"}
-    />
-  );
+  permanentRedirect(`/s/${storeId}/configuracoes/equipe`);
 }

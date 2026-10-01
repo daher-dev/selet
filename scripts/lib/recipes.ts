@@ -38,8 +38,6 @@ export interface ProductRecipe {
   adicionais: AddonData[];
   tiers: TierData[];
   insumoId?: string;
-  stockManaged: boolean;
-  prep: "sob demanda" | "lote" | null;
 }
 
 /** The store's slug → price_centavos map (menu-prices.json[storeId]). */
@@ -171,8 +169,6 @@ export function recipeFor(item: RecipeInput, prices: StorePrices): ProductRecipe
         recipe: shakeRecipe(slug, description),
         adicionais: buildAddons(SHAKE_ADDONS, prices),
         tiers,
-        stockManaged: false,
-        prep: "sob demanda",
       };
 
     case "waffles":
@@ -181,8 +177,6 @@ export function recipeFor(item: RecipeInput, prices: StorePrices): ProductRecipe
         recipe: [ri(INSUMO.pdm, null), ri(INSUMO.ninho, null)],
         adicionais: buildAddons(WAFFLE_ADDONS, prices),
         tiers,
-        stockManaged: false,
-        prep: "sob demanda",
       };
 
     case "salgados": {
@@ -192,15 +186,13 @@ export function recipeFor(item: RecipeInput, prices: StorePrices): ProductRecipe
           recipe: [ri(INSUMO.pdm, null), ri(INSUMO.nutrisoup, null)],
           adicionais: [],
           tiers,
-          stockManaged: true,
-          prep: "lote",
         };
       }
       const recipe =
         slug === "salgado-escondidinho-de-frango"
           ? [ri(INSUMO.nutrisoup, null), ri(INSUMO.pdm, null)]
           : [ri(INSUMO.nutrisoup, null)]; // pizza proteica / de frango
-      return { saleType: "menu", recipe, adicionais: [], tiers, stockManaged: false, prep: "sob demanda" };
+      return { saleType: "menu", recipe, adicionais: [], tiers };
     }
 
     case "bebidas": {
@@ -208,7 +200,7 @@ export function recipeFor(item: RecipeInput, prices: StorePrices): ProductRecipe
       if (slug === "bebida-seca-barriga") recipe = [ri(INSUMO.fiber, null)];
       else if (slug === "bebida-colageno-drink") recipe = [ri(INSUMO.beauty, 1)];
       else recipe = [ri(INSUMO.herbal, null)]; // hype / sunset / refrigerante
-      return { saleType: "menu", recipe, adicionais: [], tiers, stockManaged: false, prep: "sob demanda" };
+      return { saleType: "menu", recipe, adicionais: [], tiers };
     }
 
     case "lanches": {
@@ -218,8 +210,6 @@ export function recipeFor(item: RecipeInput, prices: StorePrices): ProductRecipe
           recipe: [ri(INSUMO.pdm, null), ri(INSUMO.nutrisoup, null)],
           adicionais: [],
           tiers,
-          stockManaged: true,
-          prep: "lote",
         };
       }
       if (slug === "lanche-barrinha-de-proteina" || slug === "lanche-barra-proteica") {
@@ -229,8 +219,6 @@ export function recipeFor(item: RecipeInput, prices: StorePrices): ProductRecipe
           adicionais: [],
           tiers,
           insumoId: INSUMO.barra.id,
-          stockManaged: false,
-          prep: null,
         };
       }
       if (slug === "lanche-pudim-proteico") {
@@ -239,12 +227,10 @@ export function recipeFor(item: RecipeInput, prices: StorePrices): ProductRecipe
           recipe: [ri(INSUMO.pdm, null)],
           adicionais: [],
           tiers,
-          stockManaged: false,
-          prep: "sob demanda",
         };
       }
       // Pão de Mel / Trufa — no tracked insumo.
-      return { saleType: "menu", recipe: [], adicionais: [], tiers, stockManaged: false, prep: "sob demanda" };
+      return { saleType: "menu", recipe: [], adicionais: [], tiers };
     }
 
     case "adicionais":
@@ -253,11 +239,9 @@ export function recipeFor(item: RecipeInput, prices: StorePrices): ProductRecipe
         recipe: addonStandaloneRecipe(slug),
         adicionais: [],
         tiers,
-        stockManaged: false,
-        prep: "sob demanda",
       };
 
     default:
-      return { saleType: "menu", recipe: [], adicionais: [], tiers, stockManaged: false, prep: "sob demanda" };
+      return { saleType: "menu", recipe: [], adicionais: [], tiers };
   }
 }

@@ -11,8 +11,6 @@ export interface InsumoNeed {
 export interface ConsumptionRequests {
   /** stockItems id → summed need across all lines. */
   insumos: Map<string, InsumoNeed>;
-  /** stockManaged product id → porções to draw from producedStock. */
-  produced: Map<string, number>;
 }
 
 function addInsumo(map: Map<string, InsumoNeed>, id: string, amount: number, uses: number) {
@@ -24,26 +22,20 @@ function addInsumo(map: Map<string, InsumoNeed>, id: string, amount: number, use
 
 /**
  * Draws `qty` units of `product`'s own stock — revenda/adicional decrements
- * its linked insumo; menu draws from producedStock when batch-managed, else
- * consumes the BASE recipe.
+ * its linked insumo; menu consumes the BASE recipe.
  */
 function drawForProduct(
   product: Product,
   qty: number,
   insumos: Map<string, InsumoNeed>,
-  produced: Map<string, number>,
 ) {
   if (product.saleType === "revenda" || product.saleType === "adicional") {
     if (product.insumoId) addInsumo(insumos, product.insumoId, qty, qty);
     return;
   }
-  if (product.stockManaged) {
-    produced.set(product.id, (produced.get(product.id) ?? 0) + qty);
-  } else {
-    for (const r of product.recipe) {
-      if (!r.stockItemId) continue;
-      addInsumo(insumos, r.stockItemId, (r.qty ?? 0) * qty, qty);
-    }
+  for (const r of product.recipe) {
+    if (!r.stockItemId) continue;
+    addInsumo(insumos, r.stockItemId, (r.qty ?? 0) * qty, qty);
   }
 }
 
@@ -165,13 +157,12 @@ function resolvePudimLine(
  * confirmed café semantics:
  *  - revenda/adicional line → decrement its linked insumo by lineQty (adicional
  *    is never independently orderable, but the draw logic is shared).
- *  - stockManaged menu line → draw lineQty from producedStock.
- *  - sob-demanda menu line → consume each recipe insumo (medido: qty×lineQty).
+ *  - menu line → consume each recipe insumo (medido: qty×lineQty).
  *  - adicionais (any menu line) → consume each add-on's own stockItemId.
  *  - "Montar shake" line (line.shake set) → resolveShakeLine (flavor recipe +
  *    base + rims + mixins + utensílios), an entirely separate resolution path
  *    from the Product-based one above. If the line also carries a brinde (a
- *    free Product riding along), that brinde's own recipe/producedStock draws
+ *    free Product riding along), that brinde's own recipe draws
  *    via drawForProduct (same as an ordinary Cardápio line) PLUS its charged
  *    add-ons' insumos — all scaled by lineQty, regardless of the line's
  *    unitPrice (a brinde's price is 0, but that never gates its stock draw).
@@ -188,13 +179,12 @@ export function buildConsumptionRequests(
   pudimCatalogs?: PudimCatalogs,
 ): ConsumptionRequests {
   const insumos = new Map<string, InsumoNeed>();
-  const produced = new Map<string, number>();
 
   function drawBrinde(brinde: { productId: string; addons?: { name: string; price: number }[] } | undefined, lineQty: number) {
     if (!brinde) return;
     const brindeProduct = products.get(brinde.productId);
     if (!brindeProduct) return;
-    drawForProduct(brindeProduct, lineQty, insumos, produced);
+    drawForProduct(brindeProduct, lineQty, insumos);
     for (const addon of brinde.addons ?? []) {
       const productAddon = brindeProduct.adicionais.find((a) => a.name === addon.name);
       if (!productAddon?.stockItemId) continue;
@@ -224,7 +214,7 @@ export function buildConsumptionRequests(
     if (!product) continue; // unresolved product → best-effort skip
     const lineQty = line.qty;
 
-    drawForProduct(product, lineQty, insumos, produced);
+    drawForProduct(product, lineQty, insumos);
 
     // Add-ons are consumed at sale time regardless of production mode.
     for (const name of line.addons ?? []) {
@@ -234,5 +224,5 @@ export function buildConsumptionRequests(
     }
   }
 
-  return { insumos, produced };
+  return { insumos };
 }

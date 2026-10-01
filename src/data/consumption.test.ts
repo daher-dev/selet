@@ -28,8 +28,6 @@ function product(overrides: Partial<Product> & { id: string }): Product {
     recipe: [],
     adicionais: [],
     tiers: [{ qty: 1, price: 1000 }],
-    stockManaged: false,
-    producedStock: 0,
     archived: false,
     ...overrides,
   };
@@ -75,21 +73,6 @@ describe("buildConsumptionRequests", () => {
     expect(insumos.get("ins-1")).toEqual({ amount: 4, uses: 2 });
   });
 
-  it("stockManaged menu line draws from producedStock instead of consuming insumos", () => {
-    const bolo = product({
-      id: "bolo",
-      saleType: "menu",
-      stockManaged: true,
-      recipe: [{ stockItemId: "ins-1", name: "Insumo", qty: 2, unit: "g" }],
-    });
-    const { insumos, produced } = buildConsumptionRequests(
-      [line({ productId: "bolo", qty: 4 })],
-      new Map([["bolo", bolo]]),
-    );
-    expect(produced.get("bolo")).toBe(4);
-    expect(insumos.size).toBe(0);
-  });
-
   it("add-on with stockItemId consumes its own insumo", () => {
     const shake = product({
       id: "shake",
@@ -107,12 +90,11 @@ describe("buildConsumptionRequests", () => {
       id: "shake",
       adicionais: [{ name: "Sem estoque", price: 100 }],
     });
-    const { insumos, produced } = buildConsumptionRequests(
+    const { insumos } = buildConsumptionRequests(
       [line({ productId: "shake", qty: 1, addons: ["Sem estoque"] })],
       new Map([["shake", shake]]),
     );
     expect(insumos.size).toBe(0);
-    expect(produced.size).toBe(0);
   });
 });
 
@@ -478,32 +460,6 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
       expect(insumos.get("ins-mel")).toEqual({ amount: 10, uses: 1 });
     });
 
-    it("a stockManaged brinde draws producedStock, not insumos", () => {
-      const f = flavor({ id: "sabor-1" });
-      const brindeProduct = product({
-        id: "bolo-fatia",
-        stockManaged: true,
-        recipe: [{ stockItemId: "ins-farinha", name: "Farinha", qty: 50, unit: "g" }],
-      });
-      const { insumos, produced } = buildConsumptionRequests(
-        [
-          shakeLine({
-            shake: {
-              flavorIds: ["sabor-1"],
-              baseId: null,
-              rims: [],
-              mixins: [],
-              brinde: { productId: "bolo-fatia", name: "Bolo", listPrice: 600 },
-            },
-          }),
-        ],
-        new Map([["bolo-fatia", brindeProduct]]),
-        catalogs({ flavors: new Map([["sabor-1", f]]) }),
-      );
-      expect(produced.get("bolo-fatia")).toBe(1);
-      expect(insumos.has("ins-farinha")).toBe(false);
-    });
-
     it("brinde recipe AND addon draws scale by line.qty", () => {
       const f = flavor({ id: "sabor-1" });
       const brindeProduct = product({
@@ -554,9 +510,8 @@ describe("buildConsumptionRequests · Montar shake lines", () => {
         catalogs({ flavors: new Map([["sabor-1", f]]) }),
       ];
       expect(() => buildConsumptionRequests(...args)).not.toThrow();
-      const { insumos, produced } = buildConsumptionRequests(...args);
+      const { insumos } = buildConsumptionRequests(...args);
       expect(insumos.size).toBe(0);
-      expect(produced.size).toBe(0);
     });
   });
 });
@@ -888,32 +843,6 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
       expect(insumos.get("ins-cha")).toEqual({ amount: 5, uses: 1 });
     });
 
-    it("a stockManaged brinde draws producedStock, not insumos", () => {
-      const f = flavor({ id: "sabor-1" });
-      const brindeProduct = product({
-        id: "bolo-fatia",
-        stockManaged: true,
-        recipe: [{ stockItemId: "ins-farinha", name: "Farinha", qty: 50, unit: "g" }],
-      });
-      const { insumos, produced } = buildConsumptionRequests(
-        [
-          pudimLine({
-            pudim: {
-              flavorIds: ["sabor-1"],
-              baseId: null,
-              mixins: [],
-              brinde: { productId: "bolo-fatia", name: "Bolo", listPrice: 600 },
-            },
-          }),
-        ],
-        new Map([["bolo-fatia", brindeProduct]]),
-        undefined,
-        catalogs({ flavors: new Map([["sabor-1", f]]) }),
-      );
-      expect(produced.get("bolo-fatia")).toBe(1);
-      expect(insumos.has("ins-farinha")).toBe(false);
-    });
-
     it("a brinde whose Product is absent from the map is skipped without throwing", () => {
       const f = flavor({ id: "sabor-1" });
       const args: Parameters<typeof buildConsumptionRequests> = [
@@ -932,9 +861,8 @@ describe("buildConsumptionRequests · Montar pudim lines", () => {
         catalogs({ flavors: new Map([["sabor-1", f]]) }),
       ];
       expect(() => buildConsumptionRequests(...args)).not.toThrow();
-      const { insumos, produced } = buildConsumptionRequests(...args);
+      const { insumos } = buildConsumptionRequests(...args);
       expect(insumos.size).toBe(0);
-      expect(produced.size).toBe(0);
     });
   });
 });

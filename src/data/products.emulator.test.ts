@@ -38,7 +38,6 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
         },
       ],
       tiers: [{ qty: 1, price: 3600 }],
-      stockManaged: false,
     });
 
     let product = await getProduct(storeId, id);
@@ -81,12 +80,10 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
         { qty: 1, price: 4200 },
         { qty: 3, price: 11000 },
       ],
-      stockManaged: true,
     });
     product = await getProduct(storeId, id);
     expect(product?.price).toBe(4200);
     expect(product?.active).toBe(false);
-    expect(product?.stockManaged).toBe(true);
     expect(product?.tiers).toHaveLength(2);
     expect(product?.adicionais).toEqual([]);
     // description cleared on an update that omits it
@@ -112,7 +109,6 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
       adicionais: [],
       tiers: [{ qty: 1, price: 300 }],
       insumoId: "calda-insumo",
-      stockManaged: false,
     });
 
     const product = await getProduct(storeId, id);
@@ -138,7 +134,6 @@ describe.skipIf(!hasEmulator)("products repository (emulator)", () => {
       recipe: [],
       adicionais: [],
       tiers: [{ qty: 1, price: 1200 }],
-      stockManaged: false,
     });
     expect(await listProducts(otherStore)).toHaveLength(0);
   });

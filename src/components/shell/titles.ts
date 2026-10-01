@@ -31,7 +31,7 @@ const TITLES: Record<
   },
   estoque: { title: "Estoque", subtitle: "Embalagens, fracionamento e rendimento" },
   financeiro: { title: "Financeiro", subtitle: "Saldo, entradas e saídas" },
-  equipe: { title: "Equipe", subtitle: "Gestão de funcionários por loja" },
+  configuracoes: { title: "Configurações", subtitle: "Dados e preferências da loja" },
 };
 
 /** Resolve the current segment from a store-scoped pathname. */

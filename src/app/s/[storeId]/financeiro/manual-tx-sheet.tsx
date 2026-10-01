@@ -3,16 +3,22 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
+  Check,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Loader2,
   Lock,
   Package,
+  Plus,
   ShoppingBag,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { FinanceTx } from "@/lib/types";
-import { FINANCE_CATEGORIES } from "@/lib/types";
+import { PALETTE, financeCategoriesFor, type FinanceCategoryDef } from "@/lib/stock-settings";
+import { FinanceCategoryDialog } from "@/components/settings-dialogs";
+import { useCategoryLabels, useFinanceSettings } from "@/components/finance-settings-context";
 import { formatBRL, formatDate, orderCode, parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -20,19 +26,13 @@ import {
   deleteManualTxAction,
   updateManualTxAction,
 } from "@/actions/finance";
-import { CATEGORY_LABELS, dayMonth, todayDateInput } from "./finance-shared";
+import { dayMonth, todayDateInput } from "./finance-shared";
 import { TxAmount, TxIcon } from "./tx-visuals";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -124,7 +124,9 @@ function ManualTxForm({
 }) {
   const [label, setLabel] = useState(editingTx?.label ?? "");
   const [direction, setDirection] = useState<"in" | "out">(editingTx?.direction ?? "out");
-  const [category, setCategory] = useState<string>(editingTx?.category ?? "compras");
+  const { categories, isAdmin } = useFinanceSettings();
+  const options = financeCategoriesFor(categories, editingTx?.direction ?? "out");
+  const [category, setCategory] = useState<string>(editingTx?.category ?? options[0]?.id ?? "");
   const [amount, setAmount] = useState(
     editingTx ? formatBRL(editingTx.amount).replace("R$", "").trim() : "",
   );
@@ -146,7 +148,7 @@ function ManualTxForm({
       const data = {
         storeId,
         label,
-        category: category as (typeof FINANCE_CATEGORIES)[number],
+        category,
         amount: amountCentavos,
         direction,
         date: new Date(`${date}T12:00:00Z`).toISOString(),
@@ -195,7 +197,11 @@ function ManualTxForm({
               key={opt.value}
               type="button"
               aria-pressed={direction === opt.value}
-              onClick={() => setDirection(opt.value)}
+              onClick={() => {
+                setDirection(opt.value);
+                const list = financeCategoriesFor(categories, opt.value);
+                if (!list.some((c) => c.id === category)) setCategory(list[0]?.id ?? "");
+              }}
               className={cn(
                 "flex h-9 flex-1 items-center justify-center rounded-lg text-[13px] transition-colors",
                 direction === opt.value
@@ -250,18 +256,13 @@ function ManualTxForm({
 
         <div className="space-y-1.5">
           <Label className={FIELD_LABEL}>Categoria</Label>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className={cn(FIELD_INPUT, "w-full data-[size=default]:h-11")}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FINANCE_CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {CATEGORY_LABELS[c]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <CategoryPicker
+            storeId={storeId}
+            direction={direction}
+            value={category}
+            onChange={setCategory}
+            isAdmin={!!isAdmin}
+          />
         </div>
 
         <div className="space-y-1.5">
@@ -399,5 +400,106 @@ function LinkedTxView({
         )}
       </div>
     </div>
+  );
+}
+
+/** Colored category dropdown (design: Mock Financeiro 4b) with inline "Nova categoria". */
+function CategoryPicker({
+  storeId,
+  direction,
+  value,
+  onChange,
+  isAdmin,
+}: {
+  storeId: string;
+  direction: "in" | "out";
+  value: string;
+  onChange: (id: string) => void;
+  isAdmin: boolean;
+}) {
+  const { categories } = useFinanceSettings();
+  const labels = useCategoryLabels();
+  const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const options: FinanceCategoryDef[] = financeCategoriesFor(categories, direction);
+  const Chevron = open ? ChevronUp : ChevronDown;
+
+  return (
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label="Categoria"
+            className={cn(
+              "flex h-11 w-full items-center rounded-[11px] bg-white px-3.5 text-left text-[14px] font-medium text-ink",
+              open ? "border-[1.5px] border-primary" : "border border-[#DDE7D8]",
+            )}
+          >
+            <span className="flex-1 truncate">{labels[value] ?? "Escolha a categoria"}</span>
+            <Chevron className="size-4 text-ink-faint" strokeWidth={2.2} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-(--radix-popover-trigger-width) rounded-xl border-[#DDE7D8] p-1.5 shadow-[0_18px_40px_-14px_rgba(21,40,30,.3)]"
+        >
+          <ul role="listbox" aria-label="Categorias">
+            {options.map((c) => {
+              const on = c.id === value;
+              return (
+                <li key={c.id} role="option" aria-selected={on}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(c.id);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-left text-[14px]",
+                      on ? "bg-primary/8 font-semibold text-primary" : "hover:bg-mist",
+                    )}
+                  >
+                    <span className="size-2.5 rounded-full" style={{ backgroundColor: PALETTE[c.color]?.hex }} />
+                    <span className="flex-1">{c.name}</span>
+                    {on && <Check className="size-4" strokeWidth={2.4} />}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="mt-1 flex items-center gap-2 border-t border-[#F0F4ED] px-2.5 pb-1.5 pt-2.5 text-[13px]">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setCreating(true);
+              }}
+              className="flex items-center gap-2 font-bold text-primary"
+            >
+              <Plus className="size-3.5" strokeWidth={2.2} />
+              Nova categoria
+            </button>
+            <span className="flex-1" />
+            {isAdmin && (
+              <Link
+                href={`/s/${storeId}/configuracoes/financeiro`}
+                className="font-semibold text-ink-faint hover:text-ink-soft"
+              >
+                Gerenciar em Configurações
+              </Link>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+      <FinanceCategoryDialog
+        storeId={storeId}
+        open={creating}
+        onOpenChange={setCreating}
+        defaultDirection={direction}
+        lockDirection
+        onSaved={(id) => id && onChange(id)}
+      />
+    </>
   );
 }

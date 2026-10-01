@@ -2,16 +2,19 @@ import { Archive, CircleCheck, CircleX, RotateCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { StockItem } from "@/lib/types";
 import { formatQty } from "@/lib/format";
+import { DEFAULT_STOCK_UNITS, unitKind, unitLabelFrom, type StockUnitDef } from "@/lib/stock-settings";
 
 /** Count-like units render the open package as discrete pips (not a fill bar). */
-export function isCountUnit(unit: string): boolean {
-  return unit === "un" || unit === "sache";
+export function isCountUnit(unit: string, units: StockUnitDef[] = DEFAULT_STOCK_UNITS): boolean {
+  return unitKind(units, unit) === "count";
 }
 
-/** Display form of a unit: internal "sache" → "sachê"/"sachês". */
-export function unitLabel(unit: string, plural = false): string {
-  if (unit === "sache") return plural ? "sachês" : "sachê";
-  return unit;
+/**
+ * Display form of a unit id through the store's units (default units when
+ * omitted): "sache" → "sachê"/"sachês". Components use `useUnits()`.
+ */
+export function unitLabel(unit: string, plural = false, units: StockUnitDef[] = DEFAULT_STOCK_UNITS): string {
+  return unitLabelFrom(units, unit, plural);
 }
 
 /** Plural of an embalagem label: the manual plural when set, else append "s". */
@@ -99,16 +102,16 @@ export interface StockCardView {
 }
 
 /** Everything the estoque card needs to render, mirroring the design's stockRows. */
-export function buildStockCard(item: StockItem): StockCardView {
+export function buildStockCard(item: StockItem, units: StockUnitDef[] = DEFAULT_STOCK_UNITS): StockCardView {
   const status = stockStatus(item);
   const low = status === "repor" || status === "esgotado";
-  const pu = unitLabel(item.unit, false);
-  const puPlural = unitLabel(item.unit, true);
+  const pu = unitLabel(item.unit, false, units);
+  const puPlural = unitLabel(item.unit, true, units);
   const frac = isFrac(item);
   const pkgSize = item.pkgSize ?? 1;
   const pkgLabel = item.pkgLabel ?? "emb.";
 
-  const exact = isCountUnit(item.unit) && !item.continuousUse;
+  const exact = isCountUnit(item.unit, units) && !item.continuousUse;
   const hasOpen = item.continuousUse ? item.openPkg : item.tracked && frac && item.open > 0;
 
   const leftColor = item.archived
@@ -154,7 +157,7 @@ export function buildStockCard(item: StockItem): StockCardView {
       ? frac
         ? `${formatQty(pkgSize, pu)}/${pkgLabel}`
         : item.sealed === 0
-          ? `mínimo ${formatQty(item.reorderAt, unitLabel(item.unit))}.`
+          ? `mínimo ${formatQty(item.reorderAt, unitLabel(item.unit, false, units))}.`
           : `vendido por ${pkgLabel}`
       : "não rastreado",
     leftColor,

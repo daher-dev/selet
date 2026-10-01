@@ -6,7 +6,6 @@ import { requireAccess } from "@/lib/access";
 import {
   createProduct,
   deleteProduct,
-  produceBatch,
   updateProduct,
 } from "@/data/products";
 import { logActivity } from "@/data/activity";
@@ -61,9 +60,6 @@ const productShape = z.object({
   adicionais: z.array(addonSchema).default([]),
   tiers: z.array(tierSchema).min(1).default([{ qty: 1, price: 0 }]),
   insumoId: z.string().optional(),
-  stockManaged: z.boolean().default(false),
-  prep: z.enum(["sob demanda", "lote"]).nullish(),
-  duration: z.number().int().positive().optional(),
 });
 
 // Cross-field consistency, on top of the per-row stockItemId requirement above:
@@ -145,45 +141,4 @@ export async function deleteProductAction(
     await deleteProduct(storeId, productId);
     revalidatePath(`/s/${storeId}/produtos`);
   });
-}
-
-const produceSchema = z.object({
-  storeId: z.string().min(1),
-  productId: z.string().min(1),
-  porcoes: z.number().int().positive("Informe uma quantidade válida."),
-});
-
-export interface ProduceActionResult extends ActionResult {
-  producedStock?: number;
-  shortages?: { itemId: string; missing: number }[];
-}
-
-/**
- * Produces a batch of a stockManaged menu item: consumes its recipe insumos and
- * bumps producedStock. Gated on "estoque" — producing is a stock operation.
- */
-export async function produceBatchAction(
-  input: z.input<typeof produceSchema>,
-): Promise<ProduceActionResult> {
-  try {
-    const { storeId, productId, porcoes } = produceSchema.parse(input);
-    const user = await requireAccess(storeId, "estoque");
-    const result = await produceBatch(storeId, productId, porcoes, user.email);
-    await logActivity(storeId, {
-      icon: "chef-hat",
-      label: `Produziu ${porcoes}x ${result.name}`,
-      detail: "Estoque",
-      by: user.email,
-      section: "estoque",
-    });
-    revalidatePath(`/s/${storeId}/estoque`);
-    revalidatePath(`/s/${storeId}/produtos`);
-    revalidatePath(`/s/${storeId}`);
-    return { ok: true, producedStock: result.producedStock, shortages: result.shortages };
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return { ok: false, error: err.issues[0]?.message ?? "Dados inválidos." };
-    }
-    return { ok: false, error: err instanceof Error ? err.message : "Algo deu errado." };
-  }
 }

@@ -44,6 +44,12 @@ export async function listTransactions(
   return snap.docs.map((doc) => toTx(doc.id, doc.data()));
 }
 
+/** Current category of a lançamento (undefined when it doesn't exist). */
+export async function getTxCategory(storeId: string, txId: string): Promise<string | undefined> {
+  const snap = await financeCol(storeId).doc(txId).get();
+  return snap.exists ? (snap.data()!.category as string) : undefined;
+}
+
 export interface ManualTxInput {
   label: string;
   category: string;

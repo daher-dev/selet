@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   usePageAction,
+  usePageHeader,
   useShellSearch,
 } from "@/components/shell/app-shell-context";
 import { MemberSheet } from "./member-sheet";
@@ -212,6 +213,7 @@ export function EquipeClient({
   const [inviting, setInviting] = useState(false);
   const shellSearch = useShellSearch();
 
+  usePageHeader({ title: "Configurações", subtitle: "Gestão de funcionários por loja" });
   usePageAction({ label: "Convidar", onClick: () => setInviting(true) });
 
   const selected = members.find((m) => m.email === selectedEmail) ?? null;

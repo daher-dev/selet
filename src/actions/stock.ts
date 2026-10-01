@@ -23,23 +23,17 @@ import {
   listShakeRims,
   listShakeUtensils,
 } from "@/data/shakes";
-import {
-  CONSUMPTION_MODES,
-  consumptionModeForUnit,
-  isWeightVolumeUnit,
-  STOCK_CATEGORIES,
-  STOCK_MOVEMENT_REASONS,
-  STOCK_MOVEMENT_TYPES,
-  STOCK_UNITS,
-} from "@/lib/types";
+import { CONSUMPTION_MODES, STOCK_MOVEMENT_REASONS, STOCK_MOVEMENT_TYPES } from "@/lib/types";
+import { getStockSettings } from "@/data/settings";
+import { unitKind, type StockSettings } from "@/lib/stock-settings";
 import type { ActionResult } from "./products";
 
 const itemSchema = z
   .object({
     storeId: z.string().min(1),
     name: z.string().trim().min(1, "Informe o nome do item."),
-    category: z.enum(STOCK_CATEGORIES),
-    unit: z.enum(STOCK_UNITS),
+    category: z.string().min(1, "Escolha a categoria."),
+    unit: z.string().min(1, "Escolha a unidade de uso."),
     tracked: z.boolean(),
     pkgLabel: z.string().trim().optional(),
     pkgLabelPlural: z.string().trim().optional(),
@@ -60,6 +54,22 @@ const itemSchema = z
   });
 
 export type StockItemFormInput = z.input<typeof itemSchema>;
+
+/**
+ * Category and unit are ids of the store's own Configurações → Estoque lists.
+ * UNIT RULE (single source of truth): the unit's kind decides the consumption
+ * mode — measure (weight/volume) → contínuo, count → medido. Derived here,
+ * never trusted from the client.
+ */
+function resolveItemConfig(settings: StockSettings, category: string, unit: string) {
+  if (!settings.categories.some((c) => c.id === category)) throw new Error("Categoria inválida.");
+  if (!settings.units.some((u) => u.id === unit)) throw new Error("Unidade inválida.");
+  const measure = unitKind(settings.units, unit) === "measure";
+  return {
+    continuousUse: measure,
+    consumptionMode: measure ? ("continuo" as const) : ("medido" as const),
+  };
+}
 
 async function run(fn: () => Promise<void>): Promise<ActionResult> {
   try {
@@ -82,14 +92,11 @@ export async function createStockItemAction(
   return run(async () => {
     const { storeId, initialSealed, initialOpen, ...rest } =
       itemSchema.parse(input);
-    // UNIT RULE (single source of truth): weight/volume → contínuo (manual);
-    // countable → medido. Derived from the unit, never trusted from the client.
+    const user = await requireAccess(storeId, "estoque");
     const data = {
       ...rest,
-      continuousUse: isWeightVolumeUnit(rest.unit),
-      consumptionMode: consumptionModeForUnit(rest.unit),
+      ...resolveItemConfig(await getStockSettings(storeId), rest.category, rest.unit),
     } as const;
-    const user = await requireAccess(storeId, "estoque");
     await createStockItem(
       storeId,
       data,
@@ -108,6 +115,7 @@ export async function updateStockItemAction(
   return run(async () => {
     const parsed = itemSchema.parse(input);
     const { storeId } = parsed;
+    await requireAccess(storeId, "estoque");
     const data = {
       name: parsed.name,
       category: parsed.category,
@@ -116,9 +124,7 @@ export async function updateStockItemAction(
       pkgLabel: parsed.pkgLabel,
       pkgLabelPlural: parsed.pkgLabelPlural,
       pkgSize: parsed.pkgSize,
-      // UNIT RULE: derived from unit, never trusted from the client.
-      continuousUse: isWeightVolumeUnit(parsed.unit),
-      consumptionMode: consumptionModeForUnit(parsed.unit),
+      ...resolveItemConfig(await getStockSettings(storeId), parsed.category, parsed.unit),
       resellable: parsed.resellable,
       cost: parsed.cost,
       sellPrice: parsed.sellPrice,
@@ -126,7 +132,6 @@ export async function updateStockItemAction(
       yieldPct: parsed.yieldPct,
       archived: parsed.archived,
     };
-    await requireAccess(storeId, "estoque");
     await updateStockItem(storeId, itemId, data);
     revalidatePath(`/s/${storeId}/estoque`);
   });

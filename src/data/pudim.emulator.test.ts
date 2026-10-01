@@ -177,7 +177,6 @@ describe.skipIf(!hasEmulator)("pudim repository (emulator)", () => {
       recipe: [],
       adicionais: [],
       tiers: [{ qty: 1, price: 1200 }],
-      stockManaged: false,
     });
     const inactiveProduct = await createProduct(storeId, {
       name: "Chá Descontinuado",
@@ -189,7 +188,6 @@ describe.skipIf(!hasEmulator)("pudim repository (emulator)", () => {
       recipe: [],
       adicionais: [],
       tiers: [{ qty: 1, price: 1200 }],
-      stockManaged: false,
     });
     const adicionalProduct = await createProduct(storeId, {
       name: "Calda extra",
@@ -201,7 +199,6 @@ describe.skipIf(!hasEmulator)("pudim repository (emulator)", () => {
       recipe: [],
       adicionais: [],
       tiers: [{ qty: 1, price: 300 }],
-      stockManaged: false,
     });
 
     const count = await addPudimBrindes(storeId, [

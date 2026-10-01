@@ -9,7 +9,7 @@ import {
   Layers,
   CreditCard,
   Ticket,
-  Users,
+  SlidersHorizontal,
 } from "lucide-react";
 import type { Section } from "@/lib/types";
 
@@ -84,5 +84,11 @@ export const NAV_ITEMS: NavItem[] = [
     icon: CreditCard,
     section: "financeiro",
   },
-  { label: "Equipe", segment: "equipe", icon: Users, section: "equipe" },
+  {
+    label: "Configurações",
+    segment: "configuracoes",
+    icon: SlidersHorizontal,
+    // Admin-only: "configuracoes" is not a grantable section.
+    section: "configuracoes",
+  },
 ];

@@ -1,4 +1,5 @@
 import type { FinanceTx } from "@/lib/types";
+import { INSUMOS_CATEGORY_ID, LEGACY_INSUMOS_CATEGORY_ID } from "@/lib/stock-settings";
 import { monthKeyOf } from "./finance-shared";
 
 /** One competência's totals and the hero's Entradas/Saídas splits (centavos). */
@@ -11,7 +12,7 @@ export interface MonthBreakdown {
   revenda: number;
   /** manual income (aporte, ajustes…) — not a sale */
   outrasEntradas: number;
-  /** stock purchases ("compras") */
+  /** Insumos saídas (category "insumos", legacy "compras") */
   insumos: number;
   /** every other expense (salários, aluguel, marketing, outros) */
   operacao: number;
@@ -20,8 +21,8 @@ export interface MonthBreakdown {
 /**
  * Groups transactions by competência month. Entradas split by origin: order
  * mirrors are Consumo minus their `revendaAmount` share, manual income is
- * "Outras". Saídas split into Insumos (category "compras" — stock purchase
- * mirrors and manual purchases) and Operação (everything else).
+ * "Outras". Saídas split into Insumos (category "insumos", or the legacy
+ * "compras" key until migrate-settings runs) and Operação (everything else).
  */
 export function monthBreakdown(txs: FinanceTx[]): Map<string, MonthBreakdown> {
   const map = new Map<string, MonthBreakdown>();
@@ -44,7 +45,7 @@ export function monthBreakdown(txs: FinanceTx[]): Map<string, MonthBreakdown> {
       }
     } else {
       b.out += tx.amount;
-      if (tx.category === "compras") b.insumos += tx.amount;
+      if (tx.category === INSUMOS_CATEGORY_ID || tx.category === LEGACY_INSUMOS_CATEGORY_ID) b.insumos += tx.amount;
       else b.operacao += tx.amount;
     }
   }

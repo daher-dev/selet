@@ -5,6 +5,7 @@ import {
   Drumstick,
   GlassWater,
   Grid3x3,
+  Package,
   Pill,
   Pizza,
   PlusCircle,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   Wheat,
 } from "lucide-react";
+import { PALETTE, type CategoryIconKey, type StockCategoryDef } from "@/lib/stock-settings";
 
 export interface CategoryMeta {
   label: string;
@@ -32,16 +34,33 @@ export const PRODUCT_CATEGORY_META: Record<string, CategoryMeta> = {
   adicionais: { label: "Adicionais", icon: PlusCircle, fg: "text-cat-adicionais", bg: "bg-cat-adicionais-wash" },
 };
 
-/** Stock (insumo) categories — the café's recipe-ingredient food groups. */
-export const STOCK_CATEGORY_META: Record<string, CategoryMeta> = {
-  secos: { label: "Secos", icon: Wheat, fg: "text-cat-secos", bg: "bg-cat-secos-wash" },
-  proteinas: { label: "Proteínas", icon: Drumstick, fg: "text-cat-proteinas", bg: "bg-cat-proteinas-wash" },
-  bebidas: { label: "Bebidas", icon: CupSoda, fg: "text-cat-bebidas", bg: "bg-cat-bebidas-wash" },
-  hortifruti: { label: "Hortifrúti", icon: Carrot, fg: "text-cat-hortifruti", bg: "bg-cat-hortifruti-wash" },
-  suplementos: { label: "Suplementos", icon: Pill, fg: "text-cat-suplementos", bg: "bg-cat-suplementos-wash" },
-  beleza: { label: "Beleza", icon: Sparkles, fg: "text-cat-beleza", bg: "bg-cat-beleza-wash" },
-  descartaveis: { label: "Descartáveis", icon: Utensils, fg: "text-cat-descartaveis", bg: "bg-cat-descartaveis-wash" },
+/** Icon registry for the per-store stock categories (keys: CATEGORY_ICON_KEYS). */
+export const CATEGORY_ICONS: Record<CategoryIconKey, LucideIcon> = {
+  wheat: Wheat,
+  drumstick: Drumstick,
+  "cup-soda": CupSoda,
+  carrot: Carrot,
+  pill: Pill,
+  sparkles: Sparkles,
+  utensils: Utensils,
+  package: Package,
 };
+
+/**
+ * Stock (insumo) category meta, built from the store's own categories
+ * (Configurações → Estoque). Use `useStockCategoryMeta()` in components.
+ */
+export function buildStockCategoryMeta(categories: StockCategoryDef[]): Record<string, CategoryMeta> {
+  return Object.fromEntries(
+    categories.map((c) => {
+      const swatch = PALETTE[c.color] ?? PALETTE.cinza;
+      return [
+        c.id,
+        { label: c.name, icon: CATEGORY_ICONS[c.icon] ?? Package, fg: swatch.fg, bg: swatch.bg },
+      ];
+    }),
+  );
+}
 
 export const PRODUCT_TYPE_TAG_LABELS: Record<string, string> = {
   vegano: "Vegano",

@@ -14,11 +14,12 @@ export const SECTIONS = [
   "shakes",
   "pudim",
   "equipe",
+  "configuracoes",
 ] as const;
 export type Section = (typeof SECTIONS)[number];
 
 // The modules a funcionário can be granted access to. Only "equipe" (team
-// management) is admin-only by design — it stays in SECTIONS so nav gating
+// management) and "configuracoes" (store settings) are admin-only by design — it stays in SECTIONS so nav gating
 // keeps working (admins see the Equipe item via their role), but it is
 // intentionally NOT grantable: a funcionário can never be given
 // team-management rights through the member form or a server action, since
@@ -79,10 +80,10 @@ export interface OrderDiscount {
   reason?: DiscountReason;
 }
 
-// Stock categories. The first four are the café working-insumo food groups the
-// design uses (Secos, Proteínas, Bebidas, Hortifrúti). "suplementos" and
-// "beleza" were added for the Herbalife retail distributor catalog — products
-// tracked in inventory but not (yet) resold from the café menu.
+// DEFAULT stock categories/units (their ids). Both are per-store configurable
+// now (Configurações → Estoque, see src/lib/stock-settings.ts): `category` and
+// `unit` on a StockItem are the ids of those per-store definitions, so these
+// lists only seed new stores and the import scripts.
 export const STOCK_CATEGORIES = [
   "secos",
   "proteinas",
@@ -92,10 +93,10 @@ export const STOCK_CATEGORIES = [
   "beleza",
   "descartaveis",
 ] as const;
-export type StockCategory = (typeof STOCK_CATEGORIES)[number];
+export type StockCategory = string;
 
 export const STOCK_UNITS = ["g", "ml", "L", "kg", "un", "sache"] as const;
-export type StockUnit = (typeof STOCK_UNITS)[number];
+export type StockUnit = string;
 
 // How an item's open package is consumed. "medido": deduct a measured amount
 // (g/un/sachê) per use. "continuo": not measured per use — the open package is
@@ -137,6 +138,10 @@ export interface Store {
   initial: string;
   /** Area code prefilled on new-client phone inputs (e.g. "35" for Passos/MG). */
   defaultDDD?: string;
+  /** Store profile (Configurações → Loja). */
+  address?: string;
+  whatsapp?: string;
+  email?: string;
 }
 
 export interface OrderItem {
@@ -172,8 +177,8 @@ export interface OrderItem {
  *  - kind "insumo": a tracked stockItems doc. medido → `amount` base units were
  *    deducted (reverse by returning them). continuo → `usos` uses were tallied
  *    on the open package (reverse by subtracting).
- *  - kind "produced": a stockManaged product's finished-goods count. `amount`
- *    porções were drawn from product.producedStock (reverse by adding back).
+ *  - kind "produced": LEGACY — batch production was removed; old orders may
+ *    still carry these draws. They are ignored when reversing.
  */
 export interface ConsumptionDraw {
   kind: "insumo" | "produced";
@@ -310,14 +315,6 @@ export interface Product {
   tiers: PriceTier[];
   /** Linked stock item slug (revenda/adicional items link one insumo). */
   insumoId?: string;
-  /** Whether a menu item is produced in batches and kept in stock (drives "Produzir"). */
-  stockManaged: boolean;
-  /** Finished units on hand (only meaningful for stockManaged menu items; default 0). */
-  producedStock: number;
-  /** Production mode: on-demand vs batch/lote (e.g. Coxinha). undefined for revenda/adicional. */
-  prep?: "sob demanda" | "lote" | null;
-  /** Prep/shelf duration in minutes (metadata shown on the catalog card). */
-  duration?: number;
   /** Hidden from the default catálogo list (e.g. old retail SKUs archived on sync). */
   archived: boolean;
 }
@@ -388,15 +385,8 @@ export interface StockMovement {
   at: string;
 }
 
-export const FINANCE_CATEGORIES = [
-  "vendas",
-  "compras",
-  "salarios",
-  "aluguel",
-  "marketing",
-  "outros",
-] as const;
-export type FinanceCategory = (typeof FINANCE_CATEGORIES)[number];
+/** Lançamento categories are per-store (Configurações → Financeiro); see src/lib/stock-settings.ts. */
+export type FinanceCategory = string;
 
 export interface FinanceTx {
   id: string;

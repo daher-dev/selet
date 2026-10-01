@@ -369,7 +369,6 @@ describe.skipIf(!hasEmulator)("orders repository (emulator)", () => {
       active: true,
       recipe: [],
       adicionais: [],
-      stockManaged: false,
     };
     const shake = await createProduct(storeId, {
       ...base,

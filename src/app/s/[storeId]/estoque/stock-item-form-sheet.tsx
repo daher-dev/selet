@@ -3,12 +3,6 @@
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { StockCategory, StockUnit } from "@/lib/types";
-import {
-  consumptionModeForUnit,
-  isWeightVolumeUnit,
-  STOCK_CATEGORIES,
-} from "@/lib/types";
 import { parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { createStockItemAction } from "@/actions/stock";
@@ -21,8 +15,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { STOCK_CATEGORY_META } from "@/components/category-meta";
-import { pkgPlural, unitLabel } from "./stock-view";
+import { useStockCategoryMeta, useStockSettings, useUnits } from "@/components/stock-settings-context";
+import { pkgPlural } from "./stock-view";
+import { UnitPicker } from "./unit-picker";
 
 interface Props {
   storeId: string;
@@ -30,24 +25,18 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-const UNIT_GROUPS: StockUnit[][] = [
-  ["un", "sache"],
-  ["g", "kg"],
-  ["ml", "L"],
-];
-
 export function StockItemFormSheet({ storeId, open, onOpenChange }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full gap-0 overflow-y-auto p-0 sm:max-w-[520px]"
+        className="w-full gap-0 overflow-y-auto p-0 sm:max-w-[480px]"
       >
-        <SheetHeader className="gap-0 border-b border-border p-5">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-leaf">
+        <SheetHeader className="gap-0 border-b border-[#EEF3EA] px-6 pb-4 pt-[22px]">
+          <span className="text-[11px] font-bold uppercase tracking-[.6px] text-leaf">
             Novo item de estoque
           </span>
-          <SheetTitle className="mt-0.5 text-[19px] font-bold">
+          <SheetTitle className="mt-1 text-[22px] font-bold">
             Cadastrar item
           </SheetTitle>
         </SheetHeader>
@@ -69,8 +58,13 @@ function StockItemForm({
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<StockCategory>("bebidas");
-  const [unit, setUnit] = useState<StockUnit>("un");
+  const STOCK_CATEGORY_META = useStockCategoryMeta();
+  const { categories } = useStockSettings();
+  const { units, unitKind, unitLabel } = useUnits();
+  const [category, setCategory] = useState<string>(
+    () => categories.find((c) => c.id === "bebidas")?.id ?? categories[0]?.id ?? "",
+  );
+  const [unit, setUnit] = useState<string>(() => units.find((u) => u.id === "un")?.id ?? units[0]?.id ?? "");
   const [pkgLabel, setPkgLabel] = useState("caixa");
   const [pkgLabelPluralInput, setPkgLabelPluralInput] = useState("");
   const [pkgSize, setPkgSize] = useState("12");
@@ -80,12 +74,12 @@ function StockItemForm({
   const [tipOpen, setTipOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const isCount = unit === "un" || unit === "sache";
+  const isCount = unitKind(unit) === "count";
   const pkgLabelValue = pkgLabel.trim() || "caixa";
   const pkgLabelPlural = pkgPlural(pkgLabelValue, pkgLabelPluralInput);
   // UNIT RULE: the consumption mode is DERIVED from the unit, never chosen —
   // weight/volume → contínuo (manual, mark-as-empty); countable → medido (auto).
-  const isWeightVol = isWeightVolumeUnit(unit);
+  const isWeightVol = unitKind(unit) === "measure";
 
   function submit() {
     if (!name.trim()) return toast.error("Informe o nome do item.");
@@ -115,7 +109,7 @@ function StockItemForm({
         pkgLabelPlural: pkgLabelPluralInput.trim() || undefined,
         pkgSize: size,
         continuousUse: isWeightVol,
-        consumptionMode: consumptionModeForUnit(unit),
+        consumptionMode: isWeightVol ? "continuo" : "medido",
         resellable: false,
         cost: costC,
         reorderAt: reorderN,
@@ -132,21 +126,21 @@ function StockItemForm({
 
   return (
     <>
-      <div className="flex-1 space-y-5 p-5">
+      <div className="flex-1 space-y-[22px] px-6 py-[22px]">
         <div>
           <FieldLabel>Nome do item</FieldLabel>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Ex: Leite de coco"
-            className="h-[42px] rounded-lg bg-paper"
+            className="h-[50px] rounded-[13px] border-[#E7EEE6] bg-[#FAFCF8] px-[15px] text-[15px] focus-visible:border-[#7FB093] focus-visible:ring-[3px] focus-visible:ring-[#DDEBD5]"
           />
         </div>
 
         <div>
           <FieldLabel>Categoria</FieldLabel>
-          <div className="flex flex-wrap gap-1.5">
-            {STOCK_CATEGORIES.map((key) => {
+          <div className="flex flex-wrap gap-2">
+            {categories.map(({ id: key }) => {
               const meta = STOCK_CATEGORY_META[key];
               const Icon = meta.icon;
               const on = category === key;
@@ -156,10 +150,10 @@ function StockItemForm({
                   type="button"
                   onClick={() => setCategory(key)}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12.5px] font-semibold transition-colors",
+                    "flex h-9 items-center gap-[7px] rounded-[11px] border px-[13px] text-[13px] font-semibold transition-colors",
                     on
                       ? "border-primary bg-primary text-white"
-                      : "border-border bg-card text-ink-soft hover:border-primary/40",
+                      : "border-[#E7EEE6] bg-[#FAFCF8] text-ink-soft hover:border-primary/40",
                   )}
                 >
                   <Icon className="size-3.5" strokeWidth={1.8} />
@@ -189,28 +183,7 @@ function StockItemForm({
 
         <div>
           <FieldLabel>Unidade de uso</FieldLabel>
-          <div className="flex gap-2">
-            {UNIT_GROUPS.map((group, gi) => (
-              <div
-                key={gi}
-                className="flex flex-1 gap-0.5 rounded-lg border border-border bg-surface p-0.5"
-              >
-                {group.map((u) => (
-                  <button
-                    key={u}
-                    type="button"
-                    onClick={() => setUnit(u)}
-                    className={cn(
-                      "flex-1 rounded-md py-2 text-[12.5px] font-semibold transition-colors",
-                      unit === u ? "bg-primary text-white" : "text-ink-soft hover:text-ink",
-                    )}
-                  >
-                    {unitLabel(u)}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
+          <UnitPicker value={unit} onChange={setUnit} />
         </div>
 
         {isCount && (
@@ -233,8 +206,8 @@ function StockItemForm({
         </div>
 
         <div>
-          <span className="mb-2 flex items-center gap-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+          <span className="mb-[9px] flex items-center gap-1.5">
+            <span className="text-[11px] font-bold uppercase tracking-[.6px] text-ink-faint">
               Estoque inicial
             </span>
             <span className="text-[11px] font-semibold text-ink-faint">(opcional)</span>
@@ -256,7 +229,7 @@ function StockItemForm({
               )}
             </span>
           </span>
-          <div className="flex gap-2.5">
+          <div className="grid grid-cols-2 gap-3">
             <SmallField label="Quantidade" className="flex-1">
               <InlineInput
                 value={sealed}
@@ -287,14 +260,19 @@ function StockItemForm({
         </div>
       </div>
 
-      <SheetFooter className="flex-row gap-2.5 border-t border-border p-5">
-        <Button variant="outline" onClick={onClose} disabled={pending} className="flex-1 rounded-lg">
+      <SheetFooter className="flex-row gap-2.5 border-t border-[#F0F4ED] px-6 py-4">
+        <Button
+          variant="outline"
+          onClick={onClose}
+          disabled={pending}
+          className="h-12 flex-1 rounded-xl border-[#E7EEE6] bg-[#F1F6EE] text-[14px] font-semibold text-ink hover:bg-[#E9F1E5]"
+        >
           Cancelar
         </Button>
         <Button
           onClick={submit}
           disabled={pending || !name.trim()}
-          className="flex-[1.4] rounded-lg font-semibold"
+          className="h-12 flex-[1.3] rounded-xl text-[14px] font-semibold disabled:bg-[#8DB9A0] disabled:opacity-100"
         >
           {pending && <Loader2 className="size-4 animate-spin" />}
           Adicionar ao estoque
@@ -311,13 +289,13 @@ function StockItemForm({
  */
 function BaixaInfo({ isWeightVol }: { isWeightVol: boolean }) {
   return (
-    <div className="rounded-lg border border-border bg-surface px-3.5 py-2.5">
-      <span className="block text-[12.5px] font-semibold text-ink">
+    <div className="rounded-xl border border-[#E7EEE6] bg-[#F1F6EE] px-[17px] py-[15px]">
+      <span className="block text-[14px] font-bold text-ink">
         {isWeightVol
           ? "Controle manual · marcar como vazia"
           : "Baixa automática por contagem"}
       </span>
-      <p className="mt-0.5 text-[11px] leading-snug text-ink-faint">
+      <p className="mt-[3px] text-[12.5px] leading-[1.45] text-ink-faint">
         {isWeightVol
           ? "Itens por peso/volume não são pesados a cada uso — baixa manual por embalagem."
           : "Itens contáveis (un/sachê) deduzem a quantidade usada a cada preparo."}
@@ -328,7 +306,7 @@ function BaixaInfo({ isWeightVol }: { isWeightVol: boolean }) {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+    <span className="mb-[9px] block text-[11px] font-bold uppercase tracking-[.6px] text-ink-faint">
       {children}
     </span>
   );
@@ -345,7 +323,7 @@ function SmallField({
 }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1.5 block text-[11px] text-ink-soft">{label}</span>
+      <span className="mb-1.5 block text-[12.5px] text-ink-faint">{label}</span>
       {children}
     </label>
   );
@@ -367,14 +345,14 @@ function InlineInput({
   inputMode?: "decimal" | "numeric" | "text";
 }) {
   return (
-    <div className="flex h-[42px] items-center gap-1.5 rounded-lg border border-border bg-paper px-3.5">
+    <div className="flex h-[46px] items-center gap-1.5 rounded-xl border border-[#E7EEE6] bg-[#FAFCF8] px-[15px]">
       {prefix && <span className="whitespace-nowrap text-[12.5px] text-ink-faint">{prefix}</span>}
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         inputMode={inputMode}
         placeholder={placeholder}
-        className="tabular w-full min-w-0 bg-transparent text-[15px] font-bold text-ink outline-none placeholder:font-normal placeholder:text-ink-faint"
+        className="tabular w-full min-w-0 bg-transparent text-[14px] font-bold text-ink outline-none placeholder:font-normal placeholder:text-ink-faint"
       />
       {suffix && <span className="whitespace-nowrap text-[13px] text-ink-faint">{suffix}</span>}
     </div>
