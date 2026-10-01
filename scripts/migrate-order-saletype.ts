@@ -13,7 +13,8 @@
  *
  * Safe to run against the live app: steps 1–3 each re-read their doc inside
  * a transaction, so an order edited mid-run is never overwritten with a stale
- * copy. Step 4 overwrites the summary from a fresh scan (like every other
+ * copy, and the mirrors are listed only after every order is stamped, so a
+ * mirror created mid-run is still corrected. Step 4 overwrites the summary from a fresh scan (like every other
  * refresh script) — run it in a quiet hour, or simply re-run the script.
  *
  * Idempotent. Defaults to a dry run (prints counts, writes nothing). Pass
@@ -56,10 +57,9 @@ async function migrate() {
   const stores = await db.collection("stores").get();
   for (const store of stores.docs) {
     const base = `stores/${store.id}`;
-    const [productsSnap, ordersSnap, mirrorsSnap, customersSnap] = await Promise.all([
+    const [productsSnap, ordersSnap, customersSnap] = await Promise.all([
       db.collection(`${base}/products`).get(),
       db.collection(`${base}/orders`).get(),
-      db.collection(`${base}/finance`).where("source", "==", "order").get(),
       db.collection(`${base}/customers`).get(),
     ]);
     const saleTypes = new Map<string, ProductSaleType>();
@@ -80,7 +80,14 @@ async function migrate() {
       });
     }
 
-    // 2. Order finance mirrors (after step 1, so their lines carry saleType).
+    // 2. Order finance mirrors. Queried only AFTER step 1: a legacy order paid
+    // (or uncancelled) while step 1 ran gets a mirror whose revendaAmount was
+    // derived from still-unstamped lines (0). Querying now includes it, and
+    // any mirror created after this point derives from stamped lines already.
+    const mirrorsSnap = await db
+      .collection(`${base}/finance`)
+      .where("source", "==", "order")
+      .get();
     let mirrorsTouched = 0;
     for (const f of mirrorsSnap.docs) {
       const orderId = f.data().orderId as string | undefined;
