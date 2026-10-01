@@ -39,14 +39,6 @@ const MONTHS_SHORT_PT = [
   "Dez",
 ]
 
-function sameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  )
-}
-
 const navButtonClassName =
   "flex size-7 items-center justify-center rounded-md text-ink-soft transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 [&_svg]:size-[15px]"
 
@@ -76,64 +68,53 @@ function CalendarNav({
   )
 }
 
+// Leap year so the day grid can offer 29 February.
+const DAY_MONTH_REFERENCE_YEAR = 2000
+
+function sameDayMonth(a: Date, b: Date) {
+  return a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
 type CalendarProps = {
-  /** Currently selected day. */
+  /** Currently selected day (only day and month are considered). */
   selected?: Date
+  /** Receives the picked day/month as a Date in a fixed reference year. */
   onSelect?: (date: Date) => void
-  /** Month shown on first render when uncontrolled (defaults to selected/today). */
+  /** Month shown on first render (defaults to selected/today). */
   defaultMonth?: Date
   className?: string
 }
 
 /**
- * Day-grid calendar with prev/next month navigation. Used for the customer
- * birthday picker (design 837-855).
+ * Year-agnostic day/month calendar with prev/next month navigation (wrapping
+ * Dec <-> Jan). Used for the customer birthday picker (design 837-855): the
+ * year is irrelevant, so it is neither shown nor navigable, and weekday
+ * headers are omitted since they only make sense for a concrete year.
  */
 function Calendar({ selected, onSelect, defaultMonth, className }: CalendarProps) {
-  const [viewDate, setViewDate] = React.useState<Date>(() => {
-    const base = defaultMonth ?? selected ?? new Date()
-    return new Date(base.getFullYear(), base.getMonth(), 1)
-  })
+  const [month, setMonth] = React.useState<number>(
+    () => (defaultMonth ?? selected ?? new Date()).getMonth()
+  )
 
-  const year = viewDate.getFullYear()
-  const month = viewDate.getMonth()
-  const firstWeekday = new Date(year, month, 1).getDay()
+  const year = DAY_MONTH_REFERENCE_YEAR
   const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  const today = new Date()
 
-  const cells: (number | null)[] = [
-    ...Array.from({ length: firstWeekday }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ]
-
-  const goPrev = () => setViewDate(new Date(year, month - 1, 1))
-  const goNext = () => setViewDate(new Date(year, month + 1, 1))
+  const goPrev = () => setMonth((m) => (m + 11) % 12)
+  const goNext = () => setMonth((m) => (m + 1) % 12)
 
   return (
     <div className={cn("w-[248px]", className)}>
-      <CalendarNav
-        label={`${MONTHS_PT[month]} ${year}`}
-        onPrev={goPrev}
-        onNext={goNext}
-      />
-      <div className="mb-1 grid grid-cols-7 gap-0.5">
-        {WEEKDAYS_PT.map((w, i) => (
-          <span
-            key={i}
-            className="flex h-6 items-center justify-center text-[11px] font-semibold text-ink-faint"
-          >
-            {w}
-          </span>
-        ))}
-      </div>
+      <CalendarNav label={MONTHS_PT[month]} onPrev={goPrev} onNext={goNext} />
       <div className="grid grid-cols-7 gap-0.5">
-        {cells.map((day, i) => {
-          if (day === null) return <span key={i} />
+        {days.map((day) => {
           const date = new Date(year, month, day)
-          const isSelected = selected != null && sameDay(date, selected)
-          const isToday = sameDay(date, new Date())
+          const isSelected = selected != null && sameDayMonth(date, selected)
+          const isToday = sameDayMonth(date, today)
           return (
             <button
-              key={i}
+              key={day}
               type="button"
               onClick={() => onSelect?.(date)}
               className={cn(
