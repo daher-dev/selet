@@ -3,6 +3,7 @@ import type { Cartela, CartelaManualUse, CartelaOrderUse, CartelaUse } from "./t
 import {
   balanceValue,
   cartelaCode,
+  cartelaMonthlyStats,
   computeStatus,
   coverageFor,
   forecastPunchStates,
@@ -323,5 +324,78 @@ describe("manualUseGroups", () => {
 
   it("returns an empty array for a never-used cartela", () => {
     expect(manualUseGroups(cartela({ paidUses: 2, uses: [] }))).toEqual([]);
+  });
+});
+
+describe("cartelaMonthlyStats", () => {
+  // "Today" is 2026-10-15 in America/Sao_Paulo; the window is Mai–Out.
+  const now = new Date("2026-10-15T15:00:00.000Z");
+
+  it("returns the last 6 months oldest first, flagging the current one", () => {
+    const months = cartelaMonthlyStats([], now);
+    expect(months.map((m) => m.key)).toEqual(["2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"]);
+    expect(months.map((m) => m.label)).toEqual(["Mai", "Jun", "Jul", "Ago", "Set", "Out"]);
+    expect(months.filter((m) => m.current).map((m) => m.key)).toEqual(["2026-10"]);
+    expect(months.every((m) => m.balance === 0 && m.soldAmount === 0 && m.soldCount === 0 && m.uses === 0)).toBe(true);
+  });
+
+  it("counts sales in the month of purchase and uses in the month they happened", () => {
+    const c = cartela({
+      paidUses: 2, // 3 total, 3000 each → amount 6000
+      purchasedAt: "2026-07-10T12:00:00.000Z",
+      uses: [
+        use({ at: "2026-07-12T12:00:00.000Z" }),
+        use({ at: "2026-08-02T12:00:00.000Z" }),
+        manualUse({ at: "2026-08-20T12:00:00.000Z" }),
+      ],
+    });
+    const byKey = Object.fromEntries(cartelaMonthlyStats([c], now).map((m) => [m.key, m]));
+    expect(byKey["2026-07"]).toMatchObject({ soldAmount: 6000, soldCount: 1, uses: 1 });
+    expect(byKey["2026-08"]).toMatchObject({ soldAmount: 0, soldCount: 0, uses: 2 });
+    expect(byKey["2026-09"]).toMatchObject({ soldAmount: 0, soldCount: 0, uses: 0 });
+  });
+
+  it("reconstructs the month-end balance from the uses made so far", () => {
+    const c = cartela({
+      paidUses: 2,
+      purchasedAt: "2026-07-10T12:00:00.000Z",
+      uses: [use({ at: "2026-07-12T12:00:00.000Z" }), use({ at: "2026-08-02T12:00:00.000Z" })],
+    });
+    const byKey = Object.fromEntries(cartelaMonthlyStats([c], now).map((m) => [m.key, m]));
+    expect(byKey["2026-06"].balance).toBe(0); // not sold yet
+    expect(byKey["2026-07"].balance).toBe(2 * 3000); // 3 uses − 1 used
+    expect(byKey["2026-08"].balance).toBe(1 * 3000);
+    expect(byKey["2026-10"].balance).toBe(1 * 3000);
+  });
+
+  it("buckets by the store time zone, not UTC", () => {
+    // 2026-08-01T01:00Z is still 31/07 22:00 in São Paulo.
+    const c = cartela({ purchasedAt: "2026-08-01T01:00:00.000Z" });
+    const byKey = Object.fromEntries(cartelaMonthlyStats([c], now).map((m) => [m.key, m]));
+    expect(byKey["2026-07"].soldCount).toBe(1);
+    expect(byKey["2026-08"].soldCount).toBe(0);
+  });
+
+  it("current-month balance equals the Σ balanceValue headline", () => {
+    const cs = [
+      cartela({ id: "a", purchasedAt: "2026-06-05T12:00:00.000Z", uses: [use({ at: "2026-06-06T12:00:00.000Z" })] }),
+      cartela({ id: "b", paidUses: 5, unitValue: 2200, purchasedAt: "2026-10-02T12:00:00.000Z", uses: [] }),
+      // exhausted → contributes nothing
+      cartela({
+        id: "c",
+        paidUses: 1,
+        purchasedAt: "2026-05-02T12:00:00.000Z",
+        uses: [use({ at: "2026-05-03T12:00:00.000Z" }), use({ at: "2026-05-04T12:00:00.000Z" })],
+      }),
+    ];
+    const current = cartelaMonthlyStats(cs, now).at(-1)!;
+    expect(current.balance).toBe(cs.reduce((sum, c) => sum + balanceValue(c), 0));
+  });
+
+  it("ignores purchases after the window's last month but keeps older cartelas' balance", () => {
+    const old = cartela({ purchasedAt: "2026-01-10T12:00:00.000Z", uses: [] }); // bought before the window
+    const months = cartelaMonthlyStats([old], now);
+    expect(months.every((m) => m.balance === 3 * 3000)).toBe(true);
+    expect(months.every((m) => m.soldCount === 0)).toBe(true);
   });
 });

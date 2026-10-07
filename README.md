@@ -45,6 +45,7 @@ O CI (GitHub Actions) roda lint, typecheck, Vitest e Playwright em todo push/PR.
 ## Operações
 
 - **Convidar alguém:** Configurações → Equipe → Convidar (a pessoa entra com a conta Google do e-mail convidado).
+- **Corrigir o saldo de um item por unidade (copos, sachês):** Estoque → toque no painel "Aberto" do card → Ajustar embalagem aberta (fica no histórico do insumo como AJUSTE/PERDA).
 - **Categorias e unidades:** Configurações → Estoque / Financeiro (por loja; sem doc, valem os padrões de `src/lib/stock-settings.ts`).
 - **Migrações pós-deploy (dry-run por padrão, `--apply` grava):** `npx tsx scripts/migrate-settings.ts` e `npx tsx scripts/migrate-remove-production.ts`.
 - **Nova loja:** criar doc em `stores/{id}` (name, sub, initial) — via script ou console.

@@ -29,6 +29,21 @@ export async function seedCatalog() {
   }
 }
 
+/** importCatalog leaves every balance at zero — put one item in a known state (qty/lowStock stay consistent). */
+export async function setStockBalance(
+  storeId: string,
+  itemId: string,
+  balance: { sealed: number; open: number },
+) {
+  process.env.FIRESTORE_EMULATOR_HOST ??= "localhost:8080";
+  const db = getFirestore(getApps()[0] ?? initializeApp({ projectId: PROJECT }));
+  const ref = db.doc(`stores/${storeId}/stockItems/${itemId}`);
+  const item = (await ref.get()).data();
+  if (!item) throw new Error(`stock item not found: ${itemId}`);
+  const qty = balance.sealed * (item.pkgSize ?? 1) + balance.open;
+  await ref.update({ ...balance, qty, lowStock: false });
+}
+
 const OWNER = { Authorization: "Bearer owner" };
 
 /** Wipes both emulators and seeds the store + admin allowlist doc. */

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getDb } from "@/lib/firebase-admin";
 import {
+  adjustOpenBalance,
   applyMovement,
   createStockItem,
   deleteMovement,
@@ -28,6 +29,21 @@ const GRANOLA: StockItemInput = {
   sellPrice: 3200,
   // Package-based threshold: tracked+medido items reorder at reorderAt packages
   // (× pkgSize base units). 2 potes = 1000 g. See computeLowStock in stock.ts.
+  reorderAt: 2,
+};
+
+// Per-unit item (copos): count unit, 10 un/pacote, consumed from an open package.
+const COPO: StockItemInput = {
+  name: "Copo Descartável 300 ml",
+  category: "descartaveis",
+  unit: "un",
+  tracked: true,
+  pkgLabel: "pacote",
+  pkgSize: 10,
+  continuousUse: false,
+  consumptionMode: "medido",
+  resellable: false,
+  // 2 pacotes = 20 un
   reorderAt: 2,
 };
 
@@ -384,5 +400,105 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
     });
 
     expect(await listTransactions(storeId)).toHaveLength(0);
+  });
+  describe("adjustOpenBalance (Ajustar embalagem aberta)", () => {
+    const adj = { unitLabel: "un", by: "test@selet.com" };
+
+    it("raises the open balance and books a non-editable AJUSTE entrada of the difference", async () => {
+      const storeId = `test-stock-adj-a-${Date.now()}`;
+      const id = await createStockItem(storeId, COPO, { sealed: 4, open: 2 });
+
+      const r = await adjustOpenBalance(storeId, id, { ...adj, open: 5, reason: "CONTAGEM" });
+      expect(r).toEqual({ name: COPO.name, from: 2, to: 5 });
+
+      expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 4, open: 5, qty: 45, lowStock: false });
+      const [last] = await listMovements(storeId, id);
+      expect(last).toMatchObject({
+        type: "entrada",
+        qty: 3,
+        byPackage: false,
+        reason: "AJUSTE",
+        refItem: "Contagem errada · 2 → 5 un",
+      });
+    });
+
+    it("books a decrease marked Perda as a PERDA saída", async () => {
+      const storeId = `test-stock-adj-b-${Date.now()}`;
+      const id = await createStockItem(storeId, COPO, { sealed: 4, open: 2 });
+
+      await adjustOpenBalance(storeId, id, { ...adj, open: 0, reason: "PERDA" });
+
+      expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 4, open: 0, qty: 40 });
+      const [last] = await listMovements(storeId, id);
+      expect(last).toMatchObject({ type: "saida", qty: 2, reason: "PERDA", refItem: "Perda · 2 → 0 un" });
+    });
+
+    it("works without a reason", async () => {
+      const storeId = `test-stock-adj-c-${Date.now()}`;
+      const id = await createStockItem(storeId, COPO, { sealed: 1, open: 6 });
+
+      await adjustOpenBalance(storeId, id, { ...adj, open: 4 });
+
+      const [last] = await listMovements(storeId, id);
+      expect(last).toMatchObject({ type: "saida", qty: 2, reason: "AJUSTE", refItem: "Ajuste de saldo · 6 → 4 un" });
+    });
+
+    it("re-evaluates lowStock", async () => {
+      const storeId = `test-stock-adj-d-${Date.now()}`;
+      const id = await createStockItem(storeId, COPO, { sealed: 2, open: 0 });
+      expect((await getStockItem(storeId, id))?.lowStock).toBe(true); // 20 un ≤ 2 pacotes
+
+      await adjustOpenBalance(storeId, id, { ...adj, open: 5 });
+      expect(await getStockItem(storeId, id)).toMatchObject({ qty: 25, lowStock: false });
+
+      await adjustOpenBalance(storeId, id, { ...adj, open: 0 });
+      expect(await getStockItem(storeId, id)).toMatchObject({ qty: 20, lowStock: true });
+    });
+
+    it("stays replay-safe: editing an earlier manual movement keeps the adjustment", async () => {
+      const storeId = `test-stock-adj-e-${Date.now()}`;
+      const id = await createStockItem(storeId, COPO, { sealed: 3, open: 0 });
+      await applyMovement(storeId, id, { ...mv, type: "entrada", qty: 4, byPackage: false, reason: "AJUSTE" });
+      await adjustOpenBalance(storeId, id, { ...adj, open: 7, reason: "OUTRO" });
+
+      const movements = await listMovements(storeId, id);
+      const manual = movements.find((m) => m.type === "entrada" && !m.byPackage && !m.refItem);
+      expect(manual).toBeDefined();
+      // The correction itself carries a refItem, so it isn't offered for editing.
+      expect(movements.find((m) => m.refItem === "Outro · 4 → 7 un")).toBeDefined();
+
+      await updateMovement(storeId, id, manual!.id, { qty: 2 });
+
+      expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 3, open: 5, qty: 35 });
+    });
+
+    it("rejects invalid adjustments", async () => {
+      const storeId = `test-stock-adj-f-${Date.now()}`;
+      const id = await createStockItem(storeId, COPO, { sealed: 3, open: 4 });
+
+      await expect(adjustOpenBalance(storeId, id, { ...adj, open: 4 })).rejects.toThrow(/mesmo/);
+      await expect(adjustOpenBalance(storeId, id, { ...adj, open: 11 })).rejects.toThrow(/no máximo 10/);
+      await expect(adjustOpenBalance(storeId, id, { ...adj, open: -1 })).rejects.toThrow(/inteiro/);
+      await expect(adjustOpenBalance(storeId, id, { ...adj, open: 2.5 })).rejects.toThrow(/inteiro/);
+      await expect(adjustOpenBalance(storeId, id, { ...adj, open: 6, reason: "PERDA" })).rejects.toThrow(/Perda/);
+      await expect(adjustOpenBalance(storeId, "missing", { ...adj, open: 1 })).rejects.toThrow(/não encontrado/);
+
+      // Nothing was written.
+      expect(await getStockItem(storeId, id)).toMatchObject({ open: 4, qty: 34 });
+      expect(await listMovements(storeId, id)).toHaveLength(1); // just the opening entrada
+    });
+
+    it("only applies to tracked, measured, per-unit items", async () => {
+      const storeId = `test-stock-adj-g-${Date.now()}`;
+      const loose = await createStockItem(storeId, { ...COPO, tracked: false, pkgLabel: undefined, pkgSize: undefined }, { sealed: 0, open: 8 });
+      const continuo = await createStockItem(
+        storeId,
+        { ...COPO, name: "Pote", unit: "g", pkgSize: 500, continuousUse: true, consumptionMode: "continuo" },
+        { sealed: 2, open: 0 },
+      );
+
+      await expect(adjustOpenBalance(storeId, loose, { ...adj, open: 3 })).rejects.toThrow(/não controla/);
+      await expect(adjustOpenBalance(storeId, continuo, { ...adj, open: 3 })).rejects.toThrow(/não controla/);
+    });
   });
 });
