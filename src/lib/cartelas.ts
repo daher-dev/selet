@@ -14,6 +14,7 @@ import type {
   CartelaOrderUse,
   CartelaStatus,
 } from "./types";
+import { addZonedMonths, monthKey } from "./timezone";
 
 /** Display code for a cartela doc ID, mirrors orderCode(): first 4 chars, uppercased. */
 export function cartelaCode(id: string): string {
@@ -178,4 +179,67 @@ export function manualUseGroups(c: Cartela): CartelaManualGroup[] {
     }
   });
   return Array.from(groups.values()).sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+}
+
+const MONTH_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+/** One bar of each Cartelas stat chart. */
+export interface CartelaMonthStat {
+  /** "2026-07" (store time zone, see monthKey). */
+  key: string;
+  /** "Jul" */
+  label: string;
+  /** Balance still redeemable at the END of the month, in centavos (what "Saldo em circulação" was then). */
+  balance: number;
+  /** Centavos charged for cartelas sold in the month. */
+  soldAmount: number;
+  /** Cartelas sold in the month. */
+  soldCount: number;
+  /** Uses redeemed in the month (orders and manual adjustments). */
+  uses: number;
+  /** The month `now` falls in — the dark bar. */
+  current: boolean;
+}
+
+/**
+ * Last `months` calendar months (oldest first, ending with `now`'s month) of
+ * the Cartelas screen's three stat charts, derived purely from `purchasedAt`
+ * and `uses[].at`. Callers pass the cartelas they show (cancelled ones already
+ * excluded). The current month's `balance` equals Σ balanceValue(c) over
+ * cartelas with uses left — the card's headline.
+ */
+export function cartelaMonthlyStats(cartelas: Cartela[], now: Date, months = 6): CartelaMonthStat[] {
+  const currentKey = monthKey(now);
+  const keys = Array.from({ length: months }, (_, i) => monthKey(addZonedMonths(now, i - (months - 1))));
+  // "YYYY-MM" keys sort chronologically as plain strings.
+  const purchased = cartelas.map((c) => ({ c, key: monthKey(new Date(c.purchasedAt)) }));
+  const usedAt = cartelas.map((c) => c.uses.map((u) => monthKey(new Date(u.at))));
+
+  return keys.map((key) => {
+    let balance = 0;
+    let soldAmount = 0;
+    let soldCount = 0;
+    let uses = 0;
+    purchased.forEach(({ c, key: boughtIn }, i) => {
+      if (boughtIn > key) return;
+      const usedByThen = usedAt[i].filter((k) => k <= key).length;
+      balance += Math.max(0, c.totalUses - usedByThen) * c.unitValue;
+      if (boughtIn === key) {
+        soldAmount += c.amount;
+        soldCount += 1;
+      }
+    });
+    usedAt.forEach((ks) => {
+      uses += ks.filter((k) => k === key).length;
+    });
+    return {
+      key,
+      label: MONTH_SHORT[Number(key.slice(5)) - 1],
+      balance,
+      soldAmount,
+      soldCount,
+      uses,
+      current: key === currentKey,
+    };
+  });
 }
