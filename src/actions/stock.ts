@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAccess } from "@/lib/access";
 import {
+  adjustOpenBalance,
   applyMovement,
   createStockItem,
   deleteMovement,
@@ -23,9 +24,14 @@ import {
   listShakeRims,
   listShakeUtensils,
 } from "@/data/shakes";
-import { CONSUMPTION_MODES, STOCK_MOVEMENT_REASONS, STOCK_MOVEMENT_TYPES } from "@/lib/types";
+import {
+  CONSUMPTION_MODES,
+  OPEN_ADJUST_REASONS,
+  STOCK_MOVEMENT_REASONS,
+  STOCK_MOVEMENT_TYPES,
+} from "@/lib/types";
 import { getStockSettings } from "@/data/settings";
-import { unitKind, type StockSettings } from "@/lib/stock-settings";
+import { unitKind, unitLabelFrom, type StockSettings } from "@/lib/stock-settings";
 import type { ActionResult } from "./products";
 
 const itemSchema = z
@@ -240,6 +246,46 @@ export async function markPackageEmptyAction(
       icon: "package",
       label: `Finalizou embalagem · ${name}`,
       detail: "Estoque",
+      by: user.email,
+      section: "estoque",
+    });
+    revalidatePath(`/s/${storeId}/estoque`);
+    revalidatePath(`/s/${storeId}`);
+  });
+}
+
+const adjustOpenSchema = z.object({
+  storeId: z.string().min(1),
+  itemId: z.string().min(1),
+  open: z.number().int("Informe um número inteiro de unidades.").nonnegative("Informe as unidades restantes."),
+  reason: z.enum(OPEN_ADJUST_REASONS).optional(),
+});
+
+export type AdjustOpenFormInput = z.input<typeof adjustOpenSchema>;
+
+/**
+ * "Ajustar embalagem aberta" (per-unit items): overwrite the calculated open
+ * balance with the real count. The unit must be a count unit — enforced by the
+ * data layer through the item's persisted consumption mode.
+ */
+export async function adjustOpenBalanceAction(
+  input: AdjustOpenFormInput,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { storeId, itemId, open, reason } = adjustOpenSchema.parse(input);
+    const user = await requireAccess(storeId, "estoque");
+    const [item, settings] = await Promise.all([getStockItem(storeId, itemId), getStockSettings(storeId)]);
+    if (!item) throw new Error("Item não encontrado.");
+    const { name, from, to } = await adjustOpenBalance(storeId, itemId, {
+      open,
+      reason,
+      unitLabel: unitLabelFrom(settings.units, item.unit),
+      by: user.email,
+    });
+    await logActivity(storeId, {
+      icon: "sliders-horizontal",
+      label: `Ajuste · ${name}`,
+      detail: `Embalagem aberta ${from} → ${to}`,
       by: user.email,
       section: "estoque",
     });

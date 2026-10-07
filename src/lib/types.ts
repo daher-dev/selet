@@ -369,6 +369,20 @@ export const STOCK_MOVEMENT_REASONS = [
 ] as const;
 export type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
 
+/**
+ * Why the open package of a per-unit item (copos, sachês) was corrected by
+ * hand ("Ajustar embalagem aberta"). Optional in the UI; "PERDA" books the
+ * decrease as a loss, the others as a plain AJUSTE.
+ */
+export const OPEN_ADJUST_REASONS = ["CONTAGEM", "PERDA", "OUTRO"] as const;
+export type OpenAdjustReason = (typeof OPEN_ADJUST_REASONS)[number];
+
+export const OPEN_ADJUST_REASON_LABELS: Record<OpenAdjustReason, string> = {
+  CONTAGEM: "Contagem errada",
+  PERDA: "Perda",
+  OUTRO: "Outro",
+};
+
 export interface StockMovement {
   id: string;
   type: StockMovementType;

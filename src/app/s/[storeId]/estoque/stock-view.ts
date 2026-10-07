@@ -99,6 +99,15 @@ export interface StockCardView {
    *  aberta" (frac-capable, just not started) or "Não fraciona" (whole-unit
    *  items that never open a package). */
   openMutedLabel: string;
+  /** Consumed per unit out of a multi-unit package (copos, sachês): shows "consumo por unidade". */
+  perUnit: boolean;
+  /** The open balance of a per-unit item can be corrected by hand (Ajustar saldo). */
+  canAdjust: boolean;
+}
+
+/** Integer-friendly number in pt-BR ("2", "1,5"). */
+function fmtNum(n: number): string {
+  return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 }
 
 /** Everything the estoque card needs to render, mirroring the design's stockRows. */
@@ -106,7 +115,6 @@ export function buildStockCard(item: StockItem, units: StockUnitDef[] = DEFAULT_
   const status = stockStatus(item);
   const low = status === "repor" || status === "esgotado";
   const pu = unitLabel(item.unit, false, units);
-  const puPlural = unitLabel(item.unit, true, units);
   const frac = isFrac(item);
   const pkgSize = item.pkgSize ?? 1;
   const pkgLabel = item.pkgLabel ?? "emb.";
@@ -129,8 +137,9 @@ export function buildStockCard(item: StockItem, units: StockUnitDef[] = DEFAULT_
       openMain = `Em uso · ${item.usos} ${item.usos === 1 ? "uso" : "usos"}`;
       openSub = `embalagem de ${formatQty(pkgSize, pu)}`;
     } else if (exact) {
-      openMain = `${item.open}/${pkgSize}`;
-      openSub = `${puPlural} disponíveis`;
+      const used = Math.max(0, pkgSize - item.open);
+      openMain = `${item.open === 1 ? "Resta" : "Restam"} ${fmtNum(item.open)} de ${formatQty(pkgSize, pu)}`;
+      openSub = `${fmtNum(used)} ${pu} já ${used === 1 ? "usada" : "usadas"}`;
     } else {
       openMain = "Em uso";
       openSub = `embalagem de ${formatQty(pkgSize, pu)}`;
@@ -167,5 +176,7 @@ export function buildStockCard(item: StockItem, units: StockUnitDef[] = DEFAULT_
     pips,
     barPct,
     openMutedLabel: frac ? "Nenhuma embalagem aberta" : "Não fraciona",
+    perUnit: frac && exact,
+    canAdjust: frac && exact && hasOpen,
   };
 }

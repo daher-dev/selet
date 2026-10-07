@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, Filter, List, Package, TriangleAlert } from "lucide-react";
+import { ChevronDown, Filter, List, Package, Pencil, TriangleAlert } from "lucide-react";
 import type { Product, StockItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,8 @@ import { useStockCategoryMeta, useStockSettings, useUnits } from "@/components/s
 import { StockItemFormSheet } from "./stock-item-form-sheet";
 import { StockDetailSheet, type OrderRef, type RecipeUsage } from "./estoque-detail-sheet";
 import { RegistrarCompraDialog } from "./registrar-compra-dialog";
+import { AjustarAbertaDialog } from "./ajustar-aberta-dialog";
+import { OpenBar, OpenPips } from "./open-meter";
 import { buildStockCard, STATUS_META, stockStatus, type StockStatus } from "./stock-view";
 
 type StatusFilter = "todas" | StockStatus;
@@ -56,6 +58,7 @@ export function EstoqueClient({
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [compraOpen, setCompraOpen] = useState(false);
+  const [adjustId, setAdjustId] = useState<string | null>(null);
   const shellSearch = useShellSearch();
   const STOCK_CATEGORY_META = useStockCategoryMeta();
   const { categories: stockCategories } = useStockSettings();
@@ -79,6 +82,7 @@ export function EstoqueClient({
   }, [searchParams, router, pathname]);
 
   const selected = items.find((i) => i.id === selectedId) ?? null;
+  const adjusting = items.find((i) => i.id === adjustId) ?? null;
 
   function selectStatus(v: StatusFilter) {
     setLowStockOnly(false);
@@ -216,7 +220,12 @@ export function EstoqueClient({
       ) : (
         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
           {filtered.map((item) => (
-            <StockCard key={item.id} item={item} onOpen={() => setSelectedId(item.id)} />
+            <StockCard
+              key={item.id}
+              item={item}
+              onOpen={() => setSelectedId(item.id)}
+              onAdjust={() => setAdjustId(item.id)}
+            />
           ))}
         </div>
       )}
@@ -235,6 +244,14 @@ export function EstoqueClient({
       />
 
       <StockItemFormSheet storeId={storeId} open={formOpen} onOpenChange={setFormOpen} />
+
+      <AjustarAbertaDialog
+        storeId={storeId}
+        item={adjusting}
+        onOpenChange={(open) => {
+          if (!open) setAdjustId(null);
+        }}
+      />
 
       <RegistrarCompraDialog
         storeId={storeId}
@@ -329,7 +346,15 @@ function FilterDropdown({
   );
 }
 
-function StockCard({ item, onOpen }: { item: StockItem; onOpen: () => void }) {
+function StockCard({
+  item,
+  onOpen,
+  onAdjust,
+}: {
+  item: StockItem;
+  onOpen: () => void;
+  onAdjust: () => void;
+}) {
   const STOCK_CATEGORY_META = useStockCategoryMeta();
   const { units } = useUnits();
   const meta = STOCK_CATEGORY_META[item.category];
@@ -343,110 +368,108 @@ function StockCard({ item, onOpen }: { item: StockItem; onOpen: () => void }) {
       ? { ...meta, fg: "text-destructive", bg: "bg-danger-wash" }
       : meta;
 
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="block overflow-hidden rounded-2xl border border-border bg-card text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_10px_24px_-14px_rgba(24,107,65,.28)]"
-    >
-      <div className="flex items-center gap-3 px-4 py-3.5">
-        {tileMeta && <CategoryTile meta={tileMeta} className="size-[38px]" />}
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-semibold text-ink">
-            {item.name}
-          </span>
-          <span className="mt-0.5 block truncate text-[11.5px] text-ink-faint">
-            {meta?.label ?? item.category}
-            {item.resellable && " · revenda"}
-          </span>
-        </span>
-        <span
-          className={cn(
-            "flex size-7 shrink-0 items-center justify-center rounded-full",
-            statusMeta.bg,
-            statusMeta.fg,
-          )}
-        >
-          <StatusIcon className="size-[15px]" strokeWidth={2.3} />
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 border-t border-border/70">
-        <div className="bg-paper px-4 py-3">
-          <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
-            <SealedIcon />
-            {view.leftLabel}
-          </span>
-          <div
-            className={cn(
-              "tabular mt-1.5 whitespace-nowrap text-[17px] font-extrabold leading-none",
-              view.leftColor,
-            )}
-          >
-            {view.leftMain}
+  const openPanel = (
+    <>
+      <span
+        className={cn(
+          "flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide",
+          view.hasOpen ? "text-violet" : "text-ink-faint",
+        )}
+      >
+        {view.hasOpen && <FracIcon />}
+        Aberto
+      </span>
+      {view.hasOpen ? (
+        <>
+          <div className="tabular mt-1.5 whitespace-nowrap text-[17px] font-extrabold leading-none text-violet">
+            {view.openMain}
           </div>
-          {view.leftSub && (
-            <div className="mt-1 whitespace-nowrap text-[12px] text-ink-faint">
-              {view.leftSub}
-            </div>
+          {view.pips && <OpenPips total={view.pips.total} filled={view.pips.filled} className="mt-2" />}
+          {view.barPct !== null && <OpenBar pct={view.barPct} className="mt-2" />}
+          {view.openSub && (
+            <div className="mt-1.5 whitespace-nowrap text-[12px] text-ink-faint">{view.openSub}</div>
           )}
-        </div>
+        </>
+      ) : (
+        <div className="mt-2.5 whitespace-nowrap text-[13px] text-ink-faint">{view.openMutedLabel}</div>
+      )}
+    </>
+  );
 
-        <div
-          className={cn(
-            "border-l border-border/70 px-4 py-3",
-            view.hasOpen && "bg-violet-wash",
-          )}
-        >
+  // The card is a div, not a button: the open panel of per-unit items is its
+  // own button (Ajustar saldo), and buttons can't nest. A full-bleed button
+  // underneath carries the "open details" click; content sits above it and
+  // lets clicks through except for the adjust panel.
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_10px_24px_-14px_rgba(24,107,65,.28)]">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`Abrir ${item.name}`}
+        className="absolute inset-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      />
+      <div className="pointer-events-none relative">
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          {tileMeta && <CategoryTile meta={tileMeta} className="size-[38px]" />}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[15px] font-semibold text-ink">{item.name}</span>
+            <span className="mt-0.5 block truncate text-[11.5px] text-ink-faint">
+              {meta?.label ?? item.category}
+              {item.resellable && " · revenda"}
+              {view.perUnit && " · consumo por unidade"}
+            </span>
+          </span>
           <span
             className={cn(
-              "flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide",
-              view.hasOpen ? "text-violet" : "text-ink-faint",
+              "flex size-7 shrink-0 items-center justify-center rounded-full",
+              statusMeta.bg,
+              statusMeta.fg,
             )}
           >
-            {view.hasOpen && <FracIcon />}
-            Fracionado
+            <StatusIcon className="size-[15px]" strokeWidth={2.3} />
           </span>
-          {view.hasOpen ? (
-            <>
-              <div className="tabular mt-1.5 whitespace-nowrap text-[17px] font-extrabold leading-none text-violet">
-                {view.openMain}
-              </div>
-              {view.pips && (
-                <div className="mt-2 flex gap-[3px]">
-                  {Array.from({ length: view.pips.total }).map((_, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        "h-1.5 flex-1 rounded-full",
-                        i < view.pips!.filled ? "bg-violet" : "bg-violet-track",
-                      )}
-                    />
-                  ))}
-                </div>
+        </div>
+
+        <div className="grid grid-cols-2 border-t border-border/70">
+          <div className="bg-paper px-4 py-3">
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
+              <SealedIcon />
+              {view.leftLabel}
+            </span>
+            <div
+              className={cn(
+                "tabular mt-1.5 whitespace-nowrap text-[17px] font-extrabold leading-none",
+                view.leftColor,
               )}
-              {view.barPct !== null && (
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-violet-track">
-                  <span
-                    className="block h-full rounded-full bg-violet"
-                    style={{ width: `${view.barPct}%` }}
-                  />
-                </div>
-              )}
-              {view.openSub && (
-                <div className="mt-1.5 whitespace-nowrap text-[12px] text-ink-faint">
-                  {view.openSub}
-                </div>
-              )}
-            </>
+            >
+              {view.leftMain}
+            </div>
+            {view.leftSub && (
+              <div className="mt-1 whitespace-nowrap text-[12px] text-ink-faint">{view.leftSub}</div>
+            )}
+          </div>
+
+          {view.canAdjust ? (
+            <button
+              type="button"
+              onClick={onAdjust}
+              title="Ajustar saldo"
+              aria-label={`Ajustar saldo da embalagem aberta de ${item.name}`}
+              className="pointer-events-auto relative border-l border-border/70 bg-violet-wash px-4 py-3 text-left transition-colors hover:bg-[#f0e9fb] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-violet"
+            >
+              <span className="absolute right-3 top-[9px] flex size-[26px] items-center justify-center rounded-lg border border-[#e0d5f3] bg-white text-violet">
+                <Pencil className="size-[13px]" strokeWidth={2.1} />
+              </span>
+              {openPanel}
+            </button>
           ) : (
-            <div className="mt-2.5 whitespace-nowrap text-[13px] text-ink-faint">
-              {view.openMutedLabel}
+            <div className={cn("border-l border-border/70 px-4 py-3", view.hasOpen && "bg-violet-wash")}>
+              {openPanel}
             </div>
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
