@@ -27,13 +27,13 @@ function ChartCard({
   name: string;
 }) {
   return (
-    <div className="rounded-[14px] border border-border bg-card px-[18px] py-4">
-      <div className="flex min-h-[22px] items-center justify-between">
+    <div className="rounded-[14px] border border-border bg-card px-[18px] py-4 leading-[normal]">
+      <div className="flex min-h-[19px] items-center justify-between">
         <span className="text-[12.5px] text-ink-faint">{title}</span>
         {control}
       </div>
       <div className="mt-1.5 flex items-baseline gap-2">
-        <span className="tabular text-[30px] font-semibold leading-tight tracking-[-.4px] text-ink">{value}</span>
+        <span className="tabular text-[30px] font-semibold tracking-[-.4px] text-ink">{value}</span>
         <span className="text-[12px] text-ink-faint">este mês</span>
       </div>
       <div className="mt-2.5 border-t border-[#eef3ec] pt-2">

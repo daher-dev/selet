@@ -87,8 +87,8 @@ function AjustarForm({
       </DialogHeader>
 
       <div className="flex flex-col gap-4 px-[22px] py-5">
-        <div className="flex items-center gap-2.5 rounded-xl border border-violet/15 bg-violet-wash px-3.5 py-3">
-          <span className="flex-1 text-[12.5px] text-violet/80">Saldo calculado pelo sistema</span>
+        <div className="flex items-center gap-2.5 rounded-[12px] border border-[#ede6f8] bg-violet-wash px-3.5 py-3">
+          <span className="flex-1 text-[12.5px] text-[#6b5a8e]">Saldo calculado pelo sistema</span>
           <span className="tabular text-[14px] font-bold text-violet">
             {current} de {pkgSize} {un}
           </span>
@@ -162,7 +162,8 @@ function AjustarForm({
         </div>
 
         <p className="text-[12px] leading-[1.45] text-ink-faint">
-          O ajuste fica registrado no histórico do insumo: {current} → {value} {un}.
+          O ajuste fica registrado no histórico do insumo
+          {unchanged ? "." : `: ${current} → ${value} ${un}.`}
         </p>
       </div>
 
@@ -171,7 +172,7 @@ function AjustarForm({
           variant="outline"
           onClick={onClose}
           disabled={pending}
-          className="h-11 rounded-[11px] px-[18px] text-[13.5px] font-semibold text-ink-soft"
+          className="h-11 rounded-[11px] bg-white px-[18px] text-[13.5px] font-semibold text-ink-soft"
         >
           Cancelar
         </Button>

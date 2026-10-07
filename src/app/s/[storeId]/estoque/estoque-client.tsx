@@ -372,8 +372,8 @@ function StockCard({
     <>
       <span
         className={cn(
-          "flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide",
-          view.hasOpen ? "text-violet" : "text-ink-faint",
+          "flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[.7px]",
+          view.hasOpen ? "text-[#7c55c9]" : "text-[#c3cdbf]",
         )}
       >
         {view.hasOpen && <FracIcon />}
@@ -381,17 +381,17 @@ function StockCard({
       </span>
       {view.hasOpen ? (
         <>
-          <div className="tabular mt-1.5 whitespace-nowrap text-[17px] font-extrabold leading-none text-violet">
+          <div className="tabular mt-[7px] whitespace-nowrap text-[17px] font-bold leading-[normal] text-violet">
             {view.openMain}
           </div>
           {view.pips && <OpenPips total={view.pips.total} filled={view.pips.filled} className="mt-2" />}
           {view.barPct !== null && <OpenBar pct={view.barPct} className="mt-2" />}
           {view.openSub && (
-            <div className="mt-1.5 whitespace-nowrap text-[12px] text-ink-faint">{view.openSub}</div>
+            <div className="mt-1.5 whitespace-nowrap text-[12.5px] text-[#a99bc4]">{view.openSub}</div>
           )}
         </>
       ) : (
-        <div className="mt-2.5 whitespace-nowrap text-[13px] text-ink-faint">{view.openMutedLabel}</div>
+        <div className="mt-[9px] whitespace-nowrap text-[13px] text-[#a0ac9d]">{view.openMutedLabel}</div>
       )}
     </>
   );
@@ -401,7 +401,7 @@ function StockCard({
   // underneath carries the "open details" click; content sits above it and
   // lets clicks through except for the adjust panel.
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_10px_24px_-14px_rgba(24,107,65,.28)]">
+    <div className="group relative overflow-hidden rounded-[14px] border border-border bg-card text-left leading-[normal] transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_10px_24px_-14px_rgba(24,107,65,.28)]">
       <button
         type="button"
         onClick={onOpen}
@@ -409,11 +409,11 @@ function StockCard({
         className="absolute inset-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       />
       <div className="pointer-events-none relative">
-        <div className="flex items-center gap-3 px-4 py-3.5">
-          {tileMeta && <CategoryTile meta={tileMeta} className="size-[38px]" />}
+        <div className="flex items-center gap-[13px] px-[18px] py-4">
+          {tileMeta && <CategoryTile meta={tileMeta} className="size-11 [&>svg]:size-[22px]" />}
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[15px] font-semibold text-ink">{item.name}</span>
-            <span className="mt-0.5 block truncate text-[11.5px] text-ink-faint">
+            <span className="block truncate text-[16px] font-semibold tracking-[-.2px] text-ink">{item.name}</span>
+            <span className="mt-px block truncate text-[12.5px] text-[#a0ac9d]">
               {meta?.label ?? item.category}
               {item.resellable && " · revenda"}
               {view.perUnit && " · consumo por unidade"}
@@ -430,22 +430,22 @@ function StockCard({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 border-t border-border/70">
-          <div className="bg-paper px-4 py-3">
-            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
+        <div className="grid grid-cols-2 border-t border-[#f0f4ed]">
+          <div className="px-[18px] pb-[15px] pt-[13px]">
+            <span className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[.7px] text-[#3a8b4e]">
               <SealedIcon />
               {view.leftLabel}
             </span>
             <div
               className={cn(
-                "tabular mt-1.5 whitespace-nowrap text-[17px] font-extrabold leading-none",
+                "tabular mt-[7px] whitespace-nowrap text-[17px] font-bold leading-[normal]",
                 view.leftColor,
               )}
             >
               {view.leftMain}
             </div>
             {view.leftSub && (
-              <div className="mt-1 whitespace-nowrap text-[12px] text-ink-faint">{view.leftSub}</div>
+              <div className="mt-0.5 whitespace-nowrap text-[12.5px] text-[#a0ac9d]">{view.leftSub}</div>
             )}
           </div>
 
@@ -455,15 +455,20 @@ function StockCard({
               onClick={onAdjust}
               title="Ajustar saldo"
               aria-label={`Ajustar saldo da embalagem aberta de ${item.name}`}
-              className="pointer-events-auto relative border-l border-border/70 bg-violet-wash px-4 py-3 text-left transition-colors hover:bg-[#f0e9fb] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-violet"
+              className="pointer-events-auto relative border-l border-[#ede6f8] bg-violet-wash px-[18px] pb-[15px] pt-[13px] text-left transition-colors hover:bg-[#f0e9fb] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-violet"
             >
-              <span className="absolute right-3 top-[9px] flex size-[26px] items-center justify-center rounded-lg border border-[#e0d5f3] bg-white text-violet">
+              <span className="absolute right-3 top-[9px] flex size-[26px] items-center justify-center rounded-[8px] border border-[#e0d5f3] bg-white text-violet">
                 <Pencil className="size-[13px]" strokeWidth={2.1} />
               </span>
               {openPanel}
             </button>
           ) : (
-            <div className={cn("border-l border-border/70 px-4 py-3", view.hasOpen && "bg-violet-wash")}>
+            <div
+              className={cn(
+                "border-l px-[18px] pb-[15px] pt-[13px]",
+                view.hasOpen ? "border-[#ede6f8] bg-violet-wash" : "border-[#f0f4ed]",
+              )}
+            >
               {openPanel}
             </div>
           )}
@@ -475,18 +480,17 @@ function StockCard({
 
 function SealedIcon() {
   return (
-    <svg className="size-3 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <rect x="4" y="4" width="16" height="16" rx="2" />
-      <path d="M4 9h16" />
+    <svg className="size-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9}>
+      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <path d="M3 11h18" />
     </svg>
   );
 }
 
 function FracIcon() {
   return (
-    <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2" />
-      <path d="M3 8h18v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8Z" />
+    <svg className="size-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9}>
+      <rect x="3" y="9" width="18" height="6" rx="3" />
     </svg>
   );
 }

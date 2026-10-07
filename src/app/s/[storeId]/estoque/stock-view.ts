@@ -138,8 +138,9 @@ export function buildStockCard(item: StockItem, units: StockUnitDef[] = DEFAULT_
       openSub = `embalagem de ${formatQty(pkgSize, pu)}`;
     } else if (exact) {
       const used = Math.max(0, pkgSize - item.open);
-      openMain = `${item.open === 1 ? "Resta" : "Restam"} ${fmtNum(item.open)} de ${formatQty(pkgSize, pu)}`;
-      openSub = `${fmtNum(used)} ${pu} já ${used === 1 ? "usada" : "usadas"}`;
+      const label = (n: number) => unitLabel(item.unit, n !== 1, units);
+      openMain = `${item.open === 1 ? "Resta" : "Restam"} ${fmtNum(item.open)} de ${formatQty(pkgSize, label(pkgSize))}`;
+      openSub = `${formatQty(used, label(used))} já ${used === 1 ? "usada" : "usadas"}`;
     } else {
       openMain = "Em uso";
       openSub = `embalagem de ${formatQty(pkgSize, pu)}`;
