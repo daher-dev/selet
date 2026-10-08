@@ -29,7 +29,7 @@ test("Ajustar embalagem aberta corrects a per-unit balance and logs it in the hi
   await expect(dialog.getByText(`${before} → ${before - 1} un.`)).toBeVisible();
   await dialog.getByRole("button", { name: "Salvar ajuste" }).click();
 
-  await expect(page.getByText(`Saldo ajustado: ${before} → ${before - 1} un.`)).toBeVisible();
+  await expect(page.getByText(`Saldo ajustado para ${before - 1} un.`)).toBeVisible();
   await expect(adjust).toContainText(`Restam ${before - 1} de 7 un`);
 
   // The correction shows up in the item's history, without an edit button.

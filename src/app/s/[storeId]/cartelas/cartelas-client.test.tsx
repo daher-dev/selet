@@ -93,10 +93,10 @@ describe("CartelasClient stat cards", () => {
     const user = userEvent.setup();
     renderClient();
     const vendido = card("Vendido");
-    expect(within(vendido).getByRole("button", { name: "Valor vendido em reais" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(vendido).getByRole("button", { name: "R$" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("group", { name: "Vendido por mês (R$)" })).toBeInTheDocument();
 
-    await user.click(within(vendido).getByRole("button", { name: "Cartelas vendidas em unidades" }));
+    await user.click(within(vendido).getByRole("button", { name: "Unid." }));
 
     const units = card("Cartelas vendidas");
     expect(headline(units)).toBe("1"); // one sale in October
@@ -105,8 +105,20 @@ describe("CartelasClient stat cards", () => {
     expect(bars[2]).toHaveAttribute("aria-label", "Jul: 1"); // Beatriz's sale
     expect(bars[5]).toHaveAttribute("aria-label", "Out: 1");
 
-    await user.click(within(units).getByRole("button", { name: "Valor vendido em reais" }));
+    await user.click(within(units).getByRole("button", { name: "R$" }));
     expect(screen.getByText("Vendido")).toBeInTheDocument();
+  });
+
+  it("forgets a pinned bar when the chart switches between R$ and Unid.", async () => {
+    const user = userEvent.setup();
+    renderClient();
+    const cash = within(screen.getByRole("group", { name: "Vendido por mês (R$)" })).getAllByRole("button");
+    await user.click(cash[2]);
+    expect(cash[2]).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "Unid." }));
+    const units = within(screen.getByRole("group", { name: "Cartelas vendidas por mês (unidades)" })).getAllByRole("button");
+    expect(units.every((b) => b.getAttribute("aria-pressed") === "false")).toBe(true);
   });
 
   it("reveals a bar's value on hover, focus and tap", async () => {

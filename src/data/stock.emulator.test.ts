@@ -455,7 +455,7 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
       expect(await getStockItem(storeId, id)).toMatchObject({ qty: 20, lowStock: true });
     });
 
-    it("stays replay-safe: editing an earlier manual movement keeps the adjustment", async () => {
+    it("stays replay-safe: editing an earlier manual movement keeps the user's real count", async () => {
       const storeId = `test-stock-adj-e-${Date.now()}`;
       const id = await createStockItem(storeId, COPO, { sealed: 3, open: 0 });
       await applyMovement(storeId, id, { ...mv, type: "entrada", qty: 4, byPackage: false, reason: "AJUSTE" });
@@ -469,7 +469,34 @@ describe.skipIf(!hasEmulator)("stock repository (emulator)", () => {
 
       await updateMovement(storeId, id, manual!.id, { qty: 2 });
 
-      expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 3, open: 5, qty: 35 });
+      // The adjustment says "there are really 7 left" — that stays true whatever happened before it.
+      expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 3, open: 7, qty: 37 });
+    });
+
+    it("a downward adjustment stays absolute when an earlier movement is edited", async () => {
+      const storeId = `test-stock-adj-h-${Date.now()}`;
+      const id = await createStockItem(storeId, COPO, { sealed: 3, open: 0 });
+      await applyMovement(storeId, id, { ...mv, type: "entrada", qty: 4, byPackage: false, reason: "AJUSTE" });
+      await adjustOpenBalance(storeId, id, { ...adj, open: 1, reason: "PERDA" }); // 4 → 1 (saída 3)
+
+      const manual = (await listMovements(storeId, id)).find((m) => m.type === "entrada" && !m.byPackage && !m.refItem);
+      // Shrinking the earlier entrada leaves only 2 loose units before the adjustment. A relative replay would
+      // auto-open a sealed package to cover the saída of 3; the user's real count (1) must win instead.
+      await updateMovement(storeId, id, manual!.id, { qty: 2 });
+
+      expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 3, open: 1, qty: 31 });
+    });
+
+    it("deleting an earlier movement keeps the adjusted balance", async () => {
+      const storeId = `test-stock-adj-i-${Date.now()}`;
+      const id = await createStockItem(storeId, COPO, { sealed: 3, open: 0 });
+      await applyMovement(storeId, id, { ...mv, type: "entrada", qty: 4, byPackage: false, reason: "AJUSTE" });
+      await adjustOpenBalance(storeId, id, { ...adj, open: 1, reason: "PERDA" });
+
+      const manual = (await listMovements(storeId, id)).find((m) => m.type === "entrada" && !m.byPackage && !m.refItem);
+      await deleteMovement(storeId, id, manual!.id);
+
+      expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 3, open: 1, qty: 31 });
     });
 
     it("rejects invalid adjustments", async () => {

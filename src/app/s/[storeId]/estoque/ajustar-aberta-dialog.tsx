@@ -73,7 +73,7 @@ function AjustarForm({
         reason: effectiveReason ?? undefined,
       });
       if (r.ok) {
-        toast.success(`Saldo ajustado: ${current} → ${value} ${un}.`);
+        toast.success(`Saldo ajustado para ${value} ${un}.`);
         onClose();
       } else toast.error(r.error);
     });

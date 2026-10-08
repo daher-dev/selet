@@ -37,7 +37,7 @@ function ChartCard({
         <span className="text-[12px] text-ink-faint">este mês</span>
       </div>
       <div className="mt-2.5 border-t border-[#eef3ec] pt-2">
-        <MiniBars bars={bars} name={name} className="mt-1.5" />
+        <MiniBars key={name} bars={bars} name={name} className="mt-1.5" />
       </div>
     </div>
   );
@@ -45,11 +45,11 @@ function ChartCard({
 
 /** R$ / Unid. segmented switch of the "Vendido" card. */
 function UnitToggle({ cash, onChange }: { cash: boolean; onChange: (cash: boolean) => void }) {
-  const btn = (on: boolean, label: string, aria: string, next: boolean) => (
+  const btn = (on: boolean, label: string, hint: string, next: boolean) => (
     <button
       type="button"
       aria-pressed={on}
-      aria-label={aria}
+      title={hint}
       onClick={() => onChange(next)}
       className={cn(
         "rounded-md px-[9px] py-[3px] text-[11px] font-semibold transition-colors",
@@ -60,7 +60,7 @@ function UnitToggle({ cash, onChange }: { cash: boolean; onChange: (cash: boolea
     </button>
   );
   return (
-    <div className="flex gap-0.5 rounded-lg bg-[#eef3ec] p-0.5">
+    <div role="group" aria-label="Unidade do gráfico" className="flex gap-0.5 rounded-lg bg-[#eef3ec] p-0.5">
       {btn(cash, "R$", "Valor vendido em reais", true)}
       {btn(!cash, "Unid.", "Cartelas vendidas em unidades", false)}
     </div>

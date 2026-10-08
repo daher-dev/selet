@@ -345,6 +345,13 @@ function replayMovementState(
       throw new Error("Movimentações por embalagem precisam de quantidade inteira.");
     }
 
+    // "Ajustar embalagem aberta": the user overwrote the open balance with a real count — a fact that
+    // doesn't depend on what came before it (see adjustOpenBalance).
+    if (typeof d.openTo === "number") {
+      work.open = d.openTo;
+      continue;
+    }
+
     switch (d.type as StockMovementType) {
       case "entrada":
         if (work.continuousUse && !byPackage) {
@@ -802,9 +809,10 @@ export interface OpenAdjustInput {
 /**
  * Per-unit items (copos, sachês: tracked, medido, count unit): the user
  * overwrites the open package's calculated balance with the real one. Booked
- * as a loose entrada/saida of the difference carrying a `refItem` note, so the
- * movement replays like any other and — having a refItem — is not editable
- * from the timeline (a correction is a historical fact).
+ * as a loose entrada/saida of the difference (what the timeline shows) carrying
+ * a `refItem` note — so it isn't editable from the timeline, a correction being
+ * a historical fact — plus the absolute `openTo`, which replay applies as an
+ * override instead of re-running the difference.
  */
 export async function adjustOpenBalance(
   storeId: string,
@@ -850,6 +858,9 @@ export async function adjustOpenBalance(
       reason: input.reason === "PERDA" ? "PERDA" : "AJUSTE",
       refOrder: null,
       refItem: `${label} · ${from} → ${to} ${input.unitLabel}`,
+      // The user's real count. Replay (replayMovementState) treats it as an absolute override, so a later
+      // edit/delete of an EARLIER movement can't turn this correction into a relative one.
+      openTo: to,
       by: input.by,
       at,
     });
