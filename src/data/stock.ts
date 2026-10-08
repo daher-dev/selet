@@ -9,9 +9,11 @@ import {
   summaryLowStockDelta,
   writeSummaryTx,
 } from "./summary";
+import { OPEN_ADJUST_REASON_LABELS } from "@/lib/types";
 import type {
   ConsumptionDraw,
   ConsumptionMode,
+  OpenAdjustReason,
   StockCategory,
   StockItem,
   StockMovement,
@@ -341,6 +343,13 @@ function replayMovementState(
     const byPackage = d.byPackage ?? false;
     if (byPackage && !Number.isInteger(qty)) {
       throw new Error("Movimentações por embalagem precisam de quantidade inteira.");
+    }
+
+    // "Ajustar embalagem aberta": the user overwrote the open balance with a real count — a fact that
+    // doesn't depend on what came before it (see adjustOpenBalance).
+    if (typeof d.openTo === "number") {
+      work.open = d.openTo;
+      continue;
     }
 
     switch (d.type as StockMovementType) {
@@ -785,6 +794,87 @@ export async function markPackageEmpty(
     });
   });
   return name;
+}
+
+export interface OpenAdjustInput {
+  /** What is really left in the open package, in base units (whole numbers). */
+  open: number;
+  /** Optional cause; "PERDA" books a decrease as a loss, anything else as AJUSTE. */
+  reason?: OpenAdjustReason;
+  /** Display unit for the history note ("un"). */
+  unitLabel: string;
+  by: string;
+}
+
+/**
+ * Per-unit items (copos, sachês: tracked, medido, count unit): the user
+ * overwrites the open package's calculated balance with the real one. Booked
+ * as a loose entrada/saida of the difference (what the timeline shows) carrying
+ * a `refItem` note — so it isn't editable from the timeline, a correction being
+ * a historical fact — plus the absolute `openTo`, which replay applies as an
+ * override instead of re-running the difference.
+ */
+export async function adjustOpenBalance(
+  storeId: string,
+  itemId: string,
+  input: OpenAdjustInput,
+): Promise<{ name: string; from: number; to: number }> {
+  const db = getDb();
+  const ref = stockCol(storeId).doc(itemId);
+  let result = { name: "", from: 0, to: 0 };
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error("Item não encontrado.");
+    const d = snap.data()!;
+    const work = readStockWork(d);
+    if (!work.tracked || work.continuousUse || work.consumptionMode !== "medido" || work.pkgSize < 1) {
+      throw new Error("Este item não controla a embalagem aberta por unidade.");
+    }
+    const to = input.open;
+    if (!Number.isInteger(to) || to < 0) throw new Error("Informe um número inteiro de unidades.");
+    const from = work.open;
+    const max = Math.max(work.pkgSize, from);
+    if (to > max) throw new Error(`A embalagem aberta tem no máximo ${max} unidades.`);
+    const delta = to - from;
+    if (delta === 0) throw new Error("O saldo informado é o mesmo que o atual.");
+    if (input.reason === "PERDA" && delta > 0) throw new Error("Perda só pode reduzir o saldo.");
+
+    const summary = await readSummaryTx(tx, storeId);
+    const archived = d.archived ?? false;
+    const seq = nextMovementSeq(d);
+    work.open = to;
+    const patch: Record<string, unknown> = { ...stockPatch(work), movementSeq: seq };
+    tx.update(ref, patch);
+
+    const label = input.reason ? OPEN_ADJUST_REASON_LABELS[input.reason] : "Ajuste de saldo";
+    const at = Timestamp.now();
+    tx.set(ref.collection("movements").doc(), {
+      type: delta > 0 ? "entrada" : "saida",
+      qty: Math.abs(delta),
+      byPackage: false,
+      seq,
+      price: null,
+      reason: input.reason === "PERDA" ? "PERDA" : "AJUSTE",
+      refOrder: null,
+      refItem: `${label} · ${from} → ${to} ${input.unitLabel}`,
+      // The user's real count. Replay (replayMovementState) treats it as an absolute override, so a later
+      // edit/delete of an EARLIER movement can't turn this correction into a relative one.
+      openTo: to,
+      by: input.by,
+      at,
+    });
+
+    const lowDelta =
+      lowStockContribution(patch.lowStock as boolean, archived) -
+      lowStockContribution(d.lowStock ?? false, archived);
+    if (lowDelta !== 0) {
+      summaryLowStockDelta(summary, lowDelta);
+      writeSummaryTx(tx, storeId, summary);
+    }
+    result = { name: d.name ?? "", from, to };
+  });
+  return result;
 }
 
 // ---------------------------------------------------------------------------

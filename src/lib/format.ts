@@ -10,6 +10,15 @@ export function formatBRL(centavos: number): string {
   return brl.format(centavos / 100);
 }
 
+/** Compact BRL for chart labels: whole reais drop the cents ("R$ 380", "R$ 1.020"), otherwise "R$ 37,50". */
+export function formatBRLCompact(centavos: number): string {
+  const whole = centavos % 100 === 0;
+  return `R$ ${(centavos / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
+  })}`;
+}
+
 /** Parses a pt-BR money string ("1.234,56" or "1234,56") into centavos. */
 export function parseBRL(input: string): number {
   const normalized = input.replace(/[R$\s.]/g, "").replace(",", ".");

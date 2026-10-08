@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatBRL,
+  formatBRLCompact,
   formatDate,
   formatPudimLineName,
   formatQty,
@@ -17,6 +18,18 @@ describe("formatBRL", () => {
     expect(formatBRL(123456).replace(/ /g, " ")).toBe("R$ 1.234,56");
     expect(formatBRL(0).replace(/ /g, " ")).toBe("R$ 0,00");
     expect(formatBRL(900).replace(/ /g, " ")).toBe("R$ 9,00");
+  });
+});
+
+describe("formatBRLCompact", () => {
+  it("drops the cents of whole-real amounts", () => {
+    expect(formatBRLCompact(38000)).toBe("R$ 380");
+    expect(formatBRLCompact(102000)).toBe("R$ 1.020");
+    expect(formatBRLCompact(0)).toBe("R$ 0");
+  });
+
+  it("keeps two decimals otherwise", () => {
+    expect(formatBRLCompact(3750)).toBe("R$ 37,50");
   });
 });
 

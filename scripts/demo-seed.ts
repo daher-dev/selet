@@ -210,6 +210,16 @@ interface DemoCartela {
   status: "ativa" | "esgotada";
 }
 
+/** `n` chronological order uses starting `fromDaysAgo` days back, `step` days apart (oldest first; the first is the brinde). */
+function orderUses(n: number, fromDaysAgo: number, step: number, productName: string, codeBase: number): DemoCartelaUse[] {
+  return Array.from({ length: n }, (_, i) => ({
+    kind: "order" as const,
+    orderCode: String(codeBase + i),
+    productName,
+    daysAgo: Math.max(0, fromDaysAgo - i * step),
+  }));
+}
+
 const CARTELAS: DemoCartela[] = [
   // Active, mostly untouched — 6 remaining paid uses.
   {
@@ -288,6 +298,14 @@ const CARTELAS: DemoCartela[] = [
     ],
     status: "esgotada",
   },
+  // Older cartelas spread over the last ~6 months so the Cartelas stat charts
+  // (saldo / vendido / usos por mês) have a shape. Relative offsets, like the rest.
+  { code: "C001", customerName: "Aline Ferreira", paidUses: 10, unitValue: 2800, purchasedDaysAgo: 158, uses: orderUses(11, 158, 14, "Shake Frutas Vermelhas", 2100), status: "esgotada" },
+  { code: "C002", customerName: "Patrícia Gomes", paidUses: 6, unitValue: 3200, purchasedDaysAgo: 128, uses: orderUses(5, 128, 20, "Shake da Beleza", 2600), status: "ativa" },
+  { code: "C003", customerName: "Carla Menezes", paidUses: 10, unitValue: 3000, purchasedDaysAgo: 100, uses: orderUses(11, 100, 8, "Shake Ovomaltine", 3000), status: "esgotada" },
+  { code: "C005", customerName: "Aline Ferreira", paidUses: 8, unitValue: 2500, purchasedDaysAgo: 72, uses: orderUses(7, 72, 9, "Coxinha Proteica", 3500), status: "ativa" },
+  { code: "C006", customerName: "Patrícia Gomes", paidUses: 10, unitValue: 2200, purchasedDaysAgo: 41, uses: orderUses(5, 41, 7, "Escondidinho de Frango", 3900), status: "ativa" },
+  { code: "C008", customerName: "Mariana Lopes", paidUses: 10, unitValue: 3000, purchasedDaysAgo: 20, uses: orderUses(4, 20, 4, "Shake da Beleza", 4000), status: "ativa" },
 ];
 
 async function seedCartelas(
@@ -436,6 +454,48 @@ const SHAKE_BRINDES: { productId: string; name: string }[] = [
   { productId: "bebida-refrigerante-saudavel", name: "Refrigerante Saudável" },
   { productId: "bebida-colageno-drink", name: "Colágeno Drink" },
 ];
+
+/**
+ * Per-unit item (design Mock Estoque "Copo Descartável 300 ml"): tracked, count
+ * unit, 10 un/pacote, 4 pacotes fechados + 2 un left in the open one — the card
+ * reads "Restam 2 de 10 un" and its open panel opens "Ajustar embalagem aberta".
+ */
+async function seedPerUnitStock(store: FirebaseFirestore.DocumentReference) {
+  const ref = store.collection("stockItems").doc("demo-copo-300ml");
+  await ref.set({
+    name: "Copo Descartável 300 ml",
+    category: "descartaveis",
+    unit: "un",
+    tracked: true,
+    pkgLabel: "pacote",
+    pkgLabelPlural: "pacotes",
+    pkgSize: 10,
+    sealed: 4,
+    open: 2,
+    qty: 42,
+    continuousUse: false,
+    consumptionMode: "medido",
+    openPkg: false,
+    usos: 0,
+    resellable: false,
+    cost: 1290,
+    reorderAt: 2,
+    lowStock: false,
+    archived: false,
+    updatedAt: Timestamp.now(),
+  });
+  const movs = ref.collection("movements");
+  const prior = await movs.get();
+  for (const m of prior.docs) await m.ref.delete();
+  await movs.doc("open-demo-copo-300ml").set({
+    type: "entrada", qty: 5, byPackage: true, price: 1290, reason: "ENTRADA",
+    refOrder: null, refItem: null, by: "joao@daher.dev", at: daysAgo(8),
+  });
+  await movs.doc().set({
+    type: "saida", qty: 8, byPackage: false, price: null, reason: "CONSUMO",
+    refOrder: null, refItem: "Produção", by: "joao@daher.dev", at: daysAgo(2),
+  });
+}
 
 async function seedShakeCatalog(store: FirebaseFirestore.DocumentReference) {
   const now = Timestamp.now();
@@ -704,6 +764,7 @@ async function seedStore(db: Firestore, storeId: StoreId) {
   if (storeId === "vila-velha") {
     await seedCartelas(store, customers);
     await seedShakeCatalog(store);
+    await seedPerUnitStock(store);
   }
 
   // Backfill the pre-computed summary now that all orders/finance/stock docs for
