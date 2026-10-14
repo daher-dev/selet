@@ -16,6 +16,7 @@ import type {
   OpenAdjustReason,
   StockCategory,
   StockItem,
+  StockLocation,
   StockMovement,
   StockMovementReason,
   StockMovementType,
@@ -37,12 +38,14 @@ function toItem(id: string, d: FirebaseFirestore.DocumentData): StockItem {
     pkgLabelPlural: d.pkgLabelPlural,
     pkgSize: d.pkgSize,
     sealed: d.sealed ?? 0,
+    depSealed: d.depSealed ?? 0,
     open: d.open ?? 0,
     qty: d.qty ?? 0,
     continuousUse: d.continuousUse ?? false,
     consumptionMode: d.consumptionMode ?? (d.continuousUse ? "continuo" : "medido"),
     openPkg: d.openPkg ?? false,
     usos: d.usos ?? 0,
+    lastUsos: d.lastUsos ?? undefined,
     resellable: d.resellable ?? false,
     cost: d.cost,
     sellPrice: d.sellPrice,
@@ -154,9 +157,10 @@ export interface StockItemInput {
 export async function createStockItem(
   storeId: string,
   input: StockItemInput,
-  initial: { sealed: number; open: number } = { sealed: 0, open: 0 },
+  initial: { sealed: number; open: number; depSealed?: number } = { sealed: 0, open: 0 },
   by?: string,
 ): Promise<string> {
+  const depSealed = input.tracked ? (initial.depSealed ?? 0) : 0;
   const state = derive(input.tracked, input.pkgSize, initial.sealed, initial.open);
   const ref = stockCol(storeId).doc();
   const lowStock = computeLowStock({ ...input, ...state, openPkg: false });
@@ -173,9 +177,10 @@ export async function createStockItem(
     // would be invisible to the dashboard strip and the nav badge.
     archived: input.archived ?? false,
     ...state,
+    depSealed,
     openPkg: false,
     usos: 0,
-    movementSeq: openingQty > 0 ? 1 : 0,
+    movementSeq: (openingQty > 0 ? 1 : 0) + (depSealed > 0 ? 1 : 0),
     lowStock,
     updatedAt: FieldValue.serverTimestamp(),
   });
@@ -192,6 +197,7 @@ export async function createStockItem(
       type: "entrada",
       qty: openingQty,
       byPackage: input.tracked,
+      loc: "loja",
       seq: 1,
       price: input.cost ?? null,
       reason: "ENTRADA",
@@ -199,6 +205,21 @@ export async function createStockItem(
       refItem: null,
       by: by ?? "sistema",
       at,
+    });
+  }
+  if (depSealed > 0) {
+    await ref.collection("movements").doc().set({
+      type: "entrada",
+      qty: depSealed,
+      byPackage: true,
+      loc: "deposito",
+      seq: openingQty > 0 ? 2 : 1,
+      price: input.cost ?? null,
+      reason: "ENTRADA",
+      refOrder: null,
+      refItem: null,
+      by: by ?? "sistema",
+      at: Timestamp.now(),
     });
   }
   if (newLow) {
@@ -271,6 +292,10 @@ export interface MovementInput {
   reason?: StockMovementReason;
   refOrder?: string;
   refItem?: string;
+  /** Depósito movements are by package only; default loja. */
+  loc?: StockLocation;
+  /** Effective date (purchase date). Earlier than the latest movement → the whole ledger is replayed in date order. */
+  at?: Date;
   by: string;
 }
 
@@ -315,11 +340,14 @@ function nextMovementSeq(d: FirebaseFirestore.DocumentData, count = 1): number {
   return (d.movementSeq ?? 0) + count;
 }
 
+type ReplayBaseline = Pick<StockWork, "sealed" | "depSealed" | "open" | "openPkg" | "usos">;
+
 function replayMovementState(
   item: FirebaseFirestore.DocumentData,
   movements: FirebaseFirestore.DocumentData[],
-  baseline: Pick<StockWork, "sealed" | "open" | "openPkg" | "usos"> = {
+  baseline: ReplayBaseline = {
     sealed: 0,
+    depSealed: 0,
     open: 0,
     openPkg: false,
     usos: 0,
@@ -329,6 +357,7 @@ function replayMovementState(
     tracked: item.tracked ?? false,
     pkgSize: item.pkgSize ?? 0,
     sealed: baseline.sealed,
+    depSealed: baseline.depSealed,
     open: baseline.open,
     openPkg: baseline.openPkg,
     usos: baseline.usos,
@@ -349,6 +378,26 @@ function replayMovementState(
     // doesn't depend on what came before it (see adjustOpenBalance).
     if (typeof d.openTo === "number") {
       work.open = d.openTo;
+      continue;
+    }
+
+    // Depósito only ever holds sealed packages: purchases/corrections there, and transfers out of it.
+    if (d.loc === "deposito" && (d.type === "entrada" || d.type === "saida")) {
+      if (!work.tracked || !byPackage) throw new Error("Movimentação inválida no histórico.");
+      if (d.type === "entrada") {
+        work.depSealed += qty;
+        if (d.price != null && d.price > 0) latestPurchasePrice = d.price;
+      } else {
+        if (qty > work.depSealed) throw new Error("A edição deixaria o depósito com estoque insuficiente.");
+        work.depSealed -= qty;
+      }
+      continue;
+    }
+    if (d.type === "transferencia") {
+      if (!work.tracked) throw new Error("Movimentação inválida no histórico.");
+      if (qty > work.depSealed) throw new Error("A edição deixaria o depósito com estoque insuficiente.");
+      work.depSealed -= qty;
+      work.sealed += qty;
       continue;
     }
 
@@ -410,10 +459,17 @@ function replayMovementState(
         break;
 
       case "abertura":
-        if (!work.tracked || work.sealed < 1) {
-          throw new Error("A edição deixaria o histórico de embalagem inconsistente.");
+        if (d.src === "deposito") {
+          if (!work.tracked || work.depSealed < 1) {
+            throw new Error("A edição deixaria o histórico de embalagem inconsistente.");
+          }
+          work.depSealed -= 1;
+        } else {
+          if (!work.tracked || work.sealed < 1) {
+            throw new Error("A edição deixaria o histórico de embalagem inconsistente.");
+          }
+          work.sealed -= 1;
         }
-        work.sealed -= 1;
         if (d.refItem === "Abriu embalagem") {
           if (work.openPkg) {
             throw new Error("A edição deixaria duas embalagens abertas ao mesmo tempo.");
@@ -433,47 +489,64 @@ function replayMovementState(
 function replayBaselineState(
   item: FirebaseFirestore.DocumentData,
   movements: FirebaseFirestore.DocumentData[],
-): Pick<StockWork, "sealed" | "open" | "openPkg" | "usos"> {
+): ReplayBaseline {
   const replayBaseline = item.replayBaseline;
   if (replayBaseline && typeof replayBaseline === "object") {
     const baseline = replayBaseline as FirebaseFirestore.DocumentData;
     return {
       sealed: baseline.sealed ?? 0,
+      depSealed: baseline.depSealed ?? 0,
       open: baseline.open ?? 0,
       openPkg: baseline.openPkg ?? false,
       usos: baseline.usos ?? 0,
     };
   }
   if (!(item.tracked ?? false) || (item.continuousUse ?? false)) {
-    return { sealed: 0, open: 0, openPkg: false, usos: 0 };
+    return { sealed: 0, depSealed: 0, open: 0, openPkg: false, usos: 0 };
   }
   const { work } = replayMovementState(item, movements);
   return {
     sealed: 0,
+    depSealed: 0,
     open: Math.max(0, (item.qty ?? 0) - derive(work.tracked, work.pkgSize, work.sealed, work.open).qty),
     openPkg: false,
     usos: 0,
   };
 }
 
-function compareMovementDocs(
-  a: FirebaseFirestore.QueryDocumentSnapshot,
-  b: FirebaseFirestore.QueryDocumentSnapshot,
-): number {
-  const aSeq = a.data().seq;
-  const bSeq = b.data().seq;
+interface MovementEntry {
+  id: string;
+  data: FirebaseFirestore.DocumentData;
+  created: number;
+}
+
+function toEntry(doc: FirebaseFirestore.QueryDocumentSnapshot): MovementEntry {
+  return { id: doc.id, data: doc.data(), created: doc.createTime?.toMillis() ?? 0 };
+}
+
+/**
+ * Replay order = the effective date (`at`: a back-dated purchase lands where its date says),
+ * then insertion order (`seq`, absent on sale movements), then creation time.
+ */
+function compareMovements(a: MovementEntry, b: MovementEntry): number {
+  const aAt = a.data.at?.toMillis?.() ?? 0;
+  const bAt = b.data.at?.toMillis?.() ?? 0;
+  if (aAt !== bAt) return aAt - bAt;
+  const aSeq = a.data.seq;
+  const bSeq = b.data.seq;
   if (typeof aSeq === "number" && typeof bSeq === "number" && aSeq !== bSeq) {
     return aSeq - bSeq;
   }
-  const aCreated = a.createTime?.toMillis() ?? 0;
-  const bCreated = b.createTime?.toMillis() ?? 0;
-  return aCreated === bCreated ? a.id.localeCompare(b.id) : aCreated - bCreated;
+  return a.created === b.created ? a.id.localeCompare(b.id) : a.created - b.created;
 }
 
 /**
  * Applies a stock movement atomically and keeps sealed/open/qty/lowStock
  * consistent. Loose saída on a tracked item auto-opens sealed packages
- * when the open amount runs short.
+ * when the open amount runs short. Depósito movements (loc "deposito") are
+ * whole packages only and never touch the Loja balance or its low-stock flag.
+ * A back-dated entry (`at` before the latest movement) is inserted and the
+ * whole ledger replayed in date order, so absolute corrections stay anchors.
  */
 export async function applyMovement(
   storeId: string,
@@ -483,93 +556,138 @@ export async function applyMovement(
   const db = getDb();
   const ref = stockCol(storeId).doc(itemId);
   let name = "";
+  const loc: StockLocation = input.loc ?? "loja";
+  const at = input.at ? Timestamp.fromDate(input.at) : Timestamp.now();
+  if (input.at && input.at.getTime() > Date.now() + 60_000) {
+    throw new Error("A data não pode ser futura.");
+  }
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Item não encontrado.");
     const d = snap.data()!;
     name = d.name ?? "";
+    const movements = ref.collection("movements");
+    const latest = input.at ? await tx.get(movements.orderBy("at", "desc").limit(1)) : null;
+    const backdated =
+      !!latest && !latest.empty && latest.docs[0].data().at.toMillis() > at.toMillis();
+    const all = backdated ? await tx.get(movements.orderBy("at", "asc")) : null;
     const summary = await readSummaryTx(tx, storeId);
     const oldLow = d.lowStock ?? false;
     const archived = d.archived ?? false;
     const tracked: boolean = d.tracked ?? false;
     const pkgSize: number = d.pkgSize ?? 0;
     let sealed: number = d.sealed ?? 0;
+    let depSealed: number = d.depSealed ?? 0;
     let open: number = d.open ?? 0;
 
-    switch (input.type) {
-      case "entrada":
-        if (input.byPackage) {
-          if (!tracked) throw new Error("Item não é controlado por embalagem.");
-          sealed += input.qty;
-        } else {
-          open += input.qty;
-        }
-        break;
-
-      case "saida":
-        if (input.byPackage) {
-          if (!tracked) throw new Error("Item não é controlado por embalagem.");
-          if (input.qty > sealed) throw new Error("Embalagens insuficientes em estoque.");
-          sealed -= input.qty;
-        } else if (tracked && pkgSize > 0) {
-          const need = input.qty;
-          if (need > sealed * pkgSize + open) {
-            throw new Error("Quantidade insuficiente em estoque.");
-          }
-          if (need > open) {
-            const toOpen = Math.ceil((need - open) / pkgSize);
-            sealed -= toOpen;
-            open += toOpen * pkgSize;
-          }
-          open -= need;
-        } else {
-          if (input.qty > open) throw new Error("Quantidade insuficiente em estoque.");
-          open -= input.qty;
-        }
-        break;
-
-      case "abertura": {
-        if (!tracked) throw new Error("Item não é controlado por embalagem.");
-        if (sealed < 1) throw new Error("Nenhuma embalagem lacrada em estoque.");
-        sealed -= 1;
-        open += pkgSize;
-        break;
+    if (loc === "deposito") {
+      if (!tracked) throw new Error("Item não é controlado por embalagem.");
+      if (!input.byPackage || input.type === "abertura") {
+        throw new Error("O depósito guarda apenas embalagens fechadas.");
       }
     }
 
-    const state = derive(tracked, pkgSize || undefined, sealed, open);
-    const patch: Record<string, unknown> = {
-      ...state,
-      movementSeq: nextMovementSeq(d),
-      lowStock: computeLowStock({
-        tracked,
-        continuousUse: d.continuousUse ?? false,
-        pkgSize,
-        ...state,
-        openPkg: d.openPkg ?? false,
-        reorderAt: d.reorderAt ?? 0,
-      }),
-      updatedAt: Timestamp.now(),
-    };
-    // An entrada refreshes the item's stored cost to the latest purchase price
-    // (per package for tracked items, per base unit otherwise).
-    if (input.type === "entrada" && input.price != null) patch.cost = input.price;
-    tx.update(ref, patch);
-    const at = Timestamp.now();
-    const movRef = ref.collection("movements").doc();
-    tx.set(movRef, {
+    const seq = nextMovementSeq(d);
+    const doc = {
       type: input.type,
       qty: input.type === "abertura" ? 1 : input.qty,
       byPackage: input.type === "abertura" ? true : input.byPackage,
-      seq: nextMovementSeq(d),
+      loc,
+      seq,
       price: input.price ?? null,
       reason: input.reason ?? (input.type === "entrada" ? "ENTRADA" : "SAIDA"),
       refOrder: input.refOrder ?? null,
       refItem: input.refItem ?? null,
       by: input.by,
       at,
-    });
+    };
+
+    let patch: Record<string, unknown>;
+    if (backdated && all) {
+      const entries = [
+        ...all.docs.map(toEntry),
+        { id: "~new", data: doc, created: Number.MAX_SAFE_INTEGER },
+      ].sort(compareMovements);
+      const baseline = replayBaselineState(d, all.docs.map((x) => x.data()));
+      const { work, latestPurchasePrice } = replayMovementState(
+        d,
+        entries.map((e) => e.data),
+        baseline,
+      );
+      patch = { ...stockPatch(work), movementSeq: seq };
+      if (latestPurchasePrice != null) patch.cost = latestPurchasePrice;
+    } else {
+      if (loc === "deposito") {
+        if (input.type === "entrada") depSealed += input.qty;
+        else {
+          if (input.qty > depSealed) throw new Error("Embalagens insuficientes no depósito.");
+          depSealed -= input.qty;
+        }
+      } else {
+        switch (input.type) {
+          case "entrada":
+            if (input.byPackage) {
+              if (!tracked) throw new Error("Item não é controlado por embalagem.");
+              sealed += input.qty;
+            } else {
+              open += input.qty;
+            }
+            break;
+
+          case "saida":
+            if (input.byPackage) {
+              if (!tracked) throw new Error("Item não é controlado por embalagem.");
+              if (input.qty > sealed) throw new Error("Embalagens insuficientes em estoque.");
+              sealed -= input.qty;
+            } else if (tracked && pkgSize > 0) {
+              const need = input.qty;
+              if (need > sealed * pkgSize + open) {
+                throw new Error("Quantidade insuficiente em estoque.");
+              }
+              if (need > open) {
+                const toOpen = Math.ceil((need - open) / pkgSize);
+                sealed -= toOpen;
+                open += toOpen * pkgSize;
+              }
+              open -= need;
+            } else {
+              if (input.qty > open) throw new Error("Quantidade insuficiente em estoque.");
+              open -= input.qty;
+            }
+            break;
+
+          case "abertura": {
+            if (!tracked) throw new Error("Item não é controlado por embalagem.");
+            if (sealed < 1) throw new Error("Nenhuma embalagem lacrada em estoque.");
+            sealed -= 1;
+            open += pkgSize;
+            break;
+          }
+        }
+      }
+
+      const state = derive(tracked, pkgSize || undefined, sealed, open);
+      patch = {
+        ...state,
+        depSealed,
+        movementSeq: seq,
+        lowStock: computeLowStock({
+          tracked,
+          continuousUse: d.continuousUse ?? false,
+          pkgSize,
+          ...state,
+          openPkg: d.openPkg ?? false,
+          reorderAt: d.reorderAt ?? 0,
+        }),
+        updatedAt: Timestamp.now(),
+      };
+      // An entrada refreshes the item's stored cost to the latest purchase price
+      // (per package for tracked items, per base unit otherwise).
+      if (input.type === "entrada" && input.price != null) patch.cost = input.price;
+    }
+    tx.update(ref, patch);
+    tx.set(movements.doc(), doc);
     // Stock prices never reach finance: bills are entered manually when paid.
     const lowDelta =
       lowStockContribution(patch.lowStock as boolean, archived) -
@@ -613,16 +731,17 @@ export async function updateMovement(
       allMovements.docs.map((doc) => doc.data()),
     );
     const nextPrice = prev.type === "entrada" ? (input.price ?? null) : null;
-    const merged = [...allMovements.docs]
-      .sort(compareMovementDocs)
-      .map((doc) =>
-        doc.id === movementId
+    const merged = allMovements.docs
+      .map(toEntry)
+      .sort(compareMovements)
+      .map((e) =>
+        e.id === movementId
           ? {
-              ...doc.data(),
+              ...e.data,
               qty: input.qty,
               price: nextPrice,
             }
-          : doc.data(),
+          : e.data,
       );
     const { work, latestPurchasePrice } = replayMovementState(item, merged, baseline);
     const patch = stockPatch(work);
@@ -667,10 +786,11 @@ export async function deleteMovement(
       item,
       allMovements.docs.map((doc) => doc.data()),
     );
-    const remaining = [...allMovements.docs]
-      .sort(compareMovementDocs)
-      .filter((doc) => doc.id !== movementId)
-      .map((doc) => doc.data());
+    const remaining = allMovements.docs
+      .map(toEntry)
+      .sort(compareMovements)
+      .filter((e) => e.id !== movementId)
+      .map((e) => e.data);
     const { work, latestPurchasePrice } = replayMovementState(item, remaining, baseline);
     const patch = stockPatch(work);
     applyReplayCostPatch(patch, item, prev, latestPurchasePrice);
@@ -699,7 +819,9 @@ export async function openNextPackage(
   storeId: string,
   itemId: string,
   by: string,
+  opts: { from?: StockLocation; note?: string } = {},
 ): Promise<string> {
+  const from = opts.from ?? "loja";
   const db = getDb();
   const ref = stockCol(storeId).doc(itemId);
   let name = "";
@@ -710,9 +832,12 @@ export async function openNextPackage(
     name = d.name ?? "";
     if (!d.continuousUse) throw new Error("Item não é de uso contínuo.");
     if (d.openPkg) throw new Error("Já existe uma embalagem aberta.");
-    if ((d.sealed ?? 0) < 1) throw new Error("Nenhuma embalagem lacrada em estoque.");
+    if (from === "deposito" ? (d.depSealed ?? 0) < 1 : (d.sealed ?? 0) < 1) {
+      throw new Error(from === "deposito" ? "Nenhuma embalagem lacrada no depósito." : "Nenhuma embalagem lacrada em estoque.");
+    }
     const summary = await readSummaryTx(tx, storeId);
-    const sealed = (d.sealed ?? 0) - 1;
+    // Opening from the depósito never touches the Loja's sealed count (the package goes straight into use).
+    const sealed = from === "deposito" ? (d.sealed ?? 0) : (d.sealed ?? 0) - 1;
     const newLow = computeLowStock({ ...d, sealed, openPkg: true });
     const lowDelta =
       lowStockContribution(newLow, d.archived ?? false) -
@@ -723,6 +848,7 @@ export async function openNextPackage(
     }
     tx.update(ref, {
       sealed,
+      ...(from === "deposito" ? { depSealed: (d.depSealed ?? 0) - 1 } : {}),
       openPkg: true,
       usos: 0,
       movementSeq: nextMovementSeq(d),
@@ -733,11 +859,14 @@ export async function openNextPackage(
       type: "abertura",
       qty: 1,
       byPackage: true,
+      loc: from === "deposito" ? "ambos" : "loja",
+      ...(from === "deposito" ? { src: "deposito" } : {}),
       seq: nextMovementSeq(d),
       price: null,
       reason: "AJUSTE",
       refOrder: null,
       refItem: "Abriu embalagem",
+      note: opts.note ?? null,
       by,
       at: Timestamp.now(),
     });
@@ -776,6 +905,7 @@ export async function markPackageEmpty(
     tx.update(ref, {
       openPkg: false,
       usos: 0,
+      lastUsos: usos,
       movementSeq: nextMovementSeq(d),
       lowStock: newLow,
       updatedAt: Timestamp.now(),
@@ -784,6 +914,7 @@ export async function markPackageEmpty(
       type: "saida",
       qty: 1,
       byPackage: true,
+      loc: "loja",
       seq: nextMovementSeq(d),
       price: null,
       reason: "PERDA",
@@ -853,6 +984,7 @@ export async function adjustOpenBalance(
       type: delta > 0 ? "entrada" : "saida",
       qty: Math.abs(delta),
       byPackage: false,
+      loc: "loja",
       seq,
       price: null,
       reason: input.reason === "PERDA" ? "PERDA" : "AJUSTE",
@@ -877,6 +1009,85 @@ export async function adjustOpenBalance(
   return result;
 }
 
+export interface TransferLine {
+  itemId: string;
+  /** Whole packages moving Depósito → Loja. */
+  qty: number;
+}
+
+/**
+ * "Transferir para a loja": moves whole sealed packages from the Depósito to the
+ * Loja in ONE transaction so every line shares a TR-0001 code. One movement per
+ * item (the ledger is per item); it shows on both sides. The Loja's low-stock
+ * flag is recomputed since its sealed count grows.
+ */
+export async function transferToStore(
+  storeId: string,
+  lines: TransferLine[],
+  by: string,
+  note?: string,
+): Promise<{ trCode: string; count: number }> {
+  if (lines.length === 0) throw new Error("Escolha ao menos um item.");
+  if (new Set(lines.map((l) => l.itemId)).size !== lines.length) {
+    throw new Error("Cada item só pode aparecer uma vez na transferência.");
+  }
+  const db = getDb();
+  const counterRef = db.collection("stores").doc(storeId).collection("meta").doc("stockTransfers");
+  let trCode = "";
+
+  await db.runTransaction(async (tx) => {
+    const refs = lines.map((l) => stockCol(storeId).doc(l.itemId));
+    const [counter, summary, ...snaps] = await Promise.all([
+      tx.get(counterRef),
+      readSummaryTx(tx, storeId),
+      ...refs.map((r) => tx.get(r)),
+    ]);
+    const seq = ((counter.data()?.seq as number | undefined) ?? 0) + 1;
+    trCode = `TR-${String(seq).padStart(4, "0")}`;
+    let lowDelta = 0;
+
+    snaps.forEach((snap, i) => {
+      const { qty } = lines[i];
+      if (!snap.exists) throw new Error("Item não encontrado.");
+      if (!Number.isInteger(qty) || qty < 1) throw new Error("Informe um número inteiro de embalagens.");
+      const d = snap.data()!;
+      const work = readStockWork(d);
+      if (!work.tracked) throw new Error(`${d.name} não é controlado por embalagem.`);
+      if (qty > work.depSealed) throw new Error(`Depósito sem embalagens suficientes de ${d.name}.`);
+      work.depSealed -= qty;
+      work.sealed += qty;
+      const patch: Record<string, unknown> = { ...stockPatch(work), movementSeq: nextMovementSeq(d) };
+      const archived = d.archived ?? false;
+      lowDelta +=
+        lowStockContribution(patch.lowStock as boolean, archived) -
+        lowStockContribution(d.lowStock ?? false, archived);
+      tx.update(refs[i], patch);
+      tx.set(refs[i].collection("movements").doc(), {
+        type: "transferencia",
+        qty,
+        byPackage: true,
+        loc: "ambos",
+        seq: nextMovementSeq(d),
+        price: null,
+        reason: "TRANSFERENCIA",
+        refOrder: null,
+        refItem: null,
+        trCode,
+        note: note?.trim() || null,
+        by,
+        at: Timestamp.now(),
+      });
+    });
+
+    tx.set(counterRef, { seq }, { merge: true });
+    if (lowDelta !== 0) {
+      summaryLowStockDelta(summary, lowDelta);
+      writeSummaryTx(tx, storeId, summary);
+    }
+  });
+  return { trCode, count: lines.length };
+}
+
 // ---------------------------------------------------------------------------
 // Consumption engine (Phase 2). Pure, in-transaction helpers that mutate a
 // lightweight working copy of a stock item so several draws (and a reversal of
@@ -890,6 +1101,8 @@ export interface StockWork {
   tracked: boolean;
   pkgSize: number;
   sealed: number;
+  /** Sealed packages in the depósito; consumption never touches it, only transfers/purchases do. */
+  depSealed: number;
   open: number;
   openPkg: boolean;
   usos: number;
@@ -903,6 +1116,7 @@ export function readStockWork(d: FirebaseFirestore.DocumentData): StockWork {
     tracked: d.tracked ?? false,
     pkgSize: d.pkgSize ?? 0,
     sealed: d.sealed ?? 0,
+    depSealed: d.depSealed ?? 0,
     open: d.open ?? 0,
     openPkg: d.openPkg ?? false,
     usos: d.usos ?? 0,
@@ -917,6 +1131,7 @@ export function stockPatch(w: StockWork): Record<string, unknown> {
   const state = derive(w.tracked, w.pkgSize || undefined, w.sealed, w.open);
   return {
     ...state,
+    depSealed: w.depSealed,
     openPkg: w.openPkg,
     usos: w.usos,
     lowStock: computeLowStock({
@@ -944,6 +1159,7 @@ function movement(
     type,
     qty,
     byPackage,
+    loc: "loja",
     price: null,
     reason,
     refOrder: ctx.refOrder ?? null,
@@ -1054,6 +1270,25 @@ export function reverseWork(
   return { movements: [movement("entrada", amount, false, "AJUSTE", { ...ctx, refItem: ctx.refItem ?? "Estorno" })] };
 }
 
+function toMovement(doc: FirebaseFirestore.QueryDocumentSnapshot): StockMovement {
+  const d = doc.data();
+  return {
+    id: doc.id,
+    type: d.type,
+    qty: d.qty,
+    byPackage: d.byPackage ?? false,
+    price: d.price ?? undefined,
+    reason: d.reason ?? undefined,
+    refOrder: d.refOrder ?? undefined,
+    refItem: d.refItem ?? undefined,
+    loc: d.loc ?? "loja",
+    trCode: d.trCode ?? undefined,
+    note: d.note ?? undefined,
+    by: d.by,
+    at: d.at?.toDate().toISOString() ?? "",
+  };
+}
+
 export async function listMovements(
   storeId: string,
   itemId: string,
@@ -1065,19 +1300,54 @@ export async function listMovements(
     .orderBy("at", "desc")
     .limit(limit)
     .get();
-  return snap.docs.map((doc) => {
-    const d = doc.data();
-    return {
-      id: doc.id,
-      type: d.type,
-      qty: d.qty,
-      byPackage: d.byPackage ?? false,
-      price: d.price ?? undefined,
-      reason: d.reason ?? undefined,
-      refOrder: d.refOrder ?? undefined,
-      refItem: d.refItem ?? undefined,
-      by: d.by,
-      at: d.at?.toDate().toISOString() ?? "",
-    };
-  });
+  return snap.docs.map(toMovement);
+}
+
+/** The ledger's "Tipo" chips: consumo (sales/production), compras, transferências, ajustes. */
+export type MovementKind = "consumo" | "compra" | "transf" | "ajuste";
+
+export function movementKind(m: Pick<StockMovement, "type" | "reason">): MovementKind | "abertura" {
+  if (m.type === "transferencia") return "transf";
+  if (m.type === "abertura") return "abertura";
+  if (m.reason === "VENDA" || m.reason === "CONSUMO") return "consumo";
+  if (m.reason === "ENTRADA") return "compra";
+  return "ajuste";
+}
+
+export interface MovementPage {
+  rows: StockMovement[];
+  /** `at` of the last row scanned, to pass back as `before`; null when the ledger is exhausted. */
+  next: string | null;
+}
+
+/**
+ * Filtered, cursor-paged ledger (newest first). Filters run after the read, so
+ * a page keeps scanning batches until it has `limit` matches or runs out.
+ */
+export async function listMovementsPage(
+  storeId: string,
+  itemId: string,
+  opts: { loc?: StockLocation; kind?: MovementKind; before?: string; limit?: number } = {},
+): Promise<MovementPage> {
+  const limit = opts.limit ?? 15;
+  const col = stockCol(storeId).doc(itemId).collection("movements");
+  const rows: StockMovement[] = [];
+  let cursor = opts.before ? Timestamp.fromDate(new Date(opts.before)) : null;
+  let exhausted = false;
+  while (rows.length < limit && !exhausted) {
+    let q = col.orderBy("at", "desc").limit(50);
+    if (cursor) q = q.startAfter(cursor);
+    const snap = await q.get();
+    for (const doc of snap.docs) {
+      cursor = doc.data().at;
+      const m = toMovement(doc);
+      if (opts.loc && m.loc !== opts.loc && m.loc !== "ambos") continue;
+      if (opts.kind && movementKind(m) !== opts.kind) continue;
+      rows.push(m);
+      if (rows.length === limit) break;
+    }
+    if (snap.size < 50) exhausted = true;
+  }
+  const more = rows.length === limit && cursor !== null;
+  return { rows, next: more ? (rows[rows.length - 1].at || null) : null };
 }

@@ -87,3 +87,19 @@ export function addZonedMonths(d: Date, delta: number): Date {
   const { year, month } = zonedParts(d);
   return zonedTimeToUtc(year, month + delta, 1);
 }
+
+/**
+ * Instant for a "YYYY-MM-DD" date picked in the UI. Today → undefined (use "now");
+ * any other day → noon in STORE_TIME_ZONE (stays on that calendar day whatever the
+ * viewer's zone). Throws on a malformed or future date.
+ */
+export function zonedDateToInstant(date: string, now: Date = new Date()): Date | undefined {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) throw new Error("Data inválida.");
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const today = zonedParts(now);
+  const key = (yy: number, mm: number, dd: number) => yy * 10_000 + mm * 100 + dd;
+  if (key(y, mo, d) > key(today.year, today.month, today.day)) throw new Error("A data não pode ser futura.");
+  if (key(y, mo, d) === key(today.year, today.month, today.day)) return undefined;
+  return zonedTimeToUtc(y, mo, d, 12);
+}

@@ -10,10 +10,14 @@ import {
   deleteMovement,
   deleteStockItem,
   getStockItem,
+  listMovementsPage,
   markPackageEmpty,
   openNextPackage,
+  transferToStore,
   updateMovement,
   updateStockItem,
+  type MovementKind,
+  type MovementPage,
 } from "@/data/stock";
 import { logActivity } from "@/data/activity";
 import { listProducts } from "@/data/products";
@@ -26,10 +30,13 @@ import {
 } from "@/data/shakes";
 import {
   CONSUMPTION_MODES,
+  MANUAL_MOVEMENT_TYPES,
   OPEN_ADJUST_REASONS,
+  STOCK_LOCATIONS,
   STOCK_MOVEMENT_REASONS,
-  STOCK_MOVEMENT_TYPES,
 } from "@/lib/types";
+import { expectedUses, lastPackageNote } from "@/lib/stock-yield";
+import { zonedDateToInstant } from "@/lib/timezone";
 import { getStockSettings } from "@/data/settings";
 import { unitKind, unitLabelFrom, type StockSettings } from "@/lib/stock-settings";
 import type { ActionResult } from "./products";
@@ -53,6 +60,7 @@ const itemSchema = z
     yieldPct: z.number().min(0).max(100).optional(),
     archived: z.boolean().default(false),
     initialSealed: z.number().int().nonnegative().default(0),
+    initialDepSealed: z.number().int().nonnegative().default(0),
     initialOpen: z.number().nonnegative().default(0),
   })
   .refine((v) => !v.tracked || (v.pkgSize && v.pkgLabel), {
@@ -96,7 +104,7 @@ export async function createStockItemAction(
   input: StockItemFormInput,
 ): Promise<ActionResult> {
   return run(async () => {
-    const { storeId, initialSealed, initialOpen, ...rest } =
+    const { storeId, initialSealed, initialDepSealed, initialOpen, ...rest } =
       itemSchema.parse(input);
     const user = await requireAccess(storeId, "estoque");
     const data = {
@@ -106,7 +114,11 @@ export async function createStockItemAction(
     await createStockItem(
       storeId,
       data,
-      { sealed: data.tracked ? initialSealed : 0, open: initialOpen },
+      {
+        sealed: data.tracked ? initialSealed : 0,
+        depSealed: data.tracked ? initialDepSealed : 0,
+        open: initialOpen,
+      },
       user.email,
     );
     revalidatePath(`/s/${storeId}/estoque`);
@@ -202,10 +214,10 @@ export async function deleteStockItemAction(
 export async function listMovementsAction(
   storeId: string,
   itemId: string,
-): Promise<import("@/lib/types").StockMovement[]> {
+  opts: { loc?: "loja" | "deposito"; kind?: MovementKind; before?: string } = {},
+): Promise<MovementPage> {
   await requireAccess(storeId, "estoque");
-  const { listMovements } = await import("@/data/stock");
-  return listMovements(storeId, itemId, 15);
+  return listMovementsPage(storeId, itemId, { ...opts, limit: 15 });
 }
 
 export async function getStockItemAction(
@@ -216,13 +228,29 @@ export async function getStockItemAction(
   return getStockItem(storeId, itemId);
 }
 
+/** Uses per package the catalog's recipes expect, from the amount each recipe line takes per use. */
+async function expectedUsesFor(storeId: string, itemId: string, pkgSize?: number) {
+  const products = await listProducts(storeId);
+  const perUse: number[] = [];
+  for (const p of products) {
+    for (const r of p.recipe) if (r.stockItemId === itemId && r.qty) perUse.push(r.qty);
+  }
+  return expectedUses(pkgSize, perUse);
+}
+
 export async function openNextPackageAction(
   storeId: string,
   itemId: string,
+  from: "loja" | "deposito" = "loja",
 ): Promise<ActionResult> {
   return run(async () => {
     const user = await requireAccess(storeId, "estoque");
-    const name = await openNextPackage(storeId, itemId, user.email);
+    if (!STOCK_LOCATIONS.includes(from)) throw new Error("Origem inválida.");
+    const item = await getStockItem(storeId, itemId);
+    const note = item
+      ? lastPackageNote(item.lastUsos, await expectedUsesFor(storeId, itemId, item.pkgSize))
+      : undefined;
+    const name = await openNextPackage(storeId, itemId, user.email, { from, note });
     await logActivity(storeId, {
       icon: "package",
       label: `Abriu nova embalagem · ${name}`,
@@ -297,13 +325,17 @@ export async function adjustOpenBalanceAction(
 const movementSchema = z.object({
   storeId: z.string().min(1),
   itemId: z.string().min(1),
-  type: z.enum(STOCK_MOVEMENT_TYPES),
+  type: z.enum(MANUAL_MOVEMENT_TYPES),
   qty: z.number().positive("Informe a quantidade."),
   byPackage: z.boolean().default(false),
   price: z.number().int().nonnegative().optional(),
   reason: z.enum(STOCK_MOVEMENT_REASONS).optional(),
   refOrder: z.string().trim().optional(),
   refItem: z.string().trim().optional(),
+  /** Where the stock goes/leaves; default Loja. The depósito holds whole packages only. */
+  loc: z.enum(STOCK_LOCATIONS).default("loja"),
+  /** "YYYY-MM-DD" purchase date; omitted or today = now. Back-dating replays the ledger. */
+  date: z.string().optional(),
 });
 
 export type MovementFormInput = z.input<typeof movementSchema>;
@@ -312,9 +344,13 @@ export async function applyMovementAction(
   input: MovementFormInput,
 ): Promise<ActionResult> {
   return run(async () => {
-    const { storeId, itemId, ...data } = movementSchema.parse(input);
+    const { storeId, itemId, date, ...data } = movementSchema.parse(input);
     const user = await requireAccess(storeId, "estoque");
-    const name = await applyMovement(storeId, itemId, { ...data, by: user.email });
+    const name = await applyMovement(storeId, itemId, {
+      ...data,
+      at: date ? zonedDateToInstant(date) : undefined,
+      by: user.email,
+    });
     const isAdjust = data.reason === "AJUSTE";
     await logActivity(storeId, {
       icon: isAdjust
@@ -386,4 +422,43 @@ export async function deleteMovementAction(
     revalidatePath(`/s/${storeId}/estoque`);
     revalidatePath(`/s/${storeId}`);
   });
+}
+
+const transferSchema = z.object({
+  storeId: z.string().min(1),
+  lines: z
+    .array(
+      z.object({
+        itemId: z.string().min(1),
+        qty: z.number().int("Informe um número inteiro de embalagens.").positive("Informe a quantidade."),
+      }),
+    )
+    .min(1, "Escolha ao menos um item."),
+  note: z.string().trim().max(200).optional(),
+});
+
+export type TransferFormInput = z.input<typeof transferSchema>;
+
+/** "Transferir para a loja": Depósito → Loja, one TR-0001 code for every line. */
+export async function transferToStoreAction(
+  input: TransferFormInput,
+): Promise<ActionResult & { trCode?: string }> {
+  try {
+    const { storeId, lines, note } = transferSchema.parse(input);
+    const user = await requireAccess(storeId, "estoque");
+    const { trCode, count } = await transferToStore(storeId, lines, user.email, note);
+    await logActivity(storeId, {
+      icon: "package-plus",
+      label: `Transferência ${trCode} · ${count} ${count === 1 ? "item" : "itens"}`,
+      detail: "Depósito → Loja",
+      by: user.email,
+      section: "estoque",
+    });
+    revalidatePath(`/s/${storeId}/estoque`);
+    revalidatePath(`/s/${storeId}`);
+    return { ok: true, trCode };
+  } catch (err) {
+    if (err instanceof z.ZodError) return { ok: false, error: err.issues[0]?.message ?? "Dados inválidos." };
+    return { ok: false, error: err instanceof Error ? err.message : "Algo deu errado." };
+  }
 }

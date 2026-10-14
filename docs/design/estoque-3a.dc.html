@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Registrar compra</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  input { font-family: inherit; }
+  a { color: #186B41; text-decoration: none; }
+  a:hover { color: #124F30; }
+</style>
+</helmet>
+<div style="display:flex; align-items:center; justify-content:center; width:480px; height:800px; overflow:hidden; background:rgba(21,35,28,.46); font-family:'Albert Sans',sans-serif; color:#15231C;">
+  <div style="width:410px; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 30px 70px -30px rgba(0,0,0,.5);">
+    <div style="display:flex; align-items:flex-start; padding:20px 22px 16px; border-bottom:1px solid #F0F4ED;">
+      <div style="flex:1;">
+        <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#5C6B62;">Estoque</span>
+        <h3 style="margin:3px 0 0; font-size:18px; font-weight:700;">Registrar compra</h3>
+      </div>
+      <button aria-label="Fechar" style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; border-radius:9px; border:1px solid #E7EEE6; background:#fff; color:#3D4A42;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+    </div>
+
+    <div style="padding:18px 22px; display:flex; flex-direction:column; gap:16px;">
+      <div>
+        <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62; margin-bottom:7px;">Item</span>
+        <button style="display:flex; align-items:center; gap:10px; width:100%; height:48px; padding:0 12px; background:#fff; border:1px solid #E7EEE6; border-radius:11px; text-align:left;">
+          <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#FBE9E4; color:#B23A22;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z"></path></svg></span>
+          <span style="flex:1;"><span style="display:block; font-size:14px; font-weight:600; color:#15231C;">CR7 Drive Berry Mix</span><span style="display:block; font-size:11.5px; color:#5C6B62;">caixa com 12 un · loja 0 un · depósito 2 cx</span></span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5C6B62" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+      </div>
+
+      <div>
+        <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62; margin-bottom:7px;">Guardar em</span>
+        <div role="group" aria-label="Guardar em" style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px;">
+          <button onClick="{{ toDep }}" aria-pressed="{{ isDep }}" style="{{ sDep }}">
+            <span style="display:flex; align-items:center; gap:7px; font-size:13.5px; font-weight:700; color:#2B5F86;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2B5F86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 21V9l9-5 9 5v12"></path><path d="M7 21v-8h10v8"></path><path d="M7 17h10"></path></svg>Depósito</span>
+            <span style="display:block; font-size:11.5px; color:#3F5F78; margin-top:3px;">Guarda e repõe a loja depois</span>
+          </button>
+          <button onClick="{{ toLoja }}" aria-pressed="{{ isLoja }}" style="{{ sLoja }}">
+            <span style="display:flex; align-items:center; gap:7px; font-size:13.5px; font-weight:700; color:#186B41;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 9l1.5-5h15L21 9"></path><path d="M4 10v10h16V10"></path><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"></path><path d="M10 20v-5h4v5"></path></svg>Loja</span>
+            <span style="display:block; font-size:11.5px; color:#3D5A47; margin-top:3px;">Já entra para uso e venda</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;">
+        <label style="display:block;">
+          <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62; margin-bottom:7px;">Caixas</span>
+          <span style="display:flex; align-items:center; height:46px; padding:0 13px; border:1.5px solid #186B41; border-radius:11px;"><input value="12" style="flex:1; min-width:0; border:0; outline:0; font-size:14px; font-weight:700; color:#15231C;"><span style="font-size:12.5px; color:#5C6B62;">cx</span></span>
+        </label>
+        <label style="display:block;">
+          <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62; margin-bottom:7px;">Custo total</span>
+          <span style="display:flex; align-items:center; gap:6px; height:46px; padding:0 13px; border:1px solid #E7EEE6; border-radius:11px;"><span style="font-size:13px; color:#5C6B62;">R$</span><input value="1.762,80" style="flex:1; min-width:0; border:0; outline:0; font-size:14px; font-weight:700; color:#15231C;"></span>
+        </label>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:11px; padding:12px 14px; background:#F3F8EF; border:1px solid #DDEBD5; border-radius:12px;">
+        <span style="flex:1; font-size:12.5px; color:#3D4A42; line-height:1.45;">R$ 146,90 por caixa · <strong>R$ 12,24 por unidade</strong> · margem de 52% no preço atual de R$ 26,00.</span>
+      </div>
+
+      <label style="display:block;">
+        <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62; margin-bottom:7px;">Data da compra</span>
+        <span style="display:flex; align-items:center; justify-content:space-between; height:46px; padding:0 13px; border:1px solid #E7EEE6; border-radius:11px; font-size:14px;">14/10/2026<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6B62" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg></span>
+      </label>
+
+    </div>
+
+    <div style="display:flex; gap:10px; padding:14px 22px; border-top:1px solid #F0F4ED;">
+      <a href="estoque-1a.dc.html" style="display:flex; align-items:center; justify-content:center; height:44px; padding:0 18px; border:1px solid #E7EEE6; border-radius:11px; font-size:13.5px; font-weight:600; color:#3D4A42;">Cancelar</a>
+      <a href="estoque-1a.dc.html" style="flex:1; display:flex; align-items:center; justify-content:center; height:44px; border-radius:11px; background:#186B41; color:#fff; font-size:13.5px; font-weight:600;">{{ cta }}</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 480, "height": 800}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { dest: 'dep' };
+  }
+  opt(on, ring, bg) {
+    return 'display:block; padding:11px 12px; text-align:left; border-radius:11px; ' + (on ? 'background:' + bg + '; border:1.5px solid ' + ring + '; box-shadow:0 0 0 3px ' + bg + ';' : 'background:#fff; border:1px solid #E7EEE6;');
+  }
+  renderVals() {
+    const dep = this.state.dest === 'dep';
+    return {
+      isDep: dep, isLoja: !dep,
+      sDep: this.opt(dep, '#2B5F86', '#EAF1F7'), sLoja: this.opt(!dep, '#186B41', '#F1F6EE'),
+      toDep: () => this.setState({ dest: 'dep' }), toLoja: () => this.setState({ dest: 'loja' }),
+      cta: dep ? 'Lançar no depósito' : 'Lançar na loja',
+    };
+  }
+}
+</script>
+</body>
+</html>

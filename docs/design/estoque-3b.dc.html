@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Transferir para a loja</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  button:disabled { cursor: default; opacity: .4; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #D6E2D0; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #186B41; text-decoration: none; }
+  a:hover { color: #124F30; }
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; width:480px; height:860px; overflow:hidden; background:#fff; font-family:'Albert Sans',sans-serif; color:#15231C;">
+  <div style="flex-shrink:0; padding:18px 20px 16px; border-bottom:1px solid #EEF3EA;">
+    <div style="display:flex; align-items:flex-start; gap:12px;">
+      <div style="flex:1;">
+        <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#2B5F86;">Vila Velha/ES</span>
+        <h2 style="margin:2px 0 0; font-size:18px; font-weight:700;">Transferir para a loja</h2>
+      </div>
+      <button aria-label="Fechar" style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; border-radius:9px; border:1px solid #E7EEE6; background:#fff; color:#3D4A42;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; margin-top:14px;">
+      <span style="flex:1; display:flex; align-items:center; gap:8px; height:40px; padding:0 12px; border-radius:10px; background:#EAF1F7; color:#2B5F86; font-size:13px; font-weight:700;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2B5F86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 21V9l9-5 9 5v12"></path><path d="M7 21v-8h10v8"></path><path d="M7 17h10"></path></svg>Depósito</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C6B62" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+      <span style="flex:1; display:flex; align-items:center; gap:8px; height:40px; padding:0 12px; border-radius:10px; background:#F1F6EE; color:#186B41; font-size:13px; font-weight:700;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 9l1.5-5h15L21 9"></path><path d="M4 10v10h16V10"></path><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"></path><path d="M10 20v-5h4v5"></path></svg>Loja</span>
+    </div>
+  </div>
+
+  <div style="flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:10px;">
+    <sc-for list="{{ lines }}" as="l" hint-placeholder-count="3">
+      <div style="padding:13px 14px; border:1px solid #E7EEE6; border-radius:13px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="flex:1; min-width:0;">
+            <a href="{{ l.href }}" style="display:block; font-size:14px; font-weight:600; color:#15231C;">{{ l.name }}</a>
+            <span style="display:block; font-size:11.5px; color:{{ l.whyFg }}; margin-top:1px;">{{ l.why }}</span>
+          </span>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <button onClick="{{ l.dec }}" disabled="{{ l.atMin }}" aria-label="Menos {{ l.unit }}" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0; background:#fff; border:1px solid #E7EEE6; border-radius:9px; font-size:17px; color:#3D4A42;">−</button>
+            <span style="min-width:62px; text-align:center;"><span style="display:block; font-size:16px; font-weight:700;">{{ l.q }}</span><span style="display:block; font-size:10.5px; color:#5C6B62;">{{ l.unit }}</span></span>
+            <button onClick="{{ l.inc }}" disabled="{{ l.atMax }}" aria-label="Mais {{ l.unit }}" style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; padding:0; background:#fff; border:1px solid #E7EEE6; border-radius:9px; font-size:17px; color:#3D4A42;">+</button>
+          </div>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px; font-size:12px;">
+          <span style="padding:4px 9px; border-radius:7px; background:#EAF1F7; color:#2B5F86; font-weight:600;">Depósito {{ l.depBefore }} → {{ l.depAfter }}</span>
+          <span style="padding:4px 9px; border-radius:7px; background:#F1F6EE; color:#186B41; font-weight:600;">Loja {{ l.lojaBefore }} → {{ l.lojaAfter }}</span>
+          <span style="flex:1;"></span>
+          <button onClick="{{ l.remove }}" style="height:28px; padding:0 8px; background:transparent; border:0; font-size:12px; font-weight:600; color:#5C6B62; text-decoration:underline;">Remover</button>
+        </div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{ hasSug }}" hint-placeholder-val="{{ true }}">
+      <span style="display:flex; align-items:center; gap:7px; margin-top:6px; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#8A5A0F;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1"></path></svg>Sugestões · abaixo do mínimo na loja
+      </span>
+    </sc-if>
+    <sc-for list="{{ sugs }}" as="g" hint-placeholder-count="2">
+      <div style="padding:12px 14px; background:#FFFCF5; border:1px dashed #E3C98D; border-radius:13px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="flex:1; min-width:0;">
+            <span style="display:block; font-size:14px; font-weight:600;">{{ g.name }}</span>
+            <span style="display:block; font-size:11.5px; color:{{ g.whyFg }}; margin-top:1px;">{{ g.why }}</span>
+          </span>
+          <span style="flex-shrink:0; font-size:13px; font-weight:700; color:#5C4A1E;">{{ g.q }} {{ g.unit }}</span>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button onClick="{{ g.discard }}" style="flex:1; height:36px; background:#fff; border:1px solid #E7EEE6; border-radius:9px; font-size:12.5px; font-weight:600; color:#3D4A42;">Descartar</button>
+          <button onClick="{{ g.accept }}" style="flex:1; height:36px; background:#2B5F86; border:0; border-radius:9px; font-size:12.5px; font-weight:600; color:#fff;">Incluir na transferência</button>
+        </div>
+      </div>
+    </sc-for>
+
+    <button style="display:flex; align-items:center; justify-content:center; gap:7px; height:44px; background:#fff; border:1px dashed #B9C9D6; border-radius:12px; font-size:13px; font-weight:600; color:#2B5F86;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Adicionar item do depósito
+    </button>
+
+    <label style="display:block; margin-top:4px;">
+      <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62; margin-bottom:7px;">Observação <span style="text-transform:none; letter-spacing:0; font-weight:500;">(opcional)</span></span>
+      <input placeholder="Ex: reposição de terça" style="width:100%; height:44px; padding:0 13px; border:1px solid #E7EEE6; border-radius:11px; font:inherit; font-size:13.5px; color:#15231C;">
+    </label>
+    <span style="font-size:11.5px; color:#5C6B62; line-height:1.45;">Cada transferência entra nas movimentações dos dois lados com o mesmo número (ex.: TR-0088), e quem fez fica registrado.</span>
+  </div>
+
+  <div style="flex-shrink:0; display:flex; gap:10px; padding:14px 20px; border-top:1px solid #F0F4ED;">
+    <a href="estoque-1a.dc.html" style="display:flex; align-items:center; justify-content:center; height:46px; padding:0 18px; border:1px solid #E7EEE6; border-radius:11px; font-size:13.5px; font-weight:600; color:#3D4A42;">Cancelar</a>
+    <sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}">
+      <a href="estoque-1a.dc.html" style="flex:1; display:flex; align-items:center; justify-content:center; gap:8px; height:46px; border-radius:11px; background:#2B5F86; color:#fff; font-size:13.5px; font-weight:600;">{{ cta }}</a>
+    </sc-if>
+    <sc-if value="{{ blocked }}" hint-placeholder-val="{{ true }}">
+      <button disabled="{{ true }}" style="flex:1; height:46px; border:0; border-radius:11px; background:#2B5F86; color:#fff; font-size:13.5px; font-weight:600;">{{ cta }}</button>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 480, "height": 860}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { q: { cr7: 1, fiber: 1, beauty: 1 }, st: { cr7: 'ok', fiber: 'sug', beauty: 'sug' } };
+  }
+  renderVals() {
+    // per = loja units per depósito package
+    const raw = [
+      { id: 'cr7', name: 'CR7 Drive Berry Mix', href: 'estoque-2b.dc.html', why: 'Esgotado na loja · mínimo 10 un', whyFg: '#B23A22', dep: 2, unit: 'caixa', units: 'caixas', loja: 0, per: 12, lojaUnit: 'un' },
+      { id: 'fiber', name: 'Fiber Concentrate', href: 'estoque-2a.dc.html', why: 'Abaixo do mínimo · mínimo 2 potes', whyFg: '#8A5A0F', dep: 4, unit: 'pote', units: 'potes', loja: 1, per: 1, lojaUnit: 'pote(s)' },
+      { id: 'beauty', name: 'Beauty Drink Colágeno', href: 'estoque-2a.dc.html', why: '6 sachês na loja · mínimo 3', whyFg: '#5C6B62', dep: 2, unit: 'caixa', units: 'caixas', loja: 6, per: 30, lojaUnit: 'sachês' },
+    ];
+    const { q, st } = this.state;
+    const set = (id, v) => this.setState({ q: { ...q, [id]: v } });
+    const drop = (id) => { const c = { ...st }; delete c[id]; this.setState({ st: c }); };
+    // suggestions only count once the user includes them; the transfer stays blocked until each one is decided
+    const sugs = raw.filter((r) => st[r.id] === 'sug').map((r) => ({
+      ...r, q: q[r.id], unit: q[r.id] === 1 ? r.unit : r.units,
+      accept: () => this.setState({ st: { ...st, [r.id]: 'ok' } }), discard: () => drop(r.id),
+    }));
+    const lines = raw.filter((r) => st[r.id] === 'ok').map((r) => {
+      const n = q[r.id];
+      return {
+        ...r, q: n, unit: n === 1 ? r.unit : r.units,
+        atMin: n <= 1, atMax: n >= r.dep,
+        dec: () => set(r.id, Math.max(1, n - 1)), inc: () => set(r.id, Math.min(r.dep, n + 1)),
+        remove: () => drop(r.id),
+        depBefore: r.dep, depAfter: (r.dep - n) + ' ' + (r.dep - n === 1 ? r.unit : r.units),
+        lojaBefore: r.loja, lojaAfter: (r.loja + n * r.per) + ' ' + r.lojaUnit,
+      };
+    });
+    const ready = sugs.length === 0 && lines.length > 0;
+    return {
+      lines, sugs, hasSug: sugs.length > 0, ready, blocked: !ready,
+      cta: sugs.length ? 'Revise ' + sugs.length + (sugs.length === 1 ? ' sugestão' : ' sugestões')
+        : lines.length ? 'Transferir ' + lines.length + (lines.length === 1 ? ' item' : ' itens') : 'Escolha um item',
+    };
+  }
+}
+</script>
+</body>
+</html>

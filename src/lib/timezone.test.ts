@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addZonedMonths, monthKey, zonedTimeToUtc } from "./timezone";
+import { addZonedMonths, monthKey, zonedDateToInstant, zonedTimeToUtc } from "./timezone";
 
 describe("monthKey", () => {
   it("buckets 23:30 BRT on the last day of the month into THAT month", () => {
@@ -45,5 +45,25 @@ describe("addZonedMonths", () => {
     expect(
       addZonedMonths(new Date("2026-08-01T01:00:00.000Z"), 0).toISOString(),
     ).toBe("2026-07-01T03:00:00.000Z");
+  });
+});
+
+describe("zonedDateToInstant", () => {
+  // 2026-10-14 15:00 BRT
+  const now = new Date("2026-10-14T18:00:00.000Z");
+
+  it("today means 'now' (undefined), even late at night in the store zone", () => {
+    expect(zonedDateToInstant("2026-10-14", now)).toBeUndefined();
+    // 23:30 BRT on the 14th is already the 15th in UTC; still today for the store
+    expect(zonedDateToInstant("2026-10-14", new Date("2026-10-15T02:30:00.000Z"))).toBeUndefined();
+  });
+
+  it("a past day is noon in the store zone", () => {
+    expect(zonedDateToInstant("2026-10-02", now)?.toISOString()).toBe("2026-10-02T15:00:00.000Z");
+  });
+
+  it("rejects future and malformed dates", () => {
+    expect(() => zonedDateToInstant("2026-10-15", now)).toThrow(/futura/);
+    expect(() => zonedDateToInstant("14/10/2026", now)).toThrow(/inválida/);
   });
 });
