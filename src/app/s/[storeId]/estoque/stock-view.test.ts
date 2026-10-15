@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { StockItem } from "@/lib/types";
-import { buildStockCard } from "./stock-view";
+import { buildStockCard, minimumLabel, needsAttention, stockStatus, suggestTransferQty } from "./stock-view";
 
 function item(over: Partial<StockItem> = {}): StockItem {
   return {
@@ -12,6 +12,7 @@ function item(over: Partial<StockItem> = {}): StockItem {
     pkgLabel: "pacote",
     pkgSize: 10,
     sealed: 4,
+    depSealed: 12,
     open: 2,
     qty: 42,
     continuousUse: false,
@@ -27,72 +28,135 @@ function item(over: Partial<StockItem> = {}): StockItem {
   };
 }
 
-describe("buildStockCard — per-unit items (count unit, medido)", () => {
-  it("reads how many are left in the open package and how many were used", () => {
+const shake = (over: Partial<StockItem> = {}) =>
+  item({
+    name: "Shake Herbalife Baunilha",
+    unit: "g",
+    pkgLabel: "pote",
+    pkgSize: 550,
+    sealed: 3,
+    depSealed: 6,
+    open: 0,
+    qty: 1650,
+    continuousUse: true,
+    consumptionMode: "continuo",
+    openPkg: true,
+    usos: 14,
+    reorderAt: 2,
+    ...over,
+  });
+
+describe("buildStockCard — Loja row", () => {
+  it("counts sealed packages plus the loose units of the open one", () => {
     const v = buildStockCard(item());
-    expect(v.hasOpen).toBe(true);
-    expect(v.openMain).toBe("Restam 2 de 10 un");
-    expect(v.openSub).toBe("8 un já usadas");
-    expect(v.leftMain).toBe("4 pacotes");
-    expect(v.leftSub).toBe("10 un/pacote");
-  });
-
-  it("uses the singular for exactly one", () => {
-    expect(buildStockCard(item({ open: 1 }))).toMatchObject({
-      openMain: "Resta 1 de 10 un",
-      openSub: "9 un já usadas",
-    });
-    expect(buildStockCard(item({ open: 9 })).openSub).toBe("1 un já usada");
-  });
-
-  it("pluralizes unit names that are words (sachê)", () => {
-    const v = buildStockCard(item({ unit: "sache", pkgSize: 10, open: 6 }));
-    expect(v.openMain).toBe("Restam 6 de 10 sachês");
-    expect(v.openSub).toBe("4 sachês já usadas");
-    expect(buildStockCard(item({ unit: "sache", open: 9 })).openSub).toBe("1 sachê já usada");
-  });
-
-  it("draws one pip per unit (filled = remaining) up to 12, a bar beyond", () => {
-    expect(buildStockCard(item()).pips).toEqual({ total: 10, filled: 2 });
-    expect(buildStockCard(item()).barPct).toBeNull();
-
-    const big = buildStockCard(item({ pkgSize: 50, open: 20, qty: 220 }));
-    expect(big.pips).toBeNull();
-    expect(big.barPct).toBe(40);
-  });
-
-  it("can be adjusted only while a package is open", () => {
-    const v = buildStockCard(item());
-    expect(v.perUnit).toBe(true);
+    expect(v.lojaMain).toBe("4 pacotes + 2 un");
     expect(v.canAdjust).toBe(true);
+  });
 
-    const closed = buildStockCard(item({ open: 0, qty: 40 }));
-    expect(closed.perUnit).toBe(true);
-    expect(closed.canAdjust).toBe(false);
-    expect(closed.openMutedLabel).toBe("Nenhuma embalagem aberta");
+  it("reads 'em uso' for a contínuo pote in use", () => {
+    expect(buildStockCard(shake()).lojaMain).toBe("3 potes + 1 em uso");
+    expect(buildStockCard(shake({ sealed: 0, openPkg: true })).lojaMain).toBe("1 em uso");
+    expect(buildStockCard(shake()).canAdjust).toBe(false);
+  });
+
+  it("says 0 of the package when nothing is left", () => {
+    expect(buildStockCard(item({ sealed: 0, open: 0, qty: 0 })).lojaMain).toBe("0 pacotes");
+  });
+
+  it("untracked items just show the quantity and have no Depósito row", () => {
+    const v = buildStockCard(item({ tracked: false, pkgSize: undefined, pkgLabel: undefined, sealed: 0, open: 200, qty: 200 }));
+    expect(v.lojaMain).toBe("200 un");
+    expect(v.tracked).toBe(false);
+    expect(v.segs).toEqual([]);
+  });
+
+  it("colors the number by status", () => {
+    expect(buildStockCard(item({ sealed: 0, open: 0, qty: 0 })).lojaColor).toBe("text-destructive");
+    expect(buildStockCard(item({ sealed: 1, open: 0, qty: 10 })).lojaColor).toBe("text-amber");
+    expect(buildStockCard(item()).lojaColor).toBe("text-ink");
   });
 });
 
-describe("buildStockCard — other items", () => {
-  it("whole-unit items never fraction nor adjust", () => {
-    const v = buildStockCard(item({ pkgSize: 1, pkgLabel: "garrafa", open: 0, sealed: 3, qty: 3 }));
-    expect(v.perUnit).toBe(false);
-    expect(v.canAdjust).toBe(false);
-    expect(v.openMutedLabel).toBe("Não fraciona");
+describe("buildStockCard — package bar", () => {
+  it("draws sealed packages, then the open one: partial when counted, hatched when in use", () => {
+    expect(buildStockCard(item()).segs).toEqual([
+      { kind: "sealed" },
+      { kind: "sealed" },
+      { kind: "sealed" },
+      { kind: "sealed" },
+      { kind: "open", pct: 20 },
+    ]);
+    expect(buildStockCard(shake()).segs.at(-1)).toEqual({ kind: "uso" });
   });
 
-  it("measured (contínuo) items keep the 'Em uso · N usos' panel and aren't per-unit", () => {
-    const v = buildStockCard(
-      item({ name: "Shake", unit: "g", pkgSize: 550, continuousUse: true, consumptionMode: "continuo", openPkg: true, usos: 14, open: 0, qty: 1650 }),
-    );
-    expect(v.openMain).toBe("Em uso · 14 usos");
-    expect(v.perUnit).toBe(false);
-    expect(v.canAdjust).toBe(false);
+  it("marks the slots still missing up to the minimum, first so the shortage reads from the left", () => {
+    expect(buildStockCard(shake({ sealed: 0, openPkg: false, reorderAt: 3 })).segs).toEqual([
+      { kind: "missing" },
+      { kind: "missing" },
+      { kind: "missing" },
+    ]);
+    expect(buildStockCard(shake({ sealed: 1, openPkg: true, reorderAt: 3 })).segs).toEqual([
+      { kind: "missing" },
+      { kind: "sealed" },
+      { kind: "uso" },
+    ]);
   });
 
-  it("untracked items have no per-unit behavior", () => {
-    const v = buildStockCard(item({ tracked: false, pkgSize: undefined, pkgLabel: undefined, sealed: 0, open: 200, qty: 200 }));
-    expect(v.perUnit).toBe(false);
-    expect(v.canAdjust).toBe(false);
+  it("never draws more than 8 slots", () => {
+    expect(buildStockCard(item({ sealed: 20, open: 0, qty: 200, reorderAt: 20 })).segs).toHaveLength(8);
+  });
+});
+
+describe("buildStockCard — Depósito row", () => {
+  it("shows the packages and, for countable multi-unit packages, how many units they hold", () => {
+    expect(buildStockCard(item())).toMatchObject({ depMain: "12 pacotes", depHint: "120 un", depEmpty: false });
+    expect(buildStockCard(item({ depSealed: 1 }))).toMatchObject({ depMain: "1 pacote", depHint: "10 un" });
+  });
+
+  it("has no unit hint for contínuo items and reads 'vazio' when empty", () => {
+    expect(buildStockCard(shake())).toMatchObject({ depMain: "6 potes", depHint: "" });
+    expect(buildStockCard(item({ depSealed: 0 }))).toMatchObject({ depMain: "vazio", depEmpty: true });
+  });
+});
+
+describe("status", () => {
+  it("is esgotado at zero, repor at or under the minimum, ok above", () => {
+    expect(stockStatus(item({ sealed: 0, open: 0, qty: 0 }))).toBe("esgotado");
+    expect(stockStatus(item({ sealed: 1, open: 0, qty: 10, reorderAt: 2 }))).toBe("repor");
+    expect(stockStatus(item())).toBe("ok");
+    expect(stockStatus(item({ archived: true }))).toBe("arquivado");
+  });
+
+  it("'precisa de atenção' means repor or esgotado", () => {
+    expect(needsAttention("repor")).toBe(true);
+    expect(needsAttention("esgotado")).toBe(true);
+    expect(needsAttention("ok")).toBe(false);
+    expect(needsAttention("arquivado")).toBe(false);
+  });
+});
+
+describe("suggestTransferQty", () => {
+  it("moves enough packages to clear the minimum (contínuo counts whole packages)", () => {
+    // 1 pote + 1 em uso = 2 against a minimum of 3 → need 2 to be above it
+    expect(suggestTransferQty(shake({ sealed: 1, reorderAt: 3, depSealed: 6 }))).toBe(2);
+    expect(suggestTransferQty(shake({ sealed: 3, reorderAt: 2, depSealed: 6 }))).toBe(1);
+  });
+
+  it("counts base units for the rest: a caixa of 12 un against a minimum of 1 caixa", () => {
+    const caixa = item({ pkgLabel: "caixa", pkgSize: 12, sealed: 0, open: 0, qty: 0, reorderAt: 1, depSealed: 2 });
+    expect(suggestTransferQty(caixa)).toBe(2); // 12 un is not above 12 → needs 2 caixas
+    expect(suggestTransferQty({ ...caixa, depSealed: 1 })).toBe(1); // capped at what the depósito holds
+  });
+
+  it("is at least 1 even when the item is not low", () => {
+    expect(suggestTransferQty(item())).toBe(1);
+  });
+});
+
+describe("minimumLabel", () => {
+  const unit = (u: string, plural: boolean) => (u === "un" ? "un" : plural ? "gramas" : "g");
+  it("reads in packages for contínuo, base units for the rest", () => {
+    expect(minimumLabel(shake({ reorderAt: 2 }), unit)).toBe("2 potes");
+    expect(minimumLabel(item({ reorderAt: 2 }), unit)).toBe("20 un");
   });
 });

@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, Filter, List, Package, Pencil, TriangleAlert } from "lucide-react";
+import { ChevronDown, Filter, List, Package, Pencil, Store, Warehouse } from "lucide-react";
 import type { Product, StockItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
@@ -14,31 +13,30 @@ import {
   DropdownMenuItemIcon,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  usePageAction,
-  useShellSearch,
-} from "@/components/shell/app-shell-context";
+import { usePageAction } from "@/components/shell/app-shell-context";
 import { CategoryTile } from "@/components/category-meta";
 import { useStockCategoryMeta, useStockSettings, useUnits } from "@/components/stock-settings-context";
 import { StockItemFormSheet } from "./stock-item-form-sheet";
 import { StockDetailSheet, type OrderRef, type RecipeUsage } from "./estoque-detail-sheet";
 import { RegistrarCompraDialog } from "./registrar-compra-dialog";
 import { AjustarAbertaDialog } from "./ajustar-aberta-dialog";
-import { OpenBar, OpenPips } from "./open-meter";
-import { buildStockCard, STATUS_META, stockStatus, type StockStatus } from "./stock-view";
+import { AbrirEmbalagemDialog } from "./abrir-embalagem-dialog";
+import { TransferirDialog } from "./transferir-dialog";
+import { PackageBar } from "./package-bar";
+import { buildStockCard, needsAttention, STATUS_PILL, stockStatus } from "./stock-view";
 
-type StatusFilter = "todas" | StockStatus;
+type Where = "tudo" | "loja" | "dep";
+type StatusFilter = "todos" | "atencao" | "ok" | "arquivados";
 
-const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: "todas", label: "Todas" },
-  { value: "ok", label: "OK" },
-  { value: "repor", label: "Repor" },
-  { value: "esgotado", label: "Esgotado" },
-  { value: "arquivado", label: "Arquivado" },
+const WHERE_OPTIONS: { value: Where; label: string }[] = [
+  { value: "tudo", label: "Tudo" },
+  { value: "loja", label: "Loja" },
+  { value: "dep", label: "Depósito" },
 ];
 
 export function EstoqueClient({
   storeId,
+  storeName,
   items,
   orders,
   menuProducts,
@@ -46,6 +44,7 @@ export function EstoqueClient({
   recipeUsage,
 }: {
   storeId: string;
+  storeName: string;
   items: StockItem[];
   orders: OrderRef[];
   menuProducts: Product[];
@@ -54,12 +53,13 @@ export function EstoqueClient({
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
-  const [status, setStatus] = useState<StatusFilter>("todas");
-  const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [where, setWhere] = useState<Where>("tudo");
+  const [status, setStatus] = useState<StatusFilter>("todos");
   const [formOpen, setFormOpen] = useState(false);
-  const [compraOpen, setCompraOpen] = useState(false);
+  const [compra, setCompra] = useState<{ itemId: string | null } | null>(null);
+  const [transfer, setTransfer] = useState<{ itemId: string | null } | null>(null);
   const [adjustId, setAdjustId] = useState<string | null>(null);
-  const shellSearch = useShellSearch();
+  const [openPkgId, setOpenPkgId] = useState<string | null>(null);
   const STOCK_CATEGORY_META = useStockCategoryMeta();
   const { categories: stockCategories } = useStockSettings();
   const router = useRouter();
@@ -72,7 +72,8 @@ export function EstoqueClient({
 
   usePageAction({
     label: "Registrar compra",
-    onClick: () => setCompraOpen(true),
+    onClick: () => setCompra({ itemId: null }),
+    secondary: { label: "Transferir para a loja", onClick: () => setTransfer({ itemId: null }) },
   });
 
   // Strip the deep-link param once mounted so back/refresh doesn't reopen it.
@@ -83,86 +84,110 @@ export function EstoqueClient({
 
   const selected = items.find((i) => i.id === selectedId) ?? null;
   const adjusting = items.find((i) => i.id === adjustId) ?? null;
+  const openingPkg = items.find((i) => i.id === openPkgId) ?? null;
 
-  function selectStatus(v: StatusFilter) {
-    setLowStockOnly(false);
-    setStatus(v);
-  }
-
-  const alert = useMemo(() => buildStockAlert(items), [items]);
+  const counts = useMemo(() => {
+    const active = items.filter((i) => !i.archived);
+    const attention = active.filter((i) => needsAttention(stockStatus(i))).length;
+    return {
+      todos: active.length,
+      atencao: attention,
+      ok: active.length - attention,
+      arquivados: items.length - active.length,
+    };
+  }, [items]);
 
   const filtered = useMemo(() => {
-    const terms = [query, shellSearch]
-      .map((t) => t.trim().toLowerCase())
-      .filter(Boolean);
+    const terms = [query.trim().toLowerCase()].filter(Boolean);
     return items.filter((item) => {
-      // Archived items are hidden by default; only the "Arquivado" situação
+      // Archived items are hidden by default; only the "Arquivados" chip
       // surfaces them (and then shows them exclusively).
-      if (status === "arquivado") {
+      if (status === "arquivados") {
         if (!item.archived) return false;
       } else if (item.archived) {
         return false;
       }
       if (category && item.category !== category) return false;
-      if (lowStockOnly) {
-        const st = stockStatus(item);
-        if (st !== "esgotado" && st !== "repor") return false;
-      } else if (status !== "todas" && stockStatus(item) !== status) return false;
+      if (where === "dep" && item.depSealed === 0) return false;
+      if (status === "atencao" && !needsAttention(stockStatus(item))) return false;
+      if (status === "ok" && stockStatus(item) !== "ok") return false;
       const cat = STOCK_CATEGORY_META[item.category]?.label ?? item.category;
       return terms.every((term) =>
         `${item.name} ${cat}`.toLowerCase().includes(term),
       );
     });
-  }, [items, query, shellSearch, category, status, lowStockOnly, STOCK_CATEGORY_META]);
+  }, [items, query, category, where, status, STOCK_CATEGORY_META]);
 
   const categoryLabel =
-    category === null ? "Todas as categorias" : STOCK_CATEGORY_META[category]?.label ?? "Todas as categorias";
-  const statusLabel = lowStockOnly
-    ? "Para repor"
-    : status === "todas"
-      ? "Todos os status"
-      : STATUS_FILTERS.find((s) => s.value === status)?.label ?? "Todos os status";
+    category === null ? "Categorias" : STOCK_CATEGORY_META[category]?.label ?? "Categorias";
+
+  const chips: { value: StatusFilter; label: string; count: number }[] = [
+    { value: "todos", label: "Todos", count: counts.todos },
+    { value: "atencao", label: "Precisa de atenção", count: counts.atencao },
+    { value: "ok", label: "Em dia", count: counts.ok },
+  ];
+  if (counts.arquivados > 0) chips.push({ value: "arquivados", label: "Arquivados", count: counts.arquivados });
 
   return (
     <>
-      {alert && (
-        <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-[#f2d8cf] bg-[#fdf4f1] px-4 py-3.5">
-          <span className="flex size-[34px] shrink-0 items-center justify-center rounded-[9px] bg-[#fbe0d8] text-destructive">
-            <TriangleAlert className="size-[18px]" strokeWidth={2} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13.5px] font-bold text-destructive">{alert.headline}</span>
-            <span className="mt-px block truncate text-[12px] text-[#8a6a60]">{alert.detail}</span>
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              setLowStockOnly(true);
-              setCategory(null);
-              setQuery("");
-            }}
-            className="shrink-0 whitespace-nowrap text-[12.5px] font-bold text-destructive hover:underline"
-          >
-            Gerar lista de compra →
-          </button>
-        </div>
-      )}
-
-      <div className="mb-4 flex flex-col gap-2.5 md:flex-row md:items-center">
-        <div className="relative md:flex-1">
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-border bg-card px-3.5 md:w-[260px]">
           <Search />
-          <Input
+          <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar insumo…"
-            className="rounded-xl bg-card pl-9"
+            placeholder="Buscar item…"
+            aria-label="Buscar item"
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-faint"
           />
+        </label>
+
+        <div
+          role="group"
+          aria-label="Onde"
+          className="flex items-center gap-0.5 rounded-[11px] border border-border bg-card p-[3px]"
+        >
+          <span className="pl-[7px] pr-2 text-[11px] font-bold uppercase tracking-[.5px] text-ink-soft">Onde</span>
+          {WHERE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              aria-pressed={where === opt.value}
+              onClick={() => setWhere(opt.value)}
+              className={cn(
+                "flex h-8 items-center gap-1.5 rounded-lg px-3 text-[12.5px] font-semibold transition-colors",
+                where === opt.value ? "bg-ink text-white" : "text-ink-soft hover:bg-wash",
+              )}
+            >
+              {opt.value === "loja" && <Store className="size-[13px] text-primary" strokeWidth={2} />}
+              {opt.value === "dep" && <Warehouse className="size-[13px] text-depot" strokeWidth={2} />}
+              {opt.label}
+            </button>
+          ))}
         </div>
 
-        <FilterDropdown
-          label={categoryLabel}
-          active={category !== null}
-        >
+        <span className="hidden flex-1 md:block" />
+
+        <div role="group" aria-label="Status" className="flex flex-wrap gap-1.5">
+          {chips.map((chip) => (
+            <button
+              key={chip.value}
+              type="button"
+              aria-pressed={status === chip.value}
+              onClick={() => setStatus(chip.value)}
+              className={cn(
+                "h-9 rounded-[10px] border px-3 text-[12.5px] font-semibold transition-colors",
+                status === chip.value
+                  ? "border-primary bg-primary text-white"
+                  : "border-border bg-card text-ink-soft hover:border-primary/40",
+              )}
+            >
+              {chip.label} · {chip.count}
+            </button>
+          ))}
+        </div>
+
+        <FilterDropdown label={categoryLabel} active={category !== null}>
           <DropdownMenuItem active={category === null} onSelect={() => setCategory(null)}>
             <DropdownMenuItemIcon>
               <List />
@@ -186,25 +211,6 @@ export function EstoqueClient({
             );
           })}
         </FilterDropdown>
-
-        <FilterDropdown label={statusLabel} active={status !== "todas" || lowStockOnly}>
-          {STATUS_FILTERS.map((opt) => {
-            const meta = opt.value === "todas" ? null : STATUS_META[opt.value];
-            const Icon = meta?.icon ?? List;
-            return (
-              <DropdownMenuItem
-                key={opt.value}
-                active={!lowStockOnly && status === opt.value}
-                onSelect={() => selectStatus(opt.value)}
-              >
-                <DropdownMenuItemIcon className={cn(meta?.bg, meta?.fg)}>
-                  <Icon />
-                </DropdownMenuItemIcon>
-                {opt.label}
-              </DropdownMenuItem>
-            );
-          })}
-        </FilterDropdown>
       </div>
 
       {filtered.length === 0 ? (
@@ -213,18 +219,20 @@ export function EstoqueClient({
           title={items.length === 0 ? "Nenhum item ainda" : "Nada encontrado"}
           description={
             items.length === 0
-              ? "Cadastre insumos para controlar entradas, saídas e alertas de reposição."
+              ? "Cadastre itens para controlar a loja e o depósito, entradas e alertas de reposição."
               : "Tente outra busca ou filtro."
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => (
             <StockCard
               key={item.id}
               item={item}
+              where={where}
               onOpen={() => setSelectedId(item.id)}
               onAdjust={() => setAdjustId(item.id)}
+              onTransfer={() => setTransfer({ itemId: item.id })}
             />
           ))}
         </div>
@@ -241,6 +249,10 @@ export function EstoqueClient({
         onOpenChange={(open) => {
           if (!open) setSelectedId(null);
         }}
+        onBuy={(item) => setCompra({ itemId: item.id })}
+        onTransfer={(item) => setTransfer({ itemId: item.id })}
+        onOpenPackage={(item) => setOpenPkgId(item.id)}
+        onAdjustOpen={(item) => setAdjustId(item.id)}
       />
 
       <StockItemFormSheet storeId={storeId} open={formOpen} onOpenChange={setFormOpen} />
@@ -253,61 +265,49 @@ export function EstoqueClient({
         }}
       />
 
+      <AbrirEmbalagemDialog
+        storeId={storeId}
+        item={openingPkg}
+        usedIn={openingPkg ? recipeUsage[openingPkg.id] ?? [] : []}
+        onOpenChange={(open) => {
+          if (!open) setOpenPkgId(null);
+        }}
+      />
+
+      <TransferirDialog
+        storeId={storeId}
+        storeName={storeName}
+        items={items}
+        open={transfer !== null}
+        preselectId={transfer?.itemId ?? null}
+        onOpenChange={(open) => {
+          if (!open) setTransfer(null);
+        }}
+      />
+
       <RegistrarCompraDialog
         storeId={storeId}
         items={items}
-        open={compraOpen}
-        onOpenChange={setCompraOpen}
+        open={compra !== null}
+        preselectId={compra?.itemId ?? null}
+        onOpenChange={(open) => {
+          if (!open) setCompra(null);
+        }}
         onCreateNew={() => setFormOpen(true)}
       />
     </>
   );
 }
 
-/** "1 insumo esgotado e 2 abaixo do mínimo" banner copy, built from live data. */
-function buildStockAlert(
-  items: StockItem[],
-): { headline: string; detail: string } | null {
-  const visible = items.filter((i) => !i.archived);
-  const esgotados = visible.filter((i) => stockStatus(i) === "esgotado");
-  const repor = visible.filter((i) => stockStatus(i) === "repor");
-  if (esgotados.length === 0 && repor.length === 0) return null;
-
-  const headlineParts: string[] = [];
-  if (esgotados.length > 0) {
-    const s = esgotados.length === 1 ? "" : "s";
-    headlineParts.push(`${esgotados.length} insumo${s} esgotado${s}`);
-  }
-  if (repor.length > 0) {
-    headlineParts.push(`${repor.length} abaixo do mínimo`);
-  }
-
-  const detailParts: string[] = [];
-  if (esgotados.length > 0) {
-    const verb = esgotados.length === 1 ? "zerou" : "zeraram";
-    detailParts.push(`${joinNames(esgotados.map((i) => i.name))} ${verb}`);
-  }
-  if (repor.length > 0) {
-    detailParts.push(`${joinNames(repor.map((i) => i.name))} na última embalagem`);
-  }
-
-  return { headline: headlineParts.join(" e "), detail: detailParts.join(" · ") };
-}
-
-/** "A", "A e B", or "A, B e mais N" — keeps the banner readable at any count. */
-function joinNames(names: string[]): string {
-  if (names.length <= 2) return names.join(" e ");
-  return `${names.slice(0, 2).join(", ")} e mais ${names.length - 2}`;
-}
-
 function Search() {
   return (
     <svg
-      className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint"
+      className="size-[15px] shrink-0 text-ink-soft"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
+      aria-hidden
     >
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" />
@@ -329,15 +329,15 @@ function FilterDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "flex h-10 items-center justify-between gap-2 rounded-xl border bg-card px-3.5 text-[13px] font-semibold transition-colors outline-none md:justify-start",
+          "flex h-9 items-center justify-between gap-2 rounded-[10px] border bg-card px-3 text-[12.5px] font-semibold transition-colors outline-none md:justify-start",
           active
             ? "border-primary/50 text-ink"
             : "border-border text-ink-soft hover:border-primary/40",
         )}
       >
-        <Filter className="size-3.5 text-leaf" />
+        <Filter className="size-3.5 text-ink-soft" />
         <span>{label}</span>
-        <ChevronDown className="size-3.5 text-ink-faint md:ml-1" />
+        <ChevronDown className="size-3 text-ink-faint" strokeWidth={2.4} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-52">
         {children}
@@ -348,149 +348,128 @@ function FilterDropdown({
 
 function StockCard({
   item,
+  where,
   onOpen,
   onAdjust,
+  onTransfer,
 }: {
   item: StockItem;
+  where: Where;
   onOpen: () => void;
   onAdjust: () => void;
+  onTransfer: () => void;
 }) {
   const STOCK_CATEGORY_META = useStockCategoryMeta();
   const { units } = useUnits();
   const meta = STOCK_CATEGORY_META[item.category];
   const view = buildStockCard(item, units);
-  const statusMeta = STATUS_META[view.status];
-  const StatusIcon = statusMeta.icon;
+  const pill = STATUS_PILL[view.status];
   // Esgotado is the one status urgent enough to override the category tile's
   // own color — everything else keeps its category identity.
   const tileMeta =
     meta && view.status === "esgotado"
       ? { ...meta, fg: "text-destructive", bg: "bg-danger-wash" }
       : meta;
+  const showLoja = where !== "dep";
+  const showDep = where !== "loja" && view.tracked;
 
-  const openPanel = (
+  const lojaRow = (
     <>
-      <span
-        className={cn(
-          "flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[.7px]",
-          view.hasOpen ? "text-[#7c55c9]" : "text-[#c3cdbf]",
-        )}
-      >
-        {view.hasOpen && <FracIcon />}
-        Aberto
+      <span className="flex items-center gap-[7px]">
+        <Store className="size-[13px] shrink-0 text-primary" strokeWidth={2} />
+        <span className="text-[11px] font-bold uppercase tracking-[.5px] text-primary">Loja</span>
+        <span className="flex-1" />
+        <span className={cn("tabular text-[13.5px] font-bold", view.lojaColor)}>{view.lojaMain}</span>
       </span>
-      {view.hasOpen ? (
-        <>
-          <div className="tabular mt-[7px] whitespace-nowrap text-[17px] font-bold leading-[normal] text-violet">
-            {view.openMain}
-          </div>
-          {view.pips && <OpenPips total={view.pips.total} filled={view.pips.filled} className="mt-2" />}
-          {view.barPct !== null && <OpenBar pct={view.barPct} className="mt-2" />}
-          {view.openSub && (
-            <div className="mt-1.5 whitespace-nowrap text-[12.5px] text-[#a99bc4]">{view.openSub}</div>
-          )}
-        </>
-      ) : (
-        <div className="mt-[9px] whitespace-nowrap text-[13px] text-[#a0ac9d]">{view.openMutedLabel}</div>
-      )}
+      {view.segs.length > 0 && <PackageBar segs={view.segs} className="mt-2" />}
     </>
   );
 
-  // The card is a div, not a button: the open panel of per-unit items is its
-  // own button (Ajustar saldo), and buttons can't nest. A full-bleed button
-  // underneath carries the "open details" click; content sits above it and
-  // lets clicks through except for the adjust panel.
+  // The card is a div, not a button: the Loja row of per-unit items is its own
+  // button (Ajustar embalagem aberta) and the Depósito row opens the transfer,
+  // and buttons can't nest. A full-bleed button underneath carries the "open
+  // details" click; content sits above it and lets clicks through except for
+  // the rows that act.
   return (
-    <div className="group relative overflow-hidden rounded-[14px] border border-border bg-card text-left leading-[normal] transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_10px_24px_-14px_rgba(24,107,65,.28)]">
+    <div
+      className={cn(
+        "group relative flex flex-col overflow-hidden rounded-[14px] border bg-card pb-2.5 text-left leading-[normal] transition-all hover:border-[#9cc5ae] hover:shadow-[0_10px_28px_-16px_rgba(21,60,40,.35)]",
+        pill.border,
+      )}
+    >
       <button
         type="button"
         onClick={onOpen}
         aria-label={`Abrir ${item.name}`}
         className="absolute inset-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       />
-      <div className="pointer-events-none relative">
-        <div className="flex items-center gap-[13px] px-[18px] py-4">
-          {tileMeta && <CategoryTile meta={tileMeta} className="size-11 [&>svg]:size-[22px]" />}
+      <div className="pointer-events-none relative flex flex-col">
+        <div className="flex items-center gap-[11px] px-[15px] pb-3 pt-3.5">
+          {tileMeta && <CategoryTile meta={tileMeta} className="size-[38px] [&>svg]:size-[19px]" />}
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[16px] font-semibold tracking-[-.2px] text-ink">{item.name}</span>
-            <span className="mt-px block truncate text-[12.5px] text-[#a0ac9d]">
-              {meta?.label ?? item.category}
-              {item.resellable && " · revenda"}
-              {view.perUnit && " · consumo por unidade"}
+            <span className="block truncate text-[14.5px] font-semibold text-ink">{item.name}</span>
+            <span className="mt-[3px] flex items-center gap-[7px]">
+              <span className={cn("shrink-0 rounded-full px-[7px] text-[10.5px] font-bold leading-4", pill.bg, pill.fg)}>
+                {pill.label}
+              </span>
+              <span className="min-w-0 truncate rounded-full bg-[#f1f4f0] px-[7px] text-[10.5px] font-semibold leading-4 text-[#3d4a42]">
+                {meta?.label ?? item.category}
+              </span>
             </span>
-          </span>
-          <span
-            className={cn(
-              "flex size-7 shrink-0 items-center justify-center rounded-full",
-              statusMeta.bg,
-              statusMeta.fg,
-            )}
-          >
-            <StatusIcon className="size-[15px]" strokeWidth={2.3} />
           </span>
         </div>
 
-        <div className="grid grid-cols-2 border-t border-[#f0f4ed]">
-          <div className="px-[18px] pb-[15px] pt-[13px]">
-            <span className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[.7px] text-[#3a8b4e]">
-              <SealedIcon />
-              {view.leftLabel}
-            </span>
-            <div
-              className={cn(
-                "tabular mt-[7px] whitespace-nowrap text-[17px] font-bold leading-[normal]",
-                view.leftColor,
-              )}
-            >
-              {view.leftMain}
-            </div>
-            {view.leftSub && (
-              <div className="mt-0.5 whitespace-nowrap text-[12.5px] text-[#a0ac9d]">{view.leftSub}</div>
-            )}
-          </div>
-
-          {view.canAdjust ? (
+        {showLoja &&
+          (view.canAdjust ? (
             <button
               type="button"
               onClick={onAdjust}
-              title="Ajustar saldo"
+              title="Ajustar embalagem aberta"
               aria-label={`Ajustar saldo da embalagem aberta de ${item.name}`}
-              className="pointer-events-auto relative border-l border-[#ede6f8] bg-violet-wash px-[18px] pb-[15px] pt-[13px] text-left transition-colors hover:bg-[#f0e9fb] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-violet"
+              className="pointer-events-auto relative mx-2.5 block rounded-[10px] bg-[#f7faf5] px-[11px] pb-[11px] pt-2.5 text-left text-ink transition-colors hover:bg-[#eef5ea]"
             >
-              <span className="absolute right-3 top-[9px] flex size-[26px] items-center justify-center rounded-[8px] border border-[#e0d5f3] bg-white text-violet">
-                <Pencil className="size-[13px]" strokeWidth={2.1} />
+              <span className="absolute right-1.5 top-1.5 hidden size-[22px] items-center justify-center rounded-md border border-[#e0d5f3] bg-white text-violet group-hover:flex">
+                <Pencil className="size-[11px]" strokeWidth={2.1} />
               </span>
-              {openPanel}
+              {lojaRow}
             </button>
           ) : (
-            <div
+            <div className="mx-2.5 block rounded-[10px] bg-[#f7faf5] px-[11px] pb-[11px] pt-2.5">{lojaRow}</div>
+          ))}
+
+        {showDep && (
+          <button
+            type="button"
+            onClick={view.depEmpty ? onOpen : onTransfer}
+            aria-label={
+              view.depEmpty ? `Depósito vazio de ${item.name}` : `Transferir ${item.name} do depósito para a loja`
+            }
+            className={cn(
+              "pointer-events-auto mx-2.5 flex items-center gap-[7px] rounded-[10px] px-[11px] py-[9px] text-left text-ink transition-[filter] hover:brightness-[.97]",
+              showLoja && "mt-1.5",
+              view.depEmpty ? "bg-[#f4f6f3]" : "bg-depot-wash",
+            )}
+          >
+            <Warehouse
+              className={cn("size-[13px] shrink-0", view.depEmpty ? "text-[#b9c3bb]" : "text-depot")}
+              strokeWidth={2}
+            />
+            <span
               className={cn(
-                "border-l px-[18px] pb-[15px] pt-[13px]",
-                view.hasOpen ? "border-[#ede6f8] bg-violet-wash" : "border-[#f0f4ed]",
+                "text-[11px] font-bold uppercase tracking-[.5px]",
+                view.depEmpty ? "text-ink-soft" : "text-depot",
               )}
             >
-              {openPanel}
-            </div>
-          )}
-        </div>
+              Depósito
+            </span>
+            <span className="flex-1" />
+            <span className={cn("tabular text-[13.5px] font-bold", view.depEmpty ? "text-ink-soft" : "text-depot")}>
+              {view.depMain}
+            </span>
+            {view.depHint && <span className="text-[11.5px] text-depot-soft">{view.depHint}</span>}
+          </button>
+        )}
       </div>
     </div>
-  );
-}
-
-function SealedIcon() {
-  return (
-    <svg className="size-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9}>
-      <rect x="3" y="6" width="18" height="12" rx="2" />
-      <path d="M3 11h18" />
-    </svg>
-  );
-}
-
-function FracIcon() {
-  return (
-    <svg className="size-[13px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9}>
-      <rect x="3" y="9" width="18" height="6" rx="3" />
-    </svg>
   );
 }

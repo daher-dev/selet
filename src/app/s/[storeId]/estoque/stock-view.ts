@@ -1,5 +1,3 @@
-import { Archive, CircleCheck, CircleX, RotateCw } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import type { StockItem } from "@/lib/types";
 import { formatQty } from "@/lib/format";
 import { DEFAULT_STOCK_UNITS, unitKind, unitLabelFrom, type StockUnitDef } from "@/lib/stock-settings";
@@ -66,118 +64,122 @@ export function stockStatus(item: StockItem): StockStatus {
   return "ok";
 }
 
-export interface StatusMeta {
-  label: string;
-  icon: LucideIcon;
-  fg: string;
-  bg: string;
+/** Pill on the estoque card: "Em dia", "Abaixo do mínimo", "Esgotado". Tailwind classes. */
+export const STATUS_PILL: Record<StockStatus, { label: string; bg: string; fg: string; border: string }> = {
+  ok: { label: "Em dia", bg: "bg-[#e7f4ec]", fg: "text-[#2e7d4a]", border: "border-border" },
+  repor: { label: "Abaixo do mínimo", bg: "bg-amber-wash", fg: "text-[#8a5a0f]", border: "border-[#f0ddb4]" },
+  esgotado: { label: "Esgotado", bg: "bg-danger-wash", fg: "text-[#b23a22]", border: "border-[#f2cfc4]" },
+  arquivado: { label: "Arquivado", bg: "bg-wash", fg: "text-ink-faint", border: "border-border" },
+};
+
+/** "Precisa de atenção" in the status chips = below the minimum or out. */
+export function needsAttention(status: StockStatus): boolean {
+  return status === "repor" || status === "esgotado";
 }
 
-export const STATUS_META: Record<StockStatus, StatusMeta> = {
-  ok: { label: "OK", icon: CircleCheck, fg: "text-success", bg: "bg-mint-wash" },
-  repor: { label: "Repor", icon: RotateCw, fg: "text-amber", bg: "bg-amber-wash" },
-  esgotado: { label: "Esgotado", icon: CircleX, fg: "text-destructive", bg: "bg-danger-wash" },
-  arquivado: { label: "Arquivado", icon: Archive, fg: "text-ink-faint", bg: "bg-wash" },
-};
+/** One slot of the Loja's package bar. */
+export interface Seg {
+  /** sealed = a closed package · uso = the open one, hatched (no level known) · open = partial · missing = slot below the minimum */
+  kind: "sealed" | "uso" | "open" | "missing";
+  /** open only: how full the open package still is, 0-100. */
+  pct?: number;
+}
 
 export interface StockCardView {
   status: StockStatus;
-  low: boolean;
-  leftLabel: string;
-  leftMain: string;
-  leftSub: string;
-  /** color class for the primary number */
-  leftColor: string;
-  hasOpen: boolean;
-  openMain: string;
-  openSub: string;
-  /** count-unit open package → pips (filled count + total) */
-  pips: { total: number; filled: number } | null;
-  /** big count-unit open package → fill bar percentage 0-100 */
-  barPct: number | null;
-  /** Right-column message when there's nothing open: "Nenhuma embalagem
-   *  aberta" (frac-capable, just not started) or "Não fraciona" (whole-unit
-   *  items that never open a package). */
-  openMutedLabel: string;
-  /** Consumed per unit out of a multi-unit package (copos, sachês): shows "consumo por unidade". */
-  perUnit: boolean;
-  /** The open balance of a per-unit item can be corrected by hand (Ajustar saldo). */
+  /** Whether the item has packages at all (untracked items have no Depósito row). */
+  tracked: boolean;
+  lojaMain: string;
+  /** color class for the Loja number */
+  lojaColor: string;
+  segs: Seg[];
+  depMain: string;
+  /** "24 un" next to the Depósito count when packages hold several countable units. */
+  depHint: string;
+  depEmpty: boolean;
+  /** The open balance of a per-unit item can be corrected by hand (Ajustar embalagem aberta). */
   canAdjust: boolean;
 }
 
-/** Integer-friendly number in pt-BR ("2", "1,5"). */
-function fmtNum(n: number): string {
-  return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
-}
+const MAX_SEGS = 8;
 
-/** Everything the estoque card needs to render, mirroring the design's stockRows. */
+/** Everything the estoque card needs to render, mirroring the design's list cards. */
 export function buildStockCard(item: StockItem, units: StockUnitDef[] = DEFAULT_STOCK_UNITS): StockCardView {
   const status = stockStatus(item);
-  const low = status === "repor" || status === "esgotado";
-  const pu = unitLabel(item.unit, false, units);
   const frac = isFrac(item);
   const pkgSize = item.pkgSize ?? 1;
-  const pkgLabel = item.pkgLabel ?? "emb.";
-
   const exact = isCountUnit(item.unit, units) && !item.continuousUse;
   const hasOpen = item.continuousUse ? item.openPkg : item.tracked && frac && item.open > 0;
 
-  const leftColor = item.archived
+  const lojaColor = item.archived
     ? "text-ink-faint"
-    : low
-      ? status === "esgotado"
-        ? "text-destructive"
-        : "text-amber"
-      : "text-ink";
+    : status === "esgotado"
+      ? "text-destructive"
+      : status === "repor"
+        ? "text-amber"
+        : "text-ink";
 
-  let openMain = "";
-  let openSub = "";
-  if (hasOpen) {
-    if (item.continuousUse) {
-      openMain = `Em uso · ${item.usos} ${item.usos === 1 ? "uso" : "usos"}`;
-      openSub = `embalagem de ${formatQty(pkgSize, pu)}`;
-    } else if (exact) {
-      const used = Math.max(0, pkgSize - item.open);
-      const label = (n: number) => unitLabel(item.unit, n !== 1, units);
-      openMain = `${item.open === 1 ? "Resta" : "Restam"} ${fmtNum(item.open)} de ${formatQty(pkgSize, label(pkgSize))}`;
-      openSub = `${formatQty(used, label(used))} já ${used === 1 ? "usada" : "usadas"}`;
-    } else {
-      openMain = "Em uso";
-      openSub = `embalagem de ${formatQty(pkgSize, pu)}`;
+  let lojaMain: string;
+  if (!item.tracked) {
+    lojaMain = formatQty(item.qty, unitLabel(item.unit, item.qty !== 1, units));
+  } else {
+    const parts: string[] = [];
+    if (item.sealed > 0) parts.push(`${item.sealed} ${pkgCount(item, item.sealed)}`);
+    if (hasOpen) {
+      parts.push(item.continuousUse ? "1 em uso" : formatQty(item.open, unitLabel(item.unit, item.open !== 1, units)));
     }
+    lojaMain = parts.length > 0 ? parts.join(" + ") : `0 ${pkgCount(item, 0)}`;
   }
 
-  const pips =
-    hasOpen && exact && pkgSize <= 12
-      ? { total: pkgSize, filled: Math.round(item.open) }
-      : null;
-  const barPct =
-    hasOpen && exact && pkgSize > 12
-      ? Math.max(5, Math.round((item.open / pkgSize) * 100))
-      : null;
+  const segs: Seg[] = [];
+  if (item.tracked) {
+    for (let i = 0; i < Math.min(item.sealed, MAX_SEGS); i++) segs.push({ kind: "sealed" });
+    if (hasOpen) {
+      if (item.continuousUse) segs.push({ kind: "uso" });
+      else segs.push({ kind: "open", pct: Math.max(5, Math.min(100, Math.round((item.open / pkgSize) * 100))) });
+    }
+    // Slots still missing up to the minimum, drawn first so a shortage reads from the left.
+    const min = Math.min(MAX_SEGS, Math.max(1, Math.ceil(item.reorderAt)));
+    while (segs.length < min) segs.unshift({ kind: "missing" });
+  }
 
+  const dep = item.depSealed;
   return {
     status,
-    low,
-    leftLabel: item.tracked ? "Fechados" : "Em estoque",
-    leftMain: item.tracked
-      ? `${item.sealed} ${pkgCount(item, item.sealed)}`
-      : `${formatQty(item.qty, pu)}`,
-    leftSub: item.tracked
-      ? frac
-        ? `${formatQty(pkgSize, pu)}/${pkgLabel}`
-        : item.sealed === 0
-          ? `mínimo ${formatQty(item.reorderAt, unitLabel(item.unit, false, units))}.`
-          : `vendido por ${pkgLabel}`
-      : "não rastreado",
-    leftColor,
-    hasOpen,
-    openMain,
-    openSub,
-    pips,
-    barPct,
-    openMutedLabel: frac ? "Nenhuma embalagem aberta" : "Não fraciona",
-    perUnit: frac && exact,
+    tracked: item.tracked,
+    lojaMain,
+    lojaColor,
+    segs,
+    depMain: dep > 0 ? `${dep} ${pkgCount(item, dep)}` : "vazio",
+    depHint:
+      dep > 0 && exact && pkgSize > 1
+        ? formatQty(dep * pkgSize, unitLabel(item.unit, dep * pkgSize !== 1, units))
+        : "",
+    depEmpty: dep === 0,
     canAdjust: frac && exact && hasOpen,
   };
+}
+
+/**
+ * How many packages to move from the Depósito so the Loja ends above its
+ * minimum (at least 1, never more than the Depósito holds). Used to pre-fill
+ * the "Transferir para a loja" suggestions.
+ */
+export function suggestTransferQty(item: StockItem): number {
+  const have = usableAmount(item);
+  const min = threshold(item);
+  // contínuo counts whole packages; the rest count base units, one package adds pkgSize of them.
+  const perPkg = item.continuousUse || !item.tracked ? 1 : item.pkgSize || 1;
+  const need = Math.max(1, Math.ceil((min + 1 - have) / perPkg));
+  return Math.min(need, Math.max(item.depSealed, 1));
+}
+
+/**
+ * The Loja's minimum as people read it: whole packages for contínuo items
+ * ("2 potes"), base units for the rest ("10 un").
+ */
+export function minimumLabel(item: StockItem, unitLabelFn: (unit: string, plural: boolean) => string): string {
+  if (item.continuousUse) return `${item.reorderAt} ${pkgCount(item, item.reorderAt)}`;
+  const min = threshold(item);
+  return formatQty(min, unitLabelFn(item.unit, min !== 1));
 }

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Estoque · loja e depósito</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #D6E2D0; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #186B41; text-decoration: none; }
+  a:hover { color: #124F30; }
+  /* stripes pan two periods (4px period at 45° = 5.657px across each) so the loop is seamless */
+  @keyframes emUso { to { background-position: 11.31px 0; } }
+  @media (prefers-reduced-motion: no-preference) { .em-uso { animation: emUso 1.4s linear infinite; } }
+</style>
+</helmet>
+<div style="display:flex; width:1300px; height:1120px; overflow:hidden; background:#F6FAF4; font-family:'Albert Sans',sans-serif; color:#15231C;">
+  <dc-import name="SeletNav" active="estoque" style="width:248px; flex-shrink:0;" hint-size="248px,100%"></dc-import>
+  <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+
+    <header style="flex-shrink:0; height:72px; padding:0 28px; background:#fff; border-bottom:1px solid #E7EEE6; display:flex; align-items:center; gap:12px;">
+      <div style="flex:1;">
+        <h1 style="margin:0; font-size:19px; font-weight:700;">Estoque</h1>
+        <p style="margin:2px 0 0; font-size:12.5px; color:#5C6B62;">Cada item, onde ele está: na loja e no depósito de Vila Velha/ES</p>
+      </div>
+      <a href="estoque-3b.dc.html" style="display:flex; align-items:center; gap:7px; height:40px; padding:0 15px; background:#EAF1F7; color:#2B5F86; border:1px solid #D3E2EE; border-radius:10px; font-size:13px; font-weight:600;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>Transferir para a loja
+      </a>
+      <a href="estoque-3a.dc.html" style="display:flex; align-items:center; gap:7px; height:40px; padding:0 15px; background:#186B41; color:#fff; border-radius:10px; font-size:13px; font-weight:600;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6.2 M9 20h.01 M17 20h.01"></path></svg>Registrar compra
+      </a>
+    </header>
+
+    <div style="flex:1; overflow-y:auto; padding:22px 28px 40px; display:flex; flex-direction:column; gap:16px;">
+
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <label style="display:flex; align-items:center; gap:8px; width:260px; height:40px; padding:0 13px; background:#fff; border:1px solid #E7EEE6; border-radius:10px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5C6B62" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          <input placeholder="Buscar item…" aria-label="Buscar item" style="flex:1; min-width:0; border:0; outline:0; background:transparent; font:inherit; font-size:13px; color:#15231C;">
+        </label>
+        <div role="group" aria-label="Onde" style="display:flex; align-items:center; gap:2px; padding:3px; background:#fff; border:1px solid #E7EEE6; border-radius:11px;">
+          <span style="padding:0 8px 0 7px; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#5C6B62;">Onde</span>
+          <button onClick="{{ ondeTudo }}" aria-pressed="{{ isTudo }}" style="{{ sTudo }}">Tudo</button>
+          <button onClick="{{ ondeLoja }}" aria-pressed="{{ isLoja }}" style="{{ sLoja }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 9l1.5-5h15L21 9"></path><path d="M4 10v10h16V10"></path><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"></path><path d="M10 20v-5h4v5"></path></svg>Loja</button>
+          <button onClick="{{ ondeDep }}" aria-pressed="{{ isDep }}" style="{{ sDep }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2B5F86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 21V9l9-5 9 5v12"></path><path d="M7 21v-8h10v8"></path><path d="M7 17h10"></path></svg>Depósito</button>
+        </div>
+        <span style="flex:1;"></span>
+        <div role="group" aria-label="Status" style="display:flex; gap:6px;">
+          <button onClick="{{ fTodos }}" aria-pressed="{{ isTodos }}" style="{{ sTodos }}">Todos · 9</button>
+          <button onClick="{{ fAtencao }}" aria-pressed="{{ isAtencao }}" style="{{ sAtencao }}">Precisa de atenção · 3</button>
+          <button onClick="{{ fOk }}" aria-pressed="{{ isOk }}" style="{{ sOk }}">Em dia · 6</button>
+        </div>
+        <button style="display:flex; align-items:center; gap:7px; height:36px; padding:0 12px; background:#fff; border:1px solid #E7EEE6; border-radius:10px; font-size:12.5px; font-weight:600; color:#5C6B62;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6B62" stroke-width="1.9" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z"></path></svg>Categorias<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px;">
+        <sc-for list="{{ items }}" as="it" hint-placeholder-count="9">
+          <article style="display:flex; flex-direction:column; background:#fff; border:1px solid {{ it.border }}; border-radius:14px; overflow:hidden; padding-bottom:10px;" style-hover="border-color:#9CC5AE; box-shadow:0 10px 28px -16px rgba(21,60,40,.35);">
+            <div style="display:flex; align-items:center; gap:11px; padding:14px 15px 12px;">
+              <span style="display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px; background:{{ it.iconBg }}; color:{{ it.iconFg }}; flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ it.p1 }}"></path><path d="{{ it.p2 }}"></path></svg></span>
+              <span style="flex:1; min-width:0;">
+                <a href="{{ it.href }}" style="display:block; font-size:14.5px; font-weight:600; color:#15231C; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ it.name }}</a>
+                <span style="display:flex; align-items:center; gap:7px; margin-top:3px; min-width:0;">
+                  <span style="flex-shrink:0; font-size:10.5px; font-weight:700; line-height:16px; padding:0 7px; border-radius:20px; background:{{ it.pillBg }}; color:{{ it.pillFg }};">{{ it.pill }}</span>
+                  <span style="flex-shrink:0; font-size:10.5px; font-weight:600; line-height:16px; padding:0 7px; border-radius:20px; background:#F1F4F0; color:#3D4A42;">{{ it.cat }}</span>
+                </span>
+              </span>
+            </div>
+
+            <sc-if value="{{ showLoja }}" hint-placeholder-val="{{ true }}">
+              <a href="{{ it.lojaHref }}" title="{{ it.lojaTitle }}" style="display:block; margin:0 10px; padding:10px 11px 11px; border-radius:10px; background:#F7FAF5; color:#15231C;" style-hover="background:#EEF5EA;">
+                <span style="display:flex; align-items:center; gap:7px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 9l1.5-5h15L21 9"></path><path d="M4 10v10h16V10"></path><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"></path><path d="M10 20v-5h4v5"></path></svg>
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#186B41;">Loja</span>
+                  <span style="flex:1;"></span>
+                  <span style="font-size:13.5px; font-weight:700; color:{{ it.lojaFg }};">{{ it.loja }}</span>
+                </span>
+                <span style="display:flex; gap:3px; margin-top:8px;">
+                  <sc-for list="{{ it.segs }}" as="s" hint-placeholder-count="5">
+                    <span class="{{ s.cls }}" style="{{ s.outer }}"><span style="{{ s.inner }}"></span></span>
+                  </sc-for>
+                </span>
+              </a>
+            </sc-if>
+
+            <sc-if value="{{ showDep }}" hint-placeholder-val="{{ true }}">
+              <a href="estoque-3b.dc.html" style="display:flex; align-items:center; gap:7px; margin:6px 10px 0; padding:9px 11px; border-radius:10px; background:{{ it.depBg }}; color:#15231C;" style-hover="filter:brightness(.97);">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{ it.depDot }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 21V9l9-5 9 5v12"></path><path d="M7 21v-8h10v8"></path><path d="M7 17h10"></path></svg>
+                <span style="font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:{{ it.depFg }};">Depósito</span>
+                <span style="flex:1;"></span>
+                <span style="font-size:13.5px; font-weight:700; color:{{ it.depFg }};">{{ it.dep }}</span>
+                <span style="font-size:11.5px; color:#3F5F78;">{{ it.depHint }}</span>
+              </a>
+            </sc-if>
+
+          </article>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1300, "height": 1120}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { onde: 'tudo', filtro: 'todos' };
+  }
+  pill(on, dot) {
+    return 'display:flex; align-items:center; gap:6px; height:32px; padding:0 12px; border:0; border-radius:8px; font-size:12.5px; font-weight:600; ' +
+      (on ? 'background:#15231C; color:#fff;' : 'background:transparent; color:#5C6B62;');
+  }
+  chip(on) {
+    return 'height:36px; padding:0 12px; border-radius:10px; font-size:12.5px; font-weight:600; ' +
+      (on ? 'background:#186B41; color:#fff; border:1px solid #186B41;' : 'background:#fff; color:#3D4A42; border:1px solid #E7EEE6;');
+  }
+  segs(sealed, open, min) {
+    // filled = sealed packages; open package = hatched when in continuous use (no level known), partial when counted; dashed = missing slots up to the minimum, drawn first so a shortage reads from the left
+    const out = [];
+    const base = 'flex:1; height:7px; border-radius:4px; overflow:hidden; ';
+    for (let i = 0; i < Math.min(sealed, 8); i++) out.push({ outer: base + 'background:#186B41;', inner: '' });
+    if (open === 'uso') out.push({ outer: base + 'background:repeating-linear-gradient(135deg, #6B46C1 0 2px, #D3C6F2 2px 4px);', inner: '', cls: 'em-uso' });
+    else if (open != null) out.push({ outer: base + 'background:#E6DEF6;', inner: 'display:block; height:100%; width:' + open + '%; background:#6B46C1;' });
+    while (out.length < Math.max(min, 1)) out.unshift({ outer: base + 'background:transparent; border:1px dashed #E3A08F;', inner: '' });
+    return out;
+  }
+  renderVals() {
+    const P = {
+      pote: ['M7 8h10l-1 12H8L7 8Z', 'M9 8V6a3 3 0 0 1 6 0v2'],
+      copo: ['M6 8h12l-1 12a1 1 0 0 1-1 .9H8a1 1 0 0 1-1-.9L6 8Z', 'M8 8l1-4h6l1 4'],
+      sopa: ['M3 11h18a9 9 0 0 1-18 0Z', 'M9 6c0-1.2 1-1.2 1-2.5'],
+    };
+    const ST = {
+      ok: ['Em dia', '#E7F4EC', '#2E7D4A', '#E7EEE6', '#15231C'],
+      baixo: ['Abaixo do mínimo', '#FBF1DC', '#8A5A0F', '#F0DDB4', '#8A5A0F'],
+      esgotado: ['Esgotado', '#FBE9E4', '#B23A22', '#F2CFC4', '#B23A22'],
+    };
+    const raw = [
+      { name: 'CR7 Drive Berry Mix', cat: 'Bebidas', ic: 'copo', bg: '#FBE9E4', fg: '#B23A22', st: 'esgotado', loja: '0 un', sealed: 0, open: null, min: 4, dep: '2 caixas', depHint: '24 un', href: 'estoque-2b.dc.html' },
+      { name: 'Fiber Concentrate', cat: 'Bebidas', ic: 'copo', bg: '#E3F1F4', fg: '#2F7F95', st: 'baixo', loja: '1 pote + 1 em uso', sealed: 1, open: 'uso', min: 3, dep: '4 potes', depHint: '', href: 'estoque-2a.dc.html' },
+      { name: 'Herbal Concentrate', cat: 'Bebidas', ic: 'copo', bg: '#E3F1F4', fg: '#2F7F95', st: 'baixo', loja: '1 pote', sealed: 1, open: null, min: 2, dep: null, href: 'estoque-2a.dc.html' },
+      { name: 'Shake Herbalife Baunilha', cat: 'Secos', ic: 'pote', bg: '#F5EED2', fg: '#8F6E14', st: 'ok', loja: '3 potes + 1 em uso', sealed: 3, open: 'uso', min: 2, dep: '6 potes', depHint: '', href: 'estoque-2a.dc.html' },
+      { name: 'Pó de Proteína (PDM)', cat: 'Secos', ic: 'pote', bg: '#F5EED2', fg: '#8F6E14', st: 'ok', loja: '2 potes + 1 em uso', sealed: 2, open: 'uso', min: 2, dep: '3 potes', depHint: '', href: 'estoque-2a.dc.html' },
+      { name: 'Nutrisoup Creme Verde-Frango', cat: 'Proteínas', ic: 'sopa', bg: '#F5E7DF', fg: '#9A5230', st: 'ok', loja: '2 potes + 1 em uso', sealed: 2, open: 'uso', min: 1, dep: null, href: 'estoque-2a.dc.html' },
+      { name: 'Canudo de Papel', cat: 'Descartáveis', ic: 'copo', bg: '#EFEAF8', fg: '#6B46C1', st: 'ok', loja: '3 pacotes + 35 un', sealed: 3, open: 35, min: 2, dep: '6 pacotes', depHint: '', href: 'estoque-2a.dc.html' },
+      { name: 'Copo Descartável 300 ml', cat: 'Descartáveis', ic: 'copo', bg: '#EFEAF8', fg: '#6B46C1', st: 'ok', loja: '4 pacotes + 2 un', sealed: 4, open: 20, min: 2, dep: '12 pacotes', depHint: '', href: 'estoque-2a.dc.html' },
+      { name: 'Beauty Drink Colágeno', cat: 'Bebidas', ic: 'copo', bg: '#E3F1F4', fg: '#2F7F95', st: 'ok', loja: '6 sachês', sealed: 6, open: null, min: 3, dep: '2 caixas', depHint: '60 sachês', href: 'estoque-2a.dc.html' },
+    ];
+    const { onde, filtro } = this.state;
+    const items = raw
+      .filter((r) => filtro === 'todos' || (filtro === 'ok' ? r.st === 'ok' : r.st !== 'ok'))
+      .filter((r) => onde !== 'dep' || r.dep)
+      .map((r) => {
+        const s = ST[r.st];
+        return {
+          ...r, p1: P[r.ic][0], p2: P[r.ic][1], iconBg: r.bg, iconFg: r.fg,
+          pill: s[0], pillBg: s[1], pillFg: s[2], border: s[3], lojaFg: s[4],
+          segs: this.segs(r.sealed, r.open, r.min),
+          lojaHref: typeof r.open === 'number' ? 'estoque-2c.dc.html' : r.href,
+          lojaTitle: typeof r.open === 'number' ? 'Ajustar unidades da embalagem aberta' : 'Ver ficha do item',
+          dep: r.dep || 'vazio', depHint: r.dep ? r.depHint : '',
+          depBg: r.dep ? '#EAF1F7' : '#F4F6F3', depDot: r.dep ? '#2B5F86' : '#B9C3BB', depFg: r.dep ? '#2B5F86' : '#5C6B62',
+        };
+      });
+    const set = (k, v) => () => this.setState({ [k]: v });
+    return {
+      items,
+      showLoja: onde !== 'dep', showDep: onde !== 'loja',
+      isTudo: onde === 'tudo', isLoja: onde === 'loja', isDep: onde === 'dep',
+      sTudo: this.pill(onde === 'tudo'), sLoja: this.pill(onde === 'loja'), sDep: this.pill(onde === 'dep'),
+      ondeTudo: set('onde', 'tudo'), ondeLoja: set('onde', 'loja'), ondeDep: set('onde', 'dep'),
+      isTodos: filtro === 'todos', isAtencao: filtro === 'atencao', isOk: filtro === 'ok',
+      sTodos: this.chip(filtro === 'todos'), sAtencao: this.chip(filtro === 'atencao'), sOk: this.chip(filtro === 'ok'),
+      fTodos: set('filtro', 'todos'), fAtencao: set('filtro', 'atencao'), fOk: set('filtro', 'ok'),
+    };
+  }
+}
+</script>
+</body>
+</html>

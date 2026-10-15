@@ -33,7 +33,7 @@ test("full flow: login → product → customer → order → paid → dashboard
   // insumo picker → "Cadastrar novo item".
   await page.goto("/s/vila-velha/estoque");
   await page.getByRole("button", { name: "Registrar compra" }).click();
-  await page.getByRole("button", { name: "Buscar insumo…" }).click();
+  await page.getByRole("button", { name: "Buscar item…" }).click();
   await page.getByRole("button", { name: "Cadastrar novo item" }).click();
   await page.getByPlaceholder("Ex: Leite de coco").fill("Salmão");
   await page.getByRole("button", { name: "Adicionar ao estoque" }).click();

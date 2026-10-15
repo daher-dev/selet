@@ -1,6 +1,7 @@
 import { requireAccess } from "@/lib/access";
 import { listStockItems } from "@/data/stock";
 import { listOrders } from "@/data/orders";
+import { listStoresForUser } from "@/data/stores";
 import { listProducts } from "@/data/products";
 import { EstoqueClient } from "./estoque-client";
 import type { RecipeUsage } from "./estoque-detail-sheet";
@@ -11,12 +12,14 @@ export default async function EstoquePage({
   params: Promise<{ storeId: string }>;
 }) {
   const { storeId } = await params;
-  await requireAccess(storeId, "estoque");
-  const [items, orders, products] = await Promise.all([
+  const user = await requireAccess(storeId, "estoque");
+  const [items, orders, products, stores] = await Promise.all([
     listStockItems(storeId),
     listOrders(storeId, { limit: 20 }),
     listProducts(storeId),
+    listStoresForUser(user),
   ]);
+  const storeName = stores.find((s) => s.id === storeId)?.name ?? "";
 
   // Reference pickers on a saída: VENDA → recent orders, CONSUMO → menu items.
   const orderRefs = orders.map((o) => ({
@@ -55,6 +58,7 @@ export default async function EstoquePage({
   return (
     <EstoqueClient
       storeId={storeId}
+      storeName={storeName}
       items={items}
       orders={orderRefs}
       menuProducts={menuProducts}

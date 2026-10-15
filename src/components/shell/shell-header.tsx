@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Menu, Plus, Search } from "lucide-react";
+import { ArrowRight, Menu, Plus, Search } from "lucide-react";
 import type { Store } from "@/lib/types";
 import { pageMeta, segmentFromPathname } from "./titles";
 import { useShellState } from "./app-shell-context";
@@ -47,17 +47,36 @@ export function ShellHeader({
         </p>
       </div>
 
-      {/* Global search — desktop only */}
-      <label className="hidden h-[38px] w-[240px] items-center gap-2 rounded-[10px] border border-border bg-surface px-3 min-[820px]:flex">
-        <Search className="size-[15px] shrink-0 text-ink-faint" strokeWidth={2} />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar pedido, cliente…"
-          className="w-full min-w-0 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-faint"
-        />
-      </label>
+      {/* Global search — desktop only. Estoque has its own "Buscar item…" and its header carries two actions. */}
+      {segment !== "estoque" && (
+        <label className="hidden h-[38px] w-[240px] items-center gap-2 rounded-[10px] border border-border bg-surface px-3 min-[820px]:flex">
+          <Search
+            className="size-[15px] shrink-0 text-ink-faint"
+            strokeWidth={2}
+          />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar pedido, cliente…"
+            className="w-full min-w-0 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-faint"
+          />
+        </label>
+      )}
+
+      {action?.secondary && (
+        <button
+          type="button"
+          onClick={action.secondary.onClick}
+          aria-label={action.secondary.label}
+          className="flex h-[38px] w-[38px] shrink-0 items-center justify-center gap-1.5 rounded-[10px] border border-depot-line bg-depot-wash px-0 text-[13px] font-semibold text-depot transition-colors hover:border-depot/40 min-[820px]:w-auto min-[820px]:px-[15px]"
+        >
+          <ArrowRight className="size-[15px] shrink-0" strokeWidth={2} />
+          <span className="hidden min-[820px]:inline">
+            {action.secondary.label}
+          </span>
+        </button>
+      )}
 
       {/* Contextual primary add — label hidden on mobile (icon only) */}
       {action && (

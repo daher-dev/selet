@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Ficha do item</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Albert+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #D6E2D0; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #186B41; text-decoration: none; }
+  a:hover { color: #124F30; }
+  /* stripes pan two periods (6px period at 45° = 8.485px across each) so the loop is seamless */
+  @keyframes emUso { to { background-position: 16.97px 0; } }
+  @media (prefers-reduced-motion: no-preference) { .em-uso { animation: emUso 1.4s linear infinite; } }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: no-preference) { .girando { animation: girar .9s linear infinite; } }
+</style>
+</helmet>
+<div style="display:flex; flex-direction:column; width:480px; height:960px; overflow:hidden; background:#fff; font-family:'Albert Sans',sans-serif; color:#15231C;">
+  <div style="flex-shrink:0; display:flex; align-items:center; gap:13px; padding:18px 20px; border-bottom:1px solid #EEF3EA;">
+    <span style="display:flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:11px; background:#F5EED2; color:#8F6E14;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M7 8h10l-1 12H8L7 8Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg></span>
+    <div style="flex:1; min-width:0;">
+      <h2 style="margin:0; font-size:18px; font-weight:700;">Shake Herbalife Baunilha</h2>
+      <span style="display:flex; align-items:center; gap:7px; margin-top:4px;">
+        <span style="font-size:10.5px; font-weight:700; line-height:16px; padding:0 7px; border-radius:20px; background:#E7F4EC; color:#2E7D4A;">Em dia</span>
+        <span style="font-size:10.5px; font-weight:600; line-height:16px; padding:0 7px; border-radius:20px; background:#F1F4F0; color:#3D4A42;">Secos</span>
+      </span>
+    </div>
+    <a href="estoque-4a.dc.html" style="display:flex; align-items:center; height:34px; padding:0 11px; border-radius:9px; border:1px solid #E7EEE6; font-size:12.5px; font-weight:600; color:#3D4A42;">Editar</a>
+    <button aria-label="Fechar" style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; border-radius:9px; border:1px solid #E7EEE6; background:#fff; color:#3D4A42;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+  </div>
+
+  <div style="flex:1; overflow-y:auto; padding:18px 20px 22px; display:flex; flex-direction:column; gap:16px;">
+
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;">
+      <a href="estoque-3b.dc.html" style="display:block; padding:13px 14px; background:#EAF1F7; border:1px solid #D3E2EE; border-radius:12px; color:#15231C;" style-hover="border-color:#9DBDD6;">
+        <span style="display:flex; align-items:center; gap:7px; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#2B5F86;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2B5F86" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 21V9l9-5 9 5v12"></path><path d="M7 21v-8h10v8"></path><path d="M7 17h10"></path></svg>Depósito</span>
+        <span style="display:block; font-size:22px; font-weight:700; margin-top:6px; color:#2B5F86;">6 potes</span>
+        <span style="display:block; font-size:12px; color:#3F5F78; margin-top:1px;">R$ 780,00 parados</span>
+      </a>
+      <div style="padding:13px 14px; background:#F3F8EF; border:1px solid #DDEBD5; border-radius:12px;">
+        <span style="display:flex; align-items:center; gap:7px; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#186B41;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 9l1.5-5h15L21 9"></path><path d="M4 10v10h16V10"></path><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"></path><path d="M10 20v-5h4v5"></path></svg>Loja</span>
+        <span style="display:block; font-size:22px; font-weight:700; margin-top:6px;">{{ lojaPotes }}</span>
+        <span style="display:block; font-size:12px; color:#3D5A47; margin-top:1px;">{{ lojaSub }}</span>
+      </div>
+    </div>
+
+    <sc-if value="{{ inUse }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:14px 16px; background:#F7F3FD; border:1px solid #EDE6F8; border-radius:12px;">
+        <div style="display:flex; align-items:center;">
+          <span style="flex:1; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#6B46C1;">Pote em uso</span>
+          <span style="font-size:11px; font-weight:600; color:#5C4F78; padding:2px 8px; border-radius:20px; background:#EDE6F8;">Uso contínuo</span>
+        </div>
+        <div style="display:flex; align-items:baseline; gap:8px; margin-top:6px;">
+          <span style="font-size:30px; font-weight:600; letter-spacing:-.5px;">{{ usos }}</span>
+          <span style="font-size:13.5px; color:#5C4F78;">{{ desde }}</span>
+        </div>
+        <div class="em-uso" style="height:8px; border-radius:5px; margin-top:10px; background:repeating-linear-gradient(135deg, #6B46C1 0 3px, #D3C6F2 3px 6px);"></div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <a href="estoque-2c.dc.html" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; height:42px; background:#fff; border:1px solid #D9CCF3; border-radius:10px; color:#6B46C1; font-size:13px; font-weight:600;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Ajustar
+          </a>
+          <button onClick="{{ markEmpty }}" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; height:42px; background:#fff; border:1px solid #D9CCF3; border-radius:10px; color:#6B46C1; font-size:13px; font-weight:600;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 8h10l-1 12H8L7 8Z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path></svg>Marcar vazia
+          </button>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:14px 16px; background:#FAFBF9; border:1px dashed #C9D3CB; border-radius:12px;">
+        <span style="display:block; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#5C6B62;">Nenhum pote em uso</span>
+        <span style="display:block; font-size:14px; font-weight:600; margin-top:6px;">Último pote rendeu 14 usos <span style="color:#8A5A0F;">(78% do previsto)</span></span>
+        <a href="estoque-2d.dc.html" style="display:flex; align-items:center; justify-content:center; gap:7px; width:100%; height:42px; margin-top:12px; background:#6B46C1; border-radius:10px; color:#fff; font-size:13px; font-weight:600;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9h18v6H3z"></path><path d="M12 3v6"></path></svg>Abrir embalagem
+        </a>
+        <span style="display:block; font-size:11.5px; color:#5C6B62; margin-top:7px; text-align:center;">Usa 1 dos {{ lojaPotes }} lacrados da loja</span>
+      </div>
+    </sc-if>
+
+    <div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px;">
+      <div style="padding:11px 12px; border:1px solid #EEF3EA; border-radius:11px;">
+        <span style="display:block; font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62;">Custo/pote</span>
+        <span style="display:block; font-size:15px; font-weight:700; margin-top:3px;">R$ 130,00</span>
+        <span style="display:block; font-size:11.5px; color:#5C6B62;">~R$ 7,20 por uso</span>
+      </div>
+      <div style="padding:11px 12px; border:1px solid #EEF3EA; border-radius:11px;">
+        <span style="display:block; font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62;">Rendimento</span>
+        <span style="display:block; font-size:15px; font-weight:700; margin-top:3px; color:#2E7D4A;">102%</span>
+        <span style="display:block; font-size:11.5px; color:#5C6B62;">18 usos previstos</span>
+      </div>
+      <div style="padding:11px 12px; border:1px solid #EEF3EA; border-radius:11px;">
+        <span style="display:block; font-size:10.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#5C6B62;">Receitas</span>
+        <a href="shakes-1a.dc.html" style="display:block; font-size:15px; font-weight:700; margin-top:3px; color:#186B41; text-decoration:underline;">6 itens</a>
+        <span style="display:block; font-size:11.5px; color:#5C6B62;">1 uso por shake</span>
+      </div>
+    </div>
+
+    <div>
+      <div style="display:flex; align-items:center; margin-bottom:10px;">
+        <span style="flex:1; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#5C6B62;">Movimentações</span>
+        <div role="group" aria-label="Local" style="display:flex; padding:2px; background:#F1F6EE; border-radius:8px;">
+          <button onClick="{{ lTudo }}" aria-pressed="{{ isLTudo }}" style="{{ sLTudo }}">Tudo</button>
+          <button onClick="{{ lLoja }}" aria-pressed="{{ isLLoja }}" style="{{ sLLoja }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#186B41" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 9l1.5-5h15L21 9"></path><path d="M4 10v10h16V10"></path><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"></path><path d="M10 20v-5h4v5"></path></svg>Loja</button>
+          <button onClick="{{ lDep }}" aria-pressed="{{ isLDep }}" style="{{ sLDep }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2B5F86" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M3 21V9l9-5 9 5v12"></path><path d="M7 21v-8h10v8"></path><path d="M7 17h10"></path></svg>Depósito</button>
+        </div>
+      </div>
+      <div role="group" aria-label="Tipo" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+        <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="5">
+          <button onClick="{{ k.pick }}" aria-pressed="{{ k.on }}" style="{{ k.style }}">{{ k.label }}</button>
+        </sc-for>
+      </div>
+
+      <sc-for list="{{ days }}" as="d" hint-placeholder-count="3">
+        <div style="margin-bottom:12px;">
+          <span style="display:block; font-size:12px; font-weight:700; color:#3D4A42; margin:0 0 6px 2px;">{{ d.label }}</span>
+          <div style="display:flex; flex-direction:column; border:1px solid #EEF3EA; border-radius:12px; overflow:hidden;">
+            <sc-for list="{{ d.rows }}" as="m" hint-placeholder-count="2">
+              <a href="{{ m.href }}" style="display:flex; align-items:center; gap:11px; padding:11px 12px; border-top:1px solid {{ m.sep }}; color:#15231C;" style-hover="background:#F7FAF5;">
+                <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:9px; flex-shrink:0; background:{{ m.bg }}; color:{{ m.fg }};"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ m.icon }}"></path></svg></span>
+                <span style="flex:1; min-width:0;">
+                  <span style="display:block; font-size:13px; font-weight:600;">{{ m.title }} <span style="color:{{ m.linkFg }}; text-decoration:underline;">{{ m.link }}</span></span>
+                  <span style="display:block; font-size:11.5px; color:#5C6B62; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ m.meta }}</span>
+                </span>
+                <span style="flex-shrink:0; font-size:13px; font-weight:700; color:{{ m.deltaFg }};">{{ m.delta }}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9AA69D" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg>
+              </a>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+        <span style="display:block; padding:18px; text-align:center; font-size:12.5px; color:#5C6B62; border:1px dashed #DDE6D9; border-radius:12px;">Nenhuma movimentação com esses filtros.</span>
+      </sc-if>
+      <sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}">
+        <div role="status" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:8px; font-size:12px; color:#5C6B62;">
+          <svg class="girando" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6"></path></svg>Carregando movimentações anteriores…
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="flex-shrink:0; display:flex; align-items:center; gap:10px; padding:14px 20px; border-top:1px solid #F0F4ED;">
+    <a href="estoque-2c.dc.html" style="display:flex; align-items:center; gap:7px; height:44px; padding:0 16px; border:1px solid #E7EEE6; border-radius:11px; color:#3D4A42; font-size:13.5px; font-weight:600;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Ajustar estoque</a>
+    <a href="estoque-3a.dc.html" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; height:44px; border-radius:11px; background:#186B41; color:#fff; font-size:13.5px; font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6.2 M9 20h.01 M17 20h.01"></path></svg>Comprar</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 480, "height": 960}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { kind: 'todos', loc: 'tudo', pote: 'uso', sealed: 3, usos: 14 };
+  }
+  seg(on) {
+    return 'display:flex; align-items:center; gap:5px; height:28px; padding:0 10px; border:0; border-radius:6px; font-size:12px; font-weight:600; ' + (on ? 'background:#fff; color:#15231C; box-shadow:0 1px 2px rgba(0,0,0,.12);' : 'background:transparent; color:#5C6B62;');
+  }
+  renderVals() {
+    const I = {
+      consumo: ['M5 7h14l-1 13H6L5 7Z M9 7a3 3 0 0 1 6 0', '#F1F6EE', '#186B41'],
+      compra: ['M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6.2 M9 20h.01 M17 20h.01', '#EAF1F7', '#2B5F86'],
+      transf: ['M4 12h14 M13 6l6 6-6 6', '#EAF1F7', '#2B5F86'],
+      abertura: ['M3 9h18v6H3z', '#F7F3FD', '#6B46C1'],
+      ajuste: ['M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z', '#FBF1DC', '#8A5A0F'],
+    };
+    const all = [
+      { day: 'Hoje', kind: 'consumo', loc: 'loja', title: 'Consumo ·', link: 'Pedido #1042', href: 'pedidos-4a.dc.html', meta: 'Shake Oreo · 14:12 · Marina Alves', delta: '1 uso', deltaFg: '#15231C' },
+      { day: 'Hoje', kind: 'consumo', loc: 'loja', title: 'Consumo ·', link: 'Pedido #1039', href: 'pedidos-4a.dc.html', meta: 'Shake da Beleza ×2 · 11:40 · Marina Alves', delta: '2 usos', deltaFg: '#15231C' },
+      { day: 'Ontem · 13/10', kind: 'abertura', loc: 'loja', title: 'Abriu embalagem', link: '', href: 'estoque-2a.dc.html', meta: 'Pote anterior rendeu 18 usos (100%) · 16:05 · Marina Alves', delta: '−1 pote', deltaFg: '#15231C' },
+      { day: 'Ontem · 13/10', kind: 'transf', loc: 'ambos', title: 'Transferência ·', link: 'TR-0087', href: 'estoque-3b.dc.html', meta: 'Depósito → Loja · 09:20 · Ana Costa', delta: '+2 potes', deltaFg: '#2B5F86' },
+      { day: 'Sex · 02/10', kind: 'compra', loc: 'dep', title: 'Compra ·', link: 'Lançamento R$ 780,00', href: 'financeiro-4b.dc.html', meta: '6 potes para o depósito · Distribuidora · Ana Costa', delta: '+6 potes', deltaFg: '#2B5F86' },
+      { day: 'Seg · 28/09', kind: 'ajuste', loc: 'loja', title: 'Ajuste · Contagem errada', link: '', href: 'estoque-2a.dc.html', meta: 'Potes lacrados na loja 2 → 3 · Ana Costa', delta: '+1 pote', deltaFg: '#8A5A0F' },
+    ];
+    const { kind, loc } = this.state;
+    const rows = all.filter((m) => (kind === 'todos' || m.kind === kind) && (loc === 'tudo' || m.loc === loc || m.loc === 'ambos'));
+    const days = [];
+    rows.forEach((m) => {
+      let d = days.find((x) => x.label === m.day);
+      if (!d) days.push(d = { label: m.day, rows: [] });
+      const i = I[m.kind];
+      d.rows.push({ ...m, icon: i[0], bg: i[1], fg: i[2], linkFg: i[2] === '#2B5F86' ? '#2B5F86' : '#186B41', sep: d.rows.length ? '#EEF3EA' : 'transparent' });
+    });
+    const K = [['todos', 'Todos'], ['consumo', 'Consumo'], ['compra', 'Compras'], ['transf', 'Transferências'], ['ajuste', 'Ajustes']];
+    const set = (k, v) => () => this.setState({ [k]: v });
+    const { pote, sealed, usos } = this.state;
+    return {
+      inUse: pote === 'uso', isEmpty: pote === 'vazio',
+      usos: usos + (usos === 1 ? ' uso' : ' usos'), desde: usos ? 'desde ontem, 16:05' : 'aberto agora',
+      lojaPotes: sealed + (sealed === 1 ? ' pote' : ' potes'),
+      lojaSub: (pote === 'uso' ? '+ 1 em uso · ' : '') + 'mín. 2 potes',
+      markEmpty: () => this.setState({ pote: 'vazio' }),
+      days, empty: rows.length === 0, hasRows: rows.length > 0,
+      kinds: K.map(([id, label]) => ({
+        label, on: kind === id, pick: set('kind', id),
+        style: 'height:30px; padding:0 11px; border-radius:20px; font-size:12px; font-weight:600; ' + (kind === id ? 'background:#15231C; color:#fff; border:1px solid #15231C;' : 'background:#fff; color:#3D4A42; border:1px solid #E7EEE6;'),
+      })),
+      isLTudo: loc === 'tudo', isLLoja: loc === 'loja', isLDep: loc === 'dep',
+      sLTudo: this.seg(loc === 'tudo'), sLLoja: this.seg(loc === 'loja'), sLDep: this.seg(loc === 'dep'),
+      lTudo: set('loc', 'tudo'), lLoja: set('loc', 'loja'), lDep: set('loc', 'dep'),
+    };
+  }
+}
+</script>
+</body>
+</html>

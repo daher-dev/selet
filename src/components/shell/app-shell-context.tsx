@@ -14,6 +14,8 @@ export interface PageAction {
   /** Button label, e.g. "Novo pedido" (hidden on mobile — icon only). */
   label: string;
   onClick: () => void;
+  /** Optional quieter button rendered before the primary one (Estoque: "Transferir para a loja"). */
+  secondary?: { label: string; onClick: () => void };
 }
 
 /** A page's dynamic title/subtitle, overriding the static per-segment map. */
@@ -83,13 +85,17 @@ export function useShellState() {
 export function usePageAction(action: PageAction | null) {
   const { setAction } = useShell();
   const label = action?.label ?? null;
+  const secondaryLabel = action?.secondary?.label ?? null;
   const onClick = action?.onClick;
+  const onSecondary = action?.secondary?.onClick;
   const onClickRef = useRef(onClick);
+  const onSecondaryRef = useRef(onSecondary);
 
   // Keep the latest onClick in a ref (updated after commit), so the registered
   // wrapper always calls the current handler without re-registering per render.
   useEffect(() => {
     onClickRef.current = onClick;
+    onSecondaryRef.current = onSecondary;
   });
 
   useEffect(() => {
@@ -97,9 +103,15 @@ export function usePageAction(action: PageAction | null) {
       setAction(null);
       return;
     }
-    setAction({ label, onClick: () => onClickRef.current?.() });
+    setAction({
+      label,
+      onClick: () => onClickRef.current?.(),
+      secondary: secondaryLabel
+        ? { label: secondaryLabel, onClick: () => onSecondaryRef.current?.() }
+        : undefined,
+    });
     return () => setAction(null);
-  }, [label, setAction]);
+  }, [label, secondaryLabel, setAction]);
 }
 
 /** Read the global header search query (for pages that filter by it). */

@@ -70,6 +70,12 @@
   --color-violet: #6b46c1;
   --color-violet-wash: #f7f3fd;
   --color-violet-track: #ddd3f0;
+
+  /* Depósito (warehouse) — the blue counterpart of the Loja's green in Estoque (matches Mock Estoque). */
+  --color-depot: #2b5f86;
+  --color-depot-soft: #3f5f78;
+  --color-depot-wash: #eaf1f7;
+  --color-depot-line: #d3e2ee;
 }
 
 @theme inline {
@@ -251,5 +257,17 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* "Em uso" package (Estoque): the hatch pans two periods (4px at 45° = 5.657px across each) so the loop is seamless. */
+@keyframes em-uso {
+  to {
+    background-position: 11.31px 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .em-uso {
+    animation: em-uso 1.4s linear infinite;
   }
 }

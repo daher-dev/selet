@@ -5,17 +5,19 @@ import {
   Archive,
   ArrowDownToLine,
   ArrowUpFromLine,
-  Boxes,
   ChevronDown,
   ChefHat,
   Loader2,
-  PackagePlus,
+  PackageOpen,
   Pencil,
   Search,
   ShoppingBag,
+  ShoppingCart,
+  Store,
   Trash2,
   TriangleAlert,
   Utensils,
+  Warehouse,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -23,19 +25,19 @@ import type {
   Product,
   StockCategory,
   StockItem,
+  StockLocation,
   StockMovement,
   StockMovementReason,
   StockUnit,
 } from "@/lib/types";
 import { formatBRL, formatRelative, formatQty, parseBRL } from "@/lib/format";
+import { expectedUses, yieldPercent } from "@/lib/stock-yield";
 import { cn } from "@/lib/utils";
 import {
   applyMovementAction,
   deleteMovementAction,
   getStockItemAction,
-  listMovementsAction,
   markPackageEmptyAction,
-  openNextPackageAction,
   updateMovementAction,
   updateStockItemAction,
   deleteStockItemAction,
@@ -50,8 +52,20 @@ import {
 } from "@/components/ui/sheet";
 import { CategoryTile } from "@/components/category-meta";
 import { useStockCategoryMeta, useStockSettings, useUnits } from "@/components/stock-settings-context";
+import { Movimentacoes } from "./movimentacoes";
+import { OpenMeter } from "./open-meter";
 import { UnitPicker } from "./unit-picker";
-import { isFrac, pkgCount, pkgPlural, stockStatus } from "./stock-view";
+import {
+  buildStockCard,
+  isFrac,
+  minimumLabel,
+  needsAttention,
+  pkgCount,
+  pkgPlural,
+  STATUS_PILL,
+  stockStatus,
+  suggestTransferQty,
+} from "./stock-view";
 
 export interface OrderRef {
   id: string;
@@ -76,6 +90,14 @@ interface Props {
   usedIn: RecipeUsage[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** "Comprar": the page opens Registrar compra with this item preselected. */
+  onBuy: (item: StockItem) => void;
+  /** Depósito tile / "Repor do depósito": the page opens Transferir para a loja with this item. */
+  onTransfer: (item: StockItem) => void;
+  /** "Abrir embalagem" on a contínuo item with no package in use. */
+  onOpenPackage: (item: StockItem) => void;
+  /** "Ajustar" on the open package of a per-unit item. */
+  onAdjustOpen: (item: StockItem) => void;
 }
 
 const SAIDA_REASONS: StockMovementReason[] = ["AJUSTE", "PERDA", "VENDA", "CONSUMO"];
@@ -101,12 +123,16 @@ export function StockDetailSheet({
   usedIn,
   open,
   onOpenChange,
+  onBuy,
+  onTransfer,
+  onOpenPackage,
+  onAdjustOpen,
 }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full gap-0 overflow-y-auto p-0 sm:max-w-[520px]"
+        className="w-full gap-0 overflow-hidden p-0 data-[side=right]:sm:max-w-[480px]"
       >
         {item && (
           <DetailBody
@@ -118,6 +144,10 @@ export function StockDetailSheet({
             resaleNames={resaleNames}
             usedIn={usedIn}
             onClose={() => onOpenChange(false)}
+            onBuy={onBuy}
+            onTransfer={onTransfer}
+            onOpenPackage={onOpenPackage}
+            onAdjustOpen={onAdjustOpen}
           />
         )}
       </SheetContent>
@@ -133,6 +163,10 @@ function DetailBody({
   resaleNames,
   usedIn,
   onClose,
+  onBuy,
+  onTransfer,
+  onOpenPackage,
+  onAdjustOpen,
 }: {
   storeId: string;
   item: StockItem;
@@ -141,29 +175,34 @@ function DetailBody({
   resaleNames: string[];
   usedIn: RecipeUsage[];
   onClose: () => void;
+  onBuy: (item: StockItem) => void;
+  onTransfer: (item: StockItem) => void;
+  onOpenPackage: (item: StockItem) => void;
+  onAdjustOpen: (item: StockItem) => void;
 }) {
   const STOCK_CATEGORY_META = useStockCategoryMeta();
-  const { unitLabel } = useUnits();
   const [liveItem, setLiveItem] = useState(item);
   const meta = STOCK_CATEGORY_META[liveItem.category];
-  const pu = unitLabel(liveItem.unit);
-  const [movements, setMovements] = useState<StockMovement[] | null>(null);
-  const [pending, startTransition] = useTransition();
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [mode, setMode] = useState<"none" | "in" | "out">("none");
+  const [editing, setEditing] = useState(false);
+  const [adjusting, setAdjusting] = useState(false);
   const [editingMovement, setEditingMovement] = useState<StockMovement | null>(null);
-  const [movementReloadKey, setMovementReloadKey] = useState(0);
-  const refreshDetail = () => setMovementReloadKey((v) => v + 1);
+  const [reloadKey, setReloadKey] = useState(0);
+  const refreshDetail = () => setReloadKey((v) => v + 1);
+
+  // The page re-renders with fresh server data after any dialog's action: follow it
+  // (adjusting state during render, guarded, rather than in an effect).
+  const [prevItem, setPrevItem] = useState(item);
+  if (item !== prevItem) {
+    setPrevItem(item);
+    setLiveItem(item);
+    setReloadKey((v) => v + 1);
+  }
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      listMovementsAction(storeId, item.id),
-      getStockItemAction(storeId, item.id),
-    ])
-      .then(([list, nextItem]) => {
+    getStockItemAction(storeId, item.id)
+      .then((nextItem) => {
         if (cancelled) return;
-        setMovements(list);
         if (nextItem) setLiveItem(nextItem);
         else onClose();
       })
@@ -171,97 +210,69 @@ function DetailBody({
     return () => {
       cancelled = true;
     };
-  }, [storeId, item.id, movementReloadKey, onClose]);
+  }, [storeId, item.id, reloadKey, onClose]);
 
-  const embalagem = liveItem.tracked
-    ? `${liveItem.pkgLabel ?? "emb."} · ${formatQty(liveItem.pkgSize ?? 0, pu)}`
-    : "não embalado · comprado solto";
+  const status = stockStatus(liveItem);
+  const pill = STATUS_PILL[status];
+  const canRepor = liveItem.tracked && needsAttention(status) && liveItem.depSealed > 0;
+  const reporQty = suggestTransferQty(liveItem);
 
   return (
     <>
-      <SheetHeader className="gap-0 border-b border-border p-5">
-        <div className="flex items-center gap-3 pr-8">
-          {meta && <CategoryTile meta={meta} className="size-11" />}
-          <div className="min-w-0 flex-1">
-            <SheetTitle className="truncate text-[18px] font-bold leading-tight">
-              {liveItem.name}
-            </SheetTitle>
-            <p className="mt-0.5 truncate text-[12px] text-ink-faint">
-              {meta?.label ?? liveItem.category} · {embalagem}
-            </p>
-          </div>
+      <SheetHeader className="shrink-0 flex-row items-center gap-[13px] border-b border-[#eef3ea] p-5 py-[18px] pr-14">
+        {meta && <CategoryTile meta={meta} className="size-11 rounded-[11px]" />}
+        <div className="min-w-0 flex-1">
+          <SheetTitle className="truncate text-[18px] font-bold leading-tight">{liveItem.name}</SheetTitle>
+          <span className="mt-1 flex items-center gap-[7px]">
+            <span className={cn("rounded-full px-[7px] text-[10.5px] font-bold leading-4", pill.bg, pill.fg)}>
+              {pill.label}
+            </span>
+            <span className="truncate rounded-full bg-[#f1f4f0] px-[7px] text-[10.5px] font-semibold leading-4 text-[#3d4a42]">
+              {meta?.label ?? liveItem.category}
+            </span>
+          </span>
         </div>
+        <button
+          type="button"
+          onClick={() => setEditing((v) => !v)}
+          aria-pressed={editing}
+          className={cn(
+            "flex h-[34px] shrink-0 items-center rounded-[9px] border px-[11px] text-[12.5px] font-semibold transition-colors",
+            editing ? "border-primary bg-mist text-primary" : "border-border text-[#3d4a42] hover:border-primary/40",
+          )}
+        >
+          Editar
+        </button>
       </SheetHeader>
 
-      <div className="flex-1 space-y-4 p-5">
-        {liveItem.continuousUse && (
-          <ContinuoCard
-            storeId={storeId}
-            item={liveItem}
-            pending={pending}
-            startTransition={startTransition}
-            onDone={refreshDetail}
-          />
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-[22px] pt-[18px]">
+        {editing && (
+          <EditPanel storeId={storeId} item={liveItem} open onToggle={() => setEditing(false)} onClose={onClose} hideToggle />
         )}
 
-        {resaleNames.length > 0 && stockStatus(liveItem) === "esgotado" && (
-          <ResaleOutWarning names={resaleNames} />
-        )}
+        <LocationTiles item={liveItem} highlightDeposit={canRepor} onTransfer={() => onTransfer(liveItem)} />
 
-        {usedIn.length > 0 && <UsedInRecipes usedIn={usedIn} />}
+        {resaleNames.length > 0 && status === "esgotado" && <ResaleOutWarning names={resaleNames} />}
 
-        <EditPanel
+        <OpenPackagePanel
           storeId={storeId}
           item={liveItem}
-          open={detailsOpen}
-          onToggle={() => setDetailsOpen((v) => !v)}
-          onClose={onClose}
+          usedIn={usedIn}
+          onOpenPackage={() => onOpenPackage(liveItem)}
+          onAdjustOpen={() => onAdjustOpen(liveItem)}
+          onDone={refreshDetail}
         />
 
-        <div className="flex items-center gap-2">
-          <span className="flex-1 text-[11px] font-bold uppercase tracking-wide text-ink-faint">
-            Movimentações
-          </span>
-          <SegBtn
-            active={mode === "in"}
-            onClick={() => {
-              setEditingMovement(null);
-              setMode((m) => (m === "in" ? "none" : "in"));
-            }}
-            icon={ArrowDownToLine}
-          >
-            Entrada
-          </SegBtn>
-          <SegBtn
-            active={mode === "out"}
-            onClick={() => {
-              setEditingMovement(null);
-              setMode((m) => (m === "out" ? "none" : "out"));
-            }}
-            icon={ArrowUpFromLine}
-          >
-            Saída
-          </SegBtn>
-        </div>
+        <MetricTiles item={liveItem} usedIn={usedIn} />
 
-        {mode === "in" && (
-          <EntradaForm
-            storeId={storeId}
-            item={liveItem}
-            onDone={() => {
-              setMode("none");
-              refreshDetail();
-            }}
-          />
-        )}
-        {mode === "out" && (
-          <SaidaForm
+        {adjusting && (
+          <AdjustPanel
             storeId={storeId}
             item={liveItem}
             orders={orders}
             menuProducts={menuProducts}
             onDone={() => {
-              setMode("none");
+              setAdjusting(false);
               refreshDetail();
             }}
           />
@@ -281,48 +292,210 @@ function DetailBody({
           />
         )}
 
-        <Timeline
-          movements={movements}
+        <Movimentacoes
+          storeId={storeId}
           item={liveItem}
-          onEdit={(movement) => {
-            setMode("none");
-            setEditingMovement(movement);
+          reloadKey={reloadKey}
+          onEdit={(m) => {
+            setAdjusting(false);
+            setEditingMovement(m);
           }}
         />
+      </div>
+
+      <div className="flex shrink-0 gap-2.5 border-t border-[#f0f4ed] px-5 py-3.5">
+        {canRepor ? (
+          <>
+            <Button
+              variant="outline"
+              onClick={() => onBuy(liveItem)}
+              className="h-11 rounded-[11px] border-[#cddcc4] px-4 text-[13.5px] font-semibold text-primary"
+            >
+              Registrar compra
+            </Button>
+            <Button
+              onClick={() => onTransfer(liveItem)}
+              className="h-11 flex-1 gap-2 rounded-[11px] bg-depot text-[13.5px] font-semibold text-white hover:bg-depot/90"
+            >
+              Repor {reporQty} {pkgCount(liveItem, reporQty)} do depósito
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingMovement(null);
+                setAdjusting((v) => !v);
+              }}
+              aria-pressed={adjusting}
+              className={cn(
+                "h-11 gap-2 rounded-[11px] px-4 text-[13.5px] font-semibold",
+                liveItem.tracked ? "" : "flex-1",
+                adjusting ? "border-primary bg-mist text-primary" : "text-[#3d4a42]",
+              )}
+            >
+              <Pencil className="size-3.5" strokeWidth={2} />
+              Ajustar estoque
+            </Button>
+            {liveItem.tracked && (
+              <Button onClick={() => onBuy(liveItem)} className="h-11 flex-1 gap-2 rounded-[11px] text-[13.5px] font-semibold">
+                <ShoppingCart className="size-3.5" strokeWidth={2} />
+                Comprar
+              </Button>
+            )}
+          </>
+        )}
       </div>
     </>
   );
 }
 
-/* ---------------------------------------------------------------- contínuo */
+/* ------------------------------------------------------------ depósito + loja */
 
-function ContinuoCard({
+function LocationTiles({
+  item,
+  highlightDeposit,
+  onTransfer,
+}: {
+  item: StockItem;
+  highlightDeposit: boolean;
+  onTransfer: () => void;
+}) {
+  const { units, unitLabel } = useUnits();
+  const status = stockStatus(item);
+  const card = buildStockCard(item, units);
+
+  if (!item.tracked) {
+    return (
+      <div className="rounded-xl border border-[#ddebd5] bg-[#f3f8ef] px-3.5 py-[13px]">
+        <TileLabel icon={Store} tone="loja">
+          Em estoque
+        </TileLabel>
+        <span className={cn("mt-1.5 block text-[22px] font-bold", card.lojaColor)}>{card.lojaMain}</span>
+        <span className="mt-px block text-[12px] text-[#3d5a47]">não rastreado</span>
+      </div>
+    );
+  }
+
+  const dep = item.depSealed;
+  const pkgSize = item.pkgSize ?? 1;
+  const depUnits =
+    !item.continuousUse && pkgSize > 1 ? formatQty(dep * pkgSize, unitLabel(item.unit, dep * pkgSize !== 1)) : "";
+  const depSub =
+    dep === 0
+      ? "sem embalagens"
+      : highlightDeposit
+        ? [depUnits, "dá para repor agora"].filter(Boolean).join(" · ")
+        : item.cost
+          ? `${formatBRL(dep * item.cost)} parados`
+          : depUnits;
+  const alert = needsAttention(status);
+  const sealedText = `${item.sealed} ${pkgCount(item, item.sealed)}`;
+  const openPart = item.continuousUse
+    ? item.openPkg
+      ? "+ 1 em uso"
+      : ""
+    : item.open > 0
+      ? `+ ${formatQty(item.open, unitLabel(item.unit, item.open !== 1))}`
+      : "";
+  const lojaSub = alert && status === "esgotado" ? `mínimo ${minimumLabel(item, unitLabel)}` : [openPart, `mín. ${minimumLabel(item, unitLabel)}`].filter(Boolean).join(" · ");
+
+  const depBody = (
+    <>
+      <TileLabel icon={Warehouse} tone="deposito">
+        Depósito
+      </TileLabel>
+      <span className="mt-1.5 block text-[22px] font-bold text-depot">
+        {dep} {pkgCount(item, dep)}
+      </span>
+      <span className="mt-px block text-[12px] text-depot-soft">{depSub}</span>
+    </>
+  );
+
+  return (
+    <div className="grid grid-cols-2 gap-2.5">
+      {dep > 0 ? (
+        <button
+          type="button"
+          onClick={onTransfer}
+          aria-label={`Transferir ${item.name} do depósito para a loja`}
+          className={cn(
+            "block rounded-xl bg-depot-wash px-3.5 py-[13px] text-left transition-colors hover:border-[#9dbdd6]",
+            highlightDeposit ? "border-[1.5px] border-depot" : "border border-depot-line",
+          )}
+        >
+          {depBody}
+        </button>
+      ) : (
+        <div className="rounded-xl border border-depot-line bg-depot-wash px-3.5 py-[13px]">{depBody}</div>
+      )}
+      <div
+        className={cn(
+          "rounded-xl px-3.5 py-[13px]",
+          alert ? "border border-[#f2d8cf] bg-[#fdf4f1]" : "border border-[#ddebd5] bg-[#f3f8ef]",
+        )}
+      >
+        <TileLabel icon={Store} tone="loja">
+          Loja
+        </TileLabel>
+        <span className={cn("mt-1.5 block text-[22px] font-bold", status === "esgotado" ? "text-[#b23a22]" : "text-ink")}>
+          {status === "esgotado" ? card.lojaMain : sealedText}
+        </span>
+        <span className={cn("mt-px block text-[12px]", alert ? "text-[#7a564b]" : "text-[#3d5a47]")}>{lojaSub}</span>
+      </div>
+    </div>
+  );
+}
+
+function TileLabel({
+  icon: Icon,
+  tone,
+  children,
+}: {
+  icon: LucideIcon;
+  tone: "loja" | "deposito";
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "flex items-center gap-[7px] text-[11px] font-bold uppercase tracking-[.5px]",
+        tone === "loja" ? "text-primary" : "text-depot",
+      )}
+    >
+      <Icon className="size-[13px] shrink-0" strokeWidth={2} />
+      {children}
+    </span>
+  );
+}
+
+/* --------------------------------------------------------- embalagem aberta */
+
+/** Per-use amounts the recipes take from this item (drives the forecast and "por uso" cost). */
+function perUseQtys(usedIn: RecipeUsage[]): number[] {
+  return usedIn.flatMap((u) => (u.qty != null ? [u.qty] : []));
+}
+
+function OpenPackagePanel({
   storeId,
   item,
-  pending,
-  startTransition,
+  usedIn,
+  onOpenPackage,
+  onAdjustOpen,
   onDone,
 }: {
   storeId: string;
   item: StockItem;
-  pending: boolean;
-  startTransition: React.TransitionStartFunction;
+  usedIn: RecipeUsage[];
+  onOpenPackage: () => void;
+  onAdjustOpen: () => void;
   onDone: () => void;
 }) {
-  const stateLabel = item.openPkg
-    ? `Embalagem aberta · ${item.usos} ${item.usos === 1 ? "uso" : "usos"}`
-    : "Nenhuma embalagem aberta";
-  const sealedLabel = `${item.sealed} ${pkgCount(item, item.sealed)} fechada${item.sealed === 1 ? "" : "s"}`;
+  const { units, unitLabel } = useUnits();
+  const [pending, startTransition] = useTransition();
+  const label = item.pkgLabel ?? "embalagem";
 
-  function openNext() {
-    startTransition(async () => {
-      const r = await openNextPackageAction(storeId, item.id);
-      if (r.ok) {
-        toast.success("Nova embalagem aberta.");
-        onDone();
-      } else toast.error(r.error);
-    });
-  }
   function markEmpty() {
     startTransition(async () => {
       const r = await markPackageEmptyAction(storeId, item.id);
@@ -333,45 +506,248 @@ function ContinuoCard({
     });
   }
 
-  return (
-    <div className="rounded-xl border border-border bg-paper p-3.5">
-      <div className="mb-3 flex items-center gap-3">
-        <span className="flex size-[34px] shrink-0 items-center justify-center rounded-lg bg-violet-wash text-violet">
-          <Boxes className="size-[18px]" strokeWidth={1.7} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13.5px] font-bold text-ink">Uso contínuo</span>
-          <span className="block text-[11.5px] text-ink-faint">{stateLabel}</span>
-        </span>
-        <span className="whitespace-nowrap text-[11.5px] font-semibold text-ink-faint">
-          {sealedLabel}
-        </span>
-      </div>
-      {item.openPkg ? (
-        <Button
-          variant="outline"
+  if (item.continuousUse && item.openPkg) {
+    return (
+      <div className="rounded-xl border border-[#ede6f8] bg-violet-wash px-4 py-3.5">
+        <div className="flex items-center">
+          <span className="flex-1 text-[11px] font-bold uppercase tracking-[.5px] text-violet">
+            {label.charAt(0).toUpperCase() + label.slice(1)} em uso
+          </span>
+          <span className="rounded-full bg-[#ede6f8] px-2 py-0.5 text-[11px] font-semibold text-[#5c4f78]">Uso contínuo</span>
+        </div>
+        <div className="mt-1.5 text-[30px] font-semibold tracking-[-.5px]">
+          {item.usos} {item.usos === 1 ? "uso" : "usos"}
+        </div>
+        <div
+          className="em-uso mt-2.5 h-2 rounded-[5px]"
+          style={{ background: "repeating-linear-gradient(135deg, #6b46c1 0 3px, #d3c6f2 3px 6px)" }}
+          aria-hidden
+        />
+        <button
+          type="button"
           onClick={markEmpty}
           disabled={pending}
-          className="w-full gap-2 rounded-lg border-[#e7c7bd] bg-[#fcf6f4] font-semibold text-[#c0492f] hover:bg-[#fbece7] hover:text-[#c0492f]"
+          className="mt-3 flex h-[42px] w-full items-center justify-center gap-[7px] rounded-[10px] border border-[#d9ccf3] bg-white text-[13px] font-semibold text-violet transition-colors hover:bg-[#fbf9fe] disabled:opacity-60"
         >
-          <Archive className="size-4" />
-          Marcar embalagem como vazia
-        </Button>
-      ) : item.sealed > 0 ? (
-        <Button
-          onClick={openNext}
-          disabled={pending}
-          className="w-full gap-2 rounded-lg font-semibold"
+          {pending ? <Loader2 className="size-[15px] animate-spin" /> : <Archive className="size-[15px]" strokeWidth={2} />}
+          Marcar vazia
+        </button>
+      </div>
+    );
+  }
+
+  if (item.continuousUse && !item.openPkg) {
+    const available = item.sealed + item.depSealed;
+    const expected = expectedUses(item.pkgSize, perUseQtys(usedIn));
+    const pct = item.lastUsos != null ? yieldPercent(item.lastUsos, expected) : undefined;
+    return (
+      <div className="rounded-xl border border-dashed border-[#c9d3cb] bg-[#fafbf9] px-4 py-3.5">
+        <span className="block text-[11px] font-bold uppercase tracking-[.5px] text-ink-soft">
+          Nenhum {label} em uso
+        </span>
+        {item.lastUsos != null && (
+          <span className="mt-1.5 block text-[14px] font-semibold">
+            Último {label} rendeu {item.lastUsos} {item.lastUsos === 1 ? "uso" : "usos"}
+            {pct != null && <span className="text-[#8a5a0f]"> ({pct}% do previsto)</span>}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onOpenPackage}
+          disabled={available < 1}
+          className="mt-3 flex h-[42px] w-full items-center justify-center gap-[7px] rounded-[10px] bg-violet text-[13px] font-semibold text-white transition-colors hover:bg-violet/90 disabled:opacity-50"
         >
-          <PackagePlus className="size-4" />
-          Abrir nova embalagem
-        </Button>
-      ) : (
-        <div className="flex h-11 w-full items-center justify-center rounded-lg border border-border bg-wash text-[13px] font-semibold text-ink-faint">
-          Sem embalagens em estoque
+          <PackageOpen className="size-[15px]" strokeWidth={2} />
+          Abrir embalagem
+        </button>
+        <span className="mt-[7px] block text-center text-[11.5px] text-ink-soft">
+          {available < 1
+            ? "Sem embalagens em estoque"
+            : item.sealed > 0
+              ? `Usa 1 dos ${item.sealed} ${pkgCount(item, item.sealed)} lacrados da loja`
+              : `Usa 1 dos ${item.depSealed} ${pkgCount(item, item.depSealed)} lacrados do depósito`}
+        </span>
+      </div>
+    );
+  }
+
+  // Per-unit item (copos, sachês) with a partly used package: its balance can be corrected by hand.
+  if (buildStockCard(item, units).canAdjust) {
+    const pkgSize = item.pkgSize ?? 1;
+    const un = unitLabel(item.unit, true);
+    return (
+      <div className="rounded-xl border border-[#ede6f8] bg-violet-wash px-4 py-3.5">
+        <span className="block text-[11px] font-bold uppercase tracking-[.5px] text-violet">Embalagem aberta</span>
+        <div className="mt-1.5 text-[30px] font-semibold tracking-[-.5px]">
+          {item.open}
+          <span className="ml-2 text-[13.5px] font-normal tracking-normal text-[#5c4f78]">
+            de {pkgSize} {un}
+          </span>
+        </div>
+        <OpenMeter total={pkgSize} filled={item.open} className="mt-2.5" />
+        <button
+          type="button"
+          onClick={onAdjustOpen}
+          className="mt-3 flex h-[42px] w-full items-center justify-center gap-[7px] rounded-[10px] border border-[#d9ccf3] bg-white text-[13px] font-semibold text-violet transition-colors hover:bg-[#fbf9fe]"
+        >
+          <Pencil className="size-[15px]" strokeWidth={2} />
+          Ajustar
+        </button>
+      </div>
+    );
+  }
+  return null;
+}
+
+/* ----------------------------------------------------- custo · rendimento · receitas */
+
+function MetricTiles({ item, usedIn }: { item: StockItem; usedIn: RecipeUsage[] }) {
+  const { unitLabel } = useUnits();
+  const [recipesOpen, setRecipesOpen] = useState(false);
+  const label = item.pkgLabel ?? "emb.";
+  const qtys = perUseQtys(usedIn);
+  const expected = item.continuousUse ? expectedUses(item.pkgSize, qtys) : undefined;
+  const pkgSize = item.pkgSize ?? 1;
+
+  const tiles: React.ReactNode[] = [];
+  if (item.tracked && item.cost) {
+    const per = item.continuousUse
+      ? expected
+        ? `~${formatBRL(Math.round(item.cost / expected))} por uso`
+        : undefined
+      : pkgSize > 1
+        ? `${formatBRL(Math.round(item.cost / pkgSize))} por ${unitLabel(item.unit)}`
+        : undefined;
+    tiles.push(
+      <MetricTile key="custo" label={`Custo/${label}`} value={formatBRL(item.cost)} sub={per} />,
+    );
+  }
+  if (item.continuousUse && expected) {
+    const pct = item.lastUsos != null ? yieldPercent(item.lastUsos, expected) : undefined;
+    tiles.push(
+      <MetricTile
+        key="rend"
+        label="Rendimento"
+        value={pct != null ? `${pct}%` : "—"}
+        valueClass={pct != null ? (pct >= 100 ? "text-success" : "text-[#8a5a0f]") : undefined}
+        sub={`${expected} usos previstos`}
+      />,
+    );
+  }
+  if (usedIn.length > 0) {
+    const avg = qtys.length ? qtys.reduce((a, b) => a + b, 0) / qtys.length : null;
+    tiles.push(
+      <button
+        key="receitas"
+        type="button"
+        aria-expanded={recipesOpen}
+        onClick={() => setRecipesOpen((v) => !v)}
+        className="rounded-[11px] border border-[#eef3ea] px-3 py-[11px] text-left transition-colors hover:border-primary/40"
+      >
+        <span className="block text-[10.5px] font-bold uppercase tracking-[.4px] text-ink-soft">Receitas</span>
+        <span className="mt-[3px] block text-[15px] font-bold text-primary underline">
+          {usedIn.length} {usedIn.length === 1 ? "item" : "itens"}
+        </span>
+        <span className="block text-[11.5px] text-ink-soft">
+          {avg != null ? `${formatQty(Math.round(avg * 100) / 100, unitLabel(item.unit))} por uso` : "sem medição"}
+        </span>
+      </button>,
+    );
+  }
+  if (tiles.length === 0) return null;
+  return (
+    <>
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${tiles.length}, minmax(0, 1fr))` }}>
+        {tiles}
+      </div>
+      {recipesOpen && <UsedInRecipes usedIn={usedIn} />}
+    </>
+  );
+}
+
+function MetricTile({
+  label,
+  value,
+  sub,
+  valueClass,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  valueClass?: string;
+}) {
+  return (
+    <div className="rounded-[11px] border border-[#eef3ea] px-3 py-[11px]">
+      <span className="block text-[10.5px] font-bold uppercase tracking-[.4px] text-ink-soft">{label}</span>
+      <span className={cn("tabular mt-[3px] block text-[15px] font-bold", valueClass)}>{value}</span>
+      {sub && <span className="block text-[11.5px] text-ink-soft">{sub}</span>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ ajustar estoque */
+
+/** Footer "Ajustar estoque": a manual entrada or saída, in the Loja or (whole packages) in the Depósito. */
+function AdjustPanel({
+  storeId,
+  item,
+  orders,
+  menuProducts,
+  onDone,
+}: {
+  storeId: string;
+  item: StockItem;
+  orders: OrderRef[];
+  menuProducts: Product[];
+  onDone: () => void;
+}) {
+  const [mode, setMode] = useState<"in" | "out">("in");
+  const [loc, setLoc] = useState<StockLocation>("loja");
+  return (
+    <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-paper p-3">
+      <div className="flex items-center gap-2">
+        <span className="flex-1 text-[11px] font-bold uppercase tracking-[.5px] text-ink-soft">Ajustar estoque</span>
+        <PanelToggle on={mode === "in"} onClick={() => setMode("in")}>
+          Entrada
+        </PanelToggle>
+        <PanelToggle on={mode === "out"} onClick={() => setMode("out")}>
+          Saída
+        </PanelToggle>
+      </div>
+      {item.tracked && (
+        <div role="group" aria-label="Onde" className="flex gap-2">
+          <PanelToggle on={loc === "loja"} onClick={() => setLoc("loja")}>
+            <Store className="size-3 text-primary" strokeWidth={2.2} />
+            Loja
+          </PanelToggle>
+          <PanelToggle on={loc === "deposito"} onClick={() => setLoc("deposito")}>
+            <Warehouse className="size-3 text-depot" strokeWidth={2.2} />
+            Depósito
+          </PanelToggle>
         </div>
       )}
+      {mode === "in" ? (
+        <EntradaForm storeId={storeId} item={item} loc={loc} onDone={onDone} />
+      ) : (
+        <SaidaForm storeId={storeId} item={item} loc={loc} orders={orders} menuProducts={menuProducts} onDone={onDone} />
+      )}
     </div>
+  );
+}
+
+function PanelToggle({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
+        on ? "border-primary bg-primary text-white" : "border-border bg-card text-ink-soft hover:border-primary/40",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -439,12 +815,15 @@ function EditPanel({
   open,
   onToggle,
   onClose,
+  hideToggle,
 }: {
   storeId: string;
   item: StockItem;
   open: boolean;
   onToggle: () => void;
   onClose: () => void;
+  /** The sheet's "Editar" button already opens it: show just the form. */
+  hideToggle?: boolean;
 }) {
   const STOCK_CATEGORY_META = useStockCategoryMeta();
   const { categories: stockCategories } = useStockSettings();
@@ -528,22 +907,24 @@ function EditPanel({
 
   return (
     <div className="overflow-hidden rounded-xl border border-border">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center gap-2 bg-paper px-3.5 py-2.5 text-left transition-colors hover:bg-wash"
-      >
-        <Pencil className="size-[15px] text-primary" strokeWidth={1.8} />
-        <span className="flex-1 text-[13.5px] font-semibold text-ink">
-          Alterar informações
-        </span>
-        <ChevronDown
-          className={cn("size-4 text-ink-faint transition-transform", open && "rotate-180")}
-        />
-      </button>
+      {!hideToggle && (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex w-full items-center gap-2 bg-paper px-3.5 py-2.5 text-left transition-colors hover:bg-wash"
+        >
+          <Pencil className="size-[15px] text-primary" strokeWidth={1.8} />
+          <span className="flex-1 text-[13.5px] font-semibold text-ink">
+            Alterar informações
+          </span>
+          <ChevronDown
+            className={cn("size-4 text-ink-faint transition-transform", open && "rotate-180")}
+          />
+        </button>
+      )}
 
       {open && (
-        <div className="flex flex-col gap-4 border-t border-border p-3.5">
+        <div className={cn("flex flex-col gap-4 p-3.5", !hideToggle && "border-t border-border")}>
           <div>
             <FieldLabel>Nome do item</FieldLabel>
             <Input
@@ -683,10 +1064,12 @@ function EditPanel({
 function EntradaForm({
   storeId,
   item,
+  loc,
   onDone,
 }: {
   storeId: string;
   item: StockItem;
+  loc: StockLocation;
   onDone: () => void;
 }) {
   const { unitLabel } = useUnits();
@@ -715,6 +1098,7 @@ function EntradaForm({
         byPackage: item.tracked,
         price: parsedPrice,
         reason: "ENTRADA",
+        loc,
       });
       if (r.ok) {
         toast.success("Entrada registrada.");
@@ -748,12 +1132,14 @@ function EntradaForm({
 function SaidaForm({
   storeId,
   item,
+  loc,
   orders,
   menuProducts,
   onDone,
 }: {
   storeId: string;
   item: StockItem;
+  loc: StockLocation;
   orders: OrderRef[];
   menuProducts: Product[];
   onDone: () => void;
@@ -764,7 +1150,8 @@ function SaidaForm({
   const [ref, setRef] = useState<{ value: string; label: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const byPackage = item.continuousUse || !isFrac(item);
+  // The depósito only holds whole packages.
+  const byPackage = loc === "deposito" || item.continuousUse || !isFrac(item);
   const saidaUnit = byPackage ? `${item.pkgLabel ?? "emb."}(s)` : unitLabel(item.unit);
   const showRef = reason === "VENDA" || reason === "CONSUMO";
 
@@ -781,6 +1168,7 @@ function SaidaForm({
         reason,
         refOrder: reason === "VENDA" ? ref?.value : undefined,
         refItem: reason === "CONSUMO" ? ref?.value : undefined,
+        loc,
       });
       if (r.ok) {
         toast.success("Saída registrada.");
@@ -918,10 +1306,6 @@ function RefPicker({
 }
 
 /* ---------------------------------------------------------------- timeline */
-
-function isEditableTimelineMovement(m: StockMovement) {
-  return (m.type === "entrada" || m.type === "saida") && !m.refOrder && !m.refItem;
-}
 
 function MovementEditForm({
   storeId,
@@ -1077,127 +1461,7 @@ function MovementEditForm({
   );
 }
 
-function Timeline({
-  movements,
-  item,
-  onEdit,
-}: {
-  movements: StockMovement[] | null;
-  item: StockItem;
-  onEdit: (movement: StockMovement) => void;
-}) {
-  const { unitLabel } = useUnits();
-  if (!movements || movements.length === 0) return null;
-  return (
-    <div className="flex flex-col">
-      {movements.map((m) => {
-        const isIn = m.type === "entrada";
-        const reasonKey = m.reason ?? (isIn ? "ENTRADA" : "SAIDA");
-        const rm = REASON_META[reasonKey] ?? REASON_META.AJUSTE;
-        const Icon = rm.icon;
-        const refTxt = m.refOrder
-          ? `Pedido #${m.refOrder}`
-          : m.refItem && m.refItem !== "—"
-            ? m.refItem
-            : "";
-        // contínuo items measure loose movements in uses, not base units.
-        const unit = m.byPackage
-          ? pkgCount(item, m.qty)
-          : item.continuousUse
-            ? m.qty === 1
-              ? "uso"
-              : "usos"
-            : unitLabel(item.unit, m.qty !== 1);
-        return (
-          <div
-            key={m.id}
-            className="flex items-center gap-3 border-t border-border/70 py-3 first:border-t-0"
-          >
-            <span
-              className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-lg",
-                isIn ? "bg-mint-wash text-success" : "bg-danger-wash text-destructive",
-              )}
-            >
-              <Icon className="size-[15px]" strokeWidth={1.9} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-1.5">
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-[10.5px] font-bold",
-                    rm.bg,
-                    rm.fg,
-                  )}
-                >
-                  {rm.label}
-                </span>
-                {refTxt && (
-                  <span className="truncate text-[12px] text-ink-soft">{refTxt}</span>
-                )}
-              </span>
-              <span className="mt-1 block text-[11px] text-ink-faint">
-                {formatRelative(m.at)}
-                {isIn && m.price != null && <> · {formatBRL(m.price)}</>}
-              </span>
-            </span>
-            <span
-              className={cn(
-                "tabular shrink-0 whitespace-nowrap text-[14px] font-extrabold",
-                isIn ? "text-success" : "text-destructive",
-              )}
-            >
-              {isIn ? "+" : "−"}
-              {formatQty(m.qty, unit)}
-            </span>
-            {isEditableTimelineMovement(m) && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => onEdit(m)}
-                className="size-8 rounded-lg text-ink-faint hover:text-ink"
-                aria-label={`Editar movimentação de ${formatRelative(m.at)}`}
-              >
-                <Pencil className="size-4" />
-              </Button>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 /* ----------------------------------------------------------------- shared */
-
-function SegBtn({
-  active,
-  onClick,
-  icon: Icon,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: LucideIcon;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
-        active
-          ? "border-primary bg-primary text-white"
-          : "border-border bg-card text-ink-soft hover:border-primary/40",
-      )}
-    >
-      <Icon className="size-3.5" />
-      {children}
-    </button>
-  );
-}
 
 function FieldLabel({
   children,

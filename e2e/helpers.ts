@@ -33,7 +33,7 @@ export async function seedCatalog() {
 export async function setStockBalance(
   storeId: string,
   itemId: string,
-  balance: { sealed: number; open: number },
+  balance: { sealed: number; open: number; depSealed?: number },
 ) {
   process.env.FIRESTORE_EMULATOR_HOST ??= "localhost:8080";
   const db = getFirestore(getApps()[0] ?? initializeApp({ projectId: PROJECT }));

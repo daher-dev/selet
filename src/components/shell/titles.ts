@@ -29,7 +29,10 @@ const TITLES: Record<
     title: "Cartelas",
     subtitle: "Montadas na venda · cada uso vale um desconto fixo",
   },
-  estoque: { title: "Estoque", subtitle: "Embalagens, fracionamento e rendimento" },
+  estoque: {
+    title: "Estoque",
+    subtitle: (s) => `Cada item, onde ele está: na loja e no depósito de ${s.name}`,
+  },
   financeiro: { title: "Financeiro", subtitle: "Saldo, entradas e saídas" },
   configuracoes: { title: "Configurações", subtitle: "Dados e preferências da loja" },
 };

@@ -330,7 +330,9 @@ export interface StockItem {
   /** Manual plural of pkgLabel (irregular plurals); absent → derived by appending "s". */
   pkgLabelPlural?: string;
   pkgSize?: number; // base units per package
-  sealed: number; // sealed package count (tracked items)
+  sealed: number; // sealed package count in the Loja (tracked items)
+  /** Sealed packages kept in the Depósito (tracked items only); the Loja fields above are the Loja balance. */
+  depSealed: number;
   open: number; // loose amount in base unit
   /** total in base unit; tracked items: sealed*pkgSize + open */
   qty: number;
@@ -342,6 +344,8 @@ export interface StockItem {
   openPkg: boolean;
   /** Uses tallied on the currently-open package (contínuo items); reset on next open. */
   usos: number;
+  /** How many uses the last package served before it was marked empty (feeds "Abrir embalagem"). */
+  lastUsos?: number;
   resellable: boolean;
   cost?: number; // centavos per package (tracked) or base unit
   sellPrice?: number; // centavos, resellable items
@@ -353,8 +357,15 @@ export interface StockItem {
   updatedAt: string;
 }
 
-export const STOCK_MOVEMENT_TYPES = ["entrada", "saida", "abertura"] as const;
+export const STOCK_MOVEMENT_TYPES = ["entrada", "saida", "abertura", "transferencia"] as const;
 export type StockMovementType = (typeof STOCK_MOVEMENT_TYPES)[number];
+
+/** Movements a user can book by hand; transferências have their own flow (Transferir para a loja). */
+export const MANUAL_MOVEMENT_TYPES = ["entrada", "saida", "abertura"] as const;
+
+/** Where stock physically sits. "Loja" here is the sales floor, not the tenant (`Store`). */
+export const STOCK_LOCATIONS = ["loja", "deposito"] as const;
+export type StockLocation = (typeof STOCK_LOCATIONS)[number];
 
 // The semantic cause of a movement (the design's reason taxonomy). `type` is the
 // physical direction; `reason` is why: manual adjust, restock, loss, a sale, or
@@ -366,6 +377,7 @@ export const STOCK_MOVEMENT_REASONS = [
   "VENDA",
   "CONSUMO",
   "PERDA",
+  "TRANSFERENCIA",
 ] as const;
 export type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
 
@@ -395,7 +407,14 @@ export interface StockMovement {
   refOrder?: string;
   /** The product/menu item this movement was consumed for (CONSUMO/production). */
   refItem?: string;
+  /** Where it happened; transferências and aberturas from the depósito touch both. Missing on old docs = loja. */
+  loc: StockLocation | "ambos";
+  /** TR-0001: shared by every line of one transferência. */
+  trCode?: string;
+  /** Free text shown under the title (transfer note, "Pote anterior rendeu 18 usos"). */
+  note?: string;
   by: string; // user email
+  /** Effective date: the purchase date the user picked, or when it happened. Drives replay order. */
   at: string;
 }
 
