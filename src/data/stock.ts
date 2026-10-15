@@ -10,6 +10,7 @@ import {
   writeSummaryTx,
 } from "./summary";
 import { OPEN_ADJUST_REASON_LABELS } from "@/lib/types";
+import { movementKind, type MovementKind } from "@/lib/stock-ledger";
 import type {
   ConsumptionDraw,
   ConsumptionMode,
@@ -1301,17 +1302,6 @@ export async function listMovements(
     .limit(limit)
     .get();
   return snap.docs.map(toMovement);
-}
-
-/** The ledger's "Tipo" chips: consumo (sales/production), compras, transferências, ajustes. */
-export type MovementKind = "consumo" | "compra" | "transf" | "ajuste";
-
-export function movementKind(m: Pick<StockMovement, "type" | "reason">): MovementKind | "abertura" {
-  if (m.type === "transferencia") return "transf";
-  if (m.type === "abertura") return "abertura";
-  if (m.reason === "VENDA" || m.reason === "CONSUMO") return "consumo";
-  if (m.reason === "ENTRADA") return "compra";
-  return "ajuste";
 }
 
 export interface MovementPage {

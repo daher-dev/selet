@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Store, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 import { parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ export function StockItemFormSheet({ storeId, open, onOpenChange }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full gap-0 overflow-y-auto p-0 sm:max-w-[480px]"
+        className="w-full gap-0 overflow-y-auto p-0 data-[side=right]:sm:max-w-[480px]"
       >
         <SheetHeader className="gap-0 border-b border-[#EEF3EA] px-6 pb-4 pt-[22px]">
           <span className="text-[11px] font-bold uppercase tracking-[.6px] text-leaf">
@@ -69,9 +69,9 @@ function StockItemForm({
   const [pkgLabelPluralInput, setPkgLabelPluralInput] = useState("");
   const [pkgSize, setPkgSize] = useState("12");
   const [sealed, setSealed] = useState("");
+  const [depSealed, setDepSealed] = useState("");
   const [cost, setCost] = useState("");
   const [reorder, setReorder] = useState("");
-  const [tipOpen, setTipOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const isCount = unitKind(unit) === "count";
@@ -85,6 +85,7 @@ function StockItemForm({
     if (!name.trim()) return toast.error("Informe o nome do item.");
     const size = Number(String(pkgSize).replace(",", ".")) || 1;
     const sealedN = Math.round(Number(sealed) || 0);
+    const depN = Math.round(Number(depSealed) || 0);
     let costC: number | undefined;
     if (cost.trim()) {
       try {
@@ -115,6 +116,7 @@ function StockItemForm({
         reorderAt: reorderN,
         archived: false,
         initialSealed: sealedN,
+        initialDepSealed: depN,
         initialOpen: 0,
       });
       if (r.ok) {
@@ -210,48 +212,28 @@ function StockItemForm({
         </div>
 
         <div>
-          <span className="mb-[9px] flex items-center gap-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-[.6px] text-ink-faint">
-              Estoque inicial
-            </span>
-            <span className="text-[11px] font-semibold text-ink-faint">(opcional)</span>
-            <span className="relative inline-flex">
-              {tipOpen && (
-                <span className="fixed inset-0 z-10" onClick={() => setTipOpen(false)} />
-              )}
-              <button
-                type="button"
-                onClick={() => setTipOpen((v) => !v)}
-                className="relative z-20 flex size-4 items-center justify-center rounded-full border border-[#c5cfc7] text-[10px] font-bold text-ink-faint"
-              >
-                i
-              </button>
-              {tipOpen && (
-                <span className="absolute bottom-[calc(100%+8px)] left-1/2 z-20 w-52 -translate-x-1/2 rounded-lg bg-ink px-3 py-2 text-[11.5px] font-medium leading-snug text-white shadow-lg">
-                  Se informados, geram uma entrada no histórico.
-                </span>
-              )}
-            </span>
-          </span>
+          <FieldLabel>
+            Estoque inicial <span className="font-medium normal-case tracking-normal">(opcional)</span>
+          </FieldLabel>
           <div className="grid grid-cols-2 gap-3">
-            <SmallField label="Quantidade" className="flex-1">
-              <InlineInput
-                value={sealed}
-                onChange={setSealed}
-                suffix={pkgLabelPlural}
-                inputMode="numeric"
-              />
-            </SmallField>
-            <SmallField label="Preço de compra" className="flex-1">
-              <InlineInput value={cost} onChange={setCost} prefix="R$" inputMode="decimal" />
+            <LocationField label="Na loja" tone="loja">
+              <InlineInput value={sealed} onChange={setSealed} suffix={pkgLabelPlural} placeholder="0" inputMode="numeric" />
+            </LocationField>
+            <LocationField label="No depósito" tone="deposito">
+              <InlineInput value={depSealed} onChange={setDepSealed} suffix={pkgLabelPlural} placeholder="0" inputMode="numeric" />
+            </LocationField>
+          </div>
+          <div className="mt-3">
+            <SmallField label={`Preço de compra por ${pkgLabelValue}`}>
+              <InlineInput value={cost} onChange={setCost} prefix="R$" placeholder="0,00" inputMode="decimal" />
             </SmallField>
           </div>
         </div>
 
         <div>
           <FieldLabel>
-            Alerta de estoque baixo{" "}
-            <span className="font-semibold normal-case tracking-normal text-ink-faint">(opcional)</span>
+            Alerta de estoque baixo na loja{" "}
+            <span className="font-medium normal-case tracking-normal">(opcional)</span>
           </FieldLabel>
           <InlineInput
             value={reorder}
@@ -310,9 +292,36 @@ function BaixaInfo({ isWeightVol }: { isWeightVol: boolean }) {
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-[9px] block text-[11px] font-bold uppercase tracking-[.6px] text-ink-faint">
+    <span className="mb-[9px] block text-[11px] font-bold uppercase tracking-[.6px] text-ink-soft">
       {children}
     </span>
+  );
+}
+
+/** "Na loja" / "No depósito": the initial-stock input labelled with its location. */
+function LocationField({
+  label,
+  tone,
+  children,
+}: {
+  label: string;
+  tone: "loja" | "deposito";
+  children: React.ReactNode;
+}) {
+  const Icon = tone === "loja" ? Store : Warehouse;
+  return (
+    <label className="block">
+      <span
+        className={cn(
+          "mb-1.5 flex items-center gap-1.5 text-[12.5px] font-semibold",
+          tone === "loja" ? "text-primary" : "text-depot",
+        )}
+      >
+        <Icon className="size-[13px] shrink-0" strokeWidth={2} />
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }
 
@@ -327,7 +336,7 @@ function SmallField({
 }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1.5 block text-[12.5px] text-ink-faint">{label}</span>
+      <span className="mb-1.5 block text-[12.5px] text-ink-soft">{label}</span>
       {children}
     </label>
   );

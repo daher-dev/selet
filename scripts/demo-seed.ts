@@ -471,6 +471,7 @@ async function seedPerUnitStock(store: FirebaseFirestore.DocumentReference) {
     pkgLabelPlural: "pacotes",
     pkgSize: 10,
     sealed: 4,
+    depSealed: 12,
     open: 2,
     qty: 42,
     continuousUse: false,
@@ -495,6 +496,81 @@ async function seedPerUnitStock(store: FirebaseFirestore.DocumentReference) {
     type: "saida", qty: 8, byPackage: false, price: null, reason: "CONSUMO",
     refOrder: null, refItem: "Produção", by: "joao@daher.dev", at: daysAgo(2),
   });
+  await movs.doc().set({
+    type: "entrada", qty: 12, byPackage: true, loc: "deposito", price: 1290, reason: "ENTRADA",
+    refOrder: null, refItem: null, by: "ana@selet.com", at: daysAgo(6),
+  });
+}
+
+/**
+ * Depósito + Loja balances for the items the design's Estoque boards show (list
+ * cards, "Pote em uso", Esgotado with stock in the depósito), plus the ledger
+ * rows around them: a depósito purchase, a transferência (TR-0087), an
+ * abertura. Runs after seedStockHistory, which clears each item's history.
+ */
+async function seedDeposito(store: FirebaseFirestore.DocumentReference) {
+  type Demo = {
+    name: string;
+    sealed: number;
+    depSealed: number;
+    open?: number;
+    openPkg?: boolean;
+    usos?: number;
+    lastUsos?: number;
+    lowStock: boolean;
+    transfer?: number;
+  };
+  const DEMO: Demo[] = [
+    { name: "CR7 Drive Berry Mix", sealed: 0, depSealed: 2, lowStock: true },
+    { name: "Fiber Concentrate", sealed: 1, depSealed: 4, openPkg: true, usos: 22, lastUsos: 18, lowStock: true },
+    { name: "Herbal Concentrate", sealed: 1, depSealed: 0, lowStock: true },
+    { name: "Shake Herbalife Baunilha", sealed: 3, depSealed: 6, openPkg: true, usos: 14, lastUsos: 14, lowStock: false, transfer: 2 },
+    { name: "Pó de Proteína (PDM)", sealed: 2, depSealed: 3, openPkg: true, usos: 9, lastUsos: 12, lowStock: false },
+    { name: "Nutrisoup Creme Verde-Frango", sealed: 2, depSealed: 0, openPkg: true, usos: 6, lastUsos: 8, lowStock: false },
+    { name: "Beauty Drink Colágeno", sealed: 6, depSealed: 2, lowStock: false },
+  ];
+  for (const demo of DEMO) {
+    const snap = await store.collection("stockItems").where("name", "==", demo.name).limit(1).get();
+    const doc = snap.docs[0];
+    if (!doc) continue;
+    const d = doc.data();
+    const pkgSize: number = d.pkgSize ?? 1;
+    const open = demo.open ?? 0;
+    await doc.ref.update({
+      sealed: demo.sealed,
+      depSealed: demo.depSealed,
+      open,
+      qty: demo.sealed * pkgSize + open,
+      openPkg: demo.openPkg ?? false,
+      usos: demo.usos ?? 0,
+      ...(demo.lastUsos != null ? { lastUsos: demo.lastUsos } : {}),
+      lowStock: demo.lowStock,
+      updatedAt: Timestamp.now(),
+    });
+    const movs = doc.ref.collection("movements");
+    if (demo.depSealed > 0) {
+      await movs.doc().set({
+        type: "entrada", qty: demo.depSealed, byPackage: true, loc: "deposito", price: d.cost ?? null,
+        reason: "ENTRADA", refOrder: null, refItem: null, by: "ana@selet.com", at: daysAgo(12),
+      });
+    }
+    if (demo.transfer) {
+      await movs.doc().set({
+        type: "transferencia", qty: demo.transfer, byPackage: true, loc: "ambos", price: null,
+        reason: "TRANSFERENCIA", refOrder: null, refItem: null, trCode: "TR-0087", note: null,
+        by: "ana@selet.com", at: daysAgo(1),
+      });
+    }
+    if (demo.openPkg && d.continuousUse) {
+      await movs.doc().set({
+        type: "abertura", qty: 1, byPackage: true, loc: "loja", price: null, reason: "AJUSTE",
+        refOrder: null, refItem: "Abriu embalagem",
+        note: demo.lastUsos != null ? `Pote anterior rendeu ${demo.lastUsos} usos` : null,
+        by: "marina@selet.com", at: daysAgo(1),
+      });
+    }
+  }
+  await store.collection("meta").doc("stockTransfers").set({ seq: 87 }, { merge: true });
 }
 
 async function seedShakeCatalog(store: FirebaseFirestore.DocumentReference) {
@@ -758,6 +834,7 @@ async function seedStore(db: Firestore, storeId: StoreId) {
   }
 
   await seedStockHistory(store, orders);
+  await seedDeposito(store);
 
   // Cartelas/Shakes demo data lives only in vila-velha (matches the mock's
   // example roster — no need to duplicate catalogs across stores).

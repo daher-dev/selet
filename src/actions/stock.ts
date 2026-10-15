@@ -16,9 +16,9 @@ import {
   transferToStore,
   updateMovement,
   updateStockItem,
-  type MovementKind,
   type MovementPage,
 } from "@/data/stock";
+import type { MovementKind } from "@/lib/stock-ledger";
 import { logActivity } from "@/data/activity";
 import { listProducts } from "@/data/products";
 import {

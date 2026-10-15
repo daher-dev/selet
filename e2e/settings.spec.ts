@@ -30,7 +30,7 @@ test("a category created in Configurações shows up in the Estoque drawer", asy
 
   await page.goto("/s/vila-velha/estoque");
   await page.getByRole("button", { name: "Registrar compra" }).click();
-  await page.getByText("Buscar insumo…").click();
+  await page.getByText("Buscar item…").click();
   await page.getByText("Cadastrar novo item").click();
   await expect(page.getByRole("button", { name: "Laticínios" })).toBeVisible();
 });

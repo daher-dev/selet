@@ -82,18 +82,17 @@ function AjustarForm({
   return (
     <>
       <DialogHeader className="gap-0 border-b border-border/70 px-[22px] pb-4 pt-5">
-        <span className="text-[11px] font-bold uppercase tracking-[.5px] text-violet">{item.name}</span>
+        <span className="flex items-center gap-[7px] text-[11px] font-bold uppercase tracking-[.5px] text-violet">
+          {item.name}
+          <span className="inline-flex items-center gap-[5px] rounded-full bg-mist px-[7px] py-0.5 tracking-[.3px] text-primary">
+            <span className="size-1.5 rounded-full bg-primary" />
+            Loja
+          </span>
+        </span>
         <DialogTitle className="mt-[3px] text-[18px] font-bold leading-snug">Ajustar embalagem aberta</DialogTitle>
       </DialogHeader>
 
       <div className="flex flex-col gap-4 px-[22px] py-5">
-        <div className="flex items-center gap-2.5 rounded-[12px] border border-[#ede6f8] bg-violet-wash px-3.5 py-3">
-          <span className="flex-1 text-[12.5px] text-[#6b5a8e]">Saldo calculado pelo sistema</span>
-          <span className="tabular text-[14px] font-bold text-violet">
-            {current} de {pkgSize} {un}
-          </span>
-        </div>
-
         <div>
           <FieldLabel>Unidades restantes de verdade</FieldLabel>
           <div className="flex items-center gap-2.5">
@@ -133,9 +132,7 @@ function AjustarForm({
         </div>
 
         <div>
-          <FieldLabel>
-            Motivo <span className="font-medium normal-case tracking-normal">(opcional)</span>
-          </FieldLabel>
+          <FieldLabel>Motivo</FieldLabel>
           <div className="flex flex-wrap gap-1.5">
             {OPEN_ADJUST_REASONS.map((r) => {
               const selected = effectiveReason === r;
@@ -161,10 +158,6 @@ function AjustarForm({
           </div>
         </div>
 
-        <p className="text-[12px] leading-[1.45] text-ink-faint">
-          O ajuste fica registrado no histórico do insumo
-          {unchanged ? "." : `: ${current} → ${value} ${un}.`}
-        </p>
       </div>
 
       <div className="flex gap-2.5 border-t border-border/70 px-[22px] py-4">

@@ -28,7 +28,7 @@ test("Movimentações: dashboard link, create/edit avulso, follow a vinculado Or
   // --- Build one paid order, so Financeiro has a vinculado (source: order) row.
   await page.goto("/s/vila-velha/estoque");
   await page.getByRole("button", { name: "Registrar compra" }).click();
-  await page.getByRole("button", { name: "Buscar insumo…" }).click();
+  await page.getByRole("button", { name: "Buscar item…" }).click();
   await page.getByRole("button", { name: "Cadastrar novo item" }).click();
   await page.getByPlaceholder("Ex: Leite de coco").fill("Salmão");
   await page.getByRole("button", { name: "Adicionar ao estoque" }).click();
