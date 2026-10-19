@@ -8,7 +8,7 @@ import { ShakesClient } from "./shakes-client";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
-  usePathname: () => "/s/s1/shakes",
+  usePathname: () => "/painel/s1/shakes",
 }));
 
 vi.mock("@/actions/shakes", () => ({
@@ -74,7 +74,7 @@ const brindeArquivado = brinde({
 
 function renderShakes(props: Partial<React.ComponentProps<typeof ShakesClient>> = {}) {
   return render(
-    <AppShellProvider routeKey="/s/s1/shakes">
+    <AppShellProvider routeKey="/painel/s1/shakes">
       <ShakesClient
         storeId="s1"
         flavors={[]}

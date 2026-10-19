@@ -32,7 +32,7 @@ export function DashboardClient({
   storeId: string;
   view: DashboardView;
 }) {
-  const base = `/s/${storeId}`;
+  const base = `/painel/${storeId}`;
   const router = useRouter();
 
   // "Novo pedido" jumps to Pedidos and auto-opens the create sheet there

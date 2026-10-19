@@ -34,7 +34,7 @@ async function run(fn: () => Promise<void>): Promise<ActionResult> {
 }
 
 function revalidate(storeId: string) {
-  revalidatePath(`/s/${storeId}/pudim`);
+  revalidatePath(`/painel/${storeId}/pudim`);
 }
 
 // Every sabor insumo must trace to a real Estoque item — same rule as

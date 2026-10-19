@@ -61,7 +61,7 @@ describe("describeMovement", () => {
     expect(row).toMatchObject({
       kind: "consumo",
       title: "Consumo ·",
-      link: { text: "Pedido #ABC1", href: "/s/vila-velha/pedidos?order=abc123" },
+      link: { text: "Pedido #ABC1", href: "/painel/vila-velha/pedidos?order=abc123" },
       delta: "−2 un",
       tone: "ink",
       editable: false,

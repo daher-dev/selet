@@ -334,8 +334,8 @@ function LinkedTxView({
   const originId = isStock ? tx.stockItemId : tx.orderId;
   const originHref = originId
     ? isStock
-      ? `/s/${storeId}/estoque?item=${originId}`
-      : `/s/${storeId}/pedidos?order=${originId}`
+      ? `/painel/${storeId}/estoque?item=${originId}`
+      : `/painel/${storeId}/pedidos?order=${originId}`
     : null;
   const originLabel = isStock
     ? (originId && stockItemNames[originId]) || "Item removido"
@@ -483,7 +483,7 @@ function CategoryPicker({
             <span className="flex-1" />
             {isAdmin && (
               <Link
-                href={`/s/${storeId}/configuracoes/financeiro`}
+                href={`/painel/${storeId}/configuracoes/financeiro`}
                 className="font-semibold text-ink-faint hover:text-ink-soft"
               >
                 Gerenciar em Configurações

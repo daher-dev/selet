@@ -138,7 +138,7 @@ describe("StockDetailSheet", () => {
       renderSheet();
 
       const link = await screen.findByRole("link", { name: "Pedido #P123" });
-      expect(link).toHaveAttribute("href", "/s/s1/pedidos?order=P123");
+      expect(link).toHaveAttribute("href", "/painel/s1/pedidos?order=P123");
       expect(screen.queryByRole("button", { name: /^Editar .* ·/ })).not.toBeInTheDocument();
     });
 

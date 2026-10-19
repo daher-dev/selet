@@ -8,7 +8,7 @@ import { EstoqueClient } from "./estoque-client";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
-  usePathname: () => "/s/s1/estoque",
+  usePathname: () => "/painel/s1/estoque",
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -73,7 +73,7 @@ const berry = stockItem({
 
 function renderList(props: Partial<React.ComponentProps<typeof EstoqueClient>> = {}) {
   return render(
-    <AppShellProvider routeKey="/s/s1/estoque">
+    <AppShellProvider routeKey="/painel/s1/estoque">
       <EstoqueClient
         storeId="s1"
         storeName="Vila Velha/ES"

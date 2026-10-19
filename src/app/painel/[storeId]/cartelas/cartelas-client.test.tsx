@@ -57,7 +57,7 @@ const cartelas = [
 
 function renderClient() {
   return render(
-    <AppShellProvider routeKey="/s/s1/cartelas">
+    <AppShellProvider routeKey="/painel/s1/cartelas">
       <CartelasClient storeId="s1" cartelas={cartelas} />
     </AppShellProvider>,
   );

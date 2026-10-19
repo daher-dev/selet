@@ -10,7 +10,7 @@ test.beforeAll(async ({ request }) => {
 
 test("/equipe redirects into Configurações → Equipe", async ({ page, context, request, baseURL }) => {
   await logIn(request, context, baseURL!);
-  await page.goto("/s/vila-velha/equipe");
+  await page.goto("/painel/vila-velha/equipe");
   await expect(page).toHaveURL(/\/s\/vila-velha\/configuracoes\/equipe$/);
   await expect(page.getByRole("link", { name: "Equipe", exact: true })).toHaveAttribute("aria-current", "page");
 });
@@ -22,13 +22,13 @@ test("a category created in Configurações shows up in the Estoque drawer", asy
   baseURL,
 }) => {
   await logIn(request, context, baseURL!);
-  await page.goto("/s/vila-velha/configuracoes/estoque");
+  await page.goto("/painel/vila-velha/configuracoes/estoque");
   await page.getByRole("button", { name: "Nova categoria" }).click();
   await page.getByLabel("Nome").fill("Laticínios");
   await page.getByRole("button", { name: "Adicionar categoria" }).click();
   await expect(page.getByText("Laticínios", { exact: true })).toBeVisible();
 
-  await page.goto("/s/vila-velha/estoque");
+  await page.goto("/painel/vila-velha/estoque");
   await page.getByRole("button", { name: "Registrar compra" }).click();
   await page.getByText("Buscar item…").click();
   await page.getByText("Cadastrar novo item").click();

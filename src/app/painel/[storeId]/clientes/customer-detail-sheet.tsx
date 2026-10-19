@@ -708,7 +708,7 @@ function RepeatButton({
 }) {
   return (
     <Link
-      href={`/s/${storeId}/pedidos?cliente=${customerId}`}
+      href={`/painel/${storeId}/pedidos?cliente=${customerId}`}
       className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[#DCEBD4] bg-card px-3 py-2 text-[12.5px] font-semibold text-primary transition-colors hover:border-primary/40 hover:bg-mist"
     >
       <Repeat className="size-3.5" />

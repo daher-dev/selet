@@ -31,7 +31,7 @@ test("full flow: login → product → customer → order → paid → dashboard
   // holes" — see product-form-sheet.tsx's submit()), so create one first.
   // The only entry point on an empty store is via "Registrar compra" →
   // insumo picker → "Cadastrar novo item".
-  await page.goto("/s/vila-velha/estoque");
+  await page.goto("/painel/vila-velha/estoque");
   await page.getByRole("button", { name: "Registrar compra" }).click();
   await page.getByRole("button", { name: "Buscar item…" }).click();
   await page.getByRole("button", { name: "Cadastrar novo item" }).click();
@@ -40,7 +40,7 @@ test("full flow: login → product → customer → order → paid → dashboard
   await expect(page.getByText("Item adicionado ao estoque.")).toBeVisible();
 
   // --- Product
-  await page.goto("/s/vila-velha/produtos");
+  await page.goto("/painel/vila-velha/produtos");
   await page.getByRole("button", { name: "Novo produto" }).first().click();
   await page.locator("#product-name").fill("Bowl de salmão");
   await page.locator("#product-price").fill("39,90");
@@ -51,7 +51,7 @@ test("full flow: login → product → customer → order → paid → dashboard
   await expect(page.getByText("Bowl de salmão")).toBeVisible();
 
   // --- Customer
-  await page.goto("/s/vila-velha/clientes");
+  await page.goto("/painel/vila-velha/clientes");
   await page.getByRole("button", { name: "Novo cliente" }).first().click();
   await page.locator("#customer-name").fill("Carla Mendes");
   await page.getByRole("button", { name: "Criar cliente" }).click();
@@ -59,7 +59,7 @@ test("full flow: login → product → customer → order → paid → dashboard
   await expect(page.getByText("Carla Mendes").last()).toBeVisible();
 
   // --- Order
-  await page.goto("/s/vila-velha/pedidos");
+  await page.goto("/painel/vila-velha/pedidos");
   await page.getByRole("button", { name: "Novo pedido" }).first().click();
   const sheet = page.locator('[data-slot="sheet-content"]');
   await sheet.getByRole("button", { name: "Selecione um cliente" }).click();
@@ -88,11 +88,11 @@ test("full flow: login → product → customer → order → paid → dashboard
   await expect(page.getByText("R$ 39,90").last()).toBeVisible();
 
   // --- Finance reflects the paid order
-  await page.goto("/s/vila-velha/financeiro");
+  await page.goto("/painel/vila-velha/financeiro");
   await expect(page.getByText(/Pedido #/).first()).toBeVisible();
 
   // --- Dashboard KPIs reflect everything
-  await page.goto("/s/vila-velha");
+  await page.goto("/painel/vila-velha");
   await expect(page.getByText("Canais de venda")).toBeVisible();
   await expect(page.getByText("Bowl de salmão")).toBeVisible(); // top seller
 });

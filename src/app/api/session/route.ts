@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   await createSessionCookie(idToken);
 
   const stores = await listStoresForUser({ ...user, status: "ativo" });
-  const redirectTo = stores[0] ? `/s/${stores[0].id}` : "/";
+  const redirectTo = stores[0] ? `/painel/${stores[0].id}` : "/";
   return NextResponse.json({ redirectTo });
 }
 

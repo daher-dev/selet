@@ -5,7 +5,7 @@ import type { SessionUser, Store } from "@/lib/types";
 import { SidebarContent } from "./sidebar-content";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/s/s1",
+  usePathname: () => "/painel/s1",
   useRouter: () => ({ push: vi.fn() }),
 }));
 

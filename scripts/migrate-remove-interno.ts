@@ -9,7 +9,7 @@
  *
  * Step 1 deletes the store's stores/{id}/meta/summary doc afterward (only if
  * an order was actually rewritten) so the app's existing slowPath full-scan
- * fallback (see src/app/s/[storeId]/dashboard-data.ts) recomputes it fresh
+ * fallback (see src/app/painel/[storeId]/dashboard-data.ts) recomputes it fresh
  * on next load — cheaper and safer than importing refreshSummary() directly,
  * which lives behind "server-only" and can't run under plain tsx outside
  * Next's build. Once recomputed, the old "interno" counts land under "loja"

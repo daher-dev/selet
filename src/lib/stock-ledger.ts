@@ -89,7 +89,7 @@ export function describeMovement(m: StockMovement, ctx: DescribeCtx): LedgerRow 
       const link = orderText
         ? {
             text: orderText.replace(/^(Pedido|Estorno) /, "Pedido "),
-            href: m.refOrder ? `/s/${ctx.storeId}/pedidos?order=${encodeURIComponent(m.refOrder)}` : undefined,
+            href: m.refOrder ? `/painel/${ctx.storeId}/pedidos?order=${encodeURIComponent(m.refOrder)}` : undefined,
           }
         : m.refItem
           ? { text: m.refItem }

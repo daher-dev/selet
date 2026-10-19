@@ -10,7 +10,7 @@
  *      stores/*\/finance docs with source:"voucher".
  *   3. Deletes the store's stores/{id}/meta/summary doc afterward (only if
  *      a finance doc was actually removed) so the app's existing slowPath
- *      full-scan fallback (see src/app/s/[storeId]/dashboard-data.ts)
+ *      full-scan fallback (see src/app/painel/[storeId]/dashboard-data.ts)
  *      recomputes it fresh on next load — cheaper and safer than importing
  *      refreshSummary() directly, which lives behind "server-only" and
  *      can't run under plain tsx outside Next's build.

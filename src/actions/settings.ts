@@ -38,7 +38,7 @@ async function run(fn: () => Promise<string | void>): Promise<SettingsResult> {
 
 /** Settings feed every store page (nav, estoque, financeiro…), so refresh the whole store layout. */
 function refresh() {
-  revalidatePath("/s/[storeId]", "layout");
+  revalidatePath("/painel/[storeId]", "layout");
 }
 
 async function audit(storeId: string, by: string, label: string, icon: string) {

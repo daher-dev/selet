@@ -29,7 +29,7 @@ export default async function StoreLayout({
   const store = stores.find((s) => s.id === storeId);
   if (!store) {
     // Store doesn't exist (or user lost access) — send to their first store.
-    redirect(stores[0] ? `/s/${stores[0].id}` : "/login");
+    redirect(stores[0] ? `/painel/${stores[0].id}` : "/login");
   }
 
   // Nav badge counts — PREFER the pre-computed summary doc (one small read),

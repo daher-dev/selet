@@ -11,5 +11,5 @@ export default async function Home() {
     // bouncing back to /login (which would redirect here again — an infinite loop).
     return <NoStoreScreen name={user.name} />;
   }
-  redirect(`/s/${stores[0].id}`);
+  redirect(`/painel/${stores[0].id}`);
 }

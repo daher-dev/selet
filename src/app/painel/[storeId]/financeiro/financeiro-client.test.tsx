@@ -29,7 +29,7 @@ vi.mock("@/actions/finance", () => ({
 describe("FinanceiroClient", () => {
   it("links 'Ver todas' to the Movimentações list, scoped to the currently-selected competência", () => {
     render(
-      <AppShellProvider routeKey="/s/s1/financeiro">
+      <AppShellProvider routeKey="/painel/s1/financeiro">
         <FinanceiroClient
           storeId="s1"
           receivablesByMonth={{}}
@@ -43,7 +43,7 @@ describe("FinanceiroClient", () => {
     const link = screen.getByRole("link", { name: /Ver todas/ });
     expect(link).toHaveAttribute(
       "href",
-      `/s/s1/financeiro/movimentacoes?mes=${currentMonthKey}`,
+      `/painel/s1/financeiro/movimentacoes?mes=${currentMonthKey}`,
     );
   });
 });

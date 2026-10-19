@@ -6,5 +6,5 @@ export default async function ConfiguracoesIndex({
   params: Promise<{ storeId: string }>;
 }) {
   const { storeId } = await params;
-  redirect(`/s/${storeId}/configuracoes/loja`);
+  redirect(`/painel/${storeId}/configuracoes/loja`);
 }

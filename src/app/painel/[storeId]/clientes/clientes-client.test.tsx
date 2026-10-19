@@ -9,7 +9,7 @@ import { ClientesClient } from "./clientes-client";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
-  usePathname: () => "/s/s1/clientes",
+  usePathname: () => "/painel/s1/clientes",
 }));
 
 vi.mock("@/actions/customers", () => ({
@@ -60,7 +60,7 @@ const orders: Order[] = [
 // its own local search box; the shell search stays empty here.
 function renderList(props: Partial<React.ComponentProps<typeof ClientesClient>> = {}) {
   return render(
-    <AppShellProvider routeKey="/s/s1/clientes">
+    <AppShellProvider routeKey="/painel/s1/clientes">
       <ClientesClient
         storeId="s1"
         storeName="Vila Velha/ES"

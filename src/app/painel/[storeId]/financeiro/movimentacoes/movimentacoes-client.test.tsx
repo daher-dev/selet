@@ -8,7 +8,7 @@ import { MovimentacoesClient } from "./movimentacoes-client";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
-  usePathname: () => "/s/s1/financeiro/movimentacoes",
+  usePathname: () => "/painel/s1/financeiro/movimentacoes",
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -78,7 +78,7 @@ const vinculadoEstoque = financeTx({
 
 function renderPage(transactions: FinanceTx[] = [avulso, vinculadoPedido, vinculadoEstoque]) {
   return render(
-    <AppShellProvider routeKey="/s/s1/financeiro/movimentacoes">
+    <AppShellProvider routeKey="/painel/s1/financeiro/movimentacoes">
       <MovimentacoesClient
         storeId="s1"
         mes="2026-07"

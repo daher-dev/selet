@@ -79,7 +79,7 @@ describe("ManualTxSheet", () => {
     expect(screen.queryByText("Salvar")).not.toBeInTheDocument();
     expect(screen.queryByText("Excluir")).not.toBeInTheDocument();
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/s/s1/pedidos?order=orderXYZ123");
+    expect(link).toHaveAttribute("href", "/painel/s1/pedidos?order=orderXYZ123");
   });
 
   it("read-only mode: stock source → Origem links to the stock item using the resolved name", () => {
@@ -99,7 +99,7 @@ describe("ManualTxSheet", () => {
       />,
     );
     const link = screen.getByRole("link");
-    expect(link).toHaveAttribute("href", "/s/s1/estoque?item=item-9");
+    expect(link).toHaveAttribute("href", "/painel/s1/estoque?item=item-9");
     expect(link).toHaveTextContent("Shake Morango 550g");
   });
 

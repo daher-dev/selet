@@ -243,8 +243,8 @@ function OrigemCell({
       : "Pedido removido";
   const href = id
     ? isStock
-      ? `/s/${storeId}/estoque?item=${id}`
-      : `/s/${storeId}/pedidos?order=${id}`
+      ? `/painel/${storeId}/estoque?item=${id}`
+      : `/painel/${storeId}/pedidos?order=${id}`
     : null;
 
   if (!href) {

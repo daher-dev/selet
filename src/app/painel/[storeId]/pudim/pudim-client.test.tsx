@@ -8,7 +8,7 @@ import { PudimClient } from "./pudim-client";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
-  usePathname: () => "/s/s1/pudim",
+  usePathname: () => "/painel/s1/pudim",
 }));
 
 vi.mock("@/actions/pudim", () => ({
@@ -72,7 +72,7 @@ const brindeArquivado = brinde({ id: "cha-hibisco", name: "Chá Hibisco", archiv
 
 function renderPudim(props: Partial<React.ComponentProps<typeof PudimClient>> = {}) {
   return render(
-    <AppShellProvider routeKey="/s/s1/pudim">
+    <AppShellProvider routeKey="/painel/s1/pudim">
       <PudimClient
         storeId="s1"
         flavors={[]}

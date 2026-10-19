@@ -7,5 +7,5 @@ export default async function EquipeMoved({
   params: Promise<{ storeId: string }>;
 }) {
   const { storeId } = await params;
-  permanentRedirect(`/s/${storeId}/configuracoes/equipe`);
+  permanentRedirect(`/painel/${storeId}/configuracoes/equipe`);
 }

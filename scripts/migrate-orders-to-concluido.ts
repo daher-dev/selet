@@ -14,7 +14,7 @@
  * summary doc's `openOrders` counter (novo/preparando/entrega are "open",
  * concluido isn't), so — same pattern as scripts/migrate-remove-interno.ts —
  * this script deletes stores/{id}/meta/summary after a write so the app's
- * existing slowPath full-scan fallback (see src/app/s/[storeId]/dashboard-data.ts)
+ * existing slowPath full-scan fallback (see src/app/painel/[storeId]/dashboard-data.ts)
  * recomputes it fresh on next load, rather than hand-computing the delta.
  *
  * Defaults to a dry run (prints affected orders, writes nothing). Pass

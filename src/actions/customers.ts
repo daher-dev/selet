@@ -66,7 +66,7 @@ export async function createCustomerAction(
       by: user.email,
       section: "clientes",
     });
-    revalidatePath(`/s/${storeId}/clientes`);
+    revalidatePath(`/painel/${storeId}/clientes`);
   });
 }
 
@@ -78,7 +78,7 @@ export async function updateCustomerAction(
     const { storeId, ...data } = customerSchema.parse(input);
     await requireAccess(storeId, "clientes");
     await updateCustomer(storeId, customerId, data);
-    revalidatePath(`/s/${storeId}/clientes`);
+    revalidatePath(`/painel/${storeId}/clientes`);
   });
 }
 
@@ -90,6 +90,6 @@ export async function setCustomerArchivedAction(
   return run(async () => {
     await requireAccess(storeId, "clientes");
     await setCustomerArchived(storeId, customerId, archived);
-    revalidatePath(`/s/${storeId}/clientes`);
+    revalidatePath(`/painel/${storeId}/clientes`);
   });
 }

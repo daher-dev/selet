@@ -388,7 +388,7 @@ export function FinanceiroClient({
           bodyClassName="px-5 pt-1 pb-3"
           action={
             <Link
-              href={`/s/${storeId}/financeiro/movimentacoes?mes=${selectedKey}`}
+              href={`/painel/${storeId}/financeiro/movimentacoes?mes=${selectedKey}`}
               aria-label="Ver todas"
               title="Ver todas"
               className="flex size-7 items-center justify-center rounded-lg bg-white/70 text-info transition-colors hover:bg-white"

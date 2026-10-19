@@ -23,7 +23,7 @@ export function SettingsTabs({ storeId }: { storeId: string }) {
       className="-mx-3.5 -mt-4 mb-4 flex gap-[26px] overflow-x-auto border-b border-[#E7EEE6] bg-white px-3.5 min-[820px]:-mx-7 min-[820px]:-mt-[26px] min-[820px]:mb-[26px] min-[820px]:px-7"
     >
       {TABS.map((t) => {
-        const href = `/s/${storeId}/configuracoes/${t.segment}`;
+        const href = `/painel/${storeId}/configuracoes/${t.segment}`;
         const on = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link

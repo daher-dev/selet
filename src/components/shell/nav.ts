@@ -21,7 +21,7 @@ export type NavBadgeTone = "primary" | "amber";
 
 export interface NavItem {
   label: string;
-  /** path segment under /s/[storeId]; "" = dashboard */
+  /** path segment under /painel/[storeId]; "" = dashboard */
   segment: string;
   icon: LucideIcon;
   /** section permission required; null = visible to any member */
