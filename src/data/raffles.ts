@@ -3,7 +3,7 @@ import "server-only";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
-import { sendWhatsApp, whatsappIsStubbed } from "@/lib/whatsapp";
+import { canSendWhatsApp, sendWhatsApp, whatsappIsStubbed } from "@/lib/whatsapp";
 import {
   SLUG_PATTERN,
   abbreviateName,
@@ -651,6 +651,8 @@ export async function announceResult(
   const raffle = await getRaffle(storeId, raffleId);
   if (!raffle?.winner) throw new Error("Confirme o ganhador antes de anunciar.");
   await rafflesCol(storeId).doc(raffleId).update({ showResult: opts.showResult });
+  // No provider: the team sends the notices by hand (the draw sheet offers the text + a chat link).
+  if (!canSendWhatsApp()) return { sent: 0, failed: 0 };
   const entries = await listEntries(storeId, raffleId);
   const winner = raffle.winner;
   const targets: { phone: string; text: string }[] = [];
@@ -877,7 +879,13 @@ export async function requestCode(pub: PublicRaffle, phone: string): Promise<{ r
       ...(whatsappIsStubbed() ? { devCode: code } : {}),
     });
   });
-  await sendWhatsApp(phone, `Seu código Selet para o sorteio "${pub.raffle.name}": ${code}. Vale 10 minutos.`);
+  try {
+    await sendWhatsApp(phone, `Seu código Selet para o sorteio "${pub.raffle.name}": ${code}. Vale 10 minutos.`);
+  } catch (err) {
+    // Nothing was delivered, so it must not count against the resend/rate limit.
+    await ref.delete();
+    throw err;
+  }
   return { resendIn: RESEND_MS / 1000 };
 }
 

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { countRaffleParticipants, getEntryByToken, getPublicRaffle } from "@/data/raffles";
 import { getStore } from "@/data/stores";
+import { canSendWhatsApp } from "@/lib/whatsapp";
 import { abbreviateName, buildRegulamento, publicEntryView, totalNumbers } from "@/lib/raffles";
 import { PublicFlow, type PublicRaffleView } from "./public-flow";
 
@@ -79,6 +80,7 @@ export default async function PublicRafflePage({
         contact: store?.whatsapp || store?.email || undefined,
       })}
       participants={participants}
+      codes={canSendWhatsApp()}
     />
   );
 }

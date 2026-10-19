@@ -22,6 +22,16 @@ export function whatsappIsStubbed(): boolean {
   );
 }
 
+/**
+ * Whether a message can really reach someone. Today: only dev/emulator (where
+ * it is just logged). Flows that depend on delivery (login codes, automatic
+ * notices) must check this and fall back to a manual path when it is false.
+ * A real provider flips this to true.
+ */
+export function canSendWhatsApp(): boolean {
+  return whatsappIsStubbed();
+}
+
 /** `to` is the destination as DDD + 9 digits. */
 export async function sendWhatsApp(to: string, text: string): Promise<void> {
   if (!whatsappIsStubbed()) throw new WhatsAppNotConfiguredError();

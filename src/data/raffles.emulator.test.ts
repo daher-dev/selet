@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { getDb } from "@/lib/firebase-admin";
 import type { RaffleRule } from "@/lib/raffles";
+import { sendWhatsApp } from "@/lib/whatsapp";
 import { createCustomer, getCustomer } from "./customers";
 import {
   DuplicateEntryError,
@@ -33,6 +34,12 @@ import {
   type PublicRaffle,
   type RaffleInput,
 } from "./raffles";
+
+// Real sender by default (logs in the emulator); a test can make one send fail.
+vi.mock("@/lib/whatsapp", async (orig) => {
+  const actual = await orig<typeof import("@/lib/whatsapp")>();
+  return { ...actual, sendWhatsApp: vi.fn(actual.sendWhatsApp) };
+});
 
 const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 
@@ -232,6 +239,15 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
         await expect(verifyCode(pub, phone, "000000")).rejects.toThrow(/incorreto|Muitas/);
       }
       await expect(verifyCode(pub, phone, await devCode())).rejects.toThrow(/Muitas tentativas/);
+      log.mockRestore();
+    });
+
+    it("a failed send does not use up the resend slot", async () => {
+      const other = phoneN(77);
+      vi.mocked(sendWhatsApp).mockRejectedValueOnce(new Error("sem provedor"));
+      await expect(requestCode(pub, other)).rejects.toThrow("sem provedor");
+      const log = vi.spyOn(console, "info").mockImplementation(() => {});
+      await expect(requestCode(pub, other)).resolves.toEqual({ resendIn: 30 });
       log.mockRestore();
     });
 

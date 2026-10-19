@@ -63,6 +63,8 @@ interface Props {
   adoptToken: string | null;
   regulamento: RegulamentoSection[];
   participants: number;
+  /** Whether WhatsApp codes can be delivered. Without it nobody is sent to a code step. */
+  codes: boolean;
 }
 
 type Step =
@@ -112,6 +114,7 @@ export function PublicFlow({
   adoptToken,
   regulamento,
   participants,
+  codes,
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(initialEntry ? "done" : "intro");
@@ -365,7 +368,7 @@ export function PublicFlow({
     const seguir = igHandle ? { label: `Seguir @${igHandle}`, href: `https://instagram.com/${igHandle}` } : null;
     const ver = { label: "Ver meus números", onClick: () => go("vm-wpp") };
     const reg = { label: "Regulamento", onClick: openRegulamento };
-    return primary === "ver" ? [ver, reg] : [seguir ?? reg, reg].filter((a, i, l) => l.indexOf(a) === i);
+    return primary === "ver" && codes ? [ver, reg] : [seguir ?? reg, reg].filter((a, i, l) => l.indexOf(a) === i);
   };
 
   // 10a — "Ver meus números" (from the closed-link screens)
@@ -478,7 +481,7 @@ export function PublicFlow({
           text="Não dá mais para entrar neste sorteio. Os próximos saem primeiro no Instagram da loja."
           actions={[
             ...(igHandle ? [{ label: `Seguir @${igHandle}`, href: `https://instagram.com/${igHandle}` }] : []),
-            { label: "Já participa? Ver meus números", onClick: () => go("vm-wpp") },
+            ...(codes ? [{ label: "Já participa? Ver meus números", onClick: () => go("vm-wpp") }] : []),
           ]}
         />
       );
@@ -615,25 +618,29 @@ export function PublicFlow({
         </span>
         <h1 className="mt-[18px] text-2xl font-bold leading-tight">Esse WhatsApp já está no sorteio</h1>
         <p className="mt-2 text-[14.5px] leading-normal text-[#3D4A42]">
-          O {wpp} já tem número escolhido. Para ver qual é, mandamos um código pelo WhatsApp.
+          {codes
+            ? `O ${wpp} já tem número escolhido. Para ver qual é, mandamos um código pelo WhatsApp.`
+            : `O ${wpp} já tem número escolhido. Para ver qual é, fale com a loja.`}
         </p>
         <div className="flex-1" />
-        <button type="button" disabled={pending} onClick={() => requestCode("code")} className={ctaCls()}>
-          {pending && <Loader2 className="size-4 animate-spin" />}
-          Receber código no WhatsApp
-        </button>
+        {codes && (
+          <button type="button" disabled={pending} onClick={() => requestCode("code")} className={ctaCls()}>
+            {pending && <Loader2 className="size-4 animate-spin" />}
+            Receber código no WhatsApp
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {
             setWpp("");
             go("wpp", true);
           }}
-          className="mt-1.5 h-11 text-[13.5px] font-semibold text-primary"
+          className={cn("h-11 text-[13.5px] font-semibold", codes ? "mt-1.5 text-primary" : "flex items-center justify-center rounded-[13px] bg-primary text-[15px] text-white")}
         >
           Usar outro WhatsApp
         </button>
         <p className="mt-2 text-xs leading-normal text-ink-soft">
-          Cada WhatsApp participa uma vez por sorteio. Não mostramos o número nem o nome antes do código, para ninguém ver o cadastro de outra pessoa.
+          Cada WhatsApp participa uma vez por sorteio. Não mostramos o número nem o nome de quem já participa, para ninguém ver o cadastro de outra pessoa.
         </p>
       </div>,
     );

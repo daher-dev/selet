@@ -42,7 +42,7 @@ const thiago = entry({
 });
 const lucas = entry({ id: "r1_27999990003", name: "Lucas M.", phone: "27999990003", status: "excl", exclReason: "Perfil duplicado", numbers: [] });
 
-function renderDetail() {
+function renderDetail(canSend = true) {
   return render(
     <AppShellProvider routeKey="/painel/s1/sorteios/r1">
       <RaffleDetailClient
@@ -52,6 +52,7 @@ function renderDetail() {
         customers={[]}
         origin="https://selet.app"
         userName="Ana Costa"
+        canSend={canSend}
       />
     </AppShellProvider>,
   );
@@ -99,5 +100,31 @@ describe("RaffleDetailClient", () => {
     expect(within(ficha).getByText(/Liberado por Ana Costa/)).toBeInTheDocument();
     expect(within(ficha).getByRole("button", { name: "Número extra" })).toBeInTheDocument();
     expect(within(ficha).getByText("Validado: todas as obrigatórias conferidas")).toBeInTheDocument();
+  });
+
+  it("without WhatsApp sending, the winner notice is a message the team sends by hand", async () => {
+    const user = userEvent.setup();
+    renderDetail(false);
+    await user.click(screen.getAllByRole("button", { name: "Realizar sorteio" })[0]);
+    await user.type(await screen.findByLabelText("Número sorteado"), "150");
+    await user.click(screen.getByRole("button", { name: "Confirmar ganhador" }));
+
+    expect(await screen.findByText("Anunciar")).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Avisar o ganhador no WhatsApp" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Avisar todos os participantes" })).not.toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Mostrar resultado no link" })).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "Abrir WhatsApp de Thiago" });
+    expect(link).toHaveAttribute("href", expect.stringContaining("https://wa.me/5527999990002?text="));
+    expect(decodeURIComponent(link.getAttribute("href")!)).toContain("o nº 150 foi sorteado e é seu");
+  });
+
+  it("with WhatsApp sending, the automatic notices are offered", async () => {
+    const user = userEvent.setup();
+    renderDetail(true);
+    await user.click(screen.getAllByRole("button", { name: "Realizar sorteio" })[0]);
+    await user.type(await screen.findByLabelText("Número sorteado"), "150");
+    await user.click(screen.getByRole("button", { name: "Confirmar ganhador" }));
+    expect(await screen.findByRole("switch", { name: "Avisar o ganhador no WhatsApp" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Abrir WhatsApp de/ })).not.toBeInTheDocument();
   });
 });
