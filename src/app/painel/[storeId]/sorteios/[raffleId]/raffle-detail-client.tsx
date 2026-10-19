@@ -36,6 +36,7 @@ interface Props {
   origin: string;
   userName: string;
   initialSelectedId?: string | null;
+  canSend: boolean;
 }
 
 const OUTLINE_BTN =
@@ -54,7 +55,7 @@ function rowNote(raffle: Raffle, e: RaffleEntry): string {
   return miss ? `Falta ${miss} ${miss > 1 ? "regras" : "regra"}` : "";
 }
 
-export function RaffleDetailClient({ storeId, raffle, entries, customers, origin, userName, initialSelectedId = null }: Props) {
+export function RaffleDetailClient({ storeId, raffle, entries, customers, origin, userName, initialSelectedId = null, canSend }: Props) {
   const [tab, setTab] = useState<"part" | "num">("part");
   const [filter, setFilter] = useState<Filter>("todos");
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
@@ -377,6 +378,7 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
         raffle={raffle}
         entries={entries}
         userName={userName}
+        canSend={canSend}
         open={drawOpen}
         onOpenChange={setDrawOpen}
         onOpenParticipant={(id) => {

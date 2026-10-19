@@ -47,6 +47,7 @@ function renderFlow(over: Partial<React.ComponentProps<typeof PublicFlow>> = {})
       adoptToken={null}
       regulamento={[{ title: "Período", lines: ["Inscrições até 29/10."] }]}
       participants={0}
+      codes
       {...over}
     />,
   );
@@ -161,5 +162,26 @@ describe("PublicFlow", () => {
     expect(screen.getByText("Número 150 é seu, Thiago!")).toBeInTheDocument();
     expect(screen.getByText("Você ganhou +1 número!")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Escolher meu número bônus" })).toBeInTheDocument();
+  });
+
+  it("without WhatsApp codes, a number already in the raffle is told to talk to the store (no code button)", async () => {
+    const user = userEvent.setup();
+    vi.mocked(startAction).mockResolvedValue({ ok: true, kind: "dup", phoneEnd: "4432", resendIn: 0 });
+    renderFlow({ codes: false });
+    await goToPhone(user, "27991204432");
+    expect(await screen.findByText("Esse WhatsApp já está no sorteio")).toBeInTheDocument();
+    expect(screen.getByText(/Para ver qual é, fale com a loja/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Receber código no WhatsApp" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Usar outro WhatsApp" })).toBeInTheDocument();
+  });
+
+  it("without WhatsApp codes, the closed screens do not offer 'ver meus números'", () => {
+    const closed = renderFlow({ state: "encerrado", codes: false });
+    expect(screen.getByText("Inscrições encerradas")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ver meus números" })).not.toBeInTheDocument();
+    closed.unmount();
+
+    renderFlow({ state: "esgotado", codes: false });
+    expect(screen.queryByRole("button", { name: /Ver meus números/ })).not.toBeInTheDocument();
   });
 });

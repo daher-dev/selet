@@ -18,6 +18,7 @@ import {
   type PublicRaffle,
 } from "@/data/raffles";
 import { normalizePhone, publicEntryView, type PublicEntryView } from "@/lib/raffles";
+import { canSendWhatsApp } from "@/lib/whatsapp";
 
 /**
  * Server Functions for the public sorteio link. NO login here by design:
@@ -77,8 +78,10 @@ export async function startAction(
     if (!pub || pub.state !== "aberto") return fail(NOT_OPEN);
     const found = await lookupPhone(pub, phone);
     const phoneEnd = phone.slice(-4);
-    if (!found.known) return { ok: true, kind: "new", phoneEnd, resendIn: 0 };
     if (found.hasEntry) return { ok: true, kind: "dup", phoneEnd, resendIn: 0 };
+    // Without a way to deliver the code, a known number just signs up like a new one
+    // (nothing is prefilled or revealed), instead of dead-ending at a code nobody gets.
+    if (!found.known || !canSendWhatsApp()) return { ok: true, kind: "new", phoneEnd, resendIn: 0 };
     const { resendIn } = await requestCode(pub, phone);
     return { ok: true, kind: "known", phoneEnd, resendIn };
   } catch (err) {
@@ -96,6 +99,9 @@ export async function sendCodeAction(
     if (!phone) return fail("Número incompleto: DDD + 9 dígitos, como (27) 9 9912-4432.");
     const pub = await load(slug);
     if (!pub) return fail("Esse sorteio não está disponível.");
+    if (!canSendWhatsApp()) {
+      return fail("Ainda não conseguimos enviar o código por WhatsApp. Fale com a loja para ver seus números.");
+    }
     const found = await lookupPhone(pub, phone);
     let resendIn = 30;
     if (found.known) resendIn = (await requestCode(pub, phone)).resendIn;
@@ -168,7 +174,7 @@ export async function registerAction(
 
     const found = await lookupPhone(pub, phone);
     if (found.hasEntry) return fail("Esse WhatsApp já participa deste sorteio.", { dup: true });
-    if (found.known) {
+    if (found.known && canSendWhatsApp()) {
       // A returning person must prove the number is theirs before we reuse their data.
       const jar = await cookies();
       const [p, proof] = (jar.get(proofCookie(pub.raffle.id))?.value ?? "").split(".");

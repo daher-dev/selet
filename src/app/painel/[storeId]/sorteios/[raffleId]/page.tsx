@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAccess } from "@/lib/access";
 import { getOrigin } from "@/lib/origin";
+import { canSendWhatsApp } from "@/lib/whatsapp";
 import { getRaffle, listEntries } from "@/data/raffles";
 import { listCustomers } from "@/data/customers";
 import { RaffleDetailClient } from "./raffle-detail-client";
@@ -34,6 +35,7 @@ export default async function RaffleDetailPage({
       origin={origin}
       userName={user.name || user.email}
       initialSelectedId={p ?? null}
+      canSend={canSendWhatsApp()}
     />
   );
 }

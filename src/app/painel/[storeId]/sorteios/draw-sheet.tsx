@@ -7,7 +7,7 @@ import { announceResultAction, confirmWinnerAction, excludeEntryAction } from "@
 import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { initials } from "@/lib/format";
-import { formatPhone, padNumber, type DrawLogEntry, type Raffle, type RaffleEntry } from "@/lib/raffles";
+import { firstName, formatPhone, padNumber, type DrawLogEntry, type Raffle, type RaffleEntry } from "@/lib/raffles";
 import { cn } from "@/lib/utils";
 import { avatarColors } from "./ui";
 
@@ -16,6 +16,8 @@ interface Props {
   raffle: Raffle;
   entries: RaffleEntry[];
   userName: string;
+  /** WhatsApp can be sent automatically; otherwise the team sends the winner notice by hand. */
+  canSend: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onOpenParticipant: (entryId: string) => void;
@@ -46,6 +48,7 @@ function Draw({
   raffle,
   entries,
   userName,
+  canSend,
   onOpenParticipant,
   onClose,
 }: Omit<Props, "open" | "onOpenChange"> & { onClose: () => void }) {
@@ -54,7 +57,7 @@ function Draw({
   const [step, setStep] = useState<"escolher" | "anunciar">(raffle.status === "sorteado" ? "anunciar" : "escolher");
   const [hist, setHist] = useState<DrawLogEntry[]>([]);
   const [out, setOut] = useState<Set<number>>(new Set());
-  const [avisos, setAvisos] = useState({ link: true, wpp: true, todos: false });
+  const [avisos, setAvisos] = useState({ link: true, wpp: canSend, todos: false });
   const [pending, startTransition] = useTransition();
 
   const owners = useMemo(() => {
@@ -123,11 +126,16 @@ function Draw({
   const winnerIg = (winner ?? who)?.instagram;
   const igText = `Temos ganhador(a)! O nº ${padNumber(winnerNum)} saiu${winnerIg ? ` para @${winnerIg}` : ""} no sorteio "${raffle.name}".\nObrigado a todo mundo que participou!`;
 
-  const AVISOS = [
+  const winnerEntry = winner ?? who;
+  const winnerMsg = `${firstName(winnerEntry?.name ?? winnerName)}, o nº ${padNumber(winnerNum)} foi sorteado e é seu! Você ganhou: ${raffle.prize}.${raffle.pickup ? ` ${raffle.pickup}.` : ""}`;
+
+  const ALL_AVISOS = [
     ["link", "Mostrar resultado no link", "Quem abrir o link vê o número e o nome abreviado"],
     ["wpp", "Avisar o ganhador no WhatsApp", "Mensagem pronta com como retirar o prêmio"],
     ["todos", "Avisar todos os participantes", "Todos que aceitaram o regulamento deste sorteio"],
   ] as const;
+  // Without a WhatsApp provider the two automatic notices don't exist; the team sends them by hand.
+  const AVISOS = canSend ? ALL_AVISOS : ALL_AVISOS.filter(([k]) => k === "link");
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
@@ -320,6 +328,30 @@ function Draw({
                 ))}
               </div>
             </section>
+
+            {!canSend && winnerEntry && (
+              <section>
+                <div className="mb-2 flex items-center">
+                  <h3 className="flex-1 text-[11px] font-bold uppercase tracking-[.4px] text-ink-soft">Avisar o ganhador</h3>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(winnerMsg).then(() => toast.success("Texto copiado."))}
+                    className="h-8 rounded-lg border border-border bg-white px-2.5 text-xs font-semibold"
+                  >
+                    Copiar
+                  </button>
+                </div>
+                <p className="rounded-xl border border-[#EEF3EA] bg-paper p-3.5 text-[13px] leading-relaxed">{winnerMsg}</p>
+                <a
+                  href={`https://wa.me/55${winnerEntry.phone}?text=${encodeURIComponent(winnerMsg)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2.5 flex h-11 items-center justify-center rounded-[11px] border border-border bg-white text-[13px] font-semibold"
+                >
+                  Abrir WhatsApp de {firstName(winnerEntry.name)}
+                </a>
+              </section>
+            )}
 
             <section>
               <div className="mb-2 flex items-center">
