@@ -24,13 +24,13 @@ function user(overrides: Partial<SessionUser> = {}): SessionUser {
   };
 }
 
-function renderSidebar(sessionUser: SessionUser) {
+function renderSidebar(sessionUser: SessionUser, sorteiosPendentes = 0) {
   return render(
     <SidebarContent
       user={sessionUser}
       store={store}
       stores={[store]}
-      badges={{ openOrders: 0, cartelasAtivas: 0, lowStock: 0 }}
+      badges={{ openOrders: 0, cartelasAtivas: 0, lowStock: 0, sorteiosPendentes }}
     />,
   );
 }
@@ -79,5 +79,23 @@ describe("SidebarContent — Configurações nav item", () => {
   it("is hidden for a funcionário (not a grantable section)", () => {
     renderSidebar(user({ sections: ["pedidos", "estoque", "financeiro"] }));
     expect(labels().some((t) => t.startsWith("Configurações"))).toBe(false);
+  });
+});
+
+describe("SidebarContent — Leads/Sorteios nav item", () => {
+  const labels = () =>
+    screen.getAllByRole("link").map((a) => a.textContent?.trim() ?? "");
+
+  it("shows for admins right after Clientes, with the pending count", () => {
+    renderSidebar(user({ role: "admin", storeIds: "all" }), 9);
+    const l = labels();
+    const idx = l.findIndex((t) => t.startsWith("Leads/Sorteios"));
+    expect(idx).toBe(l.findIndex((t) => t.startsWith("Clientes")) + 1);
+    expect(l[idx]).toContain("9");
+  });
+
+  it("is hidden for a funcionário (not a grantable section)", () => {
+    renderSidebar(user({ sections: ["pedidos", "clientes"] }), 9);
+    expect(labels().some((t) => t.startsWith("Leads/Sorteios"))).toBe(false);
   });
 });

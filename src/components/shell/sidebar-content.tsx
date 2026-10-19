@@ -168,7 +168,9 @@ export function SidebarContent({
               ? badges.openOrders
               : item.badge === "cartelasAtivas"
                 ? badges.cartelasAtivas
-                : 0;
+                : item.badge === "sorteiosPendentes"
+                  ? badges.sorteiosPendentes
+                  : 0;
           const showDot = item.dot === "lowStock" && badges.lowStock > 0;
           return (
             <Link

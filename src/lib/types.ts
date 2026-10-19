@@ -13,6 +13,7 @@ export const SECTIONS = [
   "cartelas",
   "shakes",
   "pudim",
+  "sorteios",
   "equipe",
   "configuracoes",
 ] as const;

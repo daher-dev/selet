@@ -10,6 +10,7 @@ import { AppShellProvider } from "./app-shell-context";
 
 /** Live nav counters computed cheaply in the layout server component. */
 export interface NavBadges {
+  sorteiosPendentes: number;
   openOrders: number;
   lowStock: number;
   cartelasAtivas: number;

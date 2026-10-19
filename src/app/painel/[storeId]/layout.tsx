@@ -9,6 +9,7 @@ import { listStoresForUser } from "@/data/stores";
 import { countOpenOrders } from "@/data/orders";
 import { countLowStock } from "@/data/stock";
 import { countCartelasAtivas } from "@/data/cartelas";
+import { countPendingEntries } from "@/data/raffles";
 import { readSummary } from "@/data/summary";
 import { getStockSettings } from "@/data/settings";
 import { StockSettingsProvider } from "@/components/stock-settings-context";
@@ -36,7 +37,7 @@ export default async function StoreLayout({
   // falling back to the aggregation queries when it's absent so the badges never
   // break. Gated by section access so members without a section pay for nothing.
   const summary = await readSummary(storeId);
-  const [stockSettings, openOrders, lowStock, cartelasAtivas] = await Promise.all([
+  const [stockSettings, openOrders, lowStock, cartelasAtivas, sorteiosPendentes] = await Promise.all([
     getStockSettings(storeId),
     !canAccessSection(user, "pedidos")
       ? Promise.resolve(0)
@@ -51,6 +52,9 @@ export default async function StoreLayout({
     !canAccessSection(user, "cartelas")
       ? Promise.resolve(0)
       : countCartelasAtivas(storeId),
+    !canAccessSection(user, "sorteios")
+      ? Promise.resolve(0)
+      : countPendingEntries(storeId),
   ]);
 
   return (
@@ -59,7 +63,7 @@ export default async function StoreLayout({
         user={user}
         store={store}
         stores={stores}
-        badges={{ openOrders, lowStock, cartelasAtivas }}
+        badges={{ openOrders, lowStock, cartelasAtivas, sorteiosPendentes }}
       >
         {children}
       </AppShell>

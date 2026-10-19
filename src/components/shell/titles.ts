@@ -15,6 +15,10 @@ const TITLES: Record<
     subtitle: "Acompanhe vendas do Instagram, WhatsApp e loja",
   },
   clientes: { title: "Clientes", subtitle: "Retenção, histórico e engajamento" },
+  sorteios: {
+    title: "Leads/Sorteios",
+    subtitle: "Um link público por sorteio; quem se cadastra vira lead",
+  },
   produtos: { title: "Cardápio", subtitle: "Itens à venda · revenda e menu" },
   shakes: {
     title: "Shakes",
