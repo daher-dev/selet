@@ -162,16 +162,22 @@ describe("display helpers", () => {
     expect(formatDrawAt("2026-10-30T22:30:00Z")).toBe("30/10 · 19h30");
   });
   it("generates the regulamento from raffle data", () => {
-    const text = buildRegulamento(raffle(), "Vila Velha/ES")
+    const text = buildRegulamento(raffle(), { name: "Vila Velha/ES" })
       .flatMap((s) => [s.title, ...s.lines])
       .join("\n");
     expect(text).toContain("de 1 a 200");
     expect(text).toContain("Seguir @selet.vv; Curtir o post");
     expect(text).toContain("Convidar alguém vale +1 número");
     expect(text).toContain("[RAZÃO SOCIAL]");
+    expect(text).toContain("fale com [CONTATO]");
+    expect(
+      buildRegulamento(raffle(), { name: "x", contact: "(27) 99999-0000" })
+        .flatMap((s) => s.lines)
+        .join("\n"),
+    ).toContain("fale com (27) 99999-0000");
     expect(text).not.toContain("Observações da loja");
     expect(
-      buildRegulamento(raffle({ notes: "Só maiores de 18" }), "x").at(-1)?.lines,
+      buildRegulamento(raffle({ notes: "Só maiores de 18" }), { name: "x", contact: "(27) 99999-0000" }).at(-1)?.lines,
     ).toEqual(["Só maiores de 18"]);
   });
 });

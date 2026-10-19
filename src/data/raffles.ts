@@ -209,6 +209,14 @@ export async function countPendingEntries(storeId: string): Promise<number> {
   return counts.reduce((a, b) => a + b, 0);
 }
 
+export async function countLeads(storeId: string): Promise<{ total: number; novos: number }> {
+  const [total, novos] = await Promise.all([
+    countWhere(leadsCol(storeId)),
+    countWhere(leadsCol(storeId).where("kind", "==", "novo")),
+  ]);
+  return { total, novos };
+}
+
 export interface LeadView extends Lead {
   /** Same WhatsApp already in Clientes (suggested link). */
   match: { id: string; name: string; orderCount: number; since: string } | null;
@@ -934,4 +942,13 @@ export async function getEntryByPhone(
 ): Promise<RaffleEntry | null> {
   const snap = await entriesCol(storeId).doc(entryId(raffleId, phone)).get();
   return snap.exists ? toEntry(snap.id, snap.data()!) : null;
+}
+
+/** Participants counted on the public result footer (excluded people don't count). */
+export async function countRaffleParticipants(storeId: string, raffleId: string): Promise<number> {
+  const all = await countWhere(entriesCol(storeId).where("raffleId", "==", raffleId));
+  const excl = await countWhere(
+    entriesCol(storeId).where("raffleId", "==", raffleId).where("status", "==", "excl"),
+  );
+  return all - excl;
 }

@@ -2,7 +2,7 @@
  * Sorteios (raffles): serialized types + pure rules shared by the admin UI,
  * the public link and the `server-only` data layer. Dates are ISO strings.
  */
-import { zonedParts } from "./timezone";
+import { zonedParts, zonedTimeToUtc } from "./timezone";
 
 export type RaffleStatus = "rascunho" | "aberto" | "encerrado" | "sorteado";
 export type RuleType = "obr" | "bonus";
@@ -321,6 +321,20 @@ export function formatDrawAt(iso: string): string {
   return `${formatDayMonth(iso)} · ${formatHour(iso)}`;
 }
 
+/** ISO instant → value of an <input type="datetime-local"> in store time. */
+export function isoToLocalInput(iso: string): string {
+  const p = zonedParts(new Date(iso));
+  const n = (v: number) => String(v).padStart(2, "0");
+  return `${p.year}-${n(p.month)}-${n(p.day)}T${n(p.hour)}:${n(p.minute)}`;
+}
+
+/** <input type="datetime-local"> value (store time) → ISO instant, or "" if incomplete. */
+export function localInputToIso(value: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!m) return "";
+  return zonedTimeToUtc(+m[1], +m[2], +m[3], +m[4], +m[5]).toISOString();
+}
+
 // ------------------------------------------------------------- slug/link ---
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -351,7 +365,10 @@ const fullDate = new Intl.DateTimeFormat("pt-BR", {
 });
 
 /** Regulamento generated from the raffle data (board 10b). */
-export function buildRegulamento(r: Raffle, storeCity: string): RegulamentoSection[] {
+export function buildRegulamento(
+  r: Raffle,
+  store: { name: string; contact?: string },
+): RegulamentoSection[] {
   const obr = obligatoryRules(r.rules);
   const bonus = r.rules.filter((x) => x.type === "bonus");
   const from = r.signupFrom ?? r.publishedAt ?? r.createdAt;
@@ -367,7 +384,7 @@ export function buildRegulamento(r: Raffle, storeCity: string): RegulamentoSecti
   const sections: RegulamentoSection[] = [
     {
       title: "Quem organiza",
-      lines: [`Selet, ${LEGAL_PLACEHOLDERS.organizer}, ${storeCity}.`, LEGAL_PLACEHOLDERS.certificate],
+      lines: [`Selet, ${LEGAL_PLACEHOLDERS.organizer}, ${store.name}.`, LEGAL_PLACEHOLDERS.certificate],
     },
     {
       title: "Período",
@@ -397,7 +414,7 @@ export function buildRegulamento(r: Raffle, storeCity: string): RegulamentoSecti
     {
       title: "Seus dados",
       lines: [
-        `Usamos nome, WhatsApp${r.fields.instagram ? " e Instagram" : ""} para conferir as regras e avisar o resultado. Novidades só para quem marcou a opção. Para corrigir ou apagar seus dados, fale com ${LEGAL_PLACEHOLDERS.contact}.`,
+        `Usamos nome, WhatsApp${r.fields.instagram ? " e Instagram" : ""} para conferir as regras e avisar o resultado. Novidades só para quem marcou a opção. Para corrigir ou apagar seus dados, fale com ${store.contact || LEGAL_PLACEHOLDERS.contact}.`,
       ],
     },
   ];

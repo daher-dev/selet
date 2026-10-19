@@ -42,7 +42,7 @@ const raffleSchema = z.object({
   signupUntil: dateTime,
   drawAt: dateTime,
   numberFrom: z.number().int().min(1, "A faixa começa em 1 ou mais."),
-  numberTo: z.number().int().max(10_000, "No máximo 10.000 números."),
+  numberTo: z.number().int().max(1000, "No máximo 1.000 números."),
   perPerson: z.number().int().min(1).max(MAX_PER_PERSON),
   rules: z.array(ruleSchema).max(12),
   fields: z.object({
@@ -70,6 +70,11 @@ async function run<T extends object>(fn: () => Promise<T | void>): Promise<Resul
 /** One call refreshes the lists, the detail pages and the nav badge. */
 function refresh(storeId: string) {
   revalidatePath(`/painel/${storeId}`, "layout");
+}
+
+/** Who did it, as shown on the ficha ("Liberado por Ana Costa"). */
+function byName(user: { name: string; email: string }) {
+  return user.name || user.email;
 }
 
 async function access(storeId: string) {
@@ -155,7 +160,7 @@ export async function waiveRuleAction(
 ): Promise<Result> {
   return run(async () => {
     const user = await access(storeId);
-    await waiveRule(storeId, entryId, ruleId, reasonSchema.parse(reason), user.email);
+    await waiveRule(storeId, entryId, ruleId, reasonSchema.parse(reason), byName(user));
     refresh(storeId);
   });
 }
@@ -169,7 +174,7 @@ export async function grantExtraAction(
   return run(async () => {
     const user = await access(storeId);
     const n = z.number().int().min(1).max(5).parse(count);
-    await grantExtraNumbers(storeId, entryId, n, reasonSchema.parse(reason), user.email);
+    await grantExtraNumbers(storeId, entryId, n, reasonSchema.parse(reason), byName(user));
     refresh(storeId);
   });
 }
@@ -181,7 +186,7 @@ export async function pickForEntryAction(
 ): Promise<Result<{ taken: number }>> {
   try {
     const user = await access(storeId);
-    await pickSlotNumbersAdmin(storeId, entryId, picks, user.email);
+    await pickSlotNumbersAdmin(storeId, entryId, picks, byName(user));
     refresh(storeId);
     return { ok: true };
   } catch (err) {
@@ -267,7 +272,7 @@ export async function confirmWinnerAction(
 ): Promise<Result> {
   return run(async () => {
     const user = await access(storeId);
-    await confirmWinner(storeId, raffleId, z.number().int().parse(n), historySchema.parse(history), user.email);
+    await confirmWinner(storeId, raffleId, z.number().int().parse(n), historySchema.parse(history), byName(user));
     await logActivity(storeId, {
       icon: "gift",
       label: `Confirmou o ganhador do sorteio (nº ${n})`,
