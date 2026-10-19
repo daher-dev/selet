@@ -33,7 +33,7 @@ function randomIndex(n: number): number {
 export function DrawSheet({ open, onOpenChange, ...rest }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full gap-0 overflow-hidden p-0 sm:max-w-[480px]" showCloseButton={false}>
+      <SheetContent side="right" className="w-full gap-0 overflow-hidden p-0 data-[side=right]:sm:max-w-[480px]" showCloseButton={false}>
         <SheetTitle className="sr-only">Realizar sorteio</SheetTitle>
         {open && <Draw key={rest.raffle.id} {...rest} onClose={() => onOpenChange(false)} />}
       </SheetContent>
@@ -150,7 +150,7 @@ function Draw({
 
       {step === "escolher" ? (
         <>
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-[22px] py-5">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-[22px] py-5 [&>*]:shrink-0">
             <p className="rounded-[11px] bg-[#F2F8EF] px-3.5 py-3 text-[13px] text-[#37543F]">
               Concorrem <strong>{okNumbers.length} números</strong> de <strong>{okEntries.length} participantes validados</strong>.{" "}
               {pendingCount > 0 && `${pendingCount} ainda ${pendingCount === 1 ? "está" : "estão"} a conferir.`}
@@ -290,7 +290,7 @@ function Draw({
         </>
       ) : (
         <>
-          <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-[22px] py-5">
+          <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-[22px] py-5 [&>*]:shrink-0">
             <div className="flex items-center gap-4 rounded-2xl bg-primary p-[18px] text-white">
               <span className="tabular flex size-[72px] shrink-0 items-center justify-center rounded-full bg-white text-[30px] font-bold text-primary">
                 {winnerNum}

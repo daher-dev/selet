@@ -498,7 +498,7 @@ export function PublicFlow({
         bonus: false,
       },
       ...obr.map((r, i) => ({ n: String(3 + i), text: r.text, bonus: false })),
-      ...bonus.map((r) => ({ n: "+", text: `Bônus: ${r.text} e ganhe mais 1 número`, bonus: true })),
+      ...bonus.map((r) => ({ n: "+", text: `Bônus: ${r.text.charAt(0).toLowerCase()}${r.text.slice(1)} e ganhe mais 1 número`, bonus: true })),
     ];
     return shell(
       <>

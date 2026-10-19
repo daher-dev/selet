@@ -48,7 +48,7 @@ interface Props {
 export function ParticipantSheet({ entry, onClose, ...rest }: Props) {
   return (
     <Sheet open={!!entry} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="right" className="w-full gap-0 overflow-hidden p-0 sm:max-w-[440px]" showCloseButton={false}>
+      <SheetContent side="right" className="w-full gap-0 overflow-hidden p-0 data-[side=right]:sm:max-w-[440px]" showCloseButton={false}>
         <SheetTitle className="sr-only">{entry?.name ?? "Participante"}</SheetTitle>
         {entry && <Ficha key={entry.id} entry={entry} onClose={onClose} {...rest} />}
       </SheetContent>
@@ -65,6 +65,9 @@ function InstagramIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** A number's date, tolerating a missing/invalid one instead of crashing the ficha. */
+const dateOrEmpty = (iso: string) => (Number.isNaN(Date.parse(iso)) ? "" : formatDate(iso));
 
 const H3 = "mb-2.5 text-[11px] font-bold uppercase tracking-[.4px] text-ink-soft";
 
@@ -165,7 +168,7 @@ function Ficha({
         </button>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-[22px] py-5">
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-[22px] py-5 [&>*]:shrink-0">
         <div className="flex flex-col gap-px overflow-hidden rounded-xl border border-[#EEF3EA] bg-[#F0F4ED]">
           <div className="flex items-center gap-[11px] bg-white px-3.5 py-[11px]">
             <MessageCircle className="size-4 text-[#2E7D4A]" />
@@ -237,7 +240,7 @@ function Ficha({
                     </span>
                     <span className="block text-[11.5px] text-ink-soft">
                       {extra
-                        ? `Liberado${n.by ? ` por ${n.by}` : ""} · ${formatDate(n.at)}`
+                        ? `Liberado${n.by ? ` por ${n.by}` : ""}${dateOrEmpty(n.at) ? ` · ${dateOrEmpty(n.at)}` : ""}`
                         : bonus
                           ? "Escolhido depois de conferido"
                           : "Número do cadastro"}

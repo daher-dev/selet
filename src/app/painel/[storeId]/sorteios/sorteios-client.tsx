@@ -8,6 +8,7 @@ import { publishRaffleAction } from "@/actions/raffles";
 import { usePageAction } from "@/components/shell/app-shell-context";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
+  formatDayMonth,
   formatDrawAt,
   obligatoryRules,
   totalNumbers,
@@ -57,7 +58,7 @@ export function SorteiosClient({ storeId, raffles, leadCounts, origin }: Props) 
 
   return (
     <div className="flex flex-col gap-[18px]">
-      <SorteiosTabs storeId={storeId} active="sorteios" sorteios={raffles.length} novos={leadCounts.novos} />
+      <SorteiosTabs storeId={storeId} active="sorteios" sorteios={raffles.length} novos={leadCounts.novos} leadsTotal={leadCounts.total} />
 
       {raffles.length === 0 ? (
         <EmptyState
@@ -87,21 +88,37 @@ export function SorteiosClient({ storeId, raffles, leadCounts, origin }: Props) 
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 min-[820px]:grid-cols-2">
-          {raffles.map((r) => (
-            <RaffleCard
-              key={r.id}
-              raffle={r}
-              storeId={storeId}
-              origin={origin}
-              onEdit={() => {
-                setEditing(r);
-                setFormOpen(true);
-              }}
-              onPublish={() => setToPublish(r)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="hidden grid-cols-2 gap-4 min-[820px]:grid">
+            {raffles.map((r) => (
+              <RaffleCard
+                key={r.id}
+                raffle={r}
+                storeId={storeId}
+                origin={origin}
+                onEdit={() => {
+                  setEditing(r);
+                  setFormOpen(true);
+                }}
+                onPublish={() => setToPublish(r)}
+              />
+            ))}
+          </div>
+          <div className="flex flex-col gap-3 min-[820px]:hidden">
+            {raffles.map((r) => (
+              <RaffleCardMobile
+                key={r.id}
+                raffle={r}
+                storeId={storeId}
+                origin={origin}
+                onEdit={() => {
+                  setEditing(r);
+                  setFormOpen(true);
+                }}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       <RaffleFormSheet
@@ -264,6 +281,68 @@ function RaffleCard({
           </button>
           <button type="button" onClick={() => shareLink(origin, r.slug, r.name)} className={BTN_PRIMARY}>
             <Share2 className="size-3.5" />
+            Compartilhar
+          </button>
+        </div>
+      )}
+    </article>
+  );
+}
+
+/** Compact card for phones (board 11b): one info line, link + share within thumb reach. */
+function RaffleCardMobile({
+  raffle: r,
+  storeId,
+  origin,
+  onEdit,
+}: {
+  raffle: RaffleSummary;
+  storeId: string;
+  origin: string;
+  onEdit: () => void;
+}) {
+  const st = RAFFLE_STATUS[r.status];
+  const detail = `/painel/${storeId}/sorteios/${r.id}`;
+  const draft = r.status === "rascunho";
+  const live = r.status === "aberto" || r.status === "encerrado";
+  const info = draft
+    ? `${r.numberFrom} a ${r.numberTo} · ${obligatoryRules(r.rules).length} regras obrigatórias, ${r.rules.length - obligatoryRules(r.rules).length} bônus`
+    : r.status === "sorteado" && r.winner
+      ? `Nº ${r.winner.number} · ${r.winner.name} · ${r.entryCount} participantes`
+      : `${r.numberCount} de ${totalNumbers(r)} números · ${r.entryCount} participantes`;
+  return (
+    <article className="rounded-2xl border border-border bg-white px-3.5 py-3.5">
+      <div className="flex items-center gap-2">
+        <Pill tone={st.tone} dot={st.dot}>
+          {st.label}
+        </Pill>
+        <span className="flex-1" />
+        <span className="text-xs text-ink-soft">
+          {r.status === "sorteado" ? formatDayMonth(r.drawAt) : formatDrawAt(r.drawAt)}
+        </span>
+      </div>
+      <Link
+        href={draft ? "#" : detail}
+        onClick={draft ? (e) => (e.preventDefault(), onEdit()) : undefined}
+        className="mt-2 block text-[17px] font-bold text-ink"
+      >
+        {r.name}
+      </Link>
+      <p className="mt-0.5 text-[13px] text-ink-soft">{info}</p>
+      {live && r.pendingCount > 0 && (
+        <Link
+          href={detail}
+          className="mt-2.5 block rounded-lg bg-[#FBF1DC] px-3 py-2 text-[12.5px] font-semibold text-[#8A5A0F]"
+        >
+          {r.pendingCount} aguardando conferência
+        </Link>
+      )}
+      {live && (
+        <div className="mt-3 flex gap-2.5">
+          <button type="button" onClick={() => copyLink(origin, r.slug)} className="h-11 flex-1 rounded-[11px] border border-border bg-white text-[13px] font-semibold">
+            Copiar link
+          </button>
+          <button type="button" onClick={() => shareLink(origin, r.slug, r.name)} className="h-11 flex-1 rounded-[11px] bg-primary text-[13px] font-semibold text-white">
             Compartilhar
           </button>
         </div>

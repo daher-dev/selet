@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, Menu, Plus, Search } from "lucide-react";
 import type { Store } from "@/lib/types";
 import { pageMeta, segmentFromPathname } from "./titles";
+import { cn } from "@/lib/utils";
 import { useShellState } from "./app-shell-context";
 
 /**
@@ -48,7 +49,7 @@ export function ShellHeader({
       </div>
 
       {/* Global search — desktop only. Estoque has its own "Buscar item…" and its header carries two actions. */}
-      {segment !== "estoque" && (
+      {segment !== "estoque" && segment !== "sorteios" && (
         <label className="hidden h-[38px] w-[240px] items-center gap-2 rounded-[10px] border border-border bg-surface px-3 min-[820px]:flex">
           <Search
             className="size-[15px] shrink-0 text-ink-faint"
@@ -84,9 +85,18 @@ export function ShellHeader({
           type="button"
           onClick={action.onClick}
           aria-label={action.label}
-          className="flex h-[38px] w-[38px] shrink-0 items-center justify-center gap-1.5 rounded-[10px] bg-primary px-0 text-[13px] font-semibold text-white shadow-[0_2px_6px_-2px_rgba(24,107,65,0.47)] transition-[transform,box-shadow,filter] hover:-translate-y-0.5 hover:shadow-[0_9px_20px_-8px_rgba(24,107,65,0.6)] hover:brightness-105 active:translate-y-0 active:scale-95 min-[820px]:w-auto min-[820px]:px-[18px]"
+          className={cn(
+            "flex h-[38px] w-[38px] shrink-0 items-center justify-center gap-1.5 rounded-[10px] px-0 text-[13px] font-semibold transition-[transform,box-shadow,filter] min-[820px]:w-auto min-[820px]:px-[18px]",
+            action.quiet
+              ? "border border-border bg-white text-ink hover:bg-mist"
+              : "bg-primary text-white shadow-[0_2px_6px_-2px_rgba(24,107,65,0.47)] hover:-translate-y-0.5 hover:shadow-[0_9px_20px_-8px_rgba(24,107,65,0.6)] hover:brightness-105 active:translate-y-0 active:scale-95",
+          )}
         >
-          <Plus className="size-[15px] shrink-0" strokeWidth={2.2} />
+          {action.icon ? (
+            <action.icon className="size-[15px] shrink-0" strokeWidth={2.2} />
+          ) : (
+            <Plus className="size-[15px] shrink-0" strokeWidth={2.2} />
+          )}
           <span className="hidden min-[820px]:inline">{action.label}</span>
         </button>
       )}

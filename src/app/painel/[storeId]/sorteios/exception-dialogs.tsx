@@ -202,14 +202,18 @@ function ExtraForm({
         ))}
       </fieldset>
 
-      <Stamp by={by} />
-      <Actions
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <Stamp by={by} />
+        </div>
+        <Actions
         cta="Liberar número"
         pending={pending}
         disabled={reason.trim().length < 3}
         onCancel={onCancel}
         onConfirm={() => onConfirm({ count, reason: reason.trim(), chooser })}
       />
+      </div>
     </div>
   );
 }
@@ -329,8 +333,11 @@ function WaiveForm({
           Com isso, {firstName(entry.name)} passa a Validada.
         </p>
       )}
-      <Stamp by={by} />
-      <Actions
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <Stamp by={by} />
+        </div>
+        <Actions
         cta="Dispensar"
         tone="amber"
         pending={pending}
@@ -338,6 +345,7 @@ function WaiveForm({
         onCancel={onCancel}
         onConfirm={() => onConfirm({ ruleId, reason: reason.trim() })}
       />
+      </div>
     </div>
   );
 }

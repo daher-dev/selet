@@ -6,11 +6,11 @@ import { Download, Search, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { convertLeadAction, linkLeadAction } from "@/actions/raffles";
 import { CustomerPicker } from "@/components/customer-picker";
-import { usePageHeader } from "@/components/shell/app-shell-context";
+import { usePageAction, usePageHeader } from "@/components/shell/app-shell-context";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { formatDateShort, formatRelative, initials } from "@/lib/format";
-import { formatPhone, type LeadKind } from "@/lib/raffles";
+import { formatDateShort, initials } from "@/lib/format";
+import { formatPhone, formatWhen, type LeadKind } from "@/lib/raffles";
 import type { LeadView } from "@/data/raffles";
 import type { Customer } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -28,9 +28,9 @@ interface Props {
   raffleFilterName: string | null;
 }
 
-const ROW_COLS = "minmax(0,1fr) 210px 110px 200px 190px";
+const ROW_COLS = "minmax(0,1fr) 210px 100px 190px 250px";
 const BTN =
-  "flex h-11 items-center rounded-[9px] border border-border bg-white px-[11px] text-xs font-semibold text-ink min-[820px]:h-[34px] disabled:opacity-60";
+  "flex h-11 items-center whitespace-nowrap rounded-[9px] border border-border bg-white px-[11px] text-xs font-semibold text-ink min-[820px]:h-[34px] disabled:opacity-60";
 
 function csvCell(v: string): string {
   return /[";\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
@@ -44,6 +44,13 @@ export function LeadsClient({ storeId, leads, customers, raffleCount, novos, raf
   usePageHeader({
     title: "Leads/Sorteios",
     subtitle: "Um lead por WhatsApp, mesmo que participe de vários sorteios",
+  });
+
+  usePageAction({
+    label: "Exportar contatos",
+    icon: Download,
+    quiet: true,
+    onClick: () => (rows.length ? exportCsv() : toast.error("Nenhum lead para exportar.")),
   });
 
   const scoped = useMemo(
@@ -109,6 +116,36 @@ export function LeadsClient({ storeId, leads, customers, raffleCount, novos, raf
     ["cli", `Viraram cliente · ${counts.cli}`],
   ];
 
+  /** One main action per lead on phones (board 11c). */
+  function mobileAction(l: LeadView) {
+    const cls = "flex h-11 min-w-[72px] items-center justify-center rounded-[10px] border px-3 text-[13px] font-bold disabled:opacity-60";
+    if (l.kind !== "novo") {
+      return (
+        <Link href={`/painel/${storeId}/clientes`} className={cn(cls, "border-border bg-white")}>
+          Cliente
+        </Link>
+      );
+    }
+    if (l.match) {
+      return (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(() => linkLeadAction(storeId, l.id, l.match!.id), "Lead vinculado ao cliente.")}
+          className={cn(cls, "border-[#2B5F86] bg-[#2B5F86] text-white")}
+        >
+          Vincular
+        </button>
+      );
+    }
+    const last = l.raffleIds[l.raffleIds.length - 1];
+    return (
+      <Link href={`/painel/${storeId}/sorteios/${last}?p=${last}_${l.phone}`} className={cn(cls, "border-border bg-white")}>
+        Abrir
+      </Link>
+    );
+  }
+
   function actions(l: LeadView) {
     if (l.kind !== "novo") {
       return (
@@ -146,7 +183,7 @@ export function LeadsClient({ storeId, leads, customers, raffleCount, novos, raf
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2.5">
-        <SorteiosTabs storeId={storeId} active="leads" sorteios={raffleCount} novos={novos} />
+        <SorteiosTabs storeId={storeId} active="leads" sorteios={raffleCount} novos={novos} leadsTotal={leads.length} />
         <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-border bg-white px-[13px] min-[560px]:w-[250px]">
           <Search className="size-[15px] shrink-0 text-ink-soft" />
           <input
@@ -174,15 +211,6 @@ export function LeadsClient({ storeId, leads, customers, raffleCount, novos, raf
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={exportCsv}
-          disabled={rows.length === 0}
-          className="flex h-10 items-center gap-[7px] rounded-[10px] border border-border bg-white px-3.5 text-[13px] font-semibold disabled:opacity-50"
-        >
-          <Download className="size-3.5" />
-          Exportar contatos
-        </button>
       </div>
 
       {raffleFilter && (
@@ -234,7 +262,7 @@ export function LeadsClient({ storeId, leads, customers, raffleCount, novos, raf
               >
                 <Person lead={l} />
                 <span className="text-[12.5px] leading-snug text-[#3D4A42]">{sorteiosText(l)}</span>
-                <span className="text-[12.5px] text-ink-soft">{formatRelative(l.lastAt)}</span>
+                <span className="text-[12.5px] text-ink-soft">{whenWord(l.lastAt)}</span>
                 <Situation lead={l} />
                 <span className="flex justify-end gap-1.5">{actions(l)}</span>
               </div>
@@ -242,17 +270,23 @@ export function LeadsClient({ storeId, leads, customers, raffleCount, novos, raf
             <div className="px-5 py-3 text-xs text-ink-soft">Mostrando {rows.length} · mais recentes primeiro</div>
           </div>
 
-          <ul className="flex flex-col gap-3 min-[820px]:hidden">
+          <ul className="flex flex-col gap-2.5 min-[820px]:hidden">
             {rows.map((l) => (
-              <li key={l.id} className="rounded-2xl border border-border bg-white p-3.5">
-                <div className="flex items-start gap-3">
-                  <Person lead={l} />
-                  <Situation lead={l} compact />
-                </div>
-                <p className="mt-2 text-[12px] text-ink-soft">
-                  {formatRelative(l.lastAt)} · {sorteiosText(l)}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">{actions(l)}</div>
+              <li key={l.id} className="flex items-center gap-3 rounded-[14px] border border-border bg-white px-3 py-3">
+                <span
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
+                  style={avatarColors(l.name)}
+                >
+                  {initials(l.name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] font-bold">{l.name}</span>
+                  <span className="block truncate text-[12.5px] text-ink-soft">{mobileSub(l)}</span>
+                  <span className="mt-1 block">
+                    <Pill tone={LEAD_STATUS[l.kind].tone}>{LEAD_STATUS[l.kind].label}</Pill>
+                  </span>
+                </span>
+                {mobileAction(l)}
               </li>
             ))}
           </ul>
@@ -260,6 +294,22 @@ export function LeadsClient({ storeId, leads, customers, raffleCount, novos, raf
       )}
     </div>
   );
+}
+
+/** "Hoje" · "Ontem" · "17/10" */
+function whenWord(iso: string): string {
+  const w = formatWhen(iso);
+  return w.startsWith("hoje") ? "Hoje" : w === "ontem" ? "Ontem" : w;
+}
+
+function mobileSub(l: LeadView): string {
+  const when = whenWord(l.lastAt);
+  if (l.kind === "novo") {
+    if (l.match) return `${when} · parece com ${l.match.name}`;
+    return `${when} · ${l.raffleNames.length > 1 ? `${l.raffleNames.length} sorteios` : (l.raffleNames[0] ?? "")}`;
+  }
+  if (l.match && l.kind === "cli") return `${when} · ${l.match.orderCount} ${l.match.orderCount === 1 ? "pedido" : "pedidos"}`;
+  return `${when} · ${l.match ? `cliente desde ${new Date(l.match.since).getFullYear()}` : "cliente"}`;
 }
 
 function sorteiosText(l: LeadView): string {
@@ -277,7 +327,7 @@ function Person({ lead: l }: { lead: LeadView }) {
       </span>
       <span className="min-w-0">
         <span className="block truncate text-[13.5px] font-semibold">{l.name}</span>
-        <span className="block truncate text-[11.5px] text-ink-soft">
+        <span className="block text-[11.5px] leading-snug text-ink-soft [overflow-wrap:anywhere]">
           {formatPhone(l.phone)}
           {l.instagram && ` · @${l.instagram}`}
         </span>

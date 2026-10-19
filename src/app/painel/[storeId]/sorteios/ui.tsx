@@ -110,11 +110,13 @@ export function SorteiosTabs({
   active,
   sorteios,
   novos,
+  leadsTotal,
 }: {
   storeId: string;
   active: "sorteios" | "leads";
   sorteios: number;
   novos: number;
+  leadsTotal: number;
 }) {
   const base = `/painel/${storeId}/sorteios`;
   const tab = (on: boolean) =>
@@ -132,15 +134,14 @@ export function SorteiosTabs({
       </Link>
       <Link href={`${base}/leads`} aria-current={active === "leads" ? "page" : undefined} className={tab(active === "leads")}>
         Leads
-        {novos > 0 && (
-          <span
-            className={cn(
-              "rounded-full px-[7px] text-[10px] font-bold",
-              active === "leads" ? "bg-white/20 text-white" : "bg-[#F6EAC6] text-[#8A6312]",
-            )}
-          >
-            {novos} {novos === 1 ? "novo" : "novos"}
-          </span>
+        {active === "leads" ? (
+          <span className="text-[11px] opacity-75">{leadsTotal}</span>
+        ) : (
+          novos > 0 && (
+            <span className="rounded-full bg-[#F6EAC6] px-[7px] text-[10px] font-bold text-[#8A6312]">
+              {novos} {novos === 1 ? "novo" : "novos"}
+            </span>
+          )
         )}
       </Link>
     </nav>

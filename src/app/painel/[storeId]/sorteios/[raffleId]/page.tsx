@@ -7,10 +7,13 @@ import { RaffleDetailClient } from "./raffle-detail-client";
 
 export default async function RaffleDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ storeId: string; raffleId: string }>;
+  searchParams: Promise<{ p?: string }>;
 }) {
   const { storeId, raffleId } = await params;
+  const { p } = await searchParams;
   const user = await requireAccess(storeId, "sorteios");
 
   const raffle = await getRaffle(storeId, raffleId);
@@ -30,6 +33,7 @@ export default async function RaffleDetailPage({
       customers={customers}
       origin={origin}
       userName={user.name || user.email}
+      initialSelectedId={p ?? null}
     />
   );
 }

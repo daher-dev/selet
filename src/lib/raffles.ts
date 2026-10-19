@@ -316,6 +316,22 @@ export function formatHour(iso: string): string {
   return minute ? `${hour}h${String(minute).padStart(2, "0")}` : `${hour}h`;
 }
 
+const dayIndex = (d: Date) => {
+  const p = zonedParts(d);
+  return Date.UTC(p.year, p.month - 1, p.day) / 86_400_000;
+};
+
+/** "hoje 10:12" · "ontem" · "17/10" (store time). */
+export function formatWhen(iso: string, now: Date = new Date()): string {
+  const then = new Date(iso);
+  const days = dayIndex(now) - dayIndex(then);
+  if (days === 0) {
+    const p = zonedParts(then);
+    return `hoje ${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
+  }
+  return days === 1 ? "ontem" : formatDayMonth(iso);
+}
+
 /** "30/10 · 19h" */
 export function formatDrawAt(iso: string): string {
   return `${formatDayMonth(iso)} · ${formatHour(iso)}`;

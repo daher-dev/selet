@@ -24,7 +24,7 @@ test("full flow: login → product → customer → order → paid → dashboard
 
   // Landing redirects into the store dashboard.
   await page.goto("/");
-  await expect(page).toHaveURL(/\/s\/vila-velha$/);
+  await expect(page).toHaveURL(/\/painel\/vila-velha$/);
 
   // --- Stock item: a fresh store has no Estoque yet, and a menu product
   // now requires its base recipe to link to a real insumo ("no catalog

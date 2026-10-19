@@ -4,6 +4,7 @@ import {
   buildRegulamento,
   deriveStatus,
   formatDrawAt,
+  formatWhen,
   linkState,
   maskWhatsapp,
   missingBonusSlots,
@@ -160,6 +161,14 @@ describe("display helpers", () => {
   it("formats the draw date in store time", () => {
     expect(formatDrawAt("2026-10-30T22:00:00Z")).toBe("30/10 · 19h");
     expect(formatDrawAt("2026-10-30T22:30:00Z")).toBe("30/10 · 19h30");
+  });
+  it("labels sign-up times relative to today in store time", () => {
+    const now = new Date("2026-10-19T15:00:00-03:00");
+    expect(formatWhen("2026-10-19T10:12:00-03:00", now)).toBe("hoje 10:12");
+    expect(formatWhen("2026-10-18T23:59:00-03:00", now)).toBe("ontem");
+    expect(formatWhen("2026-10-17T09:00:00-03:00", now)).toBe("17/10");
+    // 01:00 UTC on the 20th is still the 19th in Brazil
+    expect(formatWhen("2026-10-20T01:00:00Z", now)).toBe("hoje 22:00");
   });
   it("generates the regulamento from raffle data", () => {
     const text = buildRegulamento(raffle(), { name: "Vila Velha/ES" })

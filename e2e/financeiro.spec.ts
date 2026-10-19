@@ -110,9 +110,9 @@ test("Movimentações: dashboard link, create/edit avulso, follow a vinculado Or
   await orderRow.click();
   await expect(txSheet.getByText("Lançamento vinculado")).toBeVisible();
   await txSheet.getByRole("link").click();
-  await expect(page).toHaveURL(/\/s\/vila-velha\/pedidos\?order=/);
+  await expect(page).toHaveURL(/\/painel\/vila-velha\/pedidos\?order=/);
   // The origin order's sheet auto-opens on arrival.
   await expect(orderSheet.getByText("Carla Mendes")).toBeVisible();
   // The deep-link query param is stripped after opening (no reopen on refresh).
-  await expect(page).toHaveURL(/\/s\/vila-velha\/pedidos$/);
+  await expect(page).toHaveURL(/\/painel\/vila-velha\/pedidos$/);
 });

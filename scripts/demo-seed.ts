@@ -15,6 +15,7 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
 import { refreshStoreSummary } from "./lib/summary";
+import { seedSorteios } from "./lib/sorteios-demo";
 
 const PROJECT = "selet-prod";
 const STORE_IDS = ["vila-velha", "passos"] as const;
@@ -842,6 +843,7 @@ async function seedStore(db: Firestore, storeId: StoreId) {
     await seedCartelas(store, customers);
     await seedShakeCatalog(store);
     await seedPerUnitStock(store);
+    await seedSorteios(db, storeId);
   }
 
   // Backfill the pre-computed summary now that all orders/finance/stock docs for

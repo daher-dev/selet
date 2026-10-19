@@ -29,6 +29,7 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { linkLabel } from "./ui";
 
 const FIELD_CLASS = "h-[42px] rounded-[10px] border-[#DDE6DA] bg-white px-3 text-sm";
+const DATE_CLASS = "h-[42px] rounded-[10px] border-[#DDE6DA] bg-white px-2.5 text-[13px]";
 const LABEL_CLASS = "flex flex-col gap-1.5 text-xs font-semibold text-[#3D4A42]";
 const H3_CLASS = "text-[11px] font-bold uppercase tracking-[.4px] text-ink-soft";
 
@@ -51,11 +52,11 @@ interface Props {
 export function RaffleFormSheet({ open, onOpenChange, ...rest }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full gap-0 overflow-hidden sm:max-w-[480px]">
+      <SheetContent side="right" className="w-full gap-0 overflow-hidden data-[side=right]:sm:max-w-[480px]">
         <SheetHeader className="border-b border-border">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-leaf">
-            {rest.raffle ? "Editar sorteio" : "Novo sorteio"}
-          </p>
+          {rest.raffle && (
+            <p className="text-[11px] font-bold uppercase tracking-wide text-leaf">Editar sorteio</p>
+          )}
           <SheetTitle className="text-[19px] font-bold">
             {rest.raffle ? rest.raffle.name : "Novo sorteio"}
           </SheetTitle>
@@ -184,7 +185,7 @@ function RaffleForm({
               Inscrições até
               <Input
                 type="datetime-local"
-                className={cn(FIELD_CLASS, "tabular")}
+                className={cn(DATE_CLASS, "tabular")}
                 value={signupUntil}
                 onChange={(e) => setSignupUntil(e.target.value)}
               />
@@ -193,7 +194,7 @@ function RaffleForm({
               Data do sorteio
               <Input
                 type="datetime-local"
-                className={cn(FIELD_CLASS, "tabular")}
+                className={cn(DATE_CLASS, "tabular")}
                 value={drawAt}
                 onChange={(e) => setDrawAt(e.target.value)}
               />

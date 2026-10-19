@@ -6,10 +6,11 @@ import { Check, ChevronLeft, Link2, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { setRuleCheckAction, setSignupsOpenAction } from "@/actions/raffles";
 import { usePageAction, usePageHeader } from "@/components/shell/app-shell-context";
-import { formatDate, initials } from "@/lib/format";
+import { initials } from "@/lib/format";
 import {
   formatDayMonth,
   formatHour,
+  formatWhen,
   missingRules,
   padNumber,
   totalNumbers,
@@ -34,6 +35,7 @@ interface Props {
   customers: Customer[];
   origin: string;
   userName: string;
+  initialSelectedId?: string | null;
 }
 
 const OUTLINE_BTN =
@@ -52,10 +54,10 @@ function rowNote(raffle: Raffle, e: RaffleEntry): string {
   return miss ? `Falta ${miss} ${miss > 1 ? "regras" : "regra"}` : "";
 }
 
-export function RaffleDetailClient({ storeId, raffle, entries, customers, origin, userName }: Props) {
+export function RaffleDetailClient({ storeId, raffle, entries, customers, origin, userName, initialSelectedId = null }: Props) {
   const [tab, setTab] = useState<"part" | "num">("part");
   const [filter, setFilter] = useState<Filter>("todos");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
   const [editOpen, setEditOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
   const [confirm, setConfirm] = useState<"encerrar" | null>(null);
@@ -81,7 +83,7 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
   const selected = entries.find((e) => e.id === selectedId) ?? null;
   const canDraw = raffle.status === "aberto" || raffle.status === "encerrado";
 
-  const gridCols = `minmax(0,1fr) 150px ${rules.map((r) => (r.type === "bonus" ? "108px" : "84px")).join(" ")} 150px`;
+  const gridCols = `minmax(0,1fr) 150px ${rules.map((r) => (r.type === "bonus" ? "120px" : "96px")).join(" ")} 150px`;
 
   function toggle(e: RaffleEntry, r: RaffleRule) {
     startTransition(async () => {
@@ -161,7 +163,7 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
           <button
             type="button"
             onClick={() => setDrawOpen(true)}
-            className="flex h-10 items-center rounded-[10px] bg-primary px-3.5 text-[13px] font-bold text-white"
+            className="hidden h-10 items-center rounded-[10px] bg-primary px-3.5 text-[13px] font-bold text-white min-[820px]:flex"
           >
             Realizar sorteio
           </button>
@@ -180,7 +182,7 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 min-[820px]:grid-cols-4">
+      <div className="hidden grid-cols-4 gap-3 min-[820px]:grid">
         <Stat label="Participantes" value={String(counts.todos)} />
         <Stat label="Validados" value={String(counts.ok)} valueClass="text-[#2E7D4A]" />
         <Stat
@@ -262,7 +264,7 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
                     className={cn("text-center leading-[1.3]", r.type === "bonus" && "text-[#8A6312]")}
                     title={r.text}
                   >
-                    <span className="line-clamp-2">{r.text}</span>
+                    <span className="line-clamp-3">{r.text}</span>
                     {r.type === "bonus" && <span className="block">+1 número</span>}
                   </span>
                 ))}
@@ -300,7 +302,7 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
                   className={cn("rounded-2xl border border-border bg-white p-3.5", e.status === "excl" && "opacity-60")}
                 >
                   <div className="flex items-center gap-3">
-                    <PersonCell entry={e} onOpen={() => setSelectedId(e.id)} sub={`nº ${e.numbers.map((n) => padNumber(n.n)).join(", ") || "—"}`} />
+                    <PersonCell entry={e} tag={false} onOpen={() => setSelectedId(e.id)} sub={`${e.instagram ? `@${e.instagram} · ` : ""}nº ${e.numbers.map((n) => padNumber(n.n)).join(", ") || "—"}`} />
                     <Situation entry={e} note="" />
                   </div>
                   {e.status !== "excl" && (
@@ -339,6 +341,25 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
       ) : (
         <NumberMap raffle={raffle} entries={entries} />
       )}
+
+      <div className="sticky bottom-3 z-10 flex gap-2.5 min-[820px]:hidden">
+        <button
+          type="button"
+          onClick={() => setTab(tab === "num" ? "part" : "num")}
+          className="h-12 flex-1 rounded-xl border border-border bg-white text-[13.5px] font-semibold shadow-sm"
+        >
+          {tab === "num" ? "Participantes" : "Mapa de números"}
+        </button>
+        {canDraw && (
+          <button
+            type="button"
+            onClick={() => setDrawOpen(true)}
+            className="h-12 flex-[1.2] rounded-xl bg-primary text-[13.5px] font-bold text-white shadow-sm"
+          >
+            Realizar sorteio
+          </button>
+        )}
+      </div>
 
       <ParticipantSheet
         storeId={storeId}
@@ -399,7 +420,7 @@ function Stat({
   );
 }
 
-function PersonCell({ entry: e, onOpen, sub }: { entry: RaffleEntry; onOpen: () => void; sub?: string }) {
+function PersonCell({ entry: e, onOpen, sub, tag = true }: { entry: RaffleEntry; onOpen: () => void; sub?: string; tag?: boolean }) {
   return (
     <span className="flex min-w-0 flex-1 items-center gap-[11px]">
       <span
@@ -413,15 +434,17 @@ function PersonCell({ entry: e, onOpen, sub }: { entry: RaffleEntry; onOpen: () 
           {e.name}
         </button>
         <span className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-ink-soft">
-          <span
-            className={cn(
-              "rounded-full px-[7px] text-[10.5px] font-bold leading-4",
-              e.customerId ? "bg-[#E7F4EC] text-[#2E7D4A]" : "bg-[#F6EAC6] text-[#8A6312]",
-            )}
-          >
-            {e.customerId ? "Cliente" : "Lead"}
-          </span>
-          <span className="truncate">{sub ?? `${e.instagram ? `@${e.instagram} · ` : ""}${formatDate(e.createdAt)}`}</span>
+          {tag && (
+            <span
+              className={cn(
+                "rounded-full px-[7px] text-[10.5px] font-bold leading-4",
+                e.customerId ? "bg-[#E7F4EC] text-[#2E7D4A]" : "bg-[#F6EAC6] text-[#8A6312]",
+              )}
+            >
+              {e.customerId ? "Cliente" : "Lead"}
+            </span>
+          )}
+          <span className="truncate">{sub ?? `${e.instagram ? `@${e.instagram} · ` : ""}${formatWhen(e.createdAt)}`}</span>
         </span>
       </span>
     </span>
@@ -442,7 +465,7 @@ function Balls({ entry: e }: { entry: RaffleEntry }) {
               : "border border-[#DCEAD4] bg-[#F2F8EF] text-primary",
           )}
         >
-          {n.n}
+          {padNumber(n.n)}
         </span>
       ))}
       {e.slots.map((_, i) => (
@@ -491,7 +514,7 @@ function CheckButton({
           : "border-[1.5px] border-dashed border-[#C9D3CB] bg-white text-[#C9D3CB]",
       )}
     >
-      {bonus && !on ? <Plus className="size-[15px]" strokeWidth={2.4} /> : <Check className="size-[15px]" strokeWidth={3} />}
+      {bonus ? <Plus className="size-[15px]" strokeWidth={2.4} /> : <Check className="size-[15px]" strokeWidth={3} />}
     </button>
   );
 }

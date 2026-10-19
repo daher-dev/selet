@@ -11,7 +11,7 @@ test.beforeAll(async ({ request }) => {
 test("/equipe redirects into Configurações → Equipe", async ({ page, context, request, baseURL }) => {
   await logIn(request, context, baseURL!);
   await page.goto("/painel/vila-velha/equipe");
-  await expect(page).toHaveURL(/\/s\/vila-velha\/configuracoes\/equipe$/);
+  await expect(page).toHaveURL(/\/painel\/vila-velha\/configuracoes\/equipe$/);
   await expect(page.getByRole("link", { name: "Equipe", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
