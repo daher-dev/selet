@@ -56,9 +56,9 @@ export async function createManualTxAction(
     const user = await requireAccess(storeId, "financeiro");
     await assertCategory(storeId, data.category, data.direction);
     await createManualTx(storeId, data, user.name);
-    revalidatePath(`/s/${storeId}/financeiro`);
-    revalidatePath(`/s/${storeId}/financeiro/movimentacoes`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/financeiro`);
+    revalidatePath(`/painel/${storeId}/financeiro/movimentacoes`);
+    revalidatePath(`/painel/${storeId}`);
   });
 }
 
@@ -71,9 +71,9 @@ export async function updateManualTxAction(
     await requireAccess(storeId, "financeiro");
     await assertCategory(storeId, data.category, data.direction, await getTxCategory(storeId, txId));
     await updateManualTx(storeId, txId, data);
-    revalidatePath(`/s/${storeId}/financeiro`);
-    revalidatePath(`/s/${storeId}/financeiro/movimentacoes`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/financeiro`);
+    revalidatePath(`/painel/${storeId}/financeiro/movimentacoes`);
+    revalidatePath(`/painel/${storeId}`);
   });
 }
 
@@ -84,8 +84,8 @@ export async function deleteManualTxAction(
   return run(async () => {
     await requireAccess(storeId, "financeiro");
     await deleteManualTx(storeId, txId);
-    revalidatePath(`/s/${storeId}/financeiro`);
-    revalidatePath(`/s/${storeId}/financeiro/movimentacoes`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/financeiro`);
+    revalidatePath(`/painel/${storeId}/financeiro/movimentacoes`);
+    revalidatePath(`/painel/${storeId}`);
   });
 }

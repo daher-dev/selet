@@ -138,10 +138,10 @@ async function run(fn: () => Promise<void>): Promise<ActionResult> {
 }
 
 function revalidate(storeId: string) {
-  revalidatePath(`/s/${storeId}/pedidos`);
-  revalidatePath(`/s/${storeId}/clientes`);
-  revalidatePath(`/s/${storeId}/financeiro`);
-  revalidatePath(`/s/${storeId}`);
+  revalidatePath(`/painel/${storeId}/pedidos`);
+  revalidatePath(`/painel/${storeId}/clientes`);
+  revalidatePath(`/painel/${storeId}/financeiro`);
+  revalidatePath(`/painel/${storeId}`);
 }
 
 export async function createOrderAction(

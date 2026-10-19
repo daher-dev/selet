@@ -26,7 +26,7 @@ test("Movimentações: dashboard link, create/edit avulso, follow a vinculado Or
   await logIn(request, context, baseURL!);
 
   // --- Build one paid order, so Financeiro has a vinculado (source: order) row.
-  await page.goto("/s/vila-velha/estoque");
+  await page.goto("/painel/vila-velha/estoque");
   await page.getByRole("button", { name: "Registrar compra" }).click();
   await page.getByRole("button", { name: "Buscar item…" }).click();
   await page.getByRole("button", { name: "Cadastrar novo item" }).click();
@@ -34,7 +34,7 @@ test("Movimentações: dashboard link, create/edit avulso, follow a vinculado Or
   await page.getByRole("button", { name: "Adicionar ao estoque" }).click();
   await expect(page.getByText("Item adicionado ao estoque.")).toBeVisible();
 
-  await page.goto("/s/vila-velha/produtos");
+  await page.goto("/painel/vila-velha/produtos");
   await page.getByRole("button", { name: "Novo produto" }).first().click();
   await page.locator("#product-name").fill("Bowl de salmão");
   await page.locator("#product-price").fill("39,90");
@@ -43,13 +43,13 @@ test("Movimentações: dashboard link, create/edit avulso, follow a vinculado Or
   await page.getByRole("button", { name: "Salvar" }).click();
   await expect(page.getByText("Produto criado.")).toBeVisible();
 
-  await page.goto("/s/vila-velha/clientes");
+  await page.goto("/painel/vila-velha/clientes");
   await page.getByRole("button", { name: "Novo cliente" }).first().click();
   await page.locator("#customer-name").fill("Carla Mendes");
   await page.getByRole("button", { name: "Criar cliente" }).click();
   await expect(page.getByText("Cliente criado.")).toBeVisible();
 
-  await page.goto("/s/vila-velha/pedidos");
+  await page.goto("/painel/vila-velha/pedidos");
   await page.getByRole("button", { name: "Novo pedido" }).first().click();
   const orderSheet = page.locator('[data-slot="sheet-content"]');
   await orderSheet.getByRole("button", { name: "Selecione um cliente" }).click();
@@ -68,7 +68,7 @@ test("Movimentações: dashboard link, create/edit avulso, follow a vinculado Or
   await expect(page.getByText("Pedido criado.")).toBeVisible();
 
   // --- Dashboard → "Ver todas" opens the full list, scoped to this month.
-  await page.goto("/s/vila-velha/financeiro");
+  await page.goto("/painel/vila-velha/financeiro");
   await page.getByRole("link", { name: "Ver todas" }).click();
   await expect(page).toHaveURL(/\/financeiro\/movimentacoes\?mes=\d{4}-\d{2}$/);
   await expect(page.getByRole("heading", { name: "Movimentações" })).toBeVisible();
@@ -110,9 +110,9 @@ test("Movimentações: dashboard link, create/edit avulso, follow a vinculado Or
   await orderRow.click();
   await expect(txSheet.getByText("Lançamento vinculado")).toBeVisible();
   await txSheet.getByRole("link").click();
-  await expect(page).toHaveURL(/\/s\/vila-velha\/pedidos\?order=/);
+  await expect(page).toHaveURL(/\/painel\/vila-velha\/pedidos\?order=/);
   // The origin order's sheet auto-opens on arrival.
   await expect(orderSheet.getByText("Carla Mendes")).toBeVisible();
   // The deep-link query param is stripped after opening (no reopen on refresh).
-  await expect(page).toHaveURL(/\/s\/vila-velha\/pedidos$/);
+  await expect(page).toHaveURL(/\/painel\/vila-velha\/pedidos$/);
 });

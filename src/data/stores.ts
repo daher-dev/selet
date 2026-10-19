@@ -49,3 +49,19 @@ export async function updateStoreProfile(storeId: string, input: StoreProfileInp
       email: input.email?.trim() || FieldValue.delete(),
     });
 }
+
+export async function getStore(storeId: string): Promise<Store | null> {
+  const snap = await getDb().collection("stores").doc(storeId).get();
+  if (!snap.exists) return null;
+  const d = snap.data()!;
+  return {
+    id: snap.id,
+    name: d.name,
+    sub: d.sub,
+    initial: d.initial,
+    defaultDDD: d.defaultDDD,
+    address: d.address ?? undefined,
+    whatsapp: d.whatsapp ?? undefined,
+    email: d.email ?? undefined,
+  };
+}

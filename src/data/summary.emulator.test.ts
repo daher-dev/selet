@@ -10,7 +10,7 @@ import { createManualTx, deleteManualTx, updateManualTx } from "./finance";
 import { createCustomer, setCustomerArchived } from "./customers";
 import { applyMovement, createStockItem } from "./stock";
 import { computeSummary, readSummary } from "./summary";
-import { loadDashboard } from "@/app/s/[storeId]/dashboard-data";
+import { loadDashboard } from "@/app/painel/[storeId]/dashboard-data";
 import { monthKey } from "@/lib/summary-core";
 
 const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;

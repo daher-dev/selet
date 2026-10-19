@@ -135,7 +135,7 @@ export function CustomerPicker({
         </div>
         <div className="border-t border-border p-1.5">
           <Link
-            href={`/s/${storeId}/clientes`}
+            href={`/painel/${storeId}/clientes`}
             className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold text-primary transition-colors hover:bg-mist"
           >
             <UserPlus className="size-4 shrink-0" />

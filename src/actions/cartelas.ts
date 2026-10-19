@@ -26,13 +26,13 @@ async function run(fn: () => Promise<void>): Promise<ActionResult> {
 }
 
 function revalidate(storeId: string) {
-  revalidatePath(`/s/${storeId}/cartelas`);
-  revalidatePath(`/s/${storeId}/clientes`);
+  revalidatePath(`/painel/${storeId}/cartelas`);
+  revalidatePath(`/painel/${storeId}/clientes`);
   // Cancelling a cartela can now cascade-cancel orders too (see cancelCartela's
   // cascade in data/cartelas.ts), which touches both of these.
-  revalidatePath(`/s/${storeId}/pedidos`);
-  revalidatePath(`/s/${storeId}/financeiro`);
-  revalidatePath(`/s/${storeId}`);
+  revalidatePath(`/painel/${storeId}/pedidos`);
+  revalidatePath(`/painel/${storeId}/financeiro`);
+  revalidatePath(`/painel/${storeId}`);
 }
 
 const cancelSchema = z.object({

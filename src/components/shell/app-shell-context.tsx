@@ -1,5 +1,6 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
 import {
   createContext,
   useContext,
@@ -16,6 +17,10 @@ export interface PageAction {
   onClick: () => void;
   /** Optional quieter button rendered before the primary one (Estoque: "Transferir para a loja"). */
   secondary?: { label: string; onClick: () => void };
+  /** Icon in place of the default "+" (e.g. Download for "Exportar contatos"). */
+  icon?: LucideIcon;
+  /** White outlined button instead of the green primary one. */
+  quiet?: boolean;
 }
 
 /** A page's dynamic title/subtitle, overriding the static per-segment map. */
@@ -86,6 +91,8 @@ export function usePageAction(action: PageAction | null) {
   const { setAction } = useShell();
   const label = action?.label ?? null;
   const secondaryLabel = action?.secondary?.label ?? null;
+  const icon = action?.icon;
+  const quiet = action?.quiet;
   const onClick = action?.onClick;
   const onSecondary = action?.secondary?.onClick;
   const onClickRef = useRef(onClick);
@@ -109,9 +116,11 @@ export function usePageAction(action: PageAction | null) {
       secondary: secondaryLabel
         ? { label: secondaryLabel, onClick: () => onSecondaryRef.current?.() }
         : undefined,
+      icon,
+      quiet,
     });
     return () => setAction(null);
-  }, [label, secondaryLabel, setAction]);
+  }, [label, secondaryLabel, icon, quiet, setAction]);
 }
 
 /** Read the global header search query (for pages that filter by it). */

@@ -109,7 +109,7 @@ export async function createProductAction(
     const { storeId, ...data } = productSchema.parse(input);
     await requireAccess(storeId, "produtos");
     await createProduct(storeId, data);
-    revalidatePath(`/s/${storeId}/produtos`);
+    revalidatePath(`/painel/${storeId}/produtos`);
   });
 }
 
@@ -128,7 +128,7 @@ export async function updateProductAction(
       by: user.email,
       section: "produtos",
     });
-    revalidatePath(`/s/${storeId}/produtos`);
+    revalidatePath(`/painel/${storeId}/produtos`);
   });
 }
 
@@ -139,6 +139,6 @@ export async function deleteProductAction(
   return run(async () => {
     await requireAccess(storeId, "produtos");
     await deleteProduct(storeId, productId);
-    revalidatePath(`/s/${storeId}/produtos`);
+    revalidatePath(`/painel/${storeId}/produtos`);
   });
 }

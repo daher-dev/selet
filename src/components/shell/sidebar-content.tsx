@@ -44,7 +44,7 @@ export function SidebarContent({
   const pathname = usePathname();
   const router = useRouter();
   const [storeOpen, setStoreOpen] = useState(false);
-  const base = `/s/${store.id}`;
+  const base = `/painel/${store.id}`;
 
   const visibleItems = NAV_ITEMS.filter(
     (item) =>
@@ -107,7 +107,7 @@ export function SidebarContent({
                       setStoreOpen(false);
                       if (!active) {
                         onNavigate?.();
-                        router.push(`/s/${s.id}`);
+                        router.push(`/painel/${s.id}`);
                       }
                     }}
                     className={cn(
@@ -168,7 +168,9 @@ export function SidebarContent({
               ? badges.openOrders
               : item.badge === "cartelasAtivas"
                 ? badges.cartelasAtivas
-                : 0;
+                : item.badge === "sorteiosPendentes"
+                  ? badges.sorteiosPendentes
+                  : 0;
           const showDot = item.dot === "lowStock" && badges.lowStock > 0;
           return (
             <Link

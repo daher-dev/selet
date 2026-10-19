@@ -17,7 +17,7 @@ test("Ajustar embalagem aberta corrects a per-unit balance and logs it in the le
   baseURL,
 }) => {
   await logIn(request, context, baseURL!);
-  await page.goto("/s/vila-velha/estoque");
+  await page.goto("/painel/vila-velha/estoque");
 
   const adjust = page.getByRole("button", { name: /Ajustar saldo da embalagem aberta de Barra de Proteína/ });
   await expect(adjust).toBeVisible();
@@ -47,7 +47,7 @@ test("a purchase into the Depósito is transferred to the Loja, and both land in
   baseURL,
 }) => {
   await logIn(request, context, baseURL!);
-  await page.goto("/s/vila-velha/estoque");
+  await page.goto("/painel/vila-velha/estoque");
 
   // Compra → Depósito (the default destination)
   await page.getByRole("button", { name: "Registrar compra" }).click();

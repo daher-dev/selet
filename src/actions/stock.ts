@@ -121,8 +121,8 @@ export async function createStockItemAction(
       },
       user.email,
     );
-    revalidatePath(`/s/${storeId}/estoque`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/estoque`);
+    revalidatePath(`/painel/${storeId}`);
   });
 }
 
@@ -151,7 +151,7 @@ export async function updateStockItemAction(
       archived: parsed.archived,
     };
     await updateStockItem(storeId, itemId, data);
-    revalidatePath(`/s/${storeId}/estoque`);
+    revalidatePath(`/painel/${storeId}/estoque`);
   });
 }
 
@@ -207,7 +207,7 @@ export async function deleteStockItemAction(
       );
     }
     await deleteStockItem(storeId, itemId);
-    revalidatePath(`/s/${storeId}/estoque`);
+    revalidatePath(`/painel/${storeId}/estoque`);
   });
 }
 
@@ -258,8 +258,8 @@ export async function openNextPackageAction(
       by: user.email,
       section: "estoque",
     });
-    revalidatePath(`/s/${storeId}/estoque`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/estoque`);
+    revalidatePath(`/painel/${storeId}`);
   });
 }
 
@@ -277,8 +277,8 @@ export async function markPackageEmptyAction(
       by: user.email,
       section: "estoque",
     });
-    revalidatePath(`/s/${storeId}/estoque`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/estoque`);
+    revalidatePath(`/painel/${storeId}`);
   });
 }
 
@@ -317,8 +317,8 @@ export async function adjustOpenBalanceAction(
       by: user.email,
       section: "estoque",
     });
-    revalidatePath(`/s/${storeId}/estoque`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/estoque`);
+    revalidatePath(`/painel/${storeId}`);
   });
 }
 
@@ -367,8 +367,8 @@ export async function applyMovementAction(
       by: user.email,
       section: "estoque",
     });
-    revalidatePath(`/s/${storeId}/estoque`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/estoque`);
+    revalidatePath(`/painel/${storeId}`);
   });
 }
 
@@ -399,8 +399,8 @@ export async function updateMovementAction(
     const { storeId, itemId, movementId, qty, price } = parsed;
     await requireAccess(storeId, "estoque");
     await updateMovement(storeId, itemId, movementId, { qty, price });
-    revalidatePath(`/s/${storeId}/estoque`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/estoque`);
+    revalidatePath(`/painel/${storeId}`);
   });
 }
 
@@ -419,8 +419,8 @@ export async function deleteMovementAction(
     const { storeId, itemId, movementId } = deleteMovementSchema.parse(input);
     await requireAccess(storeId, "estoque");
     await deleteMovement(storeId, itemId, movementId);
-    revalidatePath(`/s/${storeId}/estoque`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/estoque`);
+    revalidatePath(`/painel/${storeId}`);
   });
 }
 
@@ -454,8 +454,8 @@ export async function transferToStoreAction(
       by: user.email,
       section: "estoque",
     });
-    revalidatePath(`/s/${storeId}/estoque`);
-    revalidatePath(`/s/${storeId}`);
+    revalidatePath(`/painel/${storeId}/estoque`);
+    revalidatePath(`/painel/${storeId}`);
     return { ok: true, trCode };
   } catch (err) {
     if (err instanceof z.ZodError) return { ok: false, error: err.issues[0]?.message ?? "Dados inválidos." };

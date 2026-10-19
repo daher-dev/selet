@@ -26,7 +26,7 @@ test("bootstrapped catalog renders for both stores", async ({
 
   for (const store of BOOTSTRAP_STORES) {
     // --- Catálogo (produtos)
-    await page.goto(`/s/${store.id}/produtos`);
+    await page.goto(`/painel/${store.id}/produtos`);
 
     // The Categoria filter (a FilterDropdown menu, not a native combobox)
     // offers all six real menu sections.
@@ -59,7 +59,7 @@ test("bootstrapped catalog renders for both stores", async ({
     await expect(page.getByText("Frutas Vermelhas", { exact: true })).toHaveCount(0);
 
     // --- Estoque (café insumos, imported as tracked stock items)
-    await page.goto(`/s/${store.id}/estoque`);
+    await page.goto(`/painel/${store.id}/estoque`);
     await expect(page.getByText("Fiber Concentrate", { exact: true })).toBeVisible();
     await expect(page.getByText("Morango", { exact: true })).toBeVisible();
 

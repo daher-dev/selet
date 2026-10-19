@@ -4,6 +4,7 @@ import {
   ShoppingBag,
   User,
   Box,
+  Gift,
   CupSoda,
   Dessert,
   Layers,
@@ -14,14 +15,14 @@ import {
 import type { Section } from "@/lib/types";
 
 /** Live counters the shell can surface on a nav item. */
-export type NavBadge = "openOrders" | "cartelasAtivas";
+export type NavBadge = "openOrders" | "cartelasAtivas" | "sorteiosPendentes";
 export type NavDot = "lowStock";
 /** Badge pill color — defaults to the primary green when unset. */
 export type NavBadgeTone = "primary" | "amber";
 
 export interface NavItem {
   label: string;
-  /** path segment under /s/[storeId]; "" = dashboard */
+  /** path segment under /painel/[storeId]; "" = dashboard */
   segment: string;
   icon: LucideIcon;
   /** section permission required; null = visible to any member */
@@ -44,6 +45,16 @@ export const NAV_ITEMS: NavItem[] = [
     badge: "openOrders",
   },
   { label: "Clientes", segment: "clientes", icon: User, section: "clientes" },
+  {
+    label: "Leads/Sorteios",
+    segment: "sorteios",
+    icon: Gift,
+    // Admin-only: "sorteios" is not a grantable section (leads are personal data).
+    section: "sorteios",
+    // Participants waiting for the team to check their rules.
+    badge: "sorteiosPendentes",
+    badgeTone: "amber",
+  },
   { label: "Cardápio", segment: "produtos", icon: Box, section: "produtos" },
   {
     label: "Shakes",
