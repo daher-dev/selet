@@ -46,7 +46,7 @@ export interface PublicRaffleView {
   numberFrom: number;
   numberTo: number;
   perPerson: number;
-  rules: { text: string; type: "obr" | "bonus" }[];
+  rules: { text: string; type: "obr" | "bonus"; link?: string }[];
   fields: { instagram: boolean; birthday: boolean; email: boolean };
   winner: { number: number; name: string } | null;
   regulamentoAt: string;
@@ -905,8 +905,9 @@ export function PublicFlow({
                 <section className="rounded-[14px] border border-border bg-white px-4 py-3.5">
                   <h2 className="text-[15px] font-bold">Para valer, falta só isso</h2>
                   <ul className="mt-3 flex flex-col gap-2.5">
-                    {entry.missing.map((text, i) => {
-                      const h = handleOf(text) ?? igHandle;
+                    {entry.missing.map(({ text, link }, i) => {
+                      // Typed rules link straight to the profile/post; free-text ones only when the text names a @.
+                      const href = link ?? (handleOf(text) ? `https://instagram.com/${handleOf(text)}` : null);
                       const on = !!done[i];
                       return (
                         <li key={text} className="flex items-center gap-2.5 text-[13.5px]">
@@ -923,14 +924,16 @@ export function PublicFlow({
                             <Check className="size-4" strokeWidth={3} />
                           </button>
                           <span className={cn("flex-1", on && "text-ink-soft line-through")}>{text}</span>
-                          <a
-                            href={`https://instagram.com${h ? `/${h}` : ""}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex h-9 items-center rounded-[9px] border border-border px-3 text-[12.5px] font-semibold text-primary"
-                          >
-                            Abrir
-                          </a>
+                          {href && (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex h-9 items-center rounded-[9px] border border-border px-3 text-[12.5px] font-semibold text-primary"
+                            >
+                              Abrir
+                            </a>
+                          )}
                         </li>
                       );
                     })}
@@ -954,13 +957,16 @@ export function PublicFlow({
                     {bonus[0].text}. Quando a loja conferir, você recebe o link pra escolher.
                   </span>
                   <a
-                    href={`https://wa.me/?text=${encodeURIComponent(`Participe do sorteio "${raffle.name}": ${typeof window !== "undefined" ? window.location.origin : ""}/s/${slug}`)}`}
+                    href={
+                      bonus[0].link ??
+                      `https://wa.me/?text=${encodeURIComponent(`Participe do sorteio "${raffle.name}": ${typeof window !== "undefined" ? window.location.origin : ""}/s/${slug}`)}`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     className={cn(ctaCls(), "mt-3 h-12 rounded-xl text-sm")}
                   >
-                    <MessageCircle className="size-4" />
-                    Convidar pelo WhatsApp
+                    {!bonus[0].link && <MessageCircle className="size-4" />}
+                    {bonus[0].link ? "Abrir no Instagram" : "Convidar pelo WhatsApp"}
                   </a>
                 </section>
               )}

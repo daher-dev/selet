@@ -6,6 +6,8 @@ import { zonedParts, zonedTimeToUtc } from "./timezone";
 
 export type RaffleStatus = "rascunho" | "aberto" | "encerrado" | "sorteado";
 export type RuleType = "obr" | "bonus";
+/** Typed rules carry an Instagram `link`; missing kind (legacy) = "custom". */
+export type RuleKind = "follow" | "like" | "comment" | "custom";
 export type EntryStatus = "pend" | "ok" | "excl";
 export type NumberKind = "cadastro" | "bonus" | "extra";
 export type LeadKind = "novo" | "vinc" | "cli";
@@ -14,6 +16,9 @@ export interface RaffleRule {
   id: string;
   text: string;
   type: RuleType;
+  kind?: RuleKind;
+  /** Where the person is sent: profile (follow) or post (like/comment). */
+  link?: string;
 }
 
 export interface RaffleFields {
@@ -173,6 +178,38 @@ export function firstName(name: string): string {
 }
 
 // ---------------------------------------------------------------- rules ---
+
+const RESERVED_PATHS = /^(p|reel|reels|tv|explore|accounts|stories)$/i;
+
+/** "@selet.vv", "selet.vv" or a profile URL → "selet.vv". */
+export function instagramHandle(input: string): string | null {
+  const m = /^(?:https?:\/\/)?(?:www\.)?(?:instagram\.com\/)?@?([A-Za-z0-9._]{1,30})\/?(?:\?.*)?$/i.exec(
+    input.trim(),
+  );
+  return m && !/^instagram\.com$/i.test(m[1]) && !RESERVED_PATHS.test(m[1]) ? m[1] : null;
+}
+
+/** Post / reel URL → canonical https://www.instagram.com/p/CODE/ (null if not one). */
+export function instagramPostUrl(input: string): string | null {
+  const m = /^(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:[A-Za-z0-9._]+\/)?(p|reels?|tv)\/([A-Za-z0-9_-]+)/i.exec(
+    input.trim(),
+  );
+  return m ? `https://www.instagram.com/${m[1].toLowerCase().replace("reels", "reel")}/${m[2]}/` : null;
+}
+
+/** Validates a typed rule and derives its text/link; custom rules pass through. Returns an error message otherwise. */
+export function finalizeRule(r: RaffleRule): RaffleRule | string {
+  const { id, text, type } = r;
+  if (!r.kind || r.kind === "custom") return { id, text, type };
+  if (r.kind === "follow") {
+    const handle = instagramHandle(r.link ?? "");
+    if (!handle) return "Informe o @ do perfil a seguir.";
+    return { id, type, kind: "follow", link: `https://instagram.com/${handle}`, text: `Seguir @${handle}` };
+  }
+  const link = instagramPostUrl(r.link ?? "");
+  if (!link) return "Cole o link do post do Instagram.";
+  return { id, type, kind: r.kind, link, text: r.kind === "like" ? "Curtir o post" : "Comentar no post" };
+}
 
 export function obligatoryRules(rules: RaffleRule[]): RaffleRule[] {
   return rules.filter((r) => r.type === "obr");
@@ -394,8 +431,9 @@ export function buildRegulamento(
       ? `Escolha de 1 número de ${r.numberFrom} a ${r.numberTo}. Cada WhatsApp participa uma vez.`
       : `Escolha de ${r.perPerson} números de ${r.numberFrom} a ${r.numberTo}. Cada WhatsApp participa uma vez.`,
   ];
-  if (obr.length) how.push(`Regras obrigatórias: ${obr.map((x) => x.text).join("; ")}.`);
-  for (const b of bonus) how.push(`Bônus: ${b.text} vale +1 número.`);
+  const label = (x: RaffleRule) => (x.kind === "like" || x.kind === "comment" ? `${x.text} (${x.link})` : x.text);
+  if (obr.length) how.push(`Regras obrigatórias: ${obr.map(label).join("; ")}.`);
+  for (const b of bonus) how.push(`Bônus: ${label(b)} vale +1 número.`);
 
   const sections: RegulamentoSection[] = [
     {
@@ -470,7 +508,7 @@ export interface PublicEntryView {
   /** Bonus/extra numbers still to choose. */
   pendingSlots: number;
   /** Obligatory rules the team has not confirmed yet. */
-  missing: string[];
+  missing: { text: string; link?: string }[];
   status: EntryStatus;
 }
 
@@ -480,7 +518,7 @@ export function publicEntryView(raffle: Raffle, e: RaffleEntry): PublicEntryView
     instagram: e.instagram,
     numbers: e.numbers.map((x) => ({ n: x.n, kind: x.kind })),
     pendingSlots: e.slots.length,
-    missing: missingRules(raffle.rules, e).map((r) => r.text),
+    missing: missingRules(raffle.rules, e).map((r) => ({ text: r.text, link: r.link })),
     status: e.status,
   };
 }

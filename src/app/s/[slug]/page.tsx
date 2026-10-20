@@ -58,7 +58,7 @@ export default async function PublicRafflePage({
     numberFrom: raffle.numberFrom,
     numberTo: raffle.numberTo,
     perPerson: raffle.perPerson,
-    rules: raffle.rules.map((r) => ({ text: r.text, type: r.type })),
+    rules: raffle.rules.map((r) => ({ text: r.text, type: r.type, link: r.link })),
     fields: raffle.fields,
     winner: raffle.winner
       ? { number: raffle.winner.number, name: abbreviateName(raffle.winner.name) }

@@ -3,6 +3,7 @@ import {
   abbreviateName,
   buildRegulamento,
   deriveStatus,
+  finalizeRule,
   formatDrawAt,
   formatWhen,
   linkState,
@@ -188,5 +189,28 @@ describe("display helpers", () => {
     expect(
       buildRegulamento(raffle({ notes: "Só maiores de 18" }), { name: "x", contact: "(27) 99999-0000" }).at(-1)?.lines,
     ).toEqual(["Só maiores de 18"]);
+  });
+});
+
+describe("typed Instagram rules", () => {
+  const base = { id: "x", text: "", type: "obr" as const };
+  it("follow accepts @, bare handle or profile URL and sends to the profile", () => {
+    for (const link of ["@selet.vv", "selet.vv", "https://www.instagram.com/selet.vv/?hl=pt"]) {
+      expect(finalizeRule({ ...base, kind: "follow", link })).toEqual({
+        id: "x", type: "obr", kind: "follow", link: "https://instagram.com/selet.vv", text: "Seguir @selet.vv",
+      });
+    }
+  });
+  it("like/comment need a post URL and are normalized", () => {
+    expect(finalizeRule({ ...base, kind: "like", link: "instagram.com/selet.vv/reels/Cx_1-a?igsh=1" })).toMatchObject({
+      link: "https://www.instagram.com/reel/Cx_1-a/", text: "Curtir o post",
+    });
+    expect(finalizeRule({ ...base, kind: "comment", link: "https://instagram.com/p/AbC/" })).toMatchObject({ text: "Comentar no post" });
+  });
+  it("rejects missing or foreign links; custom rules pass through", () => {
+    expect(finalizeRule({ ...base, kind: "follow", link: "https://evil.com/x" })).toMatch(/@/);
+    expect(finalizeRule({ ...base, kind: "follow", link: "instagram.com/p/AbC" })).toMatch(/@/);
+    expect(finalizeRule({ ...base, kind: "like", link: "@selet.vv" })).toMatch(/post/);
+    expect(finalizeRule({ ...base, text: "Convidar 1 amigo", link: "x" })).toEqual({ id: "x", type: "obr", text: "Convidar 1 amigo" });
   });
 });

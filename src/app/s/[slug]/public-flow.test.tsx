@@ -88,7 +88,7 @@ describe("PublicFlow", () => {
       .mockResolvedValueOnce({ ok: false, error: "O 12 acabou de ser escolhido por outra pessoa.", taken: 12 })
       .mockResolvedValueOnce({
         ok: true,
-        entry: { name: "Juliana Prado", instagram: "juprado", numbers: [{ n: 13, kind: "cadastro" }], pendingSlots: 0, missing: ["Seguir @selet.vv"], status: "pend" },
+        entry: { name: "Juliana Prado", instagram: "juprado", numbers: [{ n: 13, kind: "cadastro" }], pendingSlots: 0, missing: [{ text: "Seguir @selet.vv", link: "https://instagram.com/selet.vv" }, { text: "Convidar 1 amigo" }], status: "pend" },
       });
     renderFlow();
 
@@ -112,6 +112,9 @@ describe("PublicFlow", () => {
     await user.click(screen.getByRole("button", { name: "Confirmar o nº 13" }));
     expect(await screen.findByText("Número 13 é seu, Juliana!")).toBeInTheDocument();
     expect(screen.getByText("Seguir @selet.vv")).toBeInTheDocument();
+    // typed rule lands straight on the profile; a generic rule gets no Instagram button
+    expect(screen.getAllByRole("link", { name: "Abrir" })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Abrir" })).toHaveAttribute("href", "https://instagram.com/selet.vv");
     expect(registerAction).toHaveBeenLastCalledWith(
       "aniversario-3-anos",
       expect.objectContaining({ phone: "(27) 9 9999-0001", name: "Juliana Prado", instagram: "juprado", picks: [13], aceite: true }),
