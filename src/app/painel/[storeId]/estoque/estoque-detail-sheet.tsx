@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/sheet";
 import { CategoryTile } from "@/components/category-meta";
 import { useStockCategoryMeta, useStockSettings, useUnits } from "@/components/stock-settings-context";
+import { ConfirmDialog } from "../sorteios/confirm-dialog";
 import { Movimentacoes } from "./movimentacoes";
 import { OpenMeter } from "./open-meter";
 import { UnitPicker } from "./unit-picker";
@@ -835,6 +836,7 @@ function EditPanel({
   const [pkgLabelPluralInput, setPkgLabelPluralInput] = useState(item.pkgLabelPlural ?? "");
   const [pkgSize, setPkgSize] = useState(item.pkgSize ? String(item.pkgSize) : "");
   const [reorder, setReorder] = useState(String(item.reorderAt));
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const isCount = unitKind(unit) === "count";
@@ -906,7 +908,7 @@ function EditPanel({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border">
+    <div className="shrink-0 overflow-hidden rounded-xl border border-border">
       {!hideToggle && (
         <button
           type="button"
@@ -1045,14 +1047,24 @@ function EditPanel({
             </Button>
             <Button
               variant="ghost"
-              onClick={remove}
+              onClick={() => setConfirmingDelete(true)}
               disabled={pending}
               className="flex-1 gap-1.5 rounded-lg text-[12.5px] text-destructive hover:bg-danger-wash hover:text-destructive"
             >
               <Trash2 className="size-4" />
-              Remover
+              Excluir item
             </Button>
           </div>
+          <ConfirmDialog
+            open={confirmingDelete}
+            onOpenChange={setConfirmingDelete}
+            title={`Excluir "${item.name}"?`}
+            text="O item é removido do estoque por completo. Não dá para desfazer — para só tirar da lista, use Arquivar."
+            cta="Excluir"
+            tone="danger"
+            pending={pending}
+            onConfirm={remove}
+          />
         </div>
       )}
     </div>
