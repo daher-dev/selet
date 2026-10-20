@@ -70,6 +70,7 @@ import {
   type CategoryMeta,
 } from "@/components/category-meta";
 import { OrderSheet } from "./order-sheet";
+import type { SellerOption } from "@/lib/types";
 
 type ChannelFilter = "todos" | OrderChannel;
 type StatusFilter = "todos" | Order["status"];
@@ -129,6 +130,8 @@ const PAY_OPTIONS: FilterOption<PayFilter>[] = [
 
 interface PedidosClientProps {
   storeId: string;
+  sellers: SellerOption[];
+  currentUserEmail: string;
   orders: Order[];
   customers: Customer[];
   products: Product[];
@@ -147,6 +150,8 @@ interface PedidosClientProps {
 
 export function PedidosClient({
   storeId,
+  sellers,
+  currentUserEmail,
   orders,
   customers,
   products,
@@ -501,6 +506,8 @@ export function PedidosClient({
 
       <OrderSheet
         storeId={storeId}
+        sellers={sellers}
+        currentUserEmail={currentUserEmail}
         order={creating ? null : selected}
         customers={customers}
         products={products}

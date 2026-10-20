@@ -10,6 +10,7 @@ import {
   Loader2,
   Lock,
   Package,
+  Percent,
   Plus,
   ShoppingBag,
   Trash2,
@@ -26,7 +27,7 @@ import {
   deleteManualTxAction,
   updateManualTxAction,
 } from "@/actions/finance";
-import { dayMonth, todayDateInput } from "./finance-shared";
+import { dayMonth, monthNameOnly, todayDateInput } from "./finance-shared";
 import { TxAmount, TxIcon } from "./tx-visuals";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -331,23 +332,32 @@ function LinkedTxView({
   stockItemNames: Record<string, string>;
 }) {
   const isStock = tx.source === "stock";
+  const isCommission = tx.source === "commission";
   const originId = isStock ? tx.stockItemId : tx.orderId;
-  const originHref = originId
-    ? isStock
-      ? `/painel/${storeId}/estoque?item=${originId}`
-      : `/painel/${storeId}/pedidos?order=${originId}`
-    : null;
-  const originLabel = isStock
-    ? (originId && stockItemNames[originId]) || "Item removido"
+  const originHref = isCommission
+    ? `/painel/${storeId}/financeiro`
     : originId
-      ? `Pedido #${orderCode(originId)}`
-      : "Pedido removido";
-  const originMeta = isStock
-    ? `Estoque · entrada de ${dayMonth(tx.date)}`
-    : `Pedidos · ${dayMonth(tx.date)}`;
-  const calloutText = isStock
-    ? "Para alterar valor ou data, edite a entrada de estoque. A movimentação é atualizada junto."
-    : "Para alterar valor ou data, edite o pedido. A movimentação é atualizada junto.";
+      ? isStock
+        ? `/painel/${storeId}/estoque?item=${originId}`
+        : `/painel/${storeId}/pedidos?order=${originId}`
+      : null;
+  const originLabel = isCommission
+    ? `Comissões de ${tx.commissionMonth ? monthNameOnly(tx.commissionMonth).toLowerCase() : "mês"}`
+    : isStock
+      ? (originId && stockItemNames[originId]) || "Item removido"
+      : originId
+        ? `Pedido #${orderCode(originId)}`
+        : "Pedido removido";
+  const originMeta = isCommission
+    ? `Financeiro · pago em ${dayMonth(tx.date)}`
+    : isStock
+      ? `Estoque · entrada de ${dayMonth(tx.date)}`
+      : `Pedidos · ${dayMonth(tx.date)}`;
+  const calloutText = isCommission
+    ? "O pagamento é registrado em Comissões, no Financeiro. Para desfazer, use o botão por lá."
+    : isStock
+      ? "Para alterar valor ou data, edite a entrada de estoque. A movimentação é atualizada junto."
+      : "Para alterar valor ou data, edite o pedido. A movimentação é atualizada junto.";
 
   return (
     <div className="flex-1 space-y-4 p-[22px]">
@@ -378,7 +388,7 @@ function LinkedTxView({
             className="flex items-center gap-3 rounded-xl border border-[#DDE7D8] px-3.5 py-[13px] transition-colors hover:bg-mist"
           >
             <span className="flex size-[34px] shrink-0 items-center justify-center rounded-[9px] bg-[#EEF3EA] text-primary">
-              {isStock ? <Package className="size-4" /> : <ShoppingBag className="size-4" />}
+              {isCommission ? <Percent className="size-4" /> : isStock ? <Package className="size-4" /> : <ShoppingBag className="size-4" />}
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13.5px] font-semibold text-ink">
@@ -391,7 +401,7 @@ function LinkedTxView({
         ) : (
           <span className="flex items-center gap-3 rounded-xl border border-border p-3.5 opacity-60">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-mist text-ink-faint">
-              {isStock ? <Package className="size-4" /> : <ShoppingBag className="size-4" />}
+              {isCommission ? <Percent className="size-4" /> : isStock ? <Package className="size-4" /> : <ShoppingBag className="size-4" />}
             </span>
             <span className="min-w-0 flex-1 text-[13.5px] font-semibold text-ink-faint">
               {originLabel}

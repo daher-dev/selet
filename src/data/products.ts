@@ -32,6 +32,7 @@ function toProduct(id: string, d: FirebaseFirestore.DocumentData): Product {
     // Legacy docs without tiers fall back to a single unit tier at the base price.
     tiers: d.tiers?.length ? d.tiers : [{ qty: 1, price }],
     insumoId: d.insumoId ?? undefined,
+    commissionPercent: d.commissionPercent > 0 ? d.commissionPercent : undefined,
     archived: d.archived ?? false,
   };
 }
@@ -61,6 +62,8 @@ export interface ProductInput {
   adicionais: ProductAddon[];
   tiers: PriceTier[];
   insumoId?: string;
+  /** Seller commission %; absent/0 = off. */
+  commissionPercent?: number;
 }
 
 export async function createProduct(
@@ -92,6 +95,7 @@ export async function updateProduct(
       ...input,
       description: input.description ?? FieldValue.delete(),
       insumoId: input.insumoId ?? FieldValue.delete(),
+      commissionPercent: input.commissionPercent || FieldValue.delete(),
     });
 }
 

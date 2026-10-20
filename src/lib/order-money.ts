@@ -8,7 +8,7 @@
  * applies AFTER that, on top of the coverage-netted subtotal.
  *   Subtotal (pre-coverage) -> minus cartela coverage -> minus discount -> Total
  */
-import type { OrderDiscount, OrderItem } from "./types";
+import type { CommissionAccrual, OrderDiscount, OrderItem } from "./types";
 
 export type DiscountInput = Pick<OrderDiscount, "kind" | "value" | "reason">;
 
@@ -91,4 +91,51 @@ export function revendaShare(items: OrderItem[], total: number): number {
   );
   if (revenda <= 0) return 0;
   return Math.min(total, Math.round((total * revenda) / net));
+}
+
+/** One commissioned line of an order: its share of the amount charged and the commission on it (centavos, unrounded). */
+export interface CommissionLine {
+  item: OrderItem;
+  base: number;
+  commission: number;
+}
+
+/**
+ * Seller commission a PAID order accrues, line by line: each line's
+ * `commissionPercent` (a snapshot, see OrderItem) applied to the line's share
+ * of `total` — the order discount is prorated across lines exactly like
+ * `revendaShare` does, so the commission is on the amount actually charged.
+ * Free orders and "cortesia" discounts never earn commission; shake, pudim and
+ * cartela lines aren't catalog items and carry none.
+ */
+export function commissionLines(
+  items: OrderItem[],
+  total: number,
+  discount?: Pick<OrderDiscount, "kind" | "reason"> | null,
+): CommissionLine[] {
+  const net = netOfCartela(items);
+  if (net <= 0 || total <= 0) return [];
+  if (discount?.kind === "free" || discount?.reason === "cortesia") return [];
+  const lines: CommissionLine[] = [];
+  for (const item of items) {
+    const pct = item.commissionPercent ?? 0;
+    if (pct <= 0 || item.cartelaSale || item.shake || item.pudim) continue;
+    const base = (item.qty * item.unitPrice * total) / net;
+    lines.push({ item, base, commission: (base * pct) / 100 });
+  }
+  return lines;
+}
+
+/** The order's total commission — rounded once per order, not per line. */
+export function commissionOf(
+  items: OrderItem[],
+  total: number,
+  discount?: Pick<OrderDiscount, "kind" | "reason"> | null,
+): CommissionAccrual {
+  const lines = commissionLines(items, total, discount);
+  return {
+    amount: Math.round(lines.reduce((sum, l) => sum + l.commission, 0)),
+    base: Math.round(lines.reduce((sum, l) => sum + l.base, 0)),
+    items: lines.reduce((sum, l) => sum + l.item.qty, 0),
+  };
 }

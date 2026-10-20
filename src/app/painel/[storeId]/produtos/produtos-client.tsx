@@ -332,7 +332,17 @@ function ProductCard({
             )}
           </h3>
         </div>
-        <TypeBadge saleType={product.saleType} />
+        <div className="flex shrink-0 gap-1.5">
+          {product.commissionPercent ? (
+            <span
+              title="Comissão para quem vendeu"
+              className="inline-flex shrink-0 items-center rounded-full bg-commission-wash px-2.5 py-1 text-[10.5px] font-bold text-commission"
+            >
+              {String(product.commissionPercent).replace(".", ",")}% comissão
+            </span>
+          ) : null}
+          <TypeBadge saleType={product.saleType} />
+        </div>
       </div>
 
       {usesRecipe && product.recipe.length > 0 && (

@@ -14,6 +14,8 @@
  */
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, Timestamp, type Firestore } from "firebase-admin/firestore";
+import { commissionOf } from "../src/lib/order-money";
+import type { OrderItem } from "../src/lib/types";
 import { refreshStoreSummary } from "./lib/summary";
 import { seedSorteios } from "./lib/sorteios-demo";
 
@@ -131,6 +133,17 @@ interface DemoOrder {
   /** Free-text order note (drawer-only, never shown in list rows). */
   notes?: string;
 }
+
+/** Demo commission rates (% of the amount sold) — set on these catalog products so the chips show up. */
+const DEMO_COMMISSION: Record<string, number> = {
+  "lanche-coxinha-proteica": 5,
+  "bebida-hype-drink": 10,
+};
+/** Demo seller per store (team members of scripts/lib/team.ts). */
+const DEMO_SELLER: Record<StoreId, { sellerEmail: string; sellerName: string }> = {
+  "vila-velha": { sellerEmail: "marina.alves@selet.com.br", sellerName: "Marina Alves" },
+  passos: { sellerEmail: "tiago.nunes@selet.com.br", sellerName: "Tiago Nunes" },
+};
 
 const ORDERS: DemoOrder[] = [
   // "Grátis" discount (reason cortesia) → total 0, demonstrating "nada
@@ -794,11 +807,15 @@ async function seedStore(db: Firestore, storeId: StoreId) {
     const ref = store.collection("orders").doc(o.code);
     const when = o.daysAgo != null ? daysAgo(o.daysAgo) : minutesAgo(o.minutesAgo);
     const customerId = idByName.get(o.customerName) ?? null;
+    // Lines snapshot the product's commission % like the app does at write time.
+    const items = o.items.map((i) => ({ ...i, commissionPercent: DEMO_COMMISSION[i.productId] ?? 0 }));
+    const seller = DEMO_SELLER[o.store];
     await ref.set({
       customerId,
       customerName: o.customerName,
       channel: o.channel,
-      items: o.items,
+      items,
+      ...seller,
       total: o.total,
       status: o.status,
       paid: o.paid,
@@ -810,10 +827,13 @@ async function seedStore(db: Firestore, storeId: StoreId) {
     });
     // Mirror paid orders into finance (matches the app's order-{id} ledger doc).
     if (o.paid) {
+      const commission = commissionOf(items as OrderItem[], o.total, o.discount);
       await store.collection("finance").doc(`order-${o.code}`).set({
         label: `Pedido #${orderCode(o.code)} · ${o.customerName}`,
         category: "vendas",
         amount: o.total,
+        // Cancelled orders carry no mirror in the app; the demo only mirrors paid ones.
+        ...(commission.amount > 0 ? { commission, ...seller } : seller),
         direction: "in",
         source: "order",
         orderId: o.code,

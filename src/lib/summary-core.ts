@@ -228,14 +228,19 @@ export function summaryOpenDelta(s: SummaryData, delta: number): void {
   s.openOrders = Math.max(0, s.openOrders + delta);
 }
 
-/** Finance in/out delta (signed centavos). Source: order mirror, stock, manual. */
+/**
+ * Finance in/out delta (signed centavos). Source: order mirror, stock, manual.
+ * `commission` (order mirrors) is the seller commission the entry accrues: it
+ * lands in the same month's `out`, so Líquido is net of commissions.
+ */
 export function summaryFinance(
   s: SummaryData,
-  input: { mk: string; direction: "in" | "out"; amount: number },
+  input: { mk: string; direction: "in" | "out"; amount: number; commission?: number },
 ): void {
   const b = bucket(s, input.mk);
   if (input.direction === "in") b.in = Math.max(0, b.in + input.amount);
   else b.out = Math.max(0, b.out + input.amount);
+  if (input.commission) b.out = Math.max(0, b.out + input.commission);
 }
 
 /** Outstanding "a receber" delta (sign +1 to add a receivable, -1 to clear one). */
@@ -308,6 +313,10 @@ export interface FinanceLike {
   direction: "in" | "out";
   amount: number;
   date: Date;
+  /** Order mirrors: the seller commission accrued (centavos, counts as `out`). */
+  commission?: number;
+  /** Informational entries (commission payouts) are already counted via the accrual. */
+  skip?: boolean;
 }
 export interface StockLike {
   lowStock: boolean;
@@ -347,10 +356,12 @@ export function computeSummaryFrom(input: {
   }
   for (const d of firstOrder.values()) bucket(s, monthKey(d)).novos += 1;
   for (const f of input.finance) {
+    if (f.skip) continue;
     summaryFinance(s, {
       mk: monthKey(f.date),
       direction: f.direction,
       amount: f.amount ?? 0,
+      commission: f.commission,
     });
   }
   for (const st of input.stock) {

@@ -31,6 +31,7 @@ import type {
   PudimFlavor,
   PudimMixin,
   PudimUtensil,
+  SellerOption,
   ShakeBase,
   ShakeBrinde,
   ShakeFlavor,
@@ -39,7 +40,7 @@ import type {
   ShakeUtensil,
 } from "@/lib/types";
 import { DISCOUNT_REASONS, ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, initials } from "@/lib/format";
 import {
   balanceValue,
   cartelaCode,
@@ -47,7 +48,7 @@ import {
   forecastPunchStates,
   remainingUses,
 } from "@/lib/cartelas";
-import { orderMoney, type DiscountInput } from "@/lib/order-money";
+import { commissionLines, commissionOf, orderMoney, type DiscountInput } from "@/lib/order-money";
 import { zonedParts, zonedTimeToUtc } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customer-picker";
@@ -75,6 +76,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { StatusStepper } from "@/components/ui/status-stepper";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CHANNEL_META, PAY_METHOD_META } from "@/components/order-meta";
 import {
   CategoryTile,
@@ -219,6 +227,8 @@ function parseDiscountValue(kind: DiscountKind, raw: string): number {
 
 interface OrderSheetProps {
   storeId: string;
+  sellers: SellerOption[];
+  currentUserEmail: string;
   order: Order | null;
   customers: Customer[];
   products: Product[];
@@ -239,6 +249,8 @@ interface OrderSheetProps {
 
 export function OrderSheet({
   storeId,
+  sellers,
+  currentUserEmail,
   order,
   customers,
   products,
@@ -273,6 +285,8 @@ export function OrderSheet({
         <OrderForm
           key={order?.id ?? "new"}
           storeId={storeId}
+          sellers={sellers}
+          currentUserEmail={currentUserEmail}
           order={order}
           customers={customers}
           products={products}
@@ -296,6 +310,8 @@ export function OrderSheet({
 
 function OrderForm({
   storeId,
+  sellers,
+  currentUserEmail,
   order,
   customers,
   products,
@@ -313,6 +329,8 @@ function OrderForm({
   onClose,
 }: {
   storeId: string;
+  sellers: SellerOption[];
+  currentUserEmail: string;
   order: Order | null;
   customers: Customer[];
   products: Product[];
@@ -337,6 +355,11 @@ function OrderForm({
     order?.channel ?? "instagram",
   );
   const [items, setItems] = useState<OrderItem[]>(order?.items ?? []);
+  // "Vendido por": a new order defaults to whoever is launching it; an old
+  // order without a seller stays without one until someone picks.
+  const [sellerEmail, setSellerEmail] = useState<string>(
+    order ? (order.sellerEmail ?? "") : currentUserEmail,
+  );
   const [paid, setPaid] = useState(order?.paid ?? false);
   const [payMethod, setPayMethod] = useState<PayMethod | null>(
     order?.payMethod ?? null,
@@ -516,6 +539,29 @@ function OrderForm({
     return map;
   }, [products]);
 
+  // "Vendido por" options (the order's own seller stays selectable even if
+  // that member is no longer active) and the live commission preview — the
+  // same pure function the server runs on the stamped lines. Lines already on
+  // an order keep their snapshot; new ones read the product's current %.
+  const sellerOptions: SellerOption[] =
+    order?.sellerEmail && !sellers.some((s) => s.email === order.sellerEmail)
+      ? [...sellers, { email: order.sellerEmail, name: order.sellerName ?? order.sellerEmail }]
+      : sellers;
+  const seller = sellerOptions.find((s) => s.email === sellerEmail) ?? null;
+  const stampedItems = items.map((i) => ({
+    ...i,
+    commissionPercent:
+      i.shake || i.pudim || i.cartelaSale
+        ? 0
+        : (i.commissionPercent ?? productById.get(i.productId)?.commissionPercent ?? 0),
+  }));
+  const commission = seller
+    ? commissionOf(stampedItems, money.total, discountInput)
+    : { amount: 0, base: 0, items: 0 };
+  const commissionedLines = commission.amount > 0
+    ? commissionLines(stampedItems, money.total, discountInput)
+    : [];
+
   // The shake builder's brinde options: each ShakeBrinde catalog entry joined
   // once with its LIVE Product (name/price/category/adicionais) — a brinde
   // doc carries no price or recipe of its own. A brinde whose Product isn't
@@ -625,6 +671,9 @@ function OrderForm({
         discount: discountInput,
         notes: notes.trim(),
         ...(createdAtISO ? { createdAt: createdAtISO } : {}),
+        // An unchanged seller isn't re-sent (the server keeps the stored one,
+        // even if that member has since been deactivated).
+        ...(sellerEmail && sellerEmail !== order?.sellerEmail ? { sellerEmail } : {}),
       };
       const result = order
         ? await updateOrderAction(order.id, base)
@@ -727,6 +776,30 @@ function OrderForm({
               Selecione um cliente para registrar o pedido.
             </p>
           )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="order-seller">Vendido por</Label>
+          <Select value={sellerEmail} onValueChange={setSellerEmail}>
+            <SelectTrigger id="order-seller" className="h-[46px] w-full rounded-xl">
+              <SelectValue placeholder="Sem vendedor" />
+            </SelectTrigger>
+            <SelectContent>
+              {sellerOptions.map((s) => (
+                <SelectItem key={s.email} value={s.email}>
+                  <span className="flex items-center gap-2.5">
+                    <span className="flex size-[26px] items-center justify-center rounded-full bg-mist text-[11px] font-bold text-primary">
+                      {initials(s.name)}
+                    </span>
+                    {s.name}
+                    {s.email === currentUserEmail && (
+                      <span className="text-[11.5px] text-ink-soft">quem está lançando</span>
+                    )}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-1.5">
@@ -1025,6 +1098,23 @@ function OrderForm({
                 {formatBRL(money.total)}
               </span>
             </div>
+            {seller && commission.amount > 0 && (
+              <div className="flex items-center gap-2.5 rounded-[10px] border border-commission-line bg-commission-soft px-3 py-2.5 text-[12.5px] text-ink-soft">
+                <span className="flex-1">
+                  Comissão de {seller.name.split(" ")[0]} ·{" "}
+                  {commissionedLines.length === 1
+                    ? `${String(commissionedLines[0].item.commissionPercent).replace(".", ",")}% de ${commissionedLines[0].item.name}`
+                    : `${commissionedLines.length} itens com comissão`}
+                  {(money.discount?.amount ?? 0) > 0 && (
+                    <span className="text-ink-soft"> ({formatBRL(commission.base)} com desconto)</span>
+                  )}
+                  {!effectivePaid && <span> · paga quando o pedido for pago</span>}
+                </span>
+                <strong className="tabular font-bold text-commission">
+                  {formatBRL(commission.amount)}
+                </strong>
+              </div>
+            )}
           </div>
         </div>
 

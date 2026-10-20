@@ -43,6 +43,8 @@ export async function refreshStoreSummary(
           direction: d.direction,
           amount: d.amount ?? 0,
           date: d.date?.toDate() ?? new Date(0),
+          commission: d.commission?.amount,
+          skip: d.source === "commission",
         };
       }),
       stock: stockSnap.docs.map((doc) => {

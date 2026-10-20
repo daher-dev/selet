@@ -1,5 +1,6 @@
 import { requireAccess } from "@/lib/access";
 import { listOrders } from "@/data/orders";
+import { listSellers } from "@/data/commissions";
 import { listCustomers } from "@/data/customers";
 import { listProducts } from "@/data/products";
 import {
@@ -25,7 +26,7 @@ export default async function PedidosPage({
   params: Promise<{ storeId: string }>;
 }) {
   const { storeId } = await params;
-  await requireAccess(storeId, "pedidos");
+  const user = await requireAccess(storeId, "pedidos");
 
   // Shake/Pudim catalogs (including brindes) are fetched here (not gated
   // behind "shakes"/"pudim" access) since building a "Montar shake"/"Montar
@@ -47,6 +48,7 @@ export default async function PedidosPage({
     pudimMixins,
     pudimUtensils,
     pudimBrindes,
+    sellers,
   ] = await Promise.all([
     listOrders(storeId, { limit: 200 }),
     listCustomers(storeId),
@@ -62,11 +64,14 @@ export default async function PedidosPage({
     listPudimMixins(storeId),
     listPudimUtensils(storeId),
     listPudimBrindes(storeId),
+    listSellers(storeId),
   ]);
 
   return (
     <PedidosClient
       storeId={storeId}
+      sellers={sellers}
+      currentUserEmail={user.email}
       orders={orders}
       customers={customers.filter((c) => !c.archived)}
       products={products.filter((p) => p.active)}

@@ -70,6 +70,12 @@
   --color-violet: #6b46c1;
   --color-violet-wash: #f7f3fd;
   --color-violet-track: #ddd3f0;
+  /* Seller commission (Mock Cardápio/Pedidos/Financeiro): purple chip, strip and section. */
+  --color-commission: #5b3ba8;
+  --color-commission-wash: #f3effb;
+  --color-commission-soft: #f8f5fd;
+  --color-commission-line: #e6def6;
+  --color-commission-bar: #c9b6f0;
 
   /* Depósito (warehouse) — the blue counterpart of the Loja's green in Estoque (matches Mock Estoque). */
   --color-depot: #2b5f86;

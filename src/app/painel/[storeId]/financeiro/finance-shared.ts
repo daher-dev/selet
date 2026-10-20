@@ -118,6 +118,9 @@ export function txShortMeta(
   }
   if (tx.source === "order") {
     if (tx.payMethod) parts.push(PAY_METHOD_LABELS[tx.payMethod] ?? tx.payMethod);
+  } else if (tx.source === "commission") {
+    if (tx.payMethod) parts.push(PAY_METHOD_LABELS[tx.payMethod] ?? tx.payMethod);
+    parts.push("Comissões");
   } else if (labels[tx.category]) {
     parts.push(labels[tx.category]);
   }
@@ -129,6 +132,9 @@ export function txMeta(tx: FinanceTx, labels: Record<string, string> = LEGACY_CA
   const parts: string[] = [];
   if (tx.source === "order") {
     parts.push(tx.orderId ? `Pedido #${orderCode(tx.orderId)}` : "Pedido");
+    if (tx.payMethod) parts.push(PAY_METHOD_LABELS[tx.payMethod] ?? tx.payMethod);
+  } else if (tx.source === "commission") {
+    parts.push("Comissões");
     if (tx.payMethod) parts.push(PAY_METHOD_LABELS[tx.payMethod] ?? tx.payMethod);
   } else if (labels[tx.category]) {
     parts.push(labels[tx.category]);

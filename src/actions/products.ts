@@ -60,6 +60,8 @@ const productShape = z.object({
   adicionais: z.array(addonSchema).default([]),
   tiers: z.array(tierSchema).min(1).default([{ qty: 1, price: 0 }]),
   insumoId: z.string().optional(),
+  // Seller commission, % of the amount sold. Omitted/0 = off.
+  commissionPercent: z.number().min(0).max(100, "A comissão deve ser de no máximo 100%.").optional(),
 });
 
 // Cross-field consistency, on top of the per-row stockItemId requirement above:
@@ -73,6 +75,13 @@ const productSchema = productShape.superRefine((data, ctx) => {
       code: z.ZodIssueCode.custom,
       message: "Adicione ao menos um insumo à base.",
       path: ["recipe"],
+    });
+  }
+  if (data.saleType === "adicional" && data.commissionPercent) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Adicionais não têm comissão própria.",
+      path: ["commissionPercent"],
     });
   }
   if ((data.saleType === "revenda" || data.saleType === "adicional") && !data.insumoId) {

@@ -13,6 +13,7 @@
  *   - `order-{orderId}` exists  <=>  order is paid and not cancelled, and
  *     amount === order.total (itself === orderMoney(items, discount).total)
  *   - revendaAmount === revendaShare(items, total)
+ *   - commission.amount === commissionOf(items, total, discount) (0 without a seller)
  *   - every finance category exists in settings/finance (or is the legacy
  *     "vendas" key on order mirrors)
  *   - legacy `stock-{movementId}` rows (see migrate-legacy-stock-expenses.ts)
@@ -29,7 +30,7 @@ import {
   type MonthAgg,
   type SummaryData,
 } from "../src/lib/summary-core";
-import { orderMoney, revendaShare } from "../src/lib/order-money";
+import { commissionOf, orderMoney, revendaShare } from "../src/lib/order-money";
 import { monthKey } from "../src/lib/timezone";
 
 const db = getFirestore(getApps()[0] ?? initializeApp({ projectId: "selet-prod" }));
@@ -87,15 +88,24 @@ async function auditStore(storeId: string) {
     if (!Number.isInteger(amt) || amt <= 0) problem(`${doc.id}: amount=${amt}`);
     if (d.direction !== "in" && d.direction !== "out") problem(`${doc.id}: direction=${d.direction}`);
     if (!d.date) problem(`${doc.id}: sem data`);
-    if (!["order", "manual", "stock"].includes(src)) problem(`${doc.id}: source=${src}`);
+    if (!["order", "manual", "stock", "commission"].includes(src)) problem(`${doc.id}: source=${src}`);
     if (src === "order" && d.direction !== "in") problem(`${doc.id}: espelho de pedido com direction=${d.direction}`);
-    const known = settingsCats.has(d.category) || (src === "order" && d.category === LEGACY_VENDAS);
+    const known =
+      settingsCats.has(d.category) ||
+      (src === "order" && d.category === LEGACY_VENDAS) ||
+      (src === "commission" && d.category === "comissoes");
     if (!known) problem(`${doc.id}: categoria "${d.category}" não existe em settings/finance`);
     const s = (bySource[src] ??= { n: 0, in: 0, out: 0 });
     s.n++;
     if (d.direction === "in") s.in += amt ?? 0;
     else s.out += amt ?? 0;
-    add(fromDocs, mkOf(d.date), d.direction, amt ?? 0);
+    // Commission payouts are informational — the accrual (carried by the order
+    // mirror, counted as a Saída of its month) is what the summary holds.
+    if (src !== "commission") add(fromDocs, mkOf(d.date), d.direction, amt ?? 0);
+    if (src === "order" && d.commission?.amount) {
+      add(fromDocs, mkOf(d.date), "out", d.commission.amount);
+      s.out += d.commission.amount;
+    }
     if (d.direction === "out") ((outBySource[mkOf(d.date)] ??= {})[src] = (outBySource[mkOf(d.date)]?.[src] ?? 0) + (amt ?? 0));
   }
   console.log("\n-- finance docs por origem --");
@@ -140,7 +150,13 @@ async function auditStore(storeId: string) {
       }),
       finance: financeSnap.docs.map((doc) => {
         const d = doc.data();
-        return { direction: d.direction, amount: d.amount ?? 0, date: d.date?.toDate() ?? new Date(0) };
+        return {
+          direction: d.direction,
+          amount: d.amount ?? 0,
+          date: d.date?.toDate() ?? new Date(0),
+          commission: d.commission?.amount,
+          skip: d.source === "commission",
+        };
       }),
       stock: stockSnap.docs.map((doc) => ({
         lowStock: doc.data().lowStock ?? false,
@@ -189,6 +205,10 @@ async function auditStore(storeId: string) {
     else if (shouldMirror && m) {
       if (m.amount !== d.total) problem(`pedido ${doc.id}: espelho ${brl(m.amount ?? 0)} != total ${brl(d.total ?? 0)}`);
       if ((m.revendaAmount ?? 0) !== revendaShare(items, d.total ?? 0)) problem(`pedido ${doc.id}: revendaAmount do espelho diverge`);
+      const expectedCommission = d.sellerEmail ? commissionOf(items, d.total ?? 0, discount).amount : 0;
+      if ((m.commission?.amount ?? 0) !== expectedCommission) {
+        problem(`pedido ${doc.id}: comissão do espelho ${brl(m.commission?.amount ?? 0)} != esperado ${brl(expectedCommission)}`);
+      }
     }
     if (d.paid && (d.total ?? 0) === 0) problem(`pedido ${doc.id} pago com total R$ 0`);
   }

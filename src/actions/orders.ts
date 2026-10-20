@@ -10,6 +10,7 @@ import {
   updateOrder,
 } from "@/data/orders";
 import { logActivity } from "@/data/activity";
+import { resolveSeller } from "@/data/commissions";
 import { orderCode } from "@/lib/format";
 import { orderMoney } from "@/lib/order-money";
 import { discountSchema, orderItemSchema } from "@/lib/order-schema";
@@ -108,6 +109,9 @@ const orderShape = z.object({
   // entirely (server defaults to now()); edit mode always sends the current
   // (possibly moved) value. Window-checked by refineCreatedAtWindow below.
   createdAt: z.string().trim().min(1).optional(),
+  // "Vendido por" (member email). Create defaults to whoever is launching;
+  // the name is resolved server-side from the member record, never sent.
+  sellerEmail: z.string().trim().min(1).optional(),
 });
 
 const orderSchema = orderShape.superRefine(refineCreatedAtWindow);
@@ -161,7 +165,13 @@ export async function createOrderAction(
       );
     }
     const user = await requireAccess(storeId, "pedidos");
-    const orderId = await createOrder(storeId, data, { paid, payMethod }, user.email);
+    const seller = await resolveSeller(storeId, data.sellerEmail ?? user.email);
+    const orderId = await createOrder(
+      storeId,
+      { ...data, sellerEmail: seller.email, sellerName: seller.name },
+      { paid, payMethod },
+      user.email,
+    );
     const code = orderCode(orderId);
     await logActivity(storeId, {
       icon: "inbox",
@@ -190,7 +200,13 @@ export async function updateOrderAction(
   return run(async () => {
     const { storeId, ...data } = orderSchema.parse(input);
     const user = await requireAccess(storeId, "pedidos");
-    await updateOrder(storeId, orderId, data, user.email);
+    const seller = data.sellerEmail ? await resolveSeller(storeId, data.sellerEmail) : null;
+    await updateOrder(
+      storeId,
+      orderId,
+      seller ? { ...data, sellerEmail: seller.email, sellerName: seller.name } : data,
+      user.email,
+    );
     revalidate(storeId);
   });
 }

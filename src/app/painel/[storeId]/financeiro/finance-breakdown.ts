@@ -16,6 +16,8 @@ export interface MonthBreakdown {
   insumos: number;
   /** every other expense (salários, aluguel, marketing, outros) */
   operacao: number;
+  /** seller commissions accrued by the month's paid orders (also counted in `out`) */
+  comissoes: number;
 }
 
 /**
@@ -23,15 +25,18 @@ export interface MonthBreakdown {
  * mirrors are Consumo minus their `revendaAmount` share, manual income is
  * "Outras". Saídas split into Insumos (category "insumos", or the legacy
  * "compras" key until migrate-settings runs) and Operação (everything else).
+ * Seller commissions are accrued by the order mirror that earned them and count
+ * as a third Saída (Comissões); the later payout rows (source "commission") are
+ * informational and skipped so the same money is never counted twice.
  */
 export function monthBreakdown(txs: FinanceTx[]): Map<string, MonthBreakdown> {
   const map = new Map<string, MonthBreakdown>();
   for (const tx of txs) {
-    if (!tx.date) continue;
+    if (!tx.date || tx.source === "commission") continue;
     const key = monthKeyOf(tx.date);
     let b = map.get(key);
     if (!b) {
-      b = { in: 0, out: 0, consumo: 0, revenda: 0, outrasEntradas: 0, insumos: 0, operacao: 0 };
+      b = { in: 0, out: 0, consumo: 0, revenda: 0, outrasEntradas: 0, insumos: 0, operacao: 0, comissoes: 0 };
       map.set(key, b);
     }
     if (tx.direction === "in") {
@@ -40,6 +45,9 @@ export function monthBreakdown(txs: FinanceTx[]): Map<string, MonthBreakdown> {
         const revenda = Math.min(tx.amount, Math.max(0, tx.revendaAmount ?? 0));
         b.revenda += revenda;
         b.consumo += tx.amount - revenda;
+        const commission = tx.commission?.amount ?? 0;
+        b.comissoes += commission;
+        b.out += commission;
       } else {
         b.outrasEntradas += tx.amount;
       }

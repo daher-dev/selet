@@ -1,4 +1,5 @@
 import { requireAccess } from "@/lib/access";
+import { listCommissionPayments } from "@/data/commissions";
 import { listTransactions } from "@/data/finance";
 import { listOrders } from "@/data/orders";
 import { readSummary } from "@/data/summary";
@@ -27,9 +28,10 @@ export default async function FinanceiroPage({
   // summary doc; when it's absent they're recomputed from a bounded 12-month
   // orders scan plus these txs, with the exact same math.
   const windowStart = addZonedMonths(now, -(EVOLUTION_MONTHS - 1));
-  const [txs, stored] = await Promise.all([
+  const [txs, stored, commissionPayments] = await Promise.all([
     listTransactions(storeId, { since: windowStart }),
     readSummary(storeId),
+    listCommissionPayments(storeId, { since: windowStart }),
   ]);
 
   let summary = stored;
@@ -41,7 +43,13 @@ export default async function FinanceiroPage({
       orders: orders.map((o) => ({ ...o, createdAt: new Date(o.createdAt) })),
       finance: txs
         .filter((t) => t.date)
-        .map((t) => ({ direction: t.direction, amount: t.amount, date: new Date(t.date) })),
+        .map((t) => ({
+          direction: t.direction,
+          amount: t.amount,
+          date: new Date(t.date),
+          commission: t.commission?.amount,
+          skip: t.source === "commission",
+        })),
       stock: [],
       customers: [],
     });
@@ -67,6 +75,7 @@ export default async function FinanceiroPage({
       receivablesByMonth={receivablesByMonth}
       months={months}
       transactions={txs}
+      commissionPayments={commissionPayments}
     />
   );
 }

@@ -186,6 +186,11 @@ function ProductForm({
   const [typeTags, setTypeTags] = useState<string[]>(product?.typeTags ?? []);
   const [description, setDescription] = useState(product?.description ?? "");
   const [active, setActive] = useState(product?.active ?? true);
+  // Seller commission: switch + % (string while typing, e.g. "5" / "7,5").
+  const [commissionOn, setCommissionOn] = useState((product?.commissionPercent ?? 0) > 0);
+  const [commissionPct, setCommissionPct] = useState(
+    product?.commissionPercent ? String(product.commissionPercent).replace(".", ",") : "",
+  );
   const [insumoId, setInsumoId] = useState<string | undefined>(product?.insumoId);
   const [recipe, setRecipe] = useState<RecipeRow[]>(
     (product?.recipe ?? []).map((r) => ({
@@ -303,6 +308,11 @@ function ProductForm({
       toast.error("Selecione o item do estoque.");
       return;
     }
+    const commission = commissionOn && !isAdicional ? parsePercent(commissionPct) : 0;
+    if (commissionOn && !isAdicional && commission <= 0) {
+      toast.error("Informe o percentual da comissão (entre 0 e 100).");
+      return;
+    }
 
     const cleanRecipe: RecipeItem[] = usesRecipe
       ? recipe
@@ -375,6 +385,7 @@ function ProductForm({
         adicionais: linkedAddons,
         tiers: parsedTiers,
         insumoId: linksInsumo ? insumoId : undefined,
+        commissionPercent: commission > 0 ? commission : undefined,
       } as const;
       const result = product
         ? await updateProductAction(product.id, input)
@@ -628,6 +639,16 @@ function ProductForm({
             label="Adicionar faixa"
           />
         </div>
+
+        {!isAdicional && (
+          <CommissionField
+            on={commissionOn}
+            onToggle={setCommissionOn}
+            percent={commissionPct}
+            onPercent={setCommissionPct}
+            tiers={parseTierRows(tiers)}
+          />
+        )}
 
         <div className="space-y-1.5">
           <Label htmlFor="product-description">Descrição</Label>
@@ -1286,5 +1307,93 @@ function DashedAddButton({
       <Plus className="size-4" />
       {label}
     </button>
+  );
+}
+
+/** "7,5" / "5" → 7.5 / 5 (0 when empty or out of 0-100), 2 decimals at most. */
+function parsePercent(raw: string): number {
+  const n = Number(raw.replace(",", "."));
+  if (!Number.isFinite(n) || n <= 0 || n > 100) return 0;
+  return Math.round(n * 100) / 100;
+}
+
+/** "Comissão do vendedor" (Mock Cardápio 2a/2b): off by default; shows the value per price tier. */
+function CommissionField({
+  on,
+  onToggle,
+  percent,
+  onPercent,
+  tiers,
+}: {
+  on: boolean;
+  onToggle: (on: boolean) => void;
+  percent: string;
+  onPercent: (value: string) => void;
+  tiers: PriceTier[];
+}) {
+  const pct = parsePercent(percent);
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <p className="text-[11px] font-bold uppercase tracking-[0.4px] text-ink-soft">
+            Comissão do vendedor
+          </p>
+          <p className="mt-0.5 text-[11.5px] text-ink-soft">
+            Opcional · parte do valor vai para quem fez a venda
+          </p>
+        </div>
+        <Switch
+          checked={on}
+          onCheckedChange={onToggle}
+          aria-label="Pagar comissão neste item"
+        />
+      </div>
+      {on ? (
+        <div className="space-y-2.5 rounded-xl border border-commission-line bg-commission-soft p-3.5">
+          <div className="flex items-center gap-2.5">
+            <Label
+              htmlFor="product-commission"
+              className="flex-1 text-[13px] font-semibold text-ink-soft"
+            >
+              Percentual sobre o valor vendido
+            </Label>
+            <div className="flex h-10 w-24 items-center rounded-[10px] border border-commission-line bg-white px-3">
+              <input
+                id="product-commission"
+                inputMode="decimal"
+                value={percent}
+                onChange={(e) => onPercent(e.target.value.replace(/[^\d,.]/g, ""))}
+                aria-label="Percentual de comissão"
+                className="min-w-0 flex-1 border-0 bg-transparent text-right text-[15px] font-bold text-ink outline-none"
+              />
+              <span className="ml-1 text-sm font-bold text-commission">%</span>
+            </div>
+          </div>
+          {pct > 0 && tiers.length > 0 && (
+            <div className="space-y-1 text-[12.5px] text-ink-soft">
+              {tiers.map((t) => (
+                <p key={t.qty} className="flex">
+                  <span className="flex-1">
+                    {t.qty === 1
+                      ? `1 unidade a ${formatBRL(t.price)}`
+                      : `Faixa de ${t.qty} a ${formatBRL(t.price)}`}
+                  </span>
+                  <strong className="font-bold tabular-nums text-commission">
+                    {formatBRL(Math.round((t.price * pct) / 100))}
+                  </strong>
+                </p>
+              ))}
+            </div>
+          )}
+          <p className="text-[11.5px] leading-snug text-ink-soft">
+            Com desconto no pedido, a comissão sai do valor com desconto. Cortesia não gera
+            comissão.
+          </p>
+        </div>
+      ) : (
+        <p className="text-xs text-ink-soft">Desligada: ninguém recebe comissão por este item.</p>
+      )}
+    </div>
   );
 }

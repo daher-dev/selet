@@ -31,6 +31,7 @@ describe("monthBreakdown", () => {
       outrasEntradas: 2000,
       insumos: 1500,
       operacao: 4200,
+      comissoes: 0,
     });
   });
 });
@@ -44,6 +45,26 @@ describe("monthBreakdown — configurable categories", () => {
     ]).get("2026-07")!;
     expect(m.insumos).toBe(1500);
     expect(m.operacao).toBe(700);
+  });
+});
+
+describe("monthBreakdown — commissions", () => {
+  it("counts the accrued commission as a Saída and ignores the payout rows", () => {
+    const m = monthBreakdown([
+      tx({
+        source: "order",
+        category: "vendas",
+        amount: 10000,
+        commission: { amount: 500, base: 10000, items: 2 },
+      }),
+      tx({ direction: "out", source: "manual", category: "aluguel", amount: 4200 }),
+      // The payout of that commission — already counted above.
+      tx({ direction: "out", source: "commission", category: "comissoes", amount: 500 }),
+    ]).get("2026-07")!;
+    expect(m.in).toBe(10000);
+    expect(m.comissoes).toBe(500);
+    expect(m.out).toBe(4700);
+    expect(m.operacao).toBe(4200);
   });
 });
 

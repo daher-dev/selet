@@ -156,6 +156,12 @@ export interface OrderItem {
    * lines (treated as "menu").
    */
   saleType?: ProductSaleType;
+  /**
+   * Product commission % snapshotted when the order is written (same convention
+   * as `saleType`), so a later change to the product never rewrites history.
+   * Absent/0 = the line earns no commission.
+   */
+  commissionPercent?: number;
   addons?: string[];
   /** Present only for "Montar shake" lines; mutually exclusive with `addons`. */
   shake?: ShakeSelection;
@@ -211,6 +217,10 @@ export interface Order {
   discount?: OrderDiscount | null;
   /** Free-text order note, visible to the team only (never shown in list rows). */
   notes?: string;
+  /** Who sold it (member email); earns the commission of the lines that carry one. */
+  sellerEmail?: string;
+  /** Display name snapshot of the seller, resolved server-side at write time. */
+  sellerName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -316,6 +326,8 @@ export interface Product {
   tiers: PriceTier[];
   /** Linked stock item slug (revenda/adicional items link one insumo). */
   insumoId?: string;
+  /** Seller commission, % of the amount sold (after discount). Absent/0 = none. */
+  commissionPercent?: number;
   /** Hidden from the default catálogo list (e.g. old retail SKUs archived on sync). */
   archived: boolean;
 }
@@ -422,19 +434,68 @@ export interface StockMovement {
 /** Lançamento categories are per-store (Configurações → Financeiro); see src/lib/stock-settings.ts. */
 export type FinanceCategory = string;
 
+/** Commission one paid order accrues for its seller (centavos). */
+export interface CommissionAccrual {
+  amount: number;
+  /** Discounted amount sold on the commissioned lines — what the % applies to. */
+  base: number;
+  /** Units sold on the commissioned lines. */
+  items: number;
+}
+
+/** A member who can be picked in "Vendido por". */
+export interface SellerOption {
+  email: string;
+  name: string;
+}
+
+/** "Ver por item": one product's commissioned sales in a month. */
+export interface CommissionItemRow {
+  productId: string;
+  name: string;
+  percent: number;
+  qty: number;
+  sold: number; // centavos, after discount
+  commission: number; // centavos
+}
+
+/** One payout of a seller's commission for a competência month. */
+export interface CommissionPayment {
+  id: string;
+  sellerEmail: string;
+  sellerName: string;
+  /** Competência, "YYYY-MM". */
+  month: string;
+  amount: number; // centavos
+  payMethod?: PayMethod;
+  paidAt: string;
+  createdBy?: string;
+}
+
 export interface FinanceTx {
   id: string;
   label: string;
   category: string;
   amount: number; // centavos, always positive
   direction: "in" | "out";
-  source: "order" | "manual" | "stock";
+  /** "commission" = the payout of a seller's monthly commission (informational: the accrual is already in Saídas). */
+  source: "order" | "manual" | "stock" | "commission";
   orderId?: string;
   /**
    * Order mirrors only: the part of `amount` that came from revenda lines
    * (centavos). The rest of an order mirror's amount is Consumo.
    */
   revendaAmount?: number;
+  /**
+   * Order mirrors only: the seller commission this paid order accrues. Counts
+   * as a Saída of the mirror's month (`amount` stays the gross sale).
+   */
+  commission?: CommissionAccrual;
+  /** Seller of the order (mirrors) or payee of a commission payout. */
+  sellerEmail?: string;
+  sellerName?: string;
+  /** Commission payouts only: the competência ("YYYY-MM") being paid. */
+  commissionMonth?: string;
   /** The stock item this purchase mirrors — set only when source === "stock". */
   stockItemId?: string;
   payMethod?: PayMethod;

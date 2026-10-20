@@ -17,7 +17,7 @@ import {
   TriangleAlert,
   Wallet,
 } from "lucide-react";
-import type { FinanceTx } from "@/lib/types";
+import type { CommissionPayment, FinanceTx } from "@/lib/types";
 import type { MonthPoint } from "@/lib/dashboard-core";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,7 @@ import { SectionHeading, TintedCard } from "@/components/tinted-card";
 import { MonthlySalesChart } from "@/components/charts/evolution-charts";
 import { EntradaSaidaChart, TicketChart } from "@/components/charts/finance-charts";
 import { ManualTxSheet } from "./manual-tx-sheet";
+import { CommissionsSection } from "./commissions-section";
 import {
   buildRange,
   competenciaLabel,
@@ -46,6 +47,8 @@ interface FinanceiroClientProps {
   /** Last 12 months, oldest first (current month last). */
   months: MonthPoint[];
   transactions: FinanceTx[];
+  /** Commission payouts registered in the evolution window. */
+  commissionPayments: CommissionPayment[];
 }
 
 /**
@@ -88,7 +91,7 @@ function SplitBreakdown({
       </span>
       <span className="mt-[9px] flex w-full max-w-[230px] flex-col gap-[5px] text-[12px]">
         {parts
-          .filter((p) => p.value > 0 || p.label !== "Outras")
+          .filter((p) => p.value > 0 || (p.label !== "Outras" && p.label !== "Comissões"))
           .map((p) => (
             <span key={p.label} className="flex items-center gap-2">
               <span className="size-2 shrink-0 rounded-[2px]" style={{ background: p.color }} />
@@ -170,6 +173,7 @@ function Hero({ b, net, isNegative }: { b: MonthBreakdown; net: number; isNegati
           parts={[
             { label: "Insumos", value: b.insumos, color: "#FBE3DB" },
             { label: "Operação", value: b.operacao, color: "#F2B8A8" },
+            { label: "Comissões", value: b.comissoes, color: "#C9B6F0" },
           ]}
         />
       </div>
@@ -182,6 +186,7 @@ export function FinanceiroClient({
   receivablesByMonth,
   months,
   transactions,
+  commissionPayments,
 }: FinanceiroClientProps) {
   const categoryLabels = useCategoryLabels();
   const [formOpen, setFormOpen] = useState(false);
@@ -356,6 +361,14 @@ export function FinanceiroClient({
         )}
       </div>
 
+      <CommissionsSection
+        storeId={storeId}
+        month={selectedKey}
+        monthName={selectedMonthName}
+        transactions={transactions}
+        payments={commissionPayments}
+      />
+
       <SectionHeading title="Evolução" chip="Últimos 12 meses" />
 
       <TintedCard tone="green" icon={CircleDollarSign} title="Vendas" className="mb-4">
@@ -438,4 +451,5 @@ const EMPTY: MonthBreakdown = {
   outrasEntradas: 0,
   insumos: 0,
   operacao: 0,
+  comissoes: 0,
 };

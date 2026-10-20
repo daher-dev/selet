@@ -21,6 +21,12 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("@/actions/commissions", () => ({
+  registerCommissionPaymentAction: vi.fn().mockResolvedValue({ ok: true }),
+  undoCommissionPaymentAction: vi.fn().mockResolvedValue({ ok: true }),
+  listCommissionItemsAction: vi.fn().mockResolvedValue({ ok: true, rows: [] }),
+}));
+
 vi.mock("@/actions/finance", () => ({
   createManualTxAction: vi.fn().mockResolvedValue({ ok: true }),
   deleteManualTxAction: vi.fn().mockResolvedValue({ ok: true }),
@@ -35,6 +41,7 @@ describe("FinanceiroClient", () => {
           receivablesByMonth={{}}
           months={[]}
           transactions={[]}
+          commissionPayments={[]}
         />
       </AppShellProvider>,
     );

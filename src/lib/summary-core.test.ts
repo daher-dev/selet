@@ -5,6 +5,7 @@ import {
   monthCustomerSplit,
   pruneMonths,
   summaryAddOrder,
+  summaryFinance,
   summaryFirstOrderShift,
   type OrderLike,
 } from "./summary-core";
@@ -61,5 +62,30 @@ describe("novos / recorrentes", () => {
     // Pruning old buckets doesn't change who is new in the kept months.
     const pruned = pruneMonths(s, 1);
     expect(monthCustomerSplit(pruned.months["2026-06"])).toEqual({ novos: 1, recorrentes: 2 });
+  });
+});
+
+describe("commission in Saídas", () => {
+  it("adds the accrued commission to the month's out, and reverses it exactly", () => {
+    const s = emptySummary();
+    summaryFinance(s, { mk: "2026-07", direction: "in", amount: 10000, commission: 500 });
+    expect(s.months["2026-07"]).toMatchObject({ in: 10000, out: 500 });
+    summaryFinance(s, { mk: "2026-07", direction: "in", amount: -10000, commission: -500 });
+    expect(s.months["2026-07"]).toMatchObject({ in: 0, out: 0 });
+  });
+
+  it("recompute matches the incremental path and skips payout rows", () => {
+    const date = new Date("2026-07-10T15:00:00Z");
+    const s = computeSummaryFrom({
+      orders: [],
+      finance: [
+        { direction: "in", amount: 10000, date, commission: 500 },
+        { direction: "out", amount: 500, date, skip: true }, // payout of that commission
+        { direction: "out", amount: 4200, date },
+      ],
+      stock: [],
+      customers: [],
+    });
+    expect(s.months["2026-07"]).toMatchObject({ in: 10000, out: 4700 });
   });
 });
