@@ -1,8 +1,9 @@
 import "server-only";
 
-import { Timestamp } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
 import type {
+  CommissionAccrual,
   ConsumptionDraw,
   Order,
   OrderChannel,
@@ -12,7 +13,12 @@ import type {
   Product,
 } from "@/lib/types";
 import { orderCode } from "@/lib/format";
-import { orderMoney, revendaShare, type DiscountInput } from "@/lib/order-money";
+import {
+  commissionOf,
+  orderMoney,
+  revendaShare,
+  type DiscountInput,
+} from "@/lib/order-money";
 import {
   cancelSoldCartelas,
   planCartelas,
@@ -100,6 +106,8 @@ function toOrder(id: string, d: FirebaseFirestore.DocumentData): Order {
     cartelaSold: d.cartelaSold ?? [],
     discount: d.discount ?? null,
     notes: d.notes ?? undefined,
+    sellerEmail: d.sellerEmail ?? undefined,
+    sellerName: d.sellerName ?? undefined,
     createdAt: d.createdAt?.toDate().toISOString() ?? "",
     updatedAt: d.updatedAt?.toDate().toISOString() ?? "",
   };
@@ -172,6 +180,10 @@ export interface OrderInput {
   discount?: DiscountInput | null;
   /** Free-text order note (trim, max length enforced by the caller's zod schema). */
   notes?: string;
+  /** Seller (member email) and its display name — the action resolves the name
+   *  from the member record, never from the client. */
+  sellerEmail?: string;
+  sellerName?: string;
   /** ISO datetime; retroactive "Data da venda" (create: defaults to now when absent;
    *  edit: moves the order's month bucket — see updateOrder). Mirrors the customer
    *  creation `since` precedent — never spread raw into the doc. */
@@ -288,6 +300,79 @@ function stampSaleTypes(
     ...item,
     saleType: products.get(item.productId)?.saleType ?? item.saleType ?? "menu",
   }));
+}
+
+/**
+ * Snapshots each line's product commission % (same convention as the saleType
+ * snapshot). A line that already carries a snapshot on the stored order keeps
+ * it — editing an old order must not re-price its commission to today's rate.
+ * Lines with no resolvable catalog product (shake/pudim/cartela) get 0.
+ */
+function stampCommissions(
+  items: OrderItem[],
+  products: Map<string, Product>,
+  previous: OrderItem[] = [],
+): OrderItem[] {
+  const prev = new Map<string, number>();
+  for (const p of previous) {
+    if (p.commissionPercent !== undefined) prev.set(p.productId, p.commissionPercent);
+  }
+  return items.map((item) => ({
+    ...item,
+    commissionPercent:
+      item.shake || item.pudim || item.cartelaSale
+        ? 0
+        : (prev.get(item.productId) ?? products.get(item.productId)?.commissionPercent ?? 0),
+  }));
+}
+
+/** The seller fields of an order doc / finance mirror, or nothing when unset. */
+function sellerFields(d: { sellerEmail?: string | null; sellerName?: string | null }) {
+  return d.sellerEmail
+    ? { sellerEmail: d.sellerEmail, sellerName: d.sellerName ?? d.sellerEmail }
+    : {};
+}
+
+type Seller = { sellerEmail?: string | null; sellerName?: string | null };
+type DiscountLike = { kind: DiscountInput["kind"]; reason?: DiscountInput["reason"] } | null;
+
+/** The commission a paid order accrues, or null (no seller / nothing commissioned). */
+function accrual(
+  items: OrderItem[],
+  total: number,
+  discount: DiscountLike | undefined,
+  seller: Seller,
+): CommissionAccrual | null {
+  if (!seller.sellerEmail) return null;
+  const c = commissionOf(items, total, discount);
+  return c.amount > 0 ? c : null;
+}
+
+/** The finance order mirror (paid orders only): gross sale + revenda split + seller commission. */
+function orderMirror(o: {
+  id: string;
+  customerName: string;
+  items: OrderItem[];
+  total: number;
+  discount?: DiscountLike;
+  seller: Seller;
+  payMethod: PayMethod | null;
+  date: Timestamp;
+}) {
+  const commission = accrual(o.items, o.total, o.discount, o.seller);
+  return {
+    label: `Pedido #${orderCode(o.id)} · ${o.customerName}`,
+    category: "vendas",
+    amount: o.total,
+    revendaAmount: revendaShare(o.items, o.total),
+    ...(commission ? { commission } : {}),
+    ...sellerFields(o.seller),
+    direction: "in" as const,
+    source: "order" as const,
+    orderId: o.id,
+    payMethod: o.payMethod,
+    date: o.date,
+  };
 }
 
 /**
@@ -430,7 +515,7 @@ export async function createOrder(
   const products = await fetchLineProducts(storeId, input.items);
   const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
   const pudimCatalogs = await loadPudimCatalogsForItems(storeId, input.items);
-  const items = stampSaleTypes(input.items, products);
+  const items = stampCommissions(stampSaleTypes(input.items, products), products);
 
   let stockConsumed: ConsumptionDraw[] = [];
   let cartelaConsumed: CartelaConsumedEntry[] = [];
@@ -482,7 +567,14 @@ export async function createOrder(
       items: sellerItems(input.items),
     });
     // Paid at creation → its finance income mirror lands this month too.
-    if (payment.paid) summaryFinance(summary, { mk, direction: "in", amount: total });
+    if (payment.paid) {
+      summaryFinance(summary, {
+        mk,
+        direction: "in",
+        amount: total,
+        commission: accrual(items, total, money.discount, rest)?.amount,
+      });
+    }
 
     // Writes.
     plan.commit();
@@ -505,17 +597,19 @@ export async function createOrder(
       updatedAt: now,
     });
     if (payment.paid) {
-      tx.set(storeRef(storeId).collection("finance").doc(`order-${ref.id}`), {
-        label: `Pedido #${orderCode(ref.id)} · ${input.customerName}`,
-        category: "vendas",
-        amount: total,
-        revendaAmount: revendaShare(items, total),
-        direction: "in",
-        source: "order",
-        orderId: ref.id,
-        payMethod: payment.payMethod,
-        date: now,
-      });
+      tx.set(
+        storeRef(storeId).collection("finance").doc(`order-${ref.id}`),
+        orderMirror({
+          id: ref.id,
+          customerName: input.customerName,
+          items,
+          total,
+          discount: money.discount,
+          seller: rest,
+          payMethod: payment.payMethod,
+          date: now,
+        }),
+      );
     }
   });
   return ref.id;
@@ -535,12 +629,16 @@ export async function updateOrder(
   const products = await fetchLineProducts(storeId, input.items);
   const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
   const pudimCatalogs = await loadPudimCatalogsForItems(storeId, input.items);
-  const items = stampSaleTypes(input.items, products);
+  const stamped = stampSaleTypes(input.items, products);
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Pedido não encontrado.");
     const current = snap.data()!;
+    // Lines already on the order keep their commission snapshot (see stampCommissions).
+    const items = stampCommissions(stamped, products, (current.items ?? []) as OrderItem[]);
+    // An edit that doesn't name a seller keeps the one the order has.
+    const seller: Seller = input.sellerEmail ? input : current;
     // The order's month is no longer immutable — `createdAt` can move on edit
     // ("Data da venda" is editable). oldCreatedAt from the CURRENTLY STORED
     // value, newCreatedAt from the (possibly updated) one. Computed up front
@@ -653,13 +751,25 @@ export async function updateOrder(
     // paid with a changed total just updates the amount and shifts the delta.
     const mirrorDate = financeMirrorSnap?.data()?.date as Timestamp | undefined;
     const mirrorAmount = financeMirrorSnap?.data()?.amount as number | undefined;
+    const oldCommission = (financeMirrorSnap?.data()?.commission?.amount as number | undefined) ?? 0;
+    const newAccrual = accrual(items, total, money.discount, seller);
     const financeMk = mirrorDate ? monthKey(mirrorDate.toDate()) : oldMk;
     if (paidBefore && !paidAfter) {
-      if (mirrorAmount) {
-        summaryFinance(summary, { mk: financeMk, direction: "in", amount: -mirrorAmount });
+      if (mirrorAmount || oldCommission) {
+        summaryFinance(summary, {
+          mk: financeMk,
+          direction: "in",
+          amount: -(mirrorAmount ?? 0),
+          commission: -oldCommission,
+        });
       }
-    } else if (paidAfter && total !== oldTotal) {
-      summaryFinance(summary, { mk: financeMk, direction: "in", amount: total - oldTotal });
+    } else if (paidAfter && (total !== oldTotal || (newAccrual?.amount ?? 0) !== oldCommission)) {
+      summaryFinance(summary, {
+        mk: financeMk,
+        direction: "in",
+        amount: total - oldTotal,
+        commission: (newAccrual?.amount ?? 0) - oldCommission,
+      });
     }
 
     plan.commit();
@@ -681,6 +791,7 @@ export async function updateOrder(
       payMethod: paidAfter ? (current.payMethod ?? null) : null,
       discount: money.discount ?? null,
       notes: notes?.trim() || null,
+      ...sellerFields(seller),
       stockConsumed: plan.draws,
       cartelaConsumed: cartelaPlan.consumed,
       cartelaSold: [...oldCartelaSold, ...cartelaPlan.soldIds],
@@ -693,6 +804,9 @@ export async function updateOrder(
       tx.update(financeMirrorRef, {
         amount: total,
         revendaAmount: revendaShare(items, total),
+        // update() ignores undefined, so a commission that went away is deleted explicitly.
+        commission: newAccrual ?? FieldValue.delete(),
+        ...sellerFields(seller),
       });
     }
   });
@@ -816,9 +930,15 @@ export async function setOrderStatus(
       if (paid && financeMirrorSnap?.exists) {
         const md = financeMirrorSnap.data()!;
         const mirrorAmount = (md.amount as number | undefined) ?? 0;
+        const mirrorCommission = (md.commission?.amount as number | undefined) ?? 0;
         const mirrorMk = md.date ? monthKey((md.date as Timestamp).toDate()) : mk;
-        if (mirrorAmount) {
-          summaryFinance(summary, { mk: mirrorMk, direction: "in", amount: -mirrorAmount });
+        if (mirrorAmount || mirrorCommission) {
+          summaryFinance(summary, {
+            mk: mirrorMk,
+            direction: "in",
+            amount: -mirrorAmount,
+            commission: -mirrorCommission,
+          });
         }
       }
     } else if (wasCancelled && !willBeCancelled) {
@@ -832,7 +952,12 @@ export async function setOrderStatus(
         items: sellerItems(items),
       });
       if (paid && total > 0) {
-        summaryFinance(summary, { mk, direction: "in", amount: total });
+        summaryFinance(summary, {
+          mk,
+          direction: "in",
+          amount: total,
+          commission: accrual(items, total, current.discount, current)?.amount,
+        });
       }
     } else {
       const delta =
@@ -857,17 +982,19 @@ export async function setOrderStatus(
     if (!wasCancelled && willBeCancelled && paid && financeMirrorSnap?.exists) {
       tx.delete(financeMirrorRef);
     } else if (wasCancelled && !willBeCancelled && paid && total > 0) {
-      tx.set(financeMirrorRef, {
-        label: `Pedido #${orderCode(orderId)} · ${current.customerName}`,
-        category: "vendas",
-        amount: total,
-        revendaAmount: revendaShare(items, total),
-        direction: "in",
-        source: "order",
-        orderId,
-        payMethod: current.payMethod ?? null,
-        date: current.createdAt,
-      });
+      tx.set(
+        financeMirrorRef,
+        orderMirror({
+          id: orderId,
+          customerName: current.customerName,
+          items,
+          total,
+          discount: current.discount,
+          seller: current,
+          payMethod: current.payMethod ?? null,
+          date: current.createdAt,
+        }),
+      );
     }
   });
 }
@@ -919,10 +1046,21 @@ export async function setOrderPayment(
     if (mirrorSnap.exists) {
       const md = mirrorSnap.data()!;
       const priorMk = md.date ? monthKey((md.date as Timestamp).toDate()) : orderMk;
-      summaryFinance(summary, { mk: priorMk, direction: "in", amount: -(md.amount ?? 0) });
+      summaryFinance(summary, {
+        mk: priorMk,
+        direction: "in",
+        amount: -(md.amount ?? 0),
+        commission: -(md.commission?.amount ?? 0),
+      });
     }
+    const items = (current.items ?? []) as OrderItem[];
     if (paid) {
-      summaryFinance(summary, { mk: monthKey(now.toDate()), direction: "in", amount: total });
+      summaryFinance(summary, {
+        mk: monthKey(now.toDate()),
+        direction: "in",
+        amount: total,
+        commission: accrual(items, total, current.discount, current)?.amount,
+      });
     }
     // "A receber": an order is a receivable exactly when non-cancelled, unpaid,
     // AND has a non-zero total (a comped/nada-a-cobrar order is never a
@@ -933,17 +1071,19 @@ export async function setOrderPayment(
     writeSummaryTx(tx, storeId, summary);
 
     if (paid) {
-      tx.set(financeRef, {
-        label: `Pedido #${orderCode(orderId)} · ${current.customerName}`,
-        category: "vendas",
-        amount: total,
-        revendaAmount: revendaShare((current.items ?? []) as OrderItem[], total),
-        direction: "in",
-        source: "order",
-        orderId,
-        payMethod,
-        date: now,
-      });
+      tx.set(
+        financeRef,
+        orderMirror({
+          id: orderId,
+          customerName: current.customerName,
+          items,
+          total,
+          discount: current.discount,
+          seller: current,
+          payMethod,
+          date: now,
+        }),
+      );
     } else {
       tx.delete(financeRef);
     }

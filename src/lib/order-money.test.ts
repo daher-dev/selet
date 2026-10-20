@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { OrderItem } from "./types";
 import {
   cartelaCovered,
+  commissionOf,
   discountAmount,
   itemsSubtotal,
   netOfCartela,
@@ -169,5 +170,70 @@ describe("revendaShare", () => {
 
   it("is zero for a comped (R$0) order", () => {
     expect(revendaShare([line(6000, 1, "revenda")], 0)).toBe(0);
+  });
+});
+
+describe("commissionOf", () => {
+  const line = (
+    unitPrice: number,
+    qty: number,
+    commissionPercent?: number,
+    extra: Partial<OrderItem> = {},
+  ): OrderItem => ({
+    productId: `p${unitPrice}`,
+    name: "x",
+    qty,
+    unitPrice,
+    commissionPercent,
+    ...extra,
+  });
+
+  it("applies the % to the discounted value of the commissioned line (mock: R$ 1,91)", () => {
+    // 3 × R$ 15 coxinha (5%) + R$ 37 shake = R$ 82; 15% off → total R$ 69,70.
+    const items = [line(1500, 3, 5), line(3700, 1)];
+    const total = orderMoney(items, { kind: "percent", value: 15 }).total;
+    expect(total).toBe(6970);
+    expect(commissionOf(items, total, { kind: "percent" })).toEqual({
+      amount: 191,
+      base: 3825,
+      items: 3,
+    });
+  });
+
+  it("is the plain % of the line when there is no discount", () => {
+    expect(commissionOf([line(1500, 1, 5)], 1500)).toEqual({ amount: 75, base: 1500, items: 1 });
+  });
+
+  it("rounds once per order, not per line", () => {
+    // 0,5 centavo per line would round to 1 each; together they are 1.
+    const items = [line(10, 1, 5), line(10, 1, 5)];
+    expect(commissionOf(items, 20).amount).toBe(1);
+  });
+
+  it("sums several commissioned lines with different percents", () => {
+    const items = [line(1000, 1, 10), line(2000, 1, 5)];
+    expect(commissionOf(items, 3000).amount).toBe(200);
+  });
+
+  it("ignores lines without a percent, cartela sales and shake/pudim lines", () => {
+    const items = [
+      line(1000, 1),
+      line(1000, 1, 0),
+      line(5000, 1, 10, { cartelaSale: { paidUses: 5, totalUses: 6, unitValue: 1000 } }),
+    ];
+    expect(commissionOf(items, 7000)).toEqual({ amount: 0, base: 0, items: 0 });
+  });
+
+  it("never pays on free orders or cortesia discounts", () => {
+    const items = [line(1500, 2, 5)];
+    expect(commissionOf(items, 3000, { kind: "flat", reason: "cortesia" }).amount).toBe(0);
+    expect(commissionOf(items, 0, { kind: "free" }).amount).toBe(0);
+    expect(commissionOf(items, 2500, { kind: "flat", reason: "combinado" }).amount).toBeGreaterThan(0);
+  });
+
+  it("commissions the price net of cartela coverage", () => {
+    // List R$ 36, cartela covers R$ 30 → R$ 6 charged; 10% = 60 centavos.
+    const items = [line(600, 1, 10, { cartelaUse: { cartelaId: "c", code: "X", uses: 1, covered: 3000, listPrice: 3600 } })];
+    expect(commissionOf(items, 600).amount).toBe(60);
   });
 });

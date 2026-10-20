@@ -11,7 +11,7 @@ import { deleteManualTxAction } from "@/actions/finance";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DataList, DataListHeader, DataListRow } from "@/components/ui/data-list";
 import { usePageAction, usePageHeader } from "@/components/shell/app-shell-context";
-import { competenciaLabel, txShortMeta } from "../finance-shared";
+import { competenciaLabel, monthNameOnly, txShortMeta } from "../finance-shared";
 import { TxAmount, TxIcon } from "../tx-visuals";
 import { ManualTxSheet } from "../manual-tx-sheet";
 import { useCategoryLabels } from "@/components/finance-settings-context";
@@ -234,6 +234,21 @@ function OrigemCell({
       </span>
     );
   }
+  if (tx.source === "commission") {
+    // Payout of a seller's commission → the "Comissões de {mês}" section it came from.
+    return (
+      <Link
+        href={`/painel/${storeId}/financeiro`}
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex h-7 w-full max-w-full items-center gap-1.5 rounded-lg bg-[#EEF3EA] px-2.5 text-[12px] font-semibold text-primary transition-colors hover:bg-mint-wash"
+      >
+        <ExternalLink className="size-3.5 shrink-0" />
+        <span className="truncate">
+          Comissões de {tx.commissionMonth ? monthNameOnly(tx.commissionMonth).toLowerCase() : "mês"}
+        </span>
+      </Link>
+    );
+  }
   const isStock = tx.source === "stock";
   const id = isStock ? tx.stockItemId : tx.orderId;
   const label = isStock
@@ -278,7 +293,9 @@ function AcoesCell({
     const title =
       tx.source === "order"
         ? "Vinculado ao pedido — edite pelo pedido"
-        : "Vinculado ao estoque — edite pela entrada de estoque";
+        : tx.source === "commission"
+          ? "Vinculado às comissões — desfaça o pagamento por lá"
+          : "Vinculado ao estoque — edite pela entrada de estoque";
     return (
       <span className="flex justify-end">
         <span

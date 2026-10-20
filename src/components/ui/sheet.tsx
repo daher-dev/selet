@@ -45,22 +45,31 @@ function SheetOverlay({
   )
 }
 
+// A drawer holding form controls is somewhere the user types: clicking the
+// backdrop (or a toast, or anything outside) must not throw their in-progress
+// data away. Those drawers close only through their own X / Cancelar / Esc.
+// Read-only drawers (details, history) still close on an outside click.
+const FORM_CONTROLS = 'input, textarea, select, [role="switch"], [role="combobox"]'
+
 function SheetContent({
   className,
   children,
   side = "right",
   showCloseButton = true,
   overlayClassName,
+  onInteractOutside,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
   overlayClassName?: string
 }) {
+  const contentRef = React.useRef<HTMLDivElement>(null)
   return (
     <SheetPortal>
       <SheetOverlay className={overlayClassName} />
       <SheetPrimitive.Content
+        ref={contentRef}
         data-slot="sheet-content"
         data-side={side}
         className={cn(
@@ -69,6 +78,12 @@ function SheetContent({
           className
         )}
         {...props}
+        onInteractOutside={(event) => {
+          onInteractOutside?.(event)
+          if (!event.defaultPrevented && contentRef.current?.querySelector(FORM_CONTROLS)) {
+            event.preventDefault()
+          }
+        }}
       >
         {children}
         {showCloseButton && (

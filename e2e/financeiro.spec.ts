@@ -116,3 +116,63 @@ test("Movimentações: dashboard link, create/edit avulso, follow a vinculado Or
   // The deep-link query param is stripped after opening (no reopen on refresh).
   await expect(page).toHaveURL(/\/painel\/vila-velha\/pedidos$/);
 });
+
+// Seller commission end-to-end: turn it on for the product the test above
+// created, sell it paid (the seller defaults to whoever is launching), then see
+// the commission accrue in Financeiro (Saídas + the per-seller section) and pay it.
+test("Comissão: produto com comissão → pedido pago → Financeiro → registrar pagamento", async ({
+  page,
+  context,
+  request,
+  baseURL,
+}) => {
+  await logIn(request, context, baseURL!);
+
+  // --- 10% on "Bowl de salmão".
+  await page.goto("/painel/vila-velha/produtos");
+  await page.getByText("Bowl de salmão").first().click();
+  const sheet = page.locator('[data-slot="sheet-content"]');
+  await sheet.getByRole("switch", { name: "Pagar comissão neste item" }).click();
+  await sheet.locator("#product-commission").fill("10");
+  await sheet.getByRole("button", { name: "Salvar" }).click();
+  await expect(page.getByText("Produto atualizado.")).toBeVisible();
+  await expect(page.getByText("10% comissão")).toBeVisible();
+
+  // --- A paid order sold by the logged-in admin (R$ 39,90 → R$ 3,99).
+  await page.goto("/painel/vila-velha/pedidos");
+  await page.getByRole("button", { name: "Novo pedido" }).first().click();
+  await sheet.getByRole("button", { name: "Selecione um cliente" }).click();
+  await page.getByRole("button", { name: "Carla Mendes" }).click();
+  await expect(sheet.getByRole("combobox", { name: "Vendido por" })).toContainText("João Daher");
+  await sheet
+    .getByRole("button", { name: "Nenhum item — toque para adicionar do cardápio." })
+    .click();
+  await page.getByRole("dialog").getByText("Bowl de salmão").click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Adicionar", exact: true })
+    .click();
+  await expect(sheet.getByText(/Comissão de João/)).toBeVisible();
+  await expect(sheet.getByText("R$ 3,99", { exact: true })).toBeVisible();
+  await sheet.getByRole("button", { name: "Pago", exact: true }).click();
+  await sheet.getByRole("button", { name: "Pix" }).click();
+  await sheet.getByRole("button", { name: /Lançar venda/ }).click();
+  await expect(page.getByText("Pedido criado.")).toBeVisible();
+
+  // --- Financeiro: the section lists the seller, and the payout flips it to "Pago".
+  const month = new Date()
+    .toLocaleString("pt-BR", { month: "long", timeZone: "America/Sao_Paulo" })
+    .toLowerCase();
+  await page.goto("/painel/vila-velha/financeiro");
+  const section = page.getByRole("region", { name: `Comissões de ${month}` });
+  await expect(section.getByText("João Daher")).toBeVisible();
+  await expect(section.getByText("R$ 3,99").first()).toBeVisible();
+  await section.getByRole("button", { name: /Registrar pagamento/ }).click();
+  await page.getByRole("menuitem", { name: "Pix" }).click();
+  await expect(page.getByText("Pagamento de comissão registrado.")).toBeVisible();
+  await expect(section.getByText(/Pago em/)).toBeVisible();
+
+  // --- The payout is a locked, linked row in Movimentações.
+  await page.goto("/painel/vila-velha/financeiro/movimentacoes");
+  await expect(page.getByText("Comissão · João Daher").last()).toBeVisible();
+});
