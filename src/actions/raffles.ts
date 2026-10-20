@@ -19,7 +19,7 @@ import {
   setSignupsOpen,
   waiveRule,
 } from "@/data/raffles";
-import { MAX_PER_PERSON } from "@/lib/raffles";
+import { finalizeRule, MAX_PER_PERSON } from "@/lib/raffles";
 import type { ActionResult } from "./products";
 
 const dateTime = z.iso.datetime({ offset: true });
@@ -28,6 +28,15 @@ const ruleSchema = z.object({
   id: z.string().min(1),
   text: z.string().trim().max(140),
   type: z.enum(["obr", "bonus"]),
+  kind: z.enum(["follow", "like", "comment", "custom"]).optional(),
+  link: z.string().trim().max(300).optional(),
+}).transform((r, ctx) => {
+  const out = finalizeRule(r);
+  if (typeof out === "string") {
+    ctx.addIssue({ code: "custom", message: out });
+    return z.NEVER;
+  }
+  return out;
 });
 
 const raffleSchema = z.object({

@@ -22,6 +22,7 @@ import {
   type Raffle,
   type RaffleFields,
   type RaffleRule,
+  type RuleKind,
   type RuleType,
 } from "@/lib/raffles";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,19 @@ export function RaffleFormSheet({ open, onOpenChange, ...rest }: Props) {
     </Sheet>
   );
 }
+
+const KIND_LABEL: Record<RuleKind, string> = {
+  follow: "Seguir perfil",
+  like: "Curtir post",
+  comment: "Comentar post",
+  custom: "Outra regra",
+};
+const KIND_PLACEHOLDER: Record<RuleKind, string> = {
+  follow: "@selet.vv",
+  like: "Link do post no Instagram",
+  comment: "Link do post no Instagram",
+  custom: "Ex.: Convidar 1 amigo para o grupo",
+};
 
 function RaffleForm({
   storeId,
@@ -278,6 +292,7 @@ function RaffleForm({
           </div>
           {rules.map((r) => {
             const bonus = r.type === "bonus";
+            const kind = r.kind ?? "custom";
             return (
               <div
                 key={r.id}
@@ -288,10 +303,10 @@ function RaffleForm({
               >
                 <div className="flex items-center gap-2">
                   <Input
-                    aria-label="Texto da regra"
-                    placeholder="Ex.: Seguir @selet.vv"
-                    value={r.text}
-                    onChange={(e) => setRule(r.id, { text: e.target.value })}
+                    aria-label={kind === "custom" ? "Texto da regra" : kind === "follow" ? "Perfil a seguir" : "Link do post"}
+                    placeholder={KIND_PLACEHOLDER[kind]}
+                    value={kind === "custom" ? r.text : (r.link ?? "")}
+                    onChange={(e) => setRule(r.id, kind === "custom" ? { text: e.target.value } : { link: e.target.value })}
                     className="h-[38px] min-w-0 flex-1 rounded-[9px] border-[#DDE6DA] bg-white px-2.5 text-[13.5px]"
                   />
                   <button
@@ -302,6 +317,28 @@ function RaffleForm({
                   >
                     <Trash2 className="size-[15px]" />
                   </button>
+                </div>
+                <div role="group" aria-label="O que a pessoa faz" className="flex flex-wrap gap-1.5">
+                  {(Object.keys(KIND_LABEL) as RuleKind[]).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      aria-pressed={kind === k}
+                      onClick={() =>
+                        setRule(r.id, {
+                          kind: k,
+                          // follow ↔ post links are not interchangeable; like ↔ comment share the post.
+                          link: (k === "follow") === (kind === "follow") && k !== "custom" ? r.link : "",
+                        })
+                      }
+                      className={cn(
+                        "h-[30px] rounded-full border px-3 text-xs font-semibold",
+                        kind === k ? "border-primary bg-primary/10 text-primary" : "border-border bg-white text-ink-soft",
+                      )}
+                    >
+                      {KIND_LABEL[k]}
+                    </button>
+                  ))}
                 </div>
                 <div className="flex items-center gap-2">
                   <div
