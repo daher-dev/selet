@@ -9,7 +9,7 @@ import { Timestamp, type Firestore } from "firebase-admin/firestore";
 const ts = (iso: string) => Timestamp.fromDate(new Date(iso));
 
 const RULES = [
-  { id: "seg", text: "Seguir @selet.vv", type: "obr" },
+  { id: "seg", text: "Seguir @selet.vv", type: "obr", kind: "follow", link: "https://instagram.com/selet.vv" },
   { id: "cur", text: "Curtir o post do sorteio", type: "obr" },
   { id: "gru", text: "Convidar alguém para o grupo VIP", type: "bonus" },
 ] as const;
