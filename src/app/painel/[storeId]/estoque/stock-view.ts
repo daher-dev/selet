@@ -161,7 +161,7 @@ export function buildStockCard(item: StockItem, units: StockUnitDef[] = DEFAULT_
 }
 
 /**
- * How many packages to move from the Depósito so the Loja ends above its
+ * How many packages to move from the Depósito so the Loja reaches its
  * minimum (at least 1, never more than the Depósito holds). Used to pre-fill
  * the "Transferir para a loja" suggestions.
  */
@@ -170,7 +170,7 @@ export function suggestTransferQty(item: StockItem): number {
   const min = threshold(item);
   // contínuo counts whole packages; the rest count base units, one package adds pkgSize of them.
   const perPkg = item.continuousUse || !item.tracked ? 1 : item.pkgSize || 1;
-  const need = Math.max(1, Math.ceil((min + 1 - have) / perPkg));
+  const need = Math.max(1, Math.ceil((min - have) / perPkg));
   return Math.min(need, Math.max(item.depSealed, 1));
 }
 

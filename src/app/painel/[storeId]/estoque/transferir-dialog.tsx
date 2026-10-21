@@ -31,7 +31,7 @@ interface Props {
 /**
  * "Transferir para a loja" (design 3b): moves sealed packages Depósito → Loja.
  * Items already below the Loja's minimum come as suggestions that must be
- * accepted or discarded, with how many packages it takes to clear the minimum.
+ * accepted or discarded, with how many packages it takes to reach the minimum.
  */
 export function TransferirDialog({ storeId, storeName, items, open, preselectId, onOpenChange }: Props) {
   return (

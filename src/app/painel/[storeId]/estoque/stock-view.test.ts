@@ -136,15 +136,16 @@ describe("status", () => {
 });
 
 describe("suggestTransferQty", () => {
-  it("moves enough packages to clear the minimum (contínuo counts whole packages)", () => {
-    // 1 pote + 1 em uso = 2 against a minimum of 3 → need 2 to be above it
-    expect(suggestTransferQty(shake({ sealed: 1, reorderAt: 3, depSealed: 6 }))).toBe(2);
+  it("moves enough packages to reach the minimum (contínuo counts whole packages)", () => {
+    // 1 pote + 1 em uso = 2 against a minimum of 3 → 1 missing, same as the card
+    expect(suggestTransferQty(shake({ sealed: 1, reorderAt: 3, depSealed: 6 }))).toBe(1);
+    expect(suggestTransferQty(shake({ sealed: 0, reorderAt: 3, depSealed: 6 }))).toBe(2);
     expect(suggestTransferQty(shake({ sealed: 3, reorderAt: 2, depSealed: 6 }))).toBe(1);
   });
 
   it("counts base units for the rest: a caixa of 12 un against a minimum of 1 caixa", () => {
-    const caixa = item({ pkgLabel: "caixa", pkgSize: 12, sealed: 0, open: 0, qty: 0, reorderAt: 1, depSealed: 2 });
-    expect(suggestTransferQty(caixa)).toBe(2); // 12 un is not above 12 → needs 2 caixas
+    const caixa = item({ pkgLabel: "caixa", pkgSize: 12, sealed: 0, open: 0, qty: 0, reorderAt: 2, depSealed: 3 });
+    expect(suggestTransferQty(caixa)).toBe(2); // 24 un minimum, 0 on hand → 2 caixas
     expect(suggestTransferQty({ ...caixa, depSealed: 1 })).toBe(1); // capped at what the depósito holds
   });
 
