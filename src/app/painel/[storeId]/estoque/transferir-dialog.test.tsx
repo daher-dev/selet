@@ -34,8 +34,8 @@ function stockItem(over: Partial<StockItem>): StockItem {
   };
 }
 
-// out in the Loja, 2 caixas in the depósito
-const berry = stockItem({ id: "berry", name: "CR7 Drive Berry Mix", sealed: 0, qty: 0, depSealed: 2 });
+// out in the Loja against a minimum of 2 caixas, 2 caixas in the depósito
+const berry = stockItem({ id: "berry", name: "CR7 Drive Berry Mix", sealed: 0, qty: 0, depSealed: 2, reorderAt: 2 });
 // 1 pote + 1 in use (= 2) against a minimum of 3, 4 potes in the depósito
 const fiber = stockItem({
   id: "fiber",
@@ -91,9 +91,9 @@ describe("TransferirDialog", () => {
     // fine in the loja / empty depósito → not suggested
     expect(within(dialog).queryByText("Beauty Drink")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("Sem depósito")).not.toBeInTheDocument();
-    // how many packages it takes to clear the minimum: 2 caixas (12 un is not above 12) and 2 potes (2 is not above 3 → 3 needed? 1+1+2 = 4)
+    // how many packages it takes to reach the minimum: 2 caixas (0 of 24 un) and 1 pote (2 of 3)
     expect(within(dialog).getByText("2 caixas")).toBeInTheDocument();
-    expect(within(dialog).getByText("2 potes")).toBeInTheDocument();
+    expect(within(dialog).getByText("1 pote")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Revise 2 sugestões" })).toBeDisabled();
   });
 

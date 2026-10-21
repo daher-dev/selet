@@ -227,7 +227,7 @@ describe("StockDetailSheet", () => {
         sealed: 0,
         depSealed: 2,
         qty: 0,
-        reorderAt: 1,
+        reorderAt: 2,
       });
       renderSheet(berry);
 
