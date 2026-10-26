@@ -74,6 +74,7 @@ const KIND_LABEL: Record<RuleKind, string> = {
   comment: "Comentar post",
   custom: "Outra regra",
 };
+const DEFAULT_FOLLOW_LINK = "@espaco_selet_passos";
 const KIND_PLACEHOLDER: Record<RuleKind, string> = {
   follow: "@selet.vv",
   like: "Link do post no Instagram",
@@ -328,7 +329,12 @@ function RaffleForm({
                         setRule(r.id, {
                           kind: k,
                           // follow ↔ post links are not interchangeable; like ↔ comment share the post.
-                          link: (k === "follow") === (kind === "follow") && k !== "custom" ? r.link : "",
+                          link:
+                            (k === "follow") === (kind === "follow") && k !== "custom"
+                              ? r.link
+                              : k === "follow"
+                                ? DEFAULT_FOLLOW_LINK
+                                : "",
                         })
                       }
                       className={cn(
