@@ -372,7 +372,7 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
         userName={userName}
         onClose={() => setSelectedId(null)}
       />
-      <RaffleFormSheet storeId={storeId} origin={origin} raffle={raffle} open={editOpen} onOpenChange={setEditOpen} />
+      <RaffleFormSheet storeId={storeId} origin={origin} raffle={raffle} hasEntries={entries.length > 0} open={editOpen} onOpenChange={setEditOpen} />
       <DrawSheet
         storeId={storeId}
         raffle={raffle}

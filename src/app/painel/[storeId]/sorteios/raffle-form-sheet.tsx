@@ -46,6 +46,8 @@ interface Props {
   storeId: string;
   origin: string;
   raffle: Raffle | null;
+  /** Someone already submitted: range, per-person limit and link are frozen. */
+  hasEntries: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -86,9 +88,11 @@ function RaffleForm({
   storeId,
   origin,
   raffle,
+  hasEntries,
   onClose,
 }: Omit<Props, "open" | "onOpenChange"> & { onClose: () => void }) {
   const published = !!raffle && raffle.status !== "rascunho";
+  const locked = published && hasEntries;
   const [name, setName] = useState(raffle?.name ?? "");
   const [prize, setPrize] = useState(raffle?.prize ?? "");
   const [location, setLocation] = useState(raffle?.location ?? "Ao vivo no Instagram");
@@ -179,8 +183,8 @@ function RaffleForm({
     });
   }
 
-  const lockHint = published ? (
-    <span className="text-[11.5px] font-medium text-ink-soft">Travado depois de publicar.</span>
+  const lockHint = locked ? (
+    <span className="text-[11.5px] font-medium text-ink-soft">Travado: já tem inscrições.</span>
   ) : null;
 
   return (
@@ -238,7 +242,7 @@ function RaffleForm({
                 inputMode="numeric"
                 className={cn(FIELD_CLASS, "tabular")}
                 value={numberFrom}
-                disabled={published}
+                disabled={locked}
                 onChange={(e) => setNumberFrom(e.target.value.replace(/\D/g, ""))}
               />
             </label>
@@ -248,7 +252,7 @@ function RaffleForm({
                 inputMode="numeric"
                 className={cn(FIELD_CLASS, "tabular")}
                 value={numberTo}
-                disabled={published}
+                disabled={locked}
                 onChange={(e) => setNumberTo(e.target.value.replace(/\D/g, ""))}
               />
             </label>
@@ -262,7 +266,7 @@ function RaffleForm({
                 <button
                   type="button"
                   aria-label="Menos um número por pessoa"
-                  disabled={published}
+                  disabled={locked}
                   onClick={() => setPerPerson((p) => Math.max(1, p - 1))}
                   className="h-full w-10 bg-paper text-[17px] text-[#3D4A42] disabled:opacity-50"
                 >
@@ -272,7 +276,7 @@ function RaffleForm({
                 <button
                   type="button"
                   aria-label="Mais um número por pessoa"
-                  disabled={published}
+                  disabled={locked}
                   onClick={() => setPerPerson((p) => Math.min(MAX_PER_PERSON, p + 1))}
                   className="h-full w-10 bg-paper text-[17px] text-[#3D4A42] disabled:opacity-50"
                 >
@@ -444,7 +448,7 @@ function RaffleForm({
             <span
               className={cn(
                 "flex h-[42px] items-center overflow-hidden rounded-[10px] border border-[#DDE6DA] bg-white",
-                published && "opacity-60",
+                locked && "opacity-60",
               )}
             >
               <span className="whitespace-nowrap pl-3 pr-0.5 text-[13.5px] font-medium text-ink-soft">
@@ -452,7 +456,7 @@ function RaffleForm({
               </span>
               <input
                 value={effectiveSlug}
-                disabled={published}
+                disabled={locked}
                 onChange={(e) => {
                   setSlugTouched(true);
                   setSlug(slugify(e.target.value));
@@ -460,7 +464,7 @@ function RaffleForm({
                 className="h-full min-w-0 flex-1 bg-transparent pr-2.5 text-[13.5px] text-ink outline-none"
               />
             </span>
-            {published && lockHint}
+            {locked && lockHint}
           </label>
         </section>
       </div>
@@ -502,7 +506,7 @@ function RaffleForm({
         open={confirmPublish}
         onOpenChange={setConfirmPublish}
         title={`Publicar "${name.trim() || "este sorteio"}"?`}
-        text={`O link ${linkLabel(origin, effectiveSlug)} passa a aceitar cadastros. Depois de publicar, faixa de números e números por pessoa ficam travados; regras e textos ainda podem mudar.`}
+        text={`O link ${linkLabel(origin, effectiveSlug)} passa a aceitar cadastros. Até a primeira inscrição você pode mudar tudo, inclusive o link; depois, faixa de números, números por pessoa e link ficam travados.`}
         cta="Publicar"
         pending={pending}
         onConfirm={publish}
