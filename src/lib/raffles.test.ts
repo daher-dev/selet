@@ -10,6 +10,7 @@ import {
   maskWhatsapp,
   missingBonusSlots,
   missingRules,
+  raffleSlug,
   normalizePhone,
   pickProblem,
   publishProblem,
@@ -212,5 +213,17 @@ describe("typed Instagram rules", () => {
     expect(finalizeRule({ ...base, kind: "follow", link: "instagram.com/p/AbC" })).toMatch(/@/);
     expect(finalizeRule({ ...base, kind: "like", link: "@selet.vv" })).toMatch(/post/);
     expect(finalizeRule({ ...base, text: "Convidar 1 amigo", link: "x" })).toEqual({ id: "x", type: "obr", text: "Convidar 1 amigo" });
+  });
+});
+
+describe("raffleSlug", () => {
+  it("appends the draw date to the name so weekly raffles stay unique", () => {
+    expect(raffleSlug("Raffle Potato", "2026-05-01T19:00")).toBe("raffle-potato-2026-05-01");
+    expect(raffleSlug("Pé de Moleque!", "2026-05-08T19:00")).toBe("pe-de-moleque-2026-05-08");
+  });
+
+  it("falls back to the bare name without a date, and to nothing without a name", () => {
+    expect(raffleSlug("Raffle Potato", "")).toBe("raffle-potato");
+    expect(raffleSlug("", "2026-05-01T19:00")).toBe("");
   });
 });
