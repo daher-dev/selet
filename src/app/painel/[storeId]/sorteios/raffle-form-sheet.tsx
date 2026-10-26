@@ -19,6 +19,7 @@ import {
   MAX_PER_PERSON,
   isoToLocalInput,
   localInputToIso,
+  raffleSlug,
   type Raffle,
   type RaffleFields,
   type RaffleRule,
@@ -117,7 +118,7 @@ function RaffleForm({
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const effectiveSlug = slugTouched ? slug : slugify(name);
+  const effectiveSlug = slugTouched ? slug : raffleSlug(name, drawAt);
 
   function setRule(id: string, patch: Partial<RaffleRule>) {
     setRules((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));

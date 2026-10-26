@@ -2,6 +2,7 @@
  * Sorteios (raffles): serialized types + pure rules shared by the admin UI,
  * the public link and the `server-only` data layer. Dates are ISO strings.
  */
+import { slugify } from "./stock-settings";
 import { zonedParts, zonedTimeToUtc } from "./timezone";
 
 export type RaffleStatus = "rascunho" | "aberto" | "encerrado" | "sorteado";
@@ -391,6 +392,14 @@ export function localInputToIso(value: string): string {
 // ------------------------------------------------------------- slug/link ---
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** Suggested link: the name plus the draw date ("raffle-potato-2026-05-01"), so a weekly raffle never collides.
+ *  `drawAtLocal` is the form's "YYYY-MM-DDTHH:mm" value in store time. */
+export function raffleSlug(name: string, drawAtLocal: string): string {
+  const base = slugify(name);
+  const date = drawAtLocal.slice(0, 10);
+  return base && /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${base}-${date}` : base;
+}
 
 export function publicLinkPath(slug: string): string {
   return `/s/${slug}`;
