@@ -285,8 +285,9 @@ function writable(input: RaffleInput) {
   };
 }
 
-/** Creates a draft (raffleId null) or edits one. Published raffles keep their
- *  number range, per-person limit and link; everything else stays editable. */
+/** Creates a draft (raffleId null) or edits one. Until the first submission
+ *  arrives everything is editable, link included; after that the number range,
+ *  per-person limit and link stay put (people already chose against them). */
 export async function saveRaffle(
   storeId: string,
   raffleId: string | null,
@@ -317,14 +318,26 @@ export async function saveRaffle(
     if (cur.status === "sorteado") throw new Error("Esse sorteio já foi realizado.");
     const patch = writable(input);
     if (cur.status !== "rascunho") {
-      Object.assign(patch, {
-        numberFrom: cur.numberFrom,
-        numberTo: cur.numberTo,
-        perPerson: cur.perPerson,
-        slug: cur.slug,
-        // Rules, texts and prize changes re-date the regulamento that people accepted.
-        regulamentoAt: Timestamp.now(),
-      });
+      const hasEntries = !(await tx.get(
+        entriesCol(storeId).where("raffleId", "==", raffleId).limit(1),
+      )).empty;
+      const slugChanged = !hasEntries && input.slug !== cur.slug;
+      if (slugChanged) {
+        const taken = await tx.get(slugsCol().doc(input.slug));
+        if (taken.exists) throw new Error("Esse endereço de link já está em uso. Escolha outro.");
+        tx.delete(slugsCol().doc(cur.slug));
+        tx.set(slugsCol().doc(input.slug), { storeId, raffleId });
+      }
+      if (hasEntries) {
+        Object.assign(patch, {
+          numberFrom: cur.numberFrom,
+          numberTo: cur.numberTo,
+          perPerson: cur.perPerson,
+          slug: cur.slug,
+        });
+      }
+      // Rules, texts and prize changes re-date the regulamento that people accepted.
+      Object.assign(patch, { regulamentoAt: Timestamp.now() });
     }
     tx.update(ref, patch);
   });
@@ -557,6 +570,14 @@ export async function excludeEntry(
   await mutateEntry(storeId, entryDocId, async ({ tx, entry, raffle }) => {
     for (const x of entry.numbers) tx.delete(claimsCol(storeId).doc(claimId(raffle.id, x.n)));
     return { status: "excl", exclReason: reason, numbers: [], slots: [] };
+  });
+}
+
+/** Removes the submission for good: numbers go back to the pool; the lead stays in Leads. */
+export async function deleteEntry(storeId: string, entryDocId: string): Promise<void> {
+  await mutateEntry(storeId, entryDocId, async ({ tx, entry, raffle, ref }) => {
+    for (const x of entry.numbers) tx.delete(claimsCol(storeId).doc(claimId(raffle.id, x.n)));
+    tx.delete(ref);
   });
 }
 

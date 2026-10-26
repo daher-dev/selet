@@ -11,6 +11,7 @@ import {
   confirmWinner,
   convertLeadToCustomer,
   countPendingEntries,
+  deleteEntry,
   excludeEntry,
   getEntryByToken,
   getPublicRaffle,
@@ -106,12 +107,21 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
     await expect(publishRaffle(storeId, other)).rejects.toThrow(/já está em uso/);
   });
 
-  it("locks the range and per-person limit after publishing", async () => {
-    await saveRaffle(storeId, raffleId, input(slug, { numberTo: 999, perPerson: 5, prize: "Novo prêmio" }));
+  it("stays fully editable, link included, until the first submission", async () => {
+    const moved = `${slug}-novo`;
+    await saveRaffle(storeId, raffleId, input(moved, { numberTo: 999, perPerson: 5, prize: "Novo prêmio" }));
+    expect(await getPublicRaffle(slug)).toBeNull();
+    const edited = (await getPublicRaffle(moved))!;
+    expect(edited.raffle).toMatchObject({ numberTo: 999, perPerson: 5, prize: "Novo prêmio", slug: moved });
+
+    // the new link can't be taken from someone else's raffle
+    const other = await saveRaffle(storeId, null, input(`${slug}-outro`, { name: "Outro 2" }));
+    await publishRaffle(storeId, other);
+    await expect(saveRaffle(storeId, raffleId, input(`${slug}-outro`))).rejects.toThrow(/já está em uso/);
+
+    await saveRaffle(storeId, raffleId, input(slug, { prize: "Novo prêmio" }));
     await refresh();
-    expect(pub.raffle.numberTo).toBe(20);
-    expect(pub.raffle.perPerson).toBe(1);
-    expect(pub.raffle.prize).toBe("Novo prêmio");
+    expect(pub.raffle).toMatchObject({ numberTo: 20, perPerson: 1, slug });
   });
 
   it("registers an entry, claims the number and creates the lead atomically", async () => {
@@ -122,6 +132,12 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
     const leads = await listLeads(storeId);
     expect(leads).toHaveLength(1);
     expect(leads[0]).toMatchObject({ phone: phoneN(1), kind: "novo", raffleIds: [raffleId] });
+  });
+
+  it("locks the range, per-person limit and link once someone has submitted", async () => {
+    await saveRaffle(storeId, raffleId, input(`${slug}-x`, { numberTo: 999, perPerson: 5, prize: "Prêmio final" }));
+    await refresh();
+    expect(pub.raffle).toMatchObject({ numberTo: 20, perPerson: 1, slug, prize: "Prêmio final" });
   });
 
   it("rejects the same WhatsApp twice and the same number twice", async () => {
@@ -203,6 +219,18 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
     // excluded people keep their lead, and the WhatsApp still can't enter twice
     await expect(registerEntry(pub, person(1, [7]))).rejects.toBeInstanceOf(DuplicateEntryError);
     await registerEntry(pub, person(30, [7]));
+  });
+
+  it("deleting a submission removes it, frees its numbers and keeps the lead", async () => {
+    await registerEntry(pub, person(60, [18]));
+    await refresh();
+    expect(pub.taken).toContain(18);
+    const mine = (await listEntries(storeId, raffleId)).find((e) => e.phone === phoneN(60))!;
+    await deleteEntry(storeId, mine.id);
+    await refresh();
+    expect(pub.taken).not.toContain(18);
+    expect((await listEntries(storeId, raffleId)).some((e) => e.phone === phoneN(60))).toBe(false);
+    expect((await listLeads(storeId)).some((l) => l.phone === phoneN(60))).toBe(true);
   });
 
   it("counts only people still waiting on the team", async () => {

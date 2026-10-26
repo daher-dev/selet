@@ -46,7 +46,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { label: "Clientes", segment: "clientes", icon: User, section: "clientes" },
   {
-    label: "Leads/Sorteios",
+    label: "Sorteios",
     segment: "sorteios",
     icon: Gift,
     // Admin-only: "sorteios" is not a grantable section (leads are personal data).

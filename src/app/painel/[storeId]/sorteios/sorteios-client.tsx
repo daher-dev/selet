@@ -35,7 +35,7 @@ const BTN_PRIMARY =
 
 export function SorteiosClient({ storeId, raffles, leadCounts, origin }: Props) {
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Raffle | null>(null);
+  const [editing, setEditing] = useState<RaffleSummary | null>(null);
   const [toPublish, setToPublish] = useState<Raffle | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -125,6 +125,7 @@ export function SorteiosClient({ storeId, raffles, leadCounts, origin }: Props) 
         storeId={storeId}
         origin={origin}
         raffle={editing}
+        hasEntries={(editing?.entryCount ?? 0) > 0}
         open={formOpen}
         onOpenChange={setFormOpen}
       />
@@ -132,7 +133,7 @@ export function SorteiosClient({ storeId, raffles, leadCounts, origin }: Props) 
         open={!!toPublish}
         onOpenChange={(o) => !o && setToPublish(null)}
         title={`Publicar "${toPublish?.name ?? ""}"?`}
-        text={`O link ${toPublish ? linkLabel(origin, toPublish.slug) : ""} passa a aceitar cadastros. Depois de publicar, faixa de números e números por pessoa ficam travados; regras e textos ainda podem mudar.`}
+        text={`O link ${toPublish ? linkLabel(origin, toPublish.slug) : ""} passa a aceitar cadastros. Até a primeira inscrição você pode mudar tudo, inclusive o link; depois, faixa de números, números por pessoa e link ficam travados.`}
         cta="Publicar"
         pending={pending}
         onConfirm={publish}

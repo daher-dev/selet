@@ -42,7 +42,7 @@ export function LeadsClient({ storeId, leads, customers, raffleCount, novos, raf
   const [pending, startTransition] = useTransition();
 
   usePageHeader({
-    title: "Leads/Sorteios",
+    title: "Sorteios",
     subtitle: "Um lead por WhatsApp, mesmo que participe de vários sorteios",
   });
 
