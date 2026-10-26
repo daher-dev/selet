@@ -17,6 +17,7 @@ vi.mock("@/actions/raffles", () => ({
   saveRaffleAction: vi.fn(async () => ({ ok: true, id: "r1" })),
   publishRaffleAction: vi.fn(async () => ({ ok: true })),
   removeNumberAction: vi.fn(async () => ({ ok: true })),
+  deleteEntryAction: vi.fn(async () => ({ ok: true })),
   excludeEntryAction: vi.fn(async () => ({ ok: true })),
   linkLeadAction: vi.fn(async () => ({ ok: true })),
   convertLeadAction: vi.fn(async () => ({ ok: true })),

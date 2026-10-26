@@ -82,20 +82,20 @@ describe("SidebarContent — Configurações nav item", () => {
   });
 });
 
-describe("SidebarContent — Leads/Sorteios nav item", () => {
+describe("SidebarContent — Sorteios nav item", () => {
   const labels = () =>
     screen.getAllByRole("link").map((a) => a.textContent?.trim() ?? "");
 
   it("shows for admins right after Clientes, with the pending count", () => {
     renderSidebar(user({ role: "admin", storeIds: "all" }), 9);
     const l = labels();
-    const idx = l.findIndex((t) => t.startsWith("Leads/Sorteios"));
+    const idx = l.findIndex((t) => t.startsWith("Sorteios"));
     expect(idx).toBe(l.findIndex((t) => t.startsWith("Clientes")) + 1);
     expect(l[idx]).toContain("9");
   });
 
   it("is hidden for a funcionário (not a grantable section)", () => {
     renderSidebar(user({ sections: ["pedidos", "clientes"] }), 9);
-    expect(labels().some((t) => t.startsWith("Leads/Sorteios"))).toBe(false);
+    expect(labels().some((t) => t.startsWith("Sorteios"))).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import {
   announceResult,
   confirmWinner,
   convertLeadToCustomer,
+  deleteEntry,
   excludeEntry,
   grantExtraNumbers,
   linkLeadToCustomer,
@@ -231,6 +232,21 @@ export async function excludeEntryAction(
     await logActivity(storeId, {
       icon: "gift",
       label: "Excluiu um participante de um sorteio",
+      detail: "Sorteios",
+      by: user.email,
+      section: "sorteios",
+    });
+    refresh(storeId);
+  });
+}
+
+export async function deleteEntryAction(storeId: string, entryId: string): Promise<Result> {
+  return run(async () => {
+    const user = await access(storeId);
+    await deleteEntry(storeId, entryId);
+    await logActivity(storeId, {
+      icon: "gift",
+      label: "Apagou um cadastro de sorteio",
       detail: "Sorteios",
       by: user.email,
       section: "sorteios",

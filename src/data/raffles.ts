@@ -560,6 +560,14 @@ export async function excludeEntry(
   });
 }
 
+/** Removes the submission for good: numbers go back to the pool; the lead stays in Leads. */
+export async function deleteEntry(storeId: string, entryDocId: string): Promise<void> {
+  await mutateEntry(storeId, entryDocId, async ({ tx, entry, raffle, ref }) => {
+    for (const x of entry.numbers) tx.delete(claimsCol(storeId).doc(claimId(raffle.id, x.n)));
+    tx.delete(ref);
+  });
+}
+
 /* ------------------------------------------------------------------ leads -- */
 
 export async function linkLeadToCustomer(

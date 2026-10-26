@@ -16,7 +16,7 @@ const TITLES: Record<
   },
   clientes: { title: "Clientes", subtitle: "Retenção, histórico e engajamento" },
   sorteios: {
-    title: "Leads/Sorteios",
+    title: "Sorteios",
     subtitle: "Um link público por sorteio; quem se cadastra vira lead",
   },
   produtos: { title: "Cardápio", subtitle: "Itens à venda · revenda e menu" },

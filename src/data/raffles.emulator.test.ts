@@ -11,6 +11,7 @@ import {
   confirmWinner,
   convertLeadToCustomer,
   countPendingEntries,
+  deleteEntry,
   excludeEntry,
   getEntryByToken,
   getPublicRaffle,
@@ -203,6 +204,18 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
     // excluded people keep their lead, and the WhatsApp still can't enter twice
     await expect(registerEntry(pub, person(1, [7]))).rejects.toBeInstanceOf(DuplicateEntryError);
     await registerEntry(pub, person(30, [7]));
+  });
+
+  it("deleting a submission removes it, frees its numbers and keeps the lead", async () => {
+    await registerEntry(pub, person(60, [18]));
+    await refresh();
+    expect(pub.taken).toContain(18);
+    const mine = (await listEntries(storeId, raffleId)).find((e) => e.phone === phoneN(60))!;
+    await deleteEntry(storeId, mine.id);
+    await refresh();
+    expect(pub.taken).not.toContain(18);
+    expect((await listEntries(storeId, raffleId)).some((e) => e.phone === phoneN(60))).toBe(false);
+    expect((await listLeads(storeId)).some((l) => l.phone === phoneN(60))).toBe(true);
   });
 
   it("counts only people still waiting on the team", async () => {

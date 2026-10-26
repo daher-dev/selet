@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Clock, Loader2, MessageCircle, Plus, X } from "lucide-react";
+import { Clock, Loader2, MessageCircle, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   convertLeadAction,
+  deleteEntryAction,
   excludeEntryAction,
   grantExtraAction,
   linkLeadAction,
@@ -85,6 +86,7 @@ function Ficha({
   const [extraOpen, setExtraOpen] = useState(false);
   const [waiveOpen, setWaiveOpen] = useState(false);
   const [excludeOpen, setExcludeOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [conflict, setConflict] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
@@ -459,8 +461,8 @@ function Ficha({
         </section>
       </div>
 
-      {!excluded && (
-        <div className="flex shrink-0 items-center border-t border-[#EEF3EA] px-[22px] py-3.5">
+      <div className="flex shrink-0 items-center gap-4 border-t border-[#EEF3EA] px-[22px] py-3.5">
+        {!excluded && (
           <button
             type="button"
             onClick={() => setExcludeOpen(true)}
@@ -468,10 +470,17 @@ function Ficha({
           >
             Excluir do sorteio
           </button>
-          <span className="flex-1" />
-          <span className="text-[11.5px] text-ink-soft">Libera os números dele</span>
-        </div>
-      )}
+        )}
+        <span className="flex-1" />
+        <button
+          type="button"
+          onClick={() => setDeleteOpen(true)}
+          className="flex h-10 items-center gap-1.5 px-1 text-[12.5px] font-semibold text-[#B23A22]"
+        >
+          <Trash2 className="size-3.5" />
+          Apagar cadastro
+        </button>
+      </div>
 
       <ExtraNumberDialog
         open={extraOpen}
@@ -531,6 +540,18 @@ function Ficha({
           />
         </div>
       </ConfirmDialog>
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Apagar o cadastro de ${entry.name}?`}
+        text="O cadastro some deste sorteio e não dá para desfazer. Os números voltam a ficar livres; o lead continua em Leads."
+        cta="Apagar cadastro"
+        tone="danger"
+        pending={pending}
+        onConfirm={() =>
+          run(() => deleteEntryAction(storeId, entry.id), "Cadastro apagado.", () => (setDeleteOpen(false), onClose()))
+        }
+      />
       {pending && view === "ficha" && (
         <Loader2 className="pointer-events-none absolute right-16 top-7 size-4 animate-spin text-ink-faint" />
       )}
