@@ -11,12 +11,14 @@ import {
   ListFilter,
   Search,
   Sparkles,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Cartela, Customer, Order } from "@/lib/types";
 import { formatBRL, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { monthKey } from "@/lib/timezone";
 import { setCustomerArchivedAction } from "@/actions/customers";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -53,7 +55,7 @@ import {
 import { CustomerDetailSheet } from "./customer-detail-sheet";
 import { CustomerFormSheet } from "./customer-form-sheet";
 
-type Segment = "todos" | "vip" | "aniversarios" | "areceber" | "arquivados";
+type Segment = "todos" | "vip" | "novos" | "aniversarios" | "areceber" | "arquivados";
 
 const SEGMENTS: {
   key: Segment;
@@ -65,6 +67,13 @@ const SEGMENTS: {
 }[] = [
   { key: "todos", label: "Todos", triggerLabel: "Todos os clientes", icon: Users },
   { key: "vip", label: "VIP", icon: Crown, iconClass: "bg-[#F6EAC6] text-[#8A6312]" },
+  {
+    key: "novos",
+    label: "Novos",
+    triggerLabel: "Novos do mês",
+    icon: UserPlus,
+    iconClass: "bg-[#E4EEF8] text-[#2F6FB5]",
+  },
   {
     key: "aniversarios",
     label: "Aniversários",
@@ -158,6 +167,7 @@ export function ClientesClient({
     const terms = [query, shellSearch]
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
+    const thisMonth = monthKey(new Date());
     return customers.filter((c) => {
       // Search spans name + @instagram + phone (design custSearch 2938).
       const haystack = `${c.name} ${c.instagram ?? ""} ${c.phone ?? ""}`.toLowerCase();
@@ -166,6 +176,10 @@ export function ClientesClient({
       if (segment === "arquivados") return c.archived;
       if (c.archived) return false;
       if (segment === "vip") return c.tags.includes("vip");
+      // Same rule as the dashboard's "Novos" series: first order this month.
+      if (segment === "novos") {
+        return !!c.firstOrderAt && monthKey(new Date(c.firstOrderAt)) === thisMonth;
+      }
       if (segment === "aniversarios") return upcomingBirthdayDays(c.birthday) != null;
       if (segment === "areceber") return unpaidByCustomer.has(c.id);
       return true;

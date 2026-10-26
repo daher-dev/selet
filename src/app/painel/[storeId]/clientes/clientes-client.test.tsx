@@ -109,6 +109,14 @@ describe("ClientesClient", () => {
     expect(screen.queryByText("Maria Silva")).not.toBeInTheDocument();
   });
 
+  it("lists only customers whose first order is this month under Novos", () => {
+    const fresh = customer({ id: "fresh", name: "Cliente Nova", firstOrderAt: new Date().toISOString() });
+    const old = customer({ id: "old", name: "Cliente Antiga", firstOrderAt: "2025-01-10T12:00:00.000Z" });
+    renderList({ initialSegment: "novos", customers: [fresh, old] });
+    expect(screen.getAllByText("Cliente Nova").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Cliente Antiga")).not.toBeInTheDocument();
+  });
+
   it("renders the Aniversários segment as its own row layout with an Enviar mensagem action (design Mock Clientes 2a)", () => {
     const today = new Date();
     const carla = customer({
