@@ -167,20 +167,20 @@ function ProductForm({
 
   const [name, setName] = useState(product?.name ?? "");
   const [category, setCategory] = useState<string>(product?.category ?? "shakes");
-  // Two optional offers on one record: SALE (prepared by the dose, no
-  // commission) and RESALE (whole packages, earns commission). "Adicional" is
-  // a resale-only item that is also offered inside other products.
+  // Two optional offers on one record, each with its own prices and commission:
+  // SALE (prepared by the dose, from the open package) and RESALE (whole
+  // sealed packages).
   const [hasSale, setHasSale] = useState(product ? Boolean(product.sale) : true);
   const [hasResale, setHasResale] = useState(Boolean(product?.resale));
-  const [adicional, setAdicional] = useState(product?.saleType === "adicional");
   const [typeTags, setTypeTags] = useState<string[]>(product?.typeTags ?? []);
   const [description, setDescription] = useState(product?.description ?? "");
   const [active, setActive] = useState(product?.active ?? true);
-  // Seller commission: switch + % (string while typing, e.g. "5" / "7,5").
-  const [commissionOn, setCommissionOn] = useState((product?.resale?.commissionPercent ?? 0) > 0);
-  const [commissionPct, setCommissionPct] = useState(
-    product?.resale?.commissionPercent ? String(product.resale.commissionPercent).replace(".", ",") : "",
-  );
+  // Seller commission per offer: switch + % (string while typing, e.g. "5" / "7,5").
+  const pctText = (n?: number) => (n ? String(n).replace(".", ",") : "");
+  const [saleCommissionOn, setSaleCommissionOn] = useState((product?.sale?.commissionPercent ?? 0) > 0);
+  const [saleCommissionPct, setSaleCommissionPct] = useState(pctText(product?.sale?.commissionPercent));
+  const [resaleCommissionOn, setResaleCommissionOn] = useState((product?.resale?.commissionPercent ?? 0) > 0);
+  const [resaleCommissionPct, setResaleCommissionPct] = useState(pctText(product?.resale?.commissionPercent));
   const [insumoId, setInsumoId] = useState<string | undefined>(product?.resale?.insumoId || undefined);
   const [recipe, setRecipe] = useState<RecipeRow[]>(
     (product?.sale?.recipe ?? product?.recipe ?? []).map((r) => ({
@@ -206,16 +206,9 @@ function ProductForm({
   );
   const [pending, startTransition] = useTransition();
 
-  // The sale offer is prepared from a BASE recipe and carries opcionais; the
-  // resale offer links a single insumo (sold by whole package).
-  const usesRecipe = hasSale;
-  const linksInsumo = hasResale;
-
-  // Offer toggles: at least one offer stays on. An old "adicional" item (resale
-  // only) keeps its flag until the Menu offer is switched on.
+  // Offer toggles: at least one offer stays on.
   function toggleSale() {
     if (hasSale && !hasResale) return;
-    if (!hasSale) setAdicional(false);
     setHasSale(!hasSale);
   }
   function toggleResale() {
@@ -255,9 +248,15 @@ function ProductForm({
       toast.error("Selecione o item do estoque.");
       return;
     }
-    const commission = commissionOn && hasResale && !adicional ? parsePercent(commissionPct) : 0;
-    if (commissionOn && hasResale && !adicional && commission <= 0) {
-      toast.error("Informe o percentual da comissão (entre 0 e 100).");
+    // Each offer has its own commission rate (switch off = none).
+    const saleCommission = saleCommissionOn && hasSale ? parsePercent(saleCommissionPct) : 0;
+    if (saleCommissionOn && hasSale && saleCommission <= 0) {
+      toast.error("Informe o percentual da comissão do menu (entre 0 e 100).");
+      return;
+    }
+    const resaleCommission = resaleCommissionOn && hasResale ? parsePercent(resaleCommissionPct) : 0;
+    if (resaleCommissionOn && hasResale && resaleCommission <= 0) {
+      toast.error("Informe o percentual da comissão da revenda (entre 0 e 100).");
       return;
     }
 
@@ -274,7 +273,7 @@ function ProductForm({
     // Every insumo/opcional must trace to a real Estoque item — no more
     // "topping, no stock link" catalog holes (see actions/products.ts's
     // productSchema, which enforces the same rule server-side).
-    if (usesRecipe && cleanRecipe.length === 0) {
+    if (hasSale && cleanRecipe.length === 0) {
       toast.error("Adicione ao menos um insumo à base.");
       return;
     }
@@ -297,16 +296,23 @@ function ProductForm({
         typeTags: typeTags as (typeof PRODUCT_TYPE_TAGS)[number][],
         description: description.trim() || undefined,
         active,
-        sale: hasSale ? { recipe: linkedRecipe, adicionais: storedAddons, tiers: saleTiers } : undefined,
+        sale: hasSale
+          ? {
+              recipe: linkedRecipe,
+              adicionais: storedAddons,
+              tiers: saleTiers,
+              ...(saleCommission > 0 ? { commissionPercent: saleCommission } : {}),
+            }
+          : undefined,
         resale:
           hasResale && insumoId
             ? {
                 insumoId,
                 tiers: packTiers,
-                ...(commission > 0 ? { commissionPercent: commission } : {}),
+                ...(resaleCommission > 0 ? { commissionPercent: resaleCommission } : {}),
               }
             : undefined,
-        adicional,
+        adicional: false,
       } as const;
       const result = product
         ? await updateProductAction(product.id, input)
@@ -392,143 +398,97 @@ function ProductForm({
           </div>
           <p className="text-[11.5px] text-ink-faint">
             {hasSale && hasResale
-              ? "Os dois: por dose (consome o pacote aberto, sem comissão) e por embalagem (baixa um pacote lacrado, com comissão). Quem vende escolhe no pedido."
-              : hasSale
-                ? "Preparado na loja: consome insumos do estoque por dose."
-                : "Um item do estoque vendido por embalagem fechada, com comissão opcional."}
+              ? "Os dois modos no mesmo item — preço, estoque e comissão separados. Quem vende escolhe no pedido."
+              : "Ligue os dois se o mesmo item sai por dose e também fechado."}
           </p>
         </div>
 
         {hasSale && (
-          <>
-        {/* ---------------------------------------------------------- MENU base */}
-        {usesRecipe && (
-          <InsumoSection
-            title="Consome do estoque (por dose)"
-            rows={recipe}
-            stockItems={stockItems}
-            usedStockIds={usedInRecipe}
-            addLabel="Adicionar insumo"
-            onAdd={addRecipeRow}
-            onRemove={(id) => setRecipe((rs) => rs.filter((r) => r._id !== id))}
-            renderRow={(row) => (
-              <RecipeRowFields
-                row={row}
-                onQty={(qty) =>
-                  setRecipe((rs) =>
-                    rs.map((r) => (r._id === row._id ? { ...r, qty } : r)),
-                  )
-                }
-              />
-            )}
-          />
-        )}
-
-        <div className="space-y-1.5">
-          <Label>Faixa de preço (por dose)</Label>
-          <div className="space-y-2">
-            {tiers.map((tier, i) => (
-              <TierRow
-                key={tier._id}
-                qty={tier.qty}
-                price={tier.price}
-                priceId={i === 0 ? "product-price" : undefined}
-                onQty={(qty) =>
-                  setTiers((ts) =>
-                    ts.map((t) => (t._id === tier._id ? { ...t, qty } : t)),
-                  )
-                }
-                onPrice={(price) =>
-                  setTiers((ts) =>
-                    ts.map((t) => (t._id === tier._id ? { ...t, price } : t)),
-                  )
-                }
-                onRemove={() =>
-                  setTiers((ts) => ts.filter((t) => t._id !== tier._id))
-                }
-              />
-            ))}
-          </div>
-          <DashedAddButton
-            onClick={() =>
-              setTiers((ts) => [...ts, { _id: nextId(), qty: "", price: "" }])
-            }
-            label="Adicionar faixa"
-          />
-        </div>
-          </>
+          <OfferCard
+            icon={<ChefHat className="size-[18px]" />}
+            title="Menu · por dose"
+            hint="Preparado na loja: cada venda consome do pacote aberto."
+          >
+            <InsumoSection
+              title="Consome do estoque (por dose)"
+              rows={recipe}
+              stockItems={stockItems}
+              usedStockIds={usedInRecipe}
+              addLabel="Adicionar insumo"
+              onAdd={addRecipeRow}
+              onRemove={(id) => setRecipe((rs) => rs.filter((r) => r._id !== id))}
+              renderRow={(row) => (
+                <RecipeRowFields
+                  row={row}
+                  onQty={(qty) =>
+                    setRecipe((rs) =>
+                      rs.map((r) => (r._id === row._id ? { ...r, qty } : r)),
+                    )
+                  }
+                />
+              )}
+            />
+            <TierEditor
+              label="Preço por dose"
+              tiers={tiers}
+              setTiers={setTiers}
+              firstId="product-price"
+            />
+            <CommissionField
+              id="product-commission-menu"
+              title="Comissão no menu (por dose)"
+              on={saleCommissionOn}
+              onToggle={setSaleCommissionOn}
+              percent={saleCommissionPct}
+              onPercent={setSaleCommissionPct}
+              tiers={parseTierRows(tiers)}
+            />
+          </OfferCard>
         )}
 
         {hasResale && (
-          <>
-        {/* ---------------------------------------------- REVENDA/ADICIONAL insumo */}
-        {linksInsumo && (
-          <div className="space-y-1.5">
-            <Label>Item do estoque</Label>
-            <InsumoTriggerPicker
-              stockItems={stockItems}
-              selected={selectedInsumo}
-              onPick={(item) => setInsumoId(item.id)}
-            />
-            {selectedInsumo && (
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-paper px-3 py-2 text-[12px]">
-                <Package className="size-3.5 text-ink-faint" />
-                <span className="text-ink-soft">Em estoque:</span>
-                <span className="tabular font-semibold text-ink">
-                  {selectedInsumo.continuousUse
-                    ? `${usableAmount(selectedInsumo)} ${
-                        selectedInsumo.pkgLabel ?? "emb."
-                      }`
-                    : formatQty(selectedInsumo.qty, unitLabel(selectedInsumo.unit))}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="space-y-1.5">
-          <Label>Faixa de preço (por embalagem)</Label>
-          <div className="space-y-2">
-            {resaleTiers.map((tier, i) => (
-              <TierRow
-                key={tier._id}
-                qty={tier.qty}
-                price={tier.price}
-                priceId={i === 0 ? hasSale ? undefined : "product-price" : undefined}
-                onQty={(qty) =>
-                  setResaleTiers((ts) =>
-                    ts.map((t) => (t._id === tier._id ? { ...t, qty } : t)),
-                  )
-                }
-                onPrice={(price) =>
-                  setResaleTiers((ts) =>
-                    ts.map((t) => (t._id === tier._id ? { ...t, price } : t)),
-                  )
-                }
-                onRemove={() =>
-                  setResaleTiers((ts) => ts.filter((t) => t._id !== tier._id))
-                }
+          <OfferCard
+            icon={<Tag className="size-[18px]" />}
+            title="Revenda · por embalagem"
+            hint="Item do estoque vendido fechado: cada venda baixa uma embalagem lacrada."
+          >
+            <div className="space-y-1.5">
+              <Label>Item do estoque</Label>
+              <InsumoTriggerPicker
+                stockItems={stockItems}
+                selected={selectedInsumo}
+                onPick={(item) => setInsumoId(item.id)}
               />
-            ))}
-          </div>
-          <DashedAddButton
-            onClick={() =>
-              setResaleTiers((ts) => [...ts, { _id: nextId(), qty: "", price: "" }])
-            }
-            label="Adicionar faixa"
-          />
-        </div>
-        {!adicional && (
-          <CommissionField
-            on={commissionOn}
-            onToggle={setCommissionOn}
-            percent={commissionPct}
-            onPercent={setCommissionPct}
-            tiers={parseTierRows(resaleTiers)}
-          />
-        )}
-
-          </>
+              {selectedInsumo && (
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-paper px-3 py-2 text-[12px]">
+                  <Package className="size-3.5 text-ink-faint" />
+                  <span className="text-ink-soft">Em estoque:</span>
+                  <span className="tabular font-semibold text-ink">
+                    {selectedInsumo.continuousUse
+                      ? `${usableAmount(selectedInsumo)} ${
+                          selectedInsumo.pkgLabel ?? "emb."
+                        }`
+                      : formatQty(selectedInsumo.qty, unitLabel(selectedInsumo.unit))}
+                  </span>
+                </div>
+              )}
+            </div>
+            <TierEditor
+              label="Preço por embalagem"
+              tiers={resaleTiers}
+              setTiers={setResaleTiers}
+              firstId={hasSale ? undefined : "product-price"}
+            />
+            <CommissionField
+              id="product-commission-resale"
+              title="Comissão na revenda (por embalagem)"
+              on={resaleCommissionOn}
+              onToggle={setResaleCommissionOn}
+              percent={resaleCommissionPct}
+              onPercent={setResaleCommissionPct}
+              tiers={parseTierRows(resaleTiers)}
+            />
+          </OfferCard>
         )}
 
         <div className="space-y-1.5">
@@ -895,6 +855,70 @@ function InsumoTriggerPicker({
   );
 }
 
+/** One offer's fields grouped in a single card, so Menu and Revenda never mix. */
+function OfferCard({
+  icon,
+  title,
+  hint,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-5 rounded-2xl border border-border bg-card p-4">
+      <header className="flex items-start gap-3 border-b border-border pb-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-mist text-primary">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-[14px] font-bold text-ink">{title}</h3>
+          <p className="mt-0.5 text-[11.5px] leading-snug text-ink-faint">{hint}</p>
+        </div>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+/** Editable list of price tiers (qty → price) for one offer. */
+function TierEditor({
+  label,
+  tiers,
+  setTiers,
+  firstId,
+}: {
+  label: string;
+  tiers: TierRowState[];
+  setTiers: React.Dispatch<React.SetStateAction<TierRowState[]>>;
+  firstId?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <div className="space-y-2">
+        {tiers.map((tier, i) => (
+          <TierRow
+            key={tier._id}
+            qty={tier.qty}
+            price={tier.price}
+            priceId={i === 0 ? firstId : undefined}
+            onQty={(qty) => setTiers((ts) => ts.map((t) => (t._id === tier._id ? { ...t, qty } : t)))}
+            onPrice={(price) => setTiers((ts) => ts.map((t) => (t._id === tier._id ? { ...t, price } : t)))}
+            onRemove={() => setTiers((ts) => ts.filter((t) => t._id !== tier._id))}
+          />
+        ))}
+      </div>
+      <DashedAddButton
+        onClick={() => setTiers((ts) => [...ts, { _id: nextId(), qty: "", price: "" }])}
+        label="Adicionar faixa"
+      />
+    </div>
+  );
+}
+
 function TierRow({
   qty,
   price,
@@ -983,12 +1007,16 @@ function parsePercent(raw: string): number {
 
 /** "Comissão do vendedor" (Mock Cardápio 2a/2b): off by default; shows the value per price tier. */
 function CommissionField({
+  id,
+  title,
   on,
   onToggle,
   percent,
   onPercent,
   tiers,
 }: {
+  id: string;
+  title: string;
   on: boolean;
   onToggle: (on: boolean) => void;
   percent: string;
@@ -1001,7 +1029,7 @@ function CommissionField({
       <div className="flex items-center gap-3">
         <div className="flex-1">
           <p className="text-[11px] font-bold uppercase tracking-[0.4px] text-ink-soft">
-            Comissão do vendedor
+            {title}
           </p>
           <p className="mt-0.5 text-[11.5px] text-ink-soft">
             Opcional · parte do valor vai para quem fez a venda
@@ -1010,25 +1038,25 @@ function CommissionField({
         <Switch
           checked={on}
           onCheckedChange={onToggle}
-          aria-label="Pagar comissão neste item"
+          aria-label={`Pagar ${title.toLowerCase()}`}
         />
       </div>
       {on ? (
         <div className="space-y-2.5 rounded-xl border border-commission-line bg-commission-soft p-3.5">
           <div className="flex items-center gap-2.5">
             <Label
-              htmlFor="product-commission"
+              htmlFor={id}
               className="flex-1 text-[13px] font-semibold text-ink-soft"
             >
               Percentual sobre o valor vendido
             </Label>
             <div className="flex h-10 w-24 items-center rounded-[10px] border border-commission-line bg-white px-3">
               <input
-                id="product-commission"
+                id={id}
                 inputMode="decimal"
                 value={percent}
                 onChange={(e) => onPercent(e.target.value.replace(/[^\d,.]/g, ""))}
-                aria-label="Percentual de comissão"
+                aria-label={`Percentual de ${title.toLowerCase()}`}
                 className="min-w-0 flex-1 border-0 bg-transparent text-right text-[15px] font-bold text-ink outline-none"
               />
               <span className="ml-1 text-sm font-bold text-commission">%</span>
@@ -1056,7 +1084,7 @@ function CommissionField({
           </p>
         </div>
       ) : (
-        <p className="text-xs text-ink-soft">Desligada: ninguém recebe comissão por este item.</p>
+        <p className="text-xs text-ink-soft">Desligada: ninguém recebe comissão neste modo.</p>
       )}
     </div>
   );

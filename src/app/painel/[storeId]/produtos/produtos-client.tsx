@@ -334,14 +334,20 @@ function ProductCard({
           </h3>
         </div>
         <div className="flex shrink-0 gap-1.5">
-          {product.resale?.commissionPercent ? (
-            <span
-              title="Comissão para quem vendeu"
-              className="inline-flex shrink-0 items-center rounded-full bg-commission-wash px-2.5 py-1 text-[10.5px] font-bold text-commission"
-            >
-              {String(product.resale.commissionPercent).replace(".", ",")}% comissão
-            </span>
-          ) : null}
+          {[
+            { pct: product.sale?.commissionPercent, tag: dual ? "dose" : "" },
+            { pct: product.resale?.commissionPercent, tag: dual ? "embalagem" : "" },
+          ]
+            .filter((c) => c.pct)
+            .map((c) => (
+              <span
+                key={c.tag || "x"}
+                title="Comissão para quem vendeu"
+                className="inline-flex shrink-0 items-center rounded-full bg-commission-wash px-2.5 py-1 text-[10.5px] font-bold text-commission"
+              >
+                {String(c.pct).replace(".", ",")}% comissão{c.tag ? ` · ${c.tag}` : ""}
+              </span>
+            ))}
           {dual ? (
             <>
               <TypeBadge saleType="menu" />

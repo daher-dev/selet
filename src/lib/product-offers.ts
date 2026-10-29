@@ -23,7 +23,7 @@ export function mirrorFields(sale: SaleOffer | undefined, resale: ResaleOffer | 
     recipe: sale?.recipe ?? [],
     adicionais: sale?.adicionais ?? [],
     insumoId: resale?.insumoId,
-    commissionPercent: resale?.commissionPercent,
+    commissionPercent: resale?.commissionPercent ?? sale?.commissionPercent,
   };
 }
 

@@ -139,8 +139,8 @@ test("Comissão: produto com comissão → pedido pago → Financeiro → regist
   await sheet.getByRole("button", { name: "Selecionar item do estoque" }).click();
   await sheet.getByRole("button", { name: "Salmão" }).click();
   await sheet.getByPlaceholder("0,00").last().fill("39,90");
-  await sheet.getByRole("switch", { name: "Pagar comissão neste item" }).click();
-  await sheet.locator("#product-commission").fill("10");
+  await sheet.getByRole("switch", { name: "Pagar comissão na revenda (por embalagem)" }).click();
+  await sheet.locator("#product-commission-resale").fill("10");
   await sheet.getByRole("button", { name: "Salvar" }).click();
   await expect(page.getByText("Produto atualizado.")).toBeVisible();
   await expect(page.getByText("10% comissão")).toBeVisible();

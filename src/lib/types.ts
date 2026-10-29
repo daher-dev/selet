@@ -313,11 +313,13 @@ export interface PriceTier {
   price: number; // centavos
 }
 
-/** The prepared-in-store offer: consumes the open package by portion; no commission. */
+/** The prepared-in-store offer: consumes the open package by portion. */
 export interface SaleOffer {
   recipe: RecipeItem[];
   adicionais: ProductAddon[];
   tiers: PriceTier[];
+  /** Seller commission, % of the amount sold by the dose. Absent/0 = none. */
+  commissionPercent?: number;
 }
 
 /** The resale offer: sells whole sealed packages of one stock item; earns commission. */
@@ -354,7 +356,7 @@ export interface Product {
   tiers: PriceTier[];
   /** Linked stock item slug (revenda/adicional items link one insumo). */
   insumoId?: string;
-  /** Mirror of resale.commissionPercent. Sale lines never earn commission. */
+  /** Display mirror of the offers' commission (resale first); each line stamps its own offer's rate. */
   commissionPercent?: number;
   /** Hidden from the default catálogo list (e.g. old retail SKUs archived on sync). */
   archived: boolean;

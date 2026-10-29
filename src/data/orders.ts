@@ -312,9 +312,12 @@ function stampSaleTypes(
   });
 }
 
-/** Only the resale offer earns commission — sale lines never do. */
+/** The commission % of the offer a line sells — sale and resale are set independently. */
 function commissionOfLine(product: Product | undefined, offer?: "sale" | "resale"): number {
-  return product && lineOffer(product, offer) === "resale" ? (product.resale?.commissionPercent ?? 0) : 0;
+  if (!product) return 0;
+  return lineOffer(product, offer) === "resale"
+    ? (product.resale?.commissionPercent ?? 0)
+    : (product.sale?.commissionPercent ?? 0);
 }
 
 /**

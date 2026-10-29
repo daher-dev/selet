@@ -50,12 +50,14 @@ const saleOfferSchema = z.object({
   recipe: z.array(recipeItemSchema).min(1, "Adicione ao menos um insumo à base."),
   adicionais: z.array(addonSchema).default([]),
   tiers: z.array(tierSchema).min(1, "Informe ao menos uma faixa de preço."),
+  // Seller commission by the dose — independent of the resale commission.
+  commissionPercent: z.number().min(0).max(100, "A comissão deve ser de no máximo 100%.").optional(),
 });
 
 const resaleOfferSchema = z.object({
   insumoId: z.string().min(1, "Selecione o item do estoque."),
   tiers: z.array(tierSchema).min(1, "Informe ao menos uma faixa de preço."),
-  // Seller commission, % of the amount sold. Omitted/0 = off. Resale only.
+  // Seller commission, % of the amount sold by the package. Omitted/0 = off.
   commissionPercent: z.number().min(0).max(100, "A comissão deve ser de no máximo 100%.").optional(),
 });
 

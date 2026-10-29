@@ -596,9 +596,13 @@ function OrderForm({
       ? [...sellers, { email: order.sellerEmail, name: order.sellerName ?? order.sellerEmail }]
       : sellers;
   const seller = sellerOptions.find((s) => s.email === sellerEmail) ?? null;
-  // Only the resale offer earns commission (mirrors the server's stamping).
+  // The offer's own commission rate (mirrors the server's stamping).
   const previewCommission = (p: Product | undefined, offerPick?: "sale" | "resale") =>
-    p && lineOffer(p, offerPick) === "resale" ? (p.resale?.commissionPercent ?? 0) : 0;
+    !p
+      ? 0
+      : lineOffer(p, offerPick) === "resale"
+        ? (p.resale?.commissionPercent ?? 0)
+        : (p.sale?.commissionPercent ?? 0);
   const stampedItems = items.map((i) => ({
     ...i,
     commissionPercent:

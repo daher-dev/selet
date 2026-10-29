@@ -26,7 +26,12 @@ function toProduct(id: string, d: FirebaseFirestore.DocumentData): Product {
   const sale: SaleOffer | undefined =
     d.sale ??
     (saleType === "menu"
-      ? { recipe: d.recipe ?? [], adicionais: d.adicionais ?? [], tiers: legacyTiers }
+      ? {
+          recipe: d.recipe ?? [],
+          adicionais: d.adicionais ?? [],
+          tiers: legacyTiers,
+          ...(d.commissionPercent > 0 ? { commissionPercent: d.commissionPercent } : {}),
+        }
       : undefined);
   const resale: ResaleOffer | undefined =
     d.resale ??
@@ -55,8 +60,8 @@ function toProduct(id: string, d: FirebaseFirestore.DocumentData): Product {
     // Legacy docs without tiers fall back to a single unit tier at the base price.
     tiers: d.tiers?.length ? d.tiers : [{ qty: 1, price }],
     insumoId: d.insumoId ?? undefined,
-    // Commission belongs to the resale offer only; sale lines never earn it.
-    commissionPercent: resale?.commissionPercent,
+    // Display mirror; each order line stamps the rate of the offer it sells.
+    commissionPercent: resale?.commissionPercent ?? sale?.commissionPercent,
     archived: d.archived ?? false,
   };
 }
@@ -107,7 +112,12 @@ function normalize(input: ProductInput | LegacyProductInput) {
   if ("saleType" in input) {
     const sale: SaleOffer | undefined =
       input.saleType === "menu"
-        ? { recipe: input.recipe, adicionais: input.adicionais, tiers: input.tiers }
+        ? {
+            recipe: input.recipe,
+            adicionais: input.adicionais,
+            tiers: input.tiers,
+            ...(input.commissionPercent ? { commissionPercent: input.commissionPercent } : {}),
+          }
         : undefined;
     const resale: ResaleOffer | undefined =
       input.saleType !== "menu"
