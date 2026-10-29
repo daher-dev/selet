@@ -426,7 +426,7 @@ function ProductForm({
               active={kind === "estoque"}
               onClick={() => setKind("estoque")}
               icon={<Package className="size-4" />}
-              label="Item do estoque"
+              label="Revenda"
             />
             <SaleTypeButton
               active={kind === "receita"}
@@ -437,7 +437,7 @@ function ProductForm({
           </div>
           <p className="text-[11.5px] text-ink-faint">
             {kind === "estoque"
-              ? "Um item do estoque vendido como está — fechado, avulso (dose) ou os dois."
+              ? "Revenda de um item do estoque — fechado, avulso (dose) ou os dois."
               : "Feito na loja com uma receita de vários insumos."}
           </p>
         </div>

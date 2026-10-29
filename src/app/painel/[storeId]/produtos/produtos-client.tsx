@@ -49,7 +49,7 @@ interface ProdutosClientProps {
 
 const TYPE_FILTERS: { value: string; label: string }[] = [
   { value: "all", label: "Todos" },
-  { value: "estoque", label: "Item do estoque" },
+  { value: "estoque", label: "Revenda" },
   { value: "receita", label: "Receita" },
   { value: "arquivados", label: "Arquivados" },
 ];
