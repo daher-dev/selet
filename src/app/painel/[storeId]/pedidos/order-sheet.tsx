@@ -1914,12 +1914,12 @@ function ProductPickerDialog({
               <SheetTitle className="text-[15px] font-bold">
                 Adicionar item
               </SheetTitle>
-              <div className="inline-flex w-fit items-center gap-0.5 rounded-lg bg-wash p-1">
+              <div className="flex w-full items-center gap-1 rounded-xl bg-wash p-1">
                 <button
                   type="button"
                   onClick={() => setMode("catalogo")}
                   className={cn(
-                    "rounded-md px-3 py-1 text-[12px] font-semibold transition-colors",
+                    "flex-1 whitespace-nowrap rounded-lg px-2 py-2 text-center text-[12.5px] font-semibold transition-colors",
                     mode === "catalogo"
                       ? "bg-white text-ink shadow-sm"
                       : "text-ink-faint hover:text-ink-soft",
@@ -1932,7 +1932,7 @@ function ProductPickerDialog({
                     type="button"
                     onClick={() => setMode("shake")}
                     className={cn(
-                      "rounded-md px-3 py-1 text-[12px] font-semibold transition-colors",
+                      "flex-1 whitespace-nowrap rounded-lg px-2 py-2 text-center text-[12.5px] font-semibold transition-colors",
                       mode === "shake"
                         ? "bg-white text-ink shadow-sm"
                         : "text-ink-faint hover:text-ink-soft",
@@ -1946,7 +1946,7 @@ function ProductPickerDialog({
                     type="button"
                     onClick={() => setMode("pudim")}
                     className={cn(
-                      "rounded-md px-3 py-1 text-[12px] font-semibold transition-colors",
+                      "flex-1 whitespace-nowrap rounded-lg px-2 py-2 text-center text-[12.5px] font-semibold transition-colors",
                       mode === "pudim"
                         ? "bg-white text-ink shadow-sm"
                         : "text-ink-faint hover:text-ink-soft",
@@ -1959,7 +1959,7 @@ function ProductPickerDialog({
                   type="button"
                   onClick={() => setMode("cartela")}
                   className={cn(
-                    "rounded-md px-3 py-1 text-[12px] font-semibold transition-colors",
+                    "flex-1 whitespace-nowrap rounded-lg px-2 py-2 text-center text-[12.5px] font-semibold transition-colors",
                     mode === "cartela"
                       ? "bg-white text-ink shadow-sm"
                       : "text-ink-faint hover:text-ink-soft",
