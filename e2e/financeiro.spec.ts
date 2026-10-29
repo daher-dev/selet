@@ -131,11 +131,11 @@ test("Comissão: produto com comissão → pedido pago → Financeiro → regist
 }) => {
   await logIn(request, context, baseURL!);
 
-  // --- 10% commission on the "Bowl de salmão" recipe item.
+  // --- 10% commission on the "Bowl de salmão" (a single-ingredient item opens as a stock item sold by dose).
   await page.goto("/painel/vila-velha/produtos");
   await page.getByText("Bowl de salmão").first().click();
   const sheet = page.locator('[data-slot="sheet-content"]');
-  await sheet.getByRole("switch", { name: "Pagar comissão do vendedor" }).click();
+  await sheet.getByRole("switch", { name: "Pagar comissão na dose avulsa" }).click();
   await sheet.locator("#product-commission-sale").fill("10");
   await sheet.getByRole("button", { name: "Salvar" }).click();
   await expect(page.getByText("Produto atualizado.")).toBeVisible();
