@@ -32,6 +32,7 @@ import {
   FlaskConical,
   GlassWater,
   Grape,
+  CirclePlus,
   Grid3x3,
   Ham,
   HeartPulse,
@@ -42,7 +43,6 @@ import {
   Package,
   Pill,
   Pizza,
-  PlusCircle,
   Popcorn,
   Salad,
   Sandwich,
@@ -66,16 +66,6 @@ export interface CategoryMeta {
   fg: string;
   bg: string;
 }
-
-/** Product categories (Catálogo) — the café menu sections. */
-export const PRODUCT_CATEGORY_META: Record<string, CategoryMeta> = {
-  shakes: { label: "Shakes", icon: GlassWater, fg: "text-cat-shakes", bg: "bg-cat-shakes-wash" },
-  waffles: { label: "Waffles", icon: Grid3x3, fg: "text-cat-waffles", bg: "bg-cat-waffles-wash" },
-  salgados: { label: "Salgados", icon: Pizza, fg: "text-cat-salgados", bg: "bg-cat-salgados-wash" },
-  bebidas: { label: "Bebidas", icon: CupSoda, fg: "text-cat-bebidas", bg: "bg-cat-bebidas-wash" },
-  lanches: { label: "Lanches", icon: Sandwich, fg: "text-cat-lanches", bg: "bg-cat-lanches-wash" },
-  adicionais: { label: "Adicionais", icon: PlusCircle, fg: "text-cat-adicionais", bg: "bg-cat-adicionais-wash" },
-};
 
 /** Icon registry for the per-store stock categories (keys: CATEGORY_ICON_KEYS). */
 export const CATEGORY_ICONS: Record<CategoryIconKey, LucideIcon> = {
@@ -129,6 +119,8 @@ export const CATEGORY_ICONS: Record<CategoryIconKey, LucideIcon> = {
   tag: Tag,
   snowflake: Snowflake,
   flame: Flame,
+  "grid-3x3": Grid3x3,
+  "circle-plus": CirclePlus,
 };
 
 /**
@@ -146,6 +138,9 @@ export function buildStockCategoryMeta(categories: StockCategoryDef[]): Record<s
     }),
   );
 }
+
+/** Same builder for the store's Cardápio categories (Configurações → Cardápio). */
+export const buildProductCategoryMeta = buildStockCategoryMeta;
 
 export const PRODUCT_TYPE_TAG_ICONS: Record<string, LucideIcon> = {
   vegano: Vegan,

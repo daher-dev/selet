@@ -252,17 +252,9 @@ export interface Customer {
   reorderProduct?: string | null;
 }
 
-// Café menu sections (CARDÁPIO): Shakes (Gourmet + Tradicional), Waffle,
-// Refeições Salgadas, Bebidas e Chás, Lanches rápidos, Extras.
-export const PRODUCT_CATEGORIES = [
-  "shakes",
-  "waffles",
-  "salgados",
-  "bebidas",
-  "lanches",
-  "adicionais",
-] as const;
-export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+// Café menu sections are per-store settings now (Configurações → Cardápio,
+// see DEFAULT_PRODUCT_CATEGORIES in src/lib/stock-settings.ts); a product's
+// `category` is just the id of one of them.
 
 export const PRODUCT_TYPE_TAGS = [
   "vegano",

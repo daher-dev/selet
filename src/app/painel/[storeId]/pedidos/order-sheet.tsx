@@ -1,5 +1,6 @@
 "use client";
 
+import { useProductCategoryMeta } from "@/components/product-settings-context";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   Calendar,
@@ -99,7 +100,6 @@ import {
 import { CHANNEL_META, PAY_METHOD_META } from "@/components/order-meta";
 import {
   CategoryTile,
-  PRODUCT_CATEGORY_META,
   type CategoryMeta,
 } from "@/components/category-meta";
 
@@ -360,6 +360,7 @@ function OrderForm({
   pudimBrindes: PudimBrinde[];
   onClose: () => void;
 }) {
+  const PRODUCT_CATEGORY_META = useProductCategoryMeta();
   const [customerId, setCustomerId] = useState<string>(
     order?.customerId ?? "",
   );
@@ -1861,6 +1862,7 @@ function ProductPickerDialog({
   onOpenChange: (open: boolean) => void;
   onAdd: (item: OrderItem) => void;
 }) {
+  const PRODUCT_CATEGORY_META = useProductCategoryMeta();
   const [query, setQuery] = useState("");
   // A picked product moves us from the catalog list to the config step.
   const [config, setConfig] = useState<Product | null>(null);
@@ -2105,6 +2107,7 @@ function ProductConfig({
   onBack: () => void;
   onConfirm: (item: OrderItem) => void;
 }) {
+  const PRODUCT_CATEGORY_META = useProductCategoryMeta();
   const [qty, setQty] = useState(1);
   // A product can offer a dose (sale), a whole package (resale), or both —
   // the toggle only shows when it has both. Each offer has its own price.

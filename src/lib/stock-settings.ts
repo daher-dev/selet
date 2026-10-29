@@ -97,6 +97,8 @@ export const CATEGORY_ICON_KEYS = [
   "tag",
   "snowflake",
   "flame",
+  "grid-3x3",
+  "circle-plus",
 ] as const;
 export type CategoryIconKey = (typeof CATEGORY_ICON_KEYS)[number];
 
@@ -146,6 +148,25 @@ export const DEFAULT_STOCK_UNITS: StockUnitDef[] = [
   { id: "ml", symbol: "ml", name: "mililitro", plural: "mililitros", kind: "measure" },
   { id: "L", symbol: "L", name: "litro", plural: "litros", kind: "measure" },
 ];
+
+/** Cardápio (product) categories — Configurações → Cardápio. Same shape as a stock category. */
+export type ProductCategoryDef = StockCategoryDef;
+
+export interface ProductSettings {
+  categories: ProductCategoryDef[];
+}
+
+/** Ids equal the keys the app hardcoded before, so existing products need no rewrite. */
+export const DEFAULT_PRODUCT_CATEGORIES: ProductCategoryDef[] = [
+  { id: "shakes", name: "Shakes", icon: "glass-water", color: "vermelho" },
+  { id: "waffles", name: "Waffles", icon: "grid-3x3", color: "terracota" },
+  { id: "salgados", name: "Salgados", icon: "pizza", color: "ocre" },
+  { id: "bebidas", name: "Bebidas", icon: "cup-soda", color: "teal" },
+  { id: "lanches", name: "Lanches", icon: "sandwich", color: "roxo" },
+  { id: "adicionais", name: "Adicionais", icon: "circle-plus", color: "cinza" },
+];
+
+export const DEFAULT_PRODUCT_SETTINGS: ProductSettings = { categories: DEFAULT_PRODUCT_CATEGORIES };
 
 export const DEFAULT_STOCK_SETTINGS: StockSettings = {
   categories: DEFAULT_STOCK_CATEGORIES,

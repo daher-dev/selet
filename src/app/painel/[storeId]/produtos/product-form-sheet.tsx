@@ -1,5 +1,6 @@
 "use client";
 
+import { useProductCategories, useProductCategoryMeta } from "@/components/product-settings-context";
 import { useMemo, useState, useTransition } from "react";
 import {
   Boxes,
@@ -20,7 +21,7 @@ import type {
   RecipeItem,
   StockItem,
 } from "@/lib/types";
-import { PRODUCT_CATEGORIES, PRODUCT_TYPE_TAGS } from "@/lib/types";
+import { PRODUCT_TYPE_TAGS } from "@/lib/types";
 import { formatBRL, formatQty, parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -42,7 +43,6 @@ import {
 } from "@/components/ui/sheet";
 import {
   CategoryTile,
-  PRODUCT_CATEGORY_META,
   PRODUCT_TYPE_TAG_ICONS,
   PRODUCT_TYPE_TAG_LABELS,
 } from "@/components/category-meta";
@@ -146,6 +146,8 @@ function ProductForm({
   stockItems: StockItem[];
   onClose: () => void;
 }) {
+  const PRODUCT_CATEGORY_META = useProductCategoryMeta();
+  const productCategories = useProductCategories();
   const { unitLabel } = useUnits();
   const { byId, byName } = useMemo(() => {
     const byId = new Map<string, StockItem>();
@@ -166,7 +168,9 @@ function ProductForm({
   );
 
   const [name, setName] = useState(product?.name ?? "");
-  const [category, setCategory] = useState<string>(product?.category ?? "shakes");
+  const [category, setCategory] = useState<string>(
+    productCategories.some((c) => c.id === product?.category) ? product!.category : productCategories[0].id,
+  );
   // Two optional offers on one record, each with its own prices and commission:
   // SALE (prepared by the dose, from the open package) and RESALE (whole
   // sealed packages).
@@ -292,7 +296,7 @@ function ProductForm({
       const input = {
         storeId,
         name,
-        category: category as (typeof PRODUCT_CATEGORIES)[number],
+        category,
         typeTags: typeTags as (typeof PRODUCT_TYPE_TAGS)[number][],
         description: description.trim() || undefined,
         active,
@@ -356,7 +360,7 @@ function ProductForm({
         <div className="space-y-1.5">
           <Label>Categoria</Label>
           <div className="grid grid-cols-2 gap-2">
-            {PRODUCT_CATEGORIES.map((key) => {
+            {productCategories.map(({ id: key }) => {
               const meta = PRODUCT_CATEGORY_META[key];
               const Icon = meta.icon;
               const selected = category === key;

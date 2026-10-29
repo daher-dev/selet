@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  CATEGORY_ICON_KEYS,
   DEFAULT_FINANCE_CATEGORIES,
+  DEFAULT_PRODUCT_CATEGORIES,
+  PALETTE_KEYS,
   DEFAULT_STOCK_CATEGORIES,
   DEFAULT_STOCK_UNITS,
   financeCategoriesFor,
@@ -31,6 +34,23 @@ describe("defaults", () => {
       "Outras receitas",
     ]);
     expect(DEFAULT_FINANCE_CATEGORIES.find((c) => c.id === "insumos")?.system).toBe(true);
+  });
+});
+
+describe("product category defaults", () => {
+  it("keep the ids products already use, with valid icons and colors", () => {
+    expect(DEFAULT_PRODUCT_CATEGORIES.map((c) => c.id)).toEqual([
+      "shakes",
+      "waffles",
+      "salgados",
+      "bebidas",
+      "lanches",
+      "adicionais",
+    ]);
+    for (const c of DEFAULT_PRODUCT_CATEGORIES) {
+      expect(CATEGORY_ICON_KEYS).toContain(c.icon);
+      expect(PALETTE_KEYS).toContain(c.color);
+    }
   });
 });
 

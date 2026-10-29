@@ -4,6 +4,7 @@ import { cache } from "react";
 import { getDb } from "@/lib/firebase-admin";
 import {
   DEFAULT_FINANCE_SETTINGS,
+  DEFAULT_PRODUCT_SETTINGS,
   DEFAULT_STOCK_SETTINGS,
   INSUMOS_CATEGORY_ID,
   slugify,
@@ -12,6 +13,8 @@ import {
   type FinanceCategoryDef,
   type FinanceSettings,
   type PaletteKey,
+  type ProductCategoryDef,
+  type ProductSettings,
   type StockCategoryDef,
   type StockSettings,
   type StockUnitDef,
@@ -34,6 +37,12 @@ function storeRef(storeId: string) {
 const stockSettingsRef = (storeId: string) => storeRef(storeId).collection("settings").doc("stock");
 const financeSettingsRef = (storeId: string) => storeRef(storeId).collection("settings").doc("finance");
 
+const productSettingsRef = (storeId: string) => storeRef(storeId).collection("settings").doc("products");
+
+function normProduct(d: FirebaseFirestore.DocumentData | undefined): ProductSettings {
+  return { categories: d?.categories ?? DEFAULT_PRODUCT_SETTINGS.categories };
+}
+
 function normStock(d: FirebaseFirestore.DocumentData | undefined): StockSettings {
   return {
     categories: d?.categories ?? DEFAULT_STOCK_SETTINGS.categories,
@@ -53,6 +62,23 @@ export const getFinanceSettings = cache(async (storeId: string): Promise<Finance
   const snap = await financeSettingsRef(storeId).get();
   return normFinance(snap.data());
 });
+
+export const getProductSettings = cache(async (storeId: string): Promise<ProductSettings> => {
+  const snap = await productSettingsRef(storeId).get();
+  return normProduct(snap.data());
+});
+
+async function mutateProduct(
+  storeId: string,
+  fn: (s: ProductSettings) => ProductSettings,
+): Promise<ProductSettings> {
+  const ref = productSettingsRef(storeId);
+  return getDb().runTransaction(async (tx) => {
+    const next = fn(normProduct((await tx.get(ref)).data()));
+    tx.set(ref, next);
+    return next;
+  });
+}
 
 async function mutateStock(
   storeId: string,
@@ -301,4 +327,79 @@ export async function deleteFinanceCategory(storeId: string, id: string, moveToI
     await repoint(col, "category", id, target.id);
   }
   await mutateFinance(storeId, (c) => ({ ...c, categories: c.categories.filter((x) => x.id !== id) }));
+}
+
+// ---------------------------------------------------------------- product (Cardápio) categories
+
+export type ProductCategoryInput = StockCategoryInput;
+
+export async function createProductCategory(storeId: string, input: ProductCategoryInput): Promise<string> {
+  let id = "";
+  await mutateProduct(storeId, (s) => {
+    if (s.categories.some((c) => sameName(c.name, input.name))) {
+      throw new Error("Já existe uma categoria com esse nome.");
+    }
+    id = uniqueId(slugify(input.name), s.categories.map((c) => c.id));
+    return { ...s, categories: [...s.categories, { id, ...input, name: input.name.trim() }] };
+  });
+  return id;
+}
+
+export async function updateProductCategory(
+  storeId: string,
+  id: string,
+  input: ProductCategoryInput,
+): Promise<void> {
+  await mutateProduct(storeId, (s) => {
+    if (!s.categories.some((c) => c.id === id)) throw new Error("Categoria não encontrada.");
+    if (s.categories.some((c) => c.id !== id && sameName(c.name, input.name))) {
+      throw new Error("Já existe uma categoria com esse nome.");
+    }
+    return {
+      ...s,
+      categories: s.categories.map((c): ProductCategoryDef =>
+        c.id === id ? { id, ...input, name: input.name.trim() } : c,
+      ),
+    };
+  });
+}
+
+/** Moves a category one slot up/down (array order is the display order everywhere). */
+export async function moveProductCategory(storeId: string, id: string, dir: "up" | "down"): Promise<void> {
+  await mutateProduct(storeId, (s) => {
+    const i = s.categories.findIndex((c) => c.id === id);
+    if (i < 0) throw new Error("Categoria não encontrada.");
+    const j = dir === "up" ? i - 1 : i + 1;
+    if (j < 0 || j >= s.categories.length) return s;
+    const categories = [...s.categories];
+    [categories[i], categories[j]] = [categories[j], categories[i]];
+    return { ...s, categories };
+  });
+}
+
+export async function countProductsByCategory(storeId: string, ids: string[]): Promise<Record<string, number>> {
+  const col = storeRef(storeId).collection("products");
+  const counts = await Promise.all(ids.map((id) => count(col.where("category", "==", id))));
+  return Object.fromEntries(ids.map((id, i) => [id, counts[i]]));
+}
+
+/** With products in it, `moveToId` (another existing category) is required — never orphans products. */
+export async function deleteProductCategory(storeId: string, id: string, moveToId?: string): Promise<void> {
+  const s = normProduct((await productSettingsRef(storeId).get()).data());
+  if (!s.categories.some((c) => c.id === id)) throw new Error("Categoria não encontrada.");
+  if (s.categories.length <= 1) throw new Error("Mantenha pelo menos uma categoria.");
+  const products = storeRef(storeId).collection("products");
+  const n = await count(products.where("category", "==", id));
+  if (n > 0) {
+    if (!moveToId || moveToId === id || !s.categories.some((c) => c.id === moveToId)) {
+      throw new Error("Escolha para onde mover os itens.");
+    }
+    await repoint(products, "category", id, moveToId);
+  }
+  await mutateProduct(storeId, (cur) => ({ ...cur, categories: cur.categories.filter((c) => c.id !== id) }));
+}
+
+/** True when `id` is one of the store's current Cardápio categories (product validation). */
+export async function productCategoryExists(storeId: string, id: string): Promise<boolean> {
+  return (await getProductSettings(storeId)).categories.some((c) => c.id === id);
 }

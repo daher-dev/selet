@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type { Product, ShakeBrinde } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format";
-import { PRODUCT_CATEGORY_META } from "@/components/category-meta";
+import { useProductCategoryMeta } from "@/components/product-settings-context";
 import { EmptyState } from "@/components/ui/empty-state";
 import { setShakeBrindeArchivedAction } from "@/actions/shakes";
 import { StatusPill } from "./shakes-client";
@@ -70,6 +70,7 @@ function BrindeCard({
   brinde: ShakeBrinde;
   product: Product | undefined;
 }) {
+  const PRODUCT_CATEGORY_META = useProductCategoryMeta();
   const [pending, startTransition] = useTransition();
   const missing = !product;
   const name = product?.name ?? brinde.name;

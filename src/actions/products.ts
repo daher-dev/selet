@@ -9,10 +9,8 @@ import {
   updateProduct,
 } from "@/data/products";
 import { logActivity } from "@/data/activity";
-import {
-  PRODUCT_CATEGORIES,
-  PRODUCT_TYPE_TAGS,
-} from "@/lib/types";
+import { productCategoryExists } from "@/data/settings";
+import { PRODUCT_TYPE_TAGS } from "@/lib/types";
 
 export interface ActionResult {
   ok: boolean;
@@ -66,7 +64,7 @@ const resaleOfferSchema = z.object({
 const productShape = z.object({
   storeId: z.string().min(1),
   name: z.string().trim().min(1, "Informe o nome do produto."),
-  category: z.enum(PRODUCT_CATEGORIES),
+  category: z.string().min(1, "Escolha a categoria."),
   typeTags: z.array(z.enum(PRODUCT_TYPE_TAGS)).default([]),
   description: z.string().trim().max(280).optional(),
   active: z.boolean().default(true),
@@ -102,6 +100,11 @@ const productSchema = productShape.superRefine((data, ctx) => {
 
 export type ProductFormInput = z.input<typeof productSchema>;
 
+/** The category must be one of the store's own (Configurações → Cardápio). */
+async function assertCategory(storeId: string, category: string) {
+  if (!(await productCategoryExists(storeId, category))) throw new Error("Categoria inválida.");
+}
+
 /** Wraps an action body with uniform error handling for the UI. */
 async function run(fn: () => Promise<void>): Promise<ActionResult> {
   try {
@@ -124,6 +127,7 @@ export async function createProductAction(
   return run(async () => {
     const { storeId, ...data } = productSchema.parse(input);
     await requireAccess(storeId, "produtos");
+    await assertCategory(storeId, data.category);
     await createProduct(storeId, data);
     revalidatePath(`/painel/${storeId}/produtos`);
   });
@@ -136,6 +140,7 @@ export async function updateProductAction(
   return run(async () => {
     const { storeId, ...data } = productSchema.parse(input);
     const user = await requireAccess(storeId, "produtos");
+    await assertCategory(storeId, data.category);
     await updateProduct(storeId, productId, data);
     await logActivity(storeId, {
       icon: "tag",

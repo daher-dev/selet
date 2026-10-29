@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { getDb } from "@/lib/firebase-admin";
-import { DEFAULT_FINANCE_CATEGORIES, DEFAULT_STOCK_CATEGORIES, DEFAULT_STOCK_UNITS } from "@/lib/stock-settings";
+import { DEFAULT_FINANCE_CATEGORIES, DEFAULT_PRODUCT_CATEGORIES, DEFAULT_STOCK_CATEGORIES, DEFAULT_STOCK_UNITS } from "@/lib/stock-settings";
 import {
   countFinanceTxByCategory,
   countStockItemsByCategory,
   countStockItemsByUnit,
   createFinanceCategory,
+  createProductCategory,
   createStockCategory,
+  countProductsByCategory,
+  deleteProductCategory,
+  getProductSettings,
+  moveProductCategory,
+  productCategoryExists,
+  updateProductCategory,
   createStockUnit,
   deleteFinanceCategory,
   deleteStockCategory,
@@ -111,5 +118,36 @@ describe.skipIf(!hasEmulator)("settings repository (emulator)", () => {
     const d = (await store().get()).data()!;
     expect(d).toMatchObject({ name: "Espaço Selet", initial: "E", address: "Av. Central, 10", whatsapp: "(27) 99999-0000" });
     expect(d.email).toBeUndefined();
+  });
+
+  it("manages Cardápio categories: defaults, create/edit/reorder, move-before-delete", async () => {
+    const sid = `${storeId}-cardapio`;
+    expect((await getProductSettings(sid)).categories).toEqual(DEFAULT_PRODUCT_CATEGORIES);
+    expect(await productCategoryExists(sid, "shakes")).toBe(true);
+    expect(await productCategoryExists(sid, "nope")).toBe(false);
+
+    const id = await createProductCategory(sid, { name: "Sobremesas", icon: "cake-slice", color: "roxo" });
+    expect(id).toBe("sobremesas");
+    await expect(
+      createProductCategory(sid, { name: "sobremesas", icon: "cookie", color: "ocre" }),
+    ).rejects.toThrow(/já existe/i);
+    await updateProductCategory(sid, id, { name: "Doces", icon: "candy", color: "vermelho" });
+    await moveProductCategory(sid, id, "up");
+    let ids = (await getProductSettings(sid)).categories.map((c) => c.id);
+    expect(ids.at(-2)).toBe(id);
+    await moveProductCategory(sid, id, "down");
+    ids = (await getProductSettings(sid)).categories.map((c) => c.id);
+    expect(ids.at(-1)).toBe(id);
+
+    const products = getDb().collection("stores").doc(sid).collection("products");
+    await products.doc("a").set({ name: "a", category: id });
+    expect(await countProductsByCategory(sid, [id])).toEqual({ [id]: 1 });
+    await expect(deleteProductCategory(sid, id)).rejects.toThrow(/mover/i);
+    await expect(deleteProductCategory(sid, id, "nope")).rejects.toThrow(/mover/i);
+    await deleteProductCategory(sid, id, "shakes");
+    expect((await products.doc("a").get()).data()?.category).toBe("shakes");
+    expect((await getProductSettings(sid)).categories.map((c) => c.id)).toEqual(
+      DEFAULT_PRODUCT_CATEGORIES.map((c) => c.id),
+    );
   });
 });

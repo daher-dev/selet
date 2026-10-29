@@ -9,7 +9,7 @@ import { formatBRL } from "@/lib/format";
 import { addPudimBrindesAction } from "@/actions/pudim";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PRODUCT_CATEGORY_META } from "@/components/category-meta";
+import { useProductCategoryMeta } from "@/components/product-settings-context";
 
 interface BrindePickerDialogProps {
   storeId: string;
@@ -55,6 +55,7 @@ function PickerForm({
   activeBrindeProductIds: Set<string>;
   onClose: () => void;
 }) {
+  const PRODUCT_CATEGORY_META = useProductCategoryMeta();
   const [query, setQuery] = useState("");
   // Starts empty: nothing pre-selected (an add-only flow, not a preload-and-edit list).
   const [selected, setSelected] = useState<Set<string>>(new Set());

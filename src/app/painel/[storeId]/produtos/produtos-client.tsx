@@ -1,5 +1,6 @@
 "use client";
 
+import { useProductCategories, useProductCategoryMeta } from "@/components/product-settings-context";
 import { unitPriceOf } from "@/lib/product-offers";
 import { useMemo, useState } from "react";
 import {
@@ -16,7 +17,6 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import type { Product, StockItem } from "@/lib/types";
-import { PRODUCT_CATEGORIES } from "@/lib/types";
 import { formatBRL, formatQty } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   CategoryTile,
-  PRODUCT_CATEGORY_META,
 } from "@/components/category-meta";
 import { ProductFormSheet } from "./product-form-sheet";
 import { useStockCategoryMeta, useUnits } from "@/components/stock-settings-context";
@@ -60,6 +59,8 @@ export function ProdutosClient({
   products,
   stockItems,
 }: ProdutosClientProps) {
+  const PRODUCT_CATEGORY_META = useProductCategoryMeta();
+  const productCategories = useProductCategories();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [saleType, setSaleType] = useState<string>("all");
@@ -101,7 +102,7 @@ export function ProdutosClient({
       const haystack = `${p.name} ${catLabel}`.toLowerCase();
       return terms.every((term) => haystack.includes(term));
     });
-  }, [products, query, shellSearch, category, saleType]);
+  }, [products, query, shellSearch, category, saleType, PRODUCT_CATEGORY_META]);
 
   function openNew() {
     setEditing(null);
@@ -142,7 +143,7 @@ export function ProdutosClient({
             </DropdownMenuItemIcon>
             Todas
           </DropdownMenuItem>
-          {PRODUCT_CATEGORIES.map((key) => {
+          {productCategories.map(({ id: key }) => {
             const meta = PRODUCT_CATEGORY_META[key];
             const Icon = meta.icon;
             return (
@@ -288,6 +289,7 @@ function ProductCard({
   stockItemFor: (ref: { stockItemId?: string; name: string }) => StockItem | undefined;
   onClick: () => void;
 }) {
+  const PRODUCT_CATEGORY_META = useProductCategoryMeta();
   const STOCK_CATEGORY_META = useStockCategoryMeta();
   const { unitLabel } = useUnits();
   const meta = PRODUCT_CATEGORY_META[product.category];

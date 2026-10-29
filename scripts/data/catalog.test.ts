@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { DEFAULT_PRODUCT_CATEGORIES } from "@/lib/stock-settings";
 import {
-  PRODUCT_CATEGORIES,
   PRODUCT_TYPE_TAGS,
   STOCK_CATEGORIES,
   STOCK_UNITS,
@@ -79,7 +79,7 @@ describe("menu-catalog.json (base café catalog)", () => {
     for (const p of catalog) {
       expect(p.slug, `slug of ${p.name}`).toMatch(/^[a-z0-9-]+$/);
       expect(p.name.trim().length, `name of ${p.slug}`).toBeGreaterThan(0);
-      expect(PRODUCT_CATEGORIES, `category of ${p.slug}`).toContain(p.category);
+      expect(DEFAULT_PRODUCT_CATEGORIES.map((c) => c.id), `category of ${p.slug}`).toContain(p.category);
       expect(Array.isArray(p.typeTags)).toBe(true);
       for (const t of p.typeTags) expect(PRODUCT_TYPE_TAGS).toContain(t);
       expect(typeof p.description).toBe("string");

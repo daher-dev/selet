@@ -7,12 +7,16 @@ import { logActivity } from "@/data/activity";
 import { updateStoreProfile } from "@/data/stores";
 import {
   createFinanceCategory,
+  createProductCategory,
   createStockCategory,
   createStockUnit,
   deleteFinanceCategory,
+  deleteProductCategory,
   deleteStockCategory,
   deleteStockUnit,
+  moveProductCategory,
   updateFinanceCategory,
+  updateProductCategory,
   updateStockCategory,
   updateStockUnit,
 } from "@/data/settings";
@@ -197,6 +201,50 @@ export async function deleteFinanceCategoryAction(sid: string, id: string, moveT
     const user = await requireAccess(storeId.parse(sid), "configuracoes");
     await deleteFinanceCategory(sid, id, moveToId);
     await audit(sid, user.email, `Excluiu a categoria de lançamento ${id}`, "trash-2");
+    refresh();
+  });
+}
+
+// ---------------------------------------------------------------- Cardápio: categorias
+
+export async function createProductCategoryAction(input: z.input<typeof stockCategorySchema>): Promise<SettingsResult> {
+  return run(async () => {
+    const { storeId: sid, ...data } = stockCategorySchema.parse(input);
+    const user = await requireAccess(sid, "configuracoes");
+    const id = await createProductCategory(sid, data);
+    await audit(sid, user.email, `Criou a categoria do cardápio ${data.name}`, "tag");
+    refresh();
+    return id;
+  });
+}
+
+export async function updateProductCategoryAction(
+  id: string,
+  input: z.input<typeof stockCategorySchema>,
+): Promise<SettingsResult> {
+  return run(async () => {
+    const { storeId: sid, ...data } = stockCategorySchema.parse(input);
+    const user = await requireAccess(sid, "configuracoes");
+    await updateProductCategory(sid, id, data);
+    await audit(sid, user.email, `Editou a categoria do cardápio ${data.name}`, "tag");
+    refresh();
+  });
+}
+
+export async function moveProductCategoryAction(sid: string, id: string, dir: "up" | "down"): Promise<SettingsResult> {
+  return run(async () => {
+    const user = await requireAccess(storeId.parse(sid), "configuracoes");
+    await moveProductCategory(sid, id, dir);
+    await audit(sid, user.email, `Reordenou a categoria do cardápio ${id}`, "tag");
+    refresh();
+  });
+}
+
+export async function deleteProductCategoryAction(sid: string, id: string, moveToId?: string): Promise<SettingsResult> {
+  return run(async () => {
+    const user = await requireAccess(storeId.parse(sid), "configuracoes");
+    await deleteProductCategory(sid, id, moveToId);
+    await audit(sid, user.email, `Excluiu a categoria do cardápio ${id}`, "trash-2");
     refresh();
   });
 }

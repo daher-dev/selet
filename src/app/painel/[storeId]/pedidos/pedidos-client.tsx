@@ -1,5 +1,6 @@
 "use client";
 
+import { useProductCategoryMeta } from "@/components/product-settings-context";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
@@ -66,7 +67,6 @@ import {
 import { CHANNEL_META, STATUS_META } from "@/components/order-meta";
 import {
   CategoryTile,
-  PRODUCT_CATEGORY_META,
   type CategoryMeta,
 } from "@/components/category-meta";
 import { OrderSheet } from "./order-sheet";
@@ -167,6 +167,7 @@ export function PedidosClient({
   pudimUtensils,
   pudimBrindes,
 }: PedidosClientProps) {
+  const PRODUCT_CATEGORY_META = useProductCategoryMeta();
   const [query, setQuery] = useState("");
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("todos");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todos");

@@ -34,3 +34,21 @@ test("a category created in Configurações shows up in the Estoque drawer", asy
   await page.getByText("Cadastrar novo item").click();
   await expect(page.getByRole("button", { name: "Laticínios" })).toBeVisible();
 });
+
+test("a category created in Configurações → Cardápio shows up in the Cardápio filter", async ({
+  page,
+  context,
+  request,
+  baseURL,
+}) => {
+  await logIn(request, context, baseURL!);
+  await page.goto("/painel/vila-velha/configuracoes/cardapio");
+  await page.getByRole("button", { name: "Nova categoria" }).click();
+  await page.getByLabel("Nome").fill("Sobremesas");
+  await page.getByRole("button", { name: "Adicionar categoria" }).click();
+  await expect(page.getByText("Sobremesas", { exact: true })).toBeVisible();
+
+  await page.goto("/painel/vila-velha/produtos");
+  await page.getByRole("button", { name: "Todas as categorias" }).click();
+  await expect(page.getByRole("menuitem", { name: "Sobremesas", exact: true })).toBeVisible();
+});

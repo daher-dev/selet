@@ -5,9 +5,11 @@ import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   createFinanceCategoryAction,
+  createProductCategoryAction,
   createStockCategoryAction,
   createStockUnitAction,
   updateFinanceCategoryAction,
+  updateProductCategoryAction,
   updateStockCategoryAction,
   updateStockUnitAction,
   type SettingsResult,
@@ -158,16 +160,26 @@ interface DialogProps {
 
 export function StockCategoryDialog({
   category,
+  kind = "stock",
   ...props
-}: DialogProps & { category?: StockCategoryDef | null }) {
+}: DialogProps & { category?: StockCategoryDef | null; kind?: "stock" | "product" }) {
   return (
     <Frame open={props.open} onOpenChange={props.onOpenChange}>
-      {props.open && <StockCategoryForm key={category?.id ?? "new"} category={category ?? null} {...props} />}
+      {props.open && <StockCategoryForm key={category?.id ?? "new"} category={category ?? null} kind={kind} {...props} />}
     </Frame>
   );
 }
 
-function StockCategoryForm({ storeId, onOpenChange, category }: DialogProps & { category: StockCategoryDef | null }) {
+function StockCategoryForm({
+  storeId,
+  onOpenChange,
+  category,
+  kind,
+}: DialogProps & { category: StockCategoryDef | null; kind: "stock" | "product" }) {
+  const [createAction, updateAction] =
+    kind === "product"
+      ? [createProductCategoryAction, updateProductCategoryAction]
+      : [createStockCategoryAction, updateStockCategoryAction];
   const [name, setName] = useState(category?.name ?? "");
   const [icon, setIcon] = useState<CategoryIconKey>(category?.icon ?? "cup-soda");
   const [color, setColor] = useState<PaletteKey>(category?.color ?? "teal");
@@ -188,7 +200,7 @@ function StockCategoryForm({ storeId, onOpenChange, category }: DialogProps & { 
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ex: Laticínios"
+            placeholder={kind === "product" ? "Ex: Sobremesas" : "Ex: Laticínios"}
             maxLength={40}
             className={FIELD}
           />
@@ -232,8 +244,8 @@ function StockCategoryForm({ storeId, onOpenChange, category }: DialogProps & { 
           submit(
             () =>
               category
-                ? updateStockCategoryAction(category.id, { storeId, name, icon, color })
-                : createStockCategoryAction({ storeId, name, icon, color }),
+                ? updateAction(category.id, { storeId, name, icon, color })
+                : createAction({ storeId, name, icon, color }),
             category ? "Categoria atualizada." : "Categoria adicionada.",
           )
         }
