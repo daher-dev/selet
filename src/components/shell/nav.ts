@@ -7,7 +7,7 @@ import {
   Gift,
   CupSoda,
   Dessert,
-  Warehouse,
+  ClipboardList,
   CreditCard,
   Ticket,
   SlidersHorizontal,
@@ -85,7 +85,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     label: "Estoque",
     segment: "estoque",
-    icon: Warehouse,
+    icon: ClipboardList,
     section: "estoque",
     dot: "lowStock",
   },
