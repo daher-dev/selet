@@ -18,7 +18,6 @@ import type {
   PriceTier,
   Product,
   ProductAddon,
-  ProductSaleType,
   RecipeItem,
   StockItem,
 } from "@/lib/types";
@@ -180,27 +179,30 @@ function ProductForm({
 
   const [name, setName] = useState(product?.name ?? "");
   const [category, setCategory] = useState<string>(product?.category ?? "shakes");
-  const [saleType, setSaleType] = useState<ProductSaleType>(
-    product?.saleType ?? "menu",
-  );
+  // Two optional offers on one record: SALE (prepared by the dose, no
+  // commission) and RESALE (whole packages, earns commission). "Adicional" is
+  // a resale-only item that is also offered inside other products.
+  const [hasSale, setHasSale] = useState(product ? Boolean(product.sale) : true);
+  const [hasResale, setHasResale] = useState(Boolean(product?.resale));
+  const [adicional, setAdicional] = useState(product?.saleType === "adicional");
   const [typeTags, setTypeTags] = useState<string[]>(product?.typeTags ?? []);
   const [description, setDescription] = useState(product?.description ?? "");
   const [active, setActive] = useState(product?.active ?? true);
   // Seller commission: switch + % (string while typing, e.g. "5" / "7,5").
-  const [commissionOn, setCommissionOn] = useState((product?.commissionPercent ?? 0) > 0);
+  const [commissionOn, setCommissionOn] = useState((product?.resale?.commissionPercent ?? 0) > 0);
   const [commissionPct, setCommissionPct] = useState(
-    product?.commissionPercent ? String(product.commissionPercent).replace(".", ",") : "",
+    product?.resale?.commissionPercent ? String(product.resale.commissionPercent).replace(".", ",") : "",
   );
-  const [insumoId, setInsumoId] = useState<string | undefined>(product?.insumoId);
+  const [insumoId, setInsumoId] = useState<string | undefined>(product?.resale?.insumoId || undefined);
   const [recipe, setRecipe] = useState<RecipeRow[]>(
-    (product?.recipe ?? []).map((r) => ({
+    (product?.sale?.recipe ?? product?.recipe ?? []).map((r) => ({
       ...r,
       _id: nextId(),
       continuo: resolveItem(r)?.consumptionMode === "continuo",
     })),
   );
   const [adicionais, setAdicionais] = useState<AddonRow[]>(
-    (product?.adicionais ?? []).map((a) => ({
+    (product?.sale?.adicionais ?? product?.adicionais ?? []).map((a) => ({
       ...a,
       _id: nextId(),
       continuo: resolveItem(a)?.consumptionMode === "continuo",
@@ -210,20 +212,52 @@ function ProductForm({
   // Unified tier list — the qty:1 row is the unit price and is removable, so a
   // product can be sold in lote (batch) only.
   const [tiers, setTiers] = useState<TierRowState[]>(() =>
-    product?.tiers?.length
-      ? tiersToRows(product.tiers)
+    product?.sale?.tiers?.length
+      ? tiersToRows(product.sale.tiers)
+      : [{ _id: nextId(), qty: "1", price: "" }],
+  );
+  const [resaleTiers, setResaleTiers] = useState<TierRowState[]>(() =>
+    product?.resale?.tiers?.length
+      ? tiersToRows(product.resale.tiers)
       : [{ _id: nextId(), qty: "1", price: "" }],
   );
   const [pending, startTransition] = useTransition();
 
   const [opcionalPickerOpen, setOpcionalPickerOpen] = useState(false);
 
-  const isMenu = saleType === "menu";
-  const isAdicional = saleType === "adicional";
-  // Only "menu" items are prepared from a BASE recipe and carry opcionais —
-  // revenda and adicional both just link a single insumo from the estoque.
-  const usesRecipe = isMenu;
-  const linksInsumo = saleType === "revenda" || isAdicional;
+  const isMenu = hasSale;
+  // The sale offer is prepared from a BASE recipe and carries opcionais; the
+  // resale offer links a single insumo (sold by whole package).
+  const usesRecipe = hasSale;
+  const linksInsumo = hasResale;
+
+  // Offer toggles: at least one offer stays on; adicional is resale-only.
+  function toggleSale() {
+    if (adicional) {
+      setAdicional(false);
+      setHasSale(true);
+      return;
+    }
+    if (hasSale && !hasResale) return;
+    setHasSale(!hasSale);
+  }
+  function toggleResale() {
+    if (adicional) {
+      setAdicional(false);
+      return;
+    }
+    if (hasResale && !hasSale) return;
+    setHasResale(!hasResale);
+  }
+  function toggleAdicional() {
+    if (adicional) {
+      setAdicional(false);
+      return;
+    }
+    setAdicional(true);
+    setHasSale(false);
+    setHasResale(true);
+  }
   const selectedInsumo = insumoId ? byId.get(insumoId) : undefined;
 
   // Existing "adicional" catalog products double as quick-fill templates in
@@ -292,29 +326,23 @@ function ProductForm({
   }
 
   function submit() {
-    // Parse the unified tier list.
-    const parsedTiers = parseTierRows(tiers);
-
-    if (parsedTiers.length === 0) {
+    const saleTiers = hasSale ? parseTierRows(tiers) : [];
+    const packTiers = hasResale ? parseTierRows(resaleTiers) : [];
+    if ((hasSale && saleTiers.length === 0) || (hasResale && packTiers.length === 0)) {
       toast.error("Informe ao menos uma faixa de preço válida.");
       return;
     }
-    const unitTier = parsedTiers.find((t) => t.qty === 1);
-    const unitPrice = unitTier
-      ? unitTier.price
-      : Math.round(parsedTiers[0].price / parsedTiers[0].qty);
-
-    if (linksInsumo && !insumoId) {
+    if (hasResale && !insumoId) {
       toast.error("Selecione o item do estoque.");
       return;
     }
-    const commission = commissionOn && !isAdicional ? parsePercent(commissionPct) : 0;
-    if (commissionOn && !isAdicional && commission <= 0) {
+    const commission = commissionOn && hasResale && !adicional ? parsePercent(commissionPct) : 0;
+    if (commissionOn && hasResale && !adicional && commission <= 0) {
       toast.error("Informe o percentual da comissão (entre 0 e 100).");
       return;
     }
 
-    const cleanRecipe: RecipeItem[] = usesRecipe
+    const cleanRecipe: RecipeItem[] = hasSale
       ? recipe
           .filter((r) => r.name.trim())
           .map((r) => ({
@@ -324,7 +352,7 @@ function ProductForm({
             unit: r.unit.trim(),
           }))
       : [];
-    const cleanAddons: ProductAddon[] = isMenu
+    const cleanAddons: ProductAddon[] = hasSale
       ? adicionais
           .filter((a) => a.name.trim())
           .map((a) => {
@@ -375,17 +403,20 @@ function ProductForm({
       const input = {
         storeId,
         name,
-        price: unitPrice,
         category: category as (typeof PRODUCT_CATEGORIES)[number],
         typeTags: typeTags as (typeof PRODUCT_TYPE_TAGS)[number][],
         description: description.trim() || undefined,
         active,
-        saleType,
-        recipe: linkedRecipe,
-        adicionais: linkedAddons,
-        tiers: parsedTiers,
-        insumoId: linksInsumo ? insumoId : undefined,
-        commissionPercent: commission > 0 ? commission : undefined,
+        sale: hasSale ? { recipe: linkedRecipe, adicionais: linkedAddons, tiers: saleTiers } : undefined,
+        resale:
+          hasResale && insumoId
+            ? {
+                insumoId,
+                tiers: packTiers,
+                ...(commission > 0 ? { commissionPercent: commission } : {}),
+              }
+            : undefined,
+        adicional,
       } as const;
       const result = product
         ? await updateProductAction(product.id, input)
@@ -454,61 +485,40 @@ function ProductForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Tipo de venda</Label>
+          <Label>Como é vendido</Label>
           <div className="grid grid-cols-3 gap-2">
             <SaleTypeButton
-              active={saleType === "menu"}
-              onClick={() => setSaleType("menu")}
+              active={hasSale}
+              onClick={toggleSale}
               icon={<ChefHat className="size-4" />}
               label="Menu"
             />
             <SaleTypeButton
-              active={saleType === "revenda"}
-              onClick={() => setSaleType("revenda")}
+              active={hasResale && !adicional}
+              onClick={toggleResale}
               icon={<Tag className="size-4" />}
               label="Revenda"
             />
             <SaleTypeButton
-              active={saleType === "adicional"}
-              onClick={() => setSaleType("adicional")}
+              active={adicional}
+              onClick={toggleAdicional}
               icon={<Blocks className="size-4" />}
               label="Adicional"
             />
           </div>
           <p className="text-[11.5px] text-ink-faint">
-            {isMenu
-              ? "Preparado na loja: consome insumos da base e aceita adicionais."
-              : isAdicional
-                ? "Não vendido sozinho — aparece como opção adicional dentro de outros itens do menu."
-                : "Um item do estoque vendido diretamente por um novo preço."}
+            {adicional
+              ? "Revenda de um item do estoque que também aparece como opção dentro de outros itens do menu."
+              : hasSale && hasResale
+                ? "Os dois: por dose (consome o pacote aberto, sem comissão) e por embalagem (baixa um pacote lacrado, com comissão). Quem vende escolhe no pedido."
+                : hasSale
+                  ? "Preparado na loja: consome insumos da base e aceita adicionais."
+                  : "Um item do estoque vendido por embalagem fechada, com comissão opcional."}
           </p>
         </div>
 
-        {/* ---------------------------------------------- REVENDA/ADICIONAL insumo */}
-        {linksInsumo && (
-          <div className="space-y-1.5">
-            <Label>Item do estoque</Label>
-            <InsumoTriggerPicker
-              stockItems={stockItems}
-              selected={selectedInsumo}
-              onPick={(item) => setInsumoId(item.id)}
-            />
-            {selectedInsumo && (
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-paper px-3 py-2 text-[12px]">
-                <Package className="size-3.5 text-ink-faint" />
-                <span className="text-ink-soft">Em estoque:</span>
-                <span className="tabular font-semibold text-ink">
-                  {selectedInsumo.continuousUse
-                    ? `${usableAmount(selectedInsumo)} ${
-                        selectedInsumo.pkgLabel ?? "emb."
-                      }`
-                    : formatQty(selectedInsumo.qty, unitLabel(selectedInsumo.unit))}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
+        {hasSale && (
+          <>
         {/* ---------------------------------------------------------- MENU base */}
         {usesRecipe && (
           <InsumoSection
@@ -606,9 +616,8 @@ function ProductForm({
           </div>
         )}
 
-        {/* ----------------------------------------------------- price tiers */}
         <div className="space-y-1.5">
-          <Label>Faixa de preço</Label>
+          <Label>Faixa de preço (por dose)</Label>
           <div className="space-y-2">
             {tiers.map((tier, i) => (
               <TierRow
@@ -639,15 +648,79 @@ function ProductForm({
             label="Adicionar faixa"
           />
         </div>
+          </>
+        )}
 
-        {!isAdicional && (
+        {hasResale && (
+          <>
+        {/* ---------------------------------------------- REVENDA/ADICIONAL insumo */}
+        {linksInsumo && (
+          <div className="space-y-1.5">
+            <Label>Item do estoque</Label>
+            <InsumoTriggerPicker
+              stockItems={stockItems}
+              selected={selectedInsumo}
+              onPick={(item) => setInsumoId(item.id)}
+            />
+            {selectedInsumo && (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-paper px-3 py-2 text-[12px]">
+                <Package className="size-3.5 text-ink-faint" />
+                <span className="text-ink-soft">Em estoque:</span>
+                <span className="tabular font-semibold text-ink">
+                  {selectedInsumo.continuousUse
+                    ? `${usableAmount(selectedInsumo)} ${
+                        selectedInsumo.pkgLabel ?? "emb."
+                      }`
+                    : formatQty(selectedInsumo.qty, unitLabel(selectedInsumo.unit))}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <Label>Faixa de preço (por embalagem)</Label>
+          <div className="space-y-2">
+            {resaleTiers.map((tier, i) => (
+              <TierRow
+                key={tier._id}
+                qty={tier.qty}
+                price={tier.price}
+                priceId={i === 0 ? hasSale ? undefined : "product-price" : undefined}
+                onQty={(qty) =>
+                  setResaleTiers((ts) =>
+                    ts.map((t) => (t._id === tier._id ? { ...t, qty } : t)),
+                  )
+                }
+                onPrice={(price) =>
+                  setResaleTiers((ts) =>
+                    ts.map((t) => (t._id === tier._id ? { ...t, price } : t)),
+                  )
+                }
+                onRemove={() =>
+                  setResaleTiers((ts) => ts.filter((t) => t._id !== tier._id))
+                }
+              />
+            ))}
+          </div>
+          <DashedAddButton
+            onClick={() =>
+              setResaleTiers((ts) => [...ts, { _id: nextId(), qty: "", price: "" }])
+            }
+            label="Adicionar faixa"
+          />
+        </div>
+        {!adicional && (
           <CommissionField
             on={commissionOn}
             onToggle={setCommissionOn}
             percent={commissionPct}
             onPercent={setCommissionPct}
-            tiers={parseTierRows(tiers)}
+            tiers={parseTierRows(resaleTiers)}
           />
+        )}
+
+          </>
         )}
 
         <div className="space-y-1.5">

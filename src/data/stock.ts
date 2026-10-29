@@ -1171,6 +1171,8 @@ function movement(
 }
 
 export interface ConsumeRequest {
+  /** Whole sealed packages to debit (resale); never opens one. */
+  packages?: number;
   /** medido: base units to deduct. */
   amount: number;
   /** continuo: uses to tally on the open package. */
@@ -1201,6 +1203,26 @@ export function consumeWork(
   req: ConsumeRequest,
 ): ConsumeResult {
   const ctx = { refOrder: req.refOrder, refItem: req.refItem, by: req.by };
+
+  // Resale: debit whole sealed packages first. Anything the sealed stock can't
+  // cover falls back to the item's own mode below (loose open units, or an
+  // untracked item) so a sale never silently draws nothing.
+  const wantPackages = req.packages ?? 0;
+  if (wantPackages > 0) {
+    const sold = w.tracked && w.pkgSize > 0 ? Math.min(wantPackages, w.sealed) : 0;
+    const rest = wantPackages - sold;
+    w.sealed -= sold;
+    const pkgMovements: MovementDoc[] = sold > 0 ? [movement("saida", sold, true, req.reason, ctx)] : [];
+    if (rest <= 0) {
+      return { movements: pkgMovements, draw: { kind: "insumo", refId: itemId, mode: w.consumptionMode, packages: sold }, shortage: 0 };
+    }
+    const tail = consumeWork(itemId, w, { ...req, packages: 0, amount: rest, uses: rest });
+    return {
+      movements: [...pkgMovements, ...tail.movements],
+      draw: { ...tail.draw, ...(sold > 0 ? { packages: sold } : {}) },
+      shortage: tail.shortage,
+    };
+  }
 
   if (w.consumptionMode === "continuo") {
     const uses = req.uses;
@@ -1259,16 +1281,26 @@ export function reverseWork(
   ctx: { refOrder?: string; refItem?: string; by: string },
 ): { movements: MovementDoc[] } {
   if (draw.kind !== "insumo") return { movements: [] };
+  const packages = draw.packages ?? 0;
+  const pkgMovements: MovementDoc[] = [];
+  if (packages > 0) {
+    w.sealed += packages;
+    pkgMovements.push(movement("entrada", packages, true, "AJUSTE", { ...ctx, refItem: ctx.refItem ?? "Estorno" }));
+  }
   if (draw.mode === "continuo") {
     const usos = draw.usos ?? 0;
-    if (usos <= 0) return { movements: [] };
-    w.usos = Math.max(0, w.usos - usos);
-    return { movements: [movement("entrada", usos, false, "AJUSTE", { ...ctx, refItem: ctx.refItem ?? "Estorno" })] };
+    if (usos > 0) {
+      w.usos = Math.max(0, w.usos - usos);
+      pkgMovements.push(movement("entrada", usos, false, "AJUSTE", { ...ctx, refItem: ctx.refItem ?? "Estorno" }));
+    }
+    return { movements: pkgMovements };
   }
   const amount = draw.amount ?? 0;
-  if (amount <= 0) return { movements: [] };
-  w.open += amount;
-  return { movements: [movement("entrada", amount, false, "AJUSTE", { ...ctx, refItem: ctx.refItem ?? "Estorno" })] };
+  if (amount > 0) {
+    w.open += amount;
+    pkgMovements.push(movement("entrada", amount, false, "AJUSTE", { ...ctx, refItem: ctx.refItem ?? "Estorno" }));
+  }
+  return { movements: pkgMovements };
 }
 
 function toMovement(doc: FirebaseFirestore.QueryDocumentSnapshot): StockMovement {

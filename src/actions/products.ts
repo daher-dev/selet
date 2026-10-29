@@ -11,7 +11,6 @@ import {
 import { logActivity } from "@/data/activity";
 import {
   PRODUCT_CATEGORIES,
-  PRODUCT_SALE_TYPES,
   PRODUCT_TYPE_TAGS,
 } from "@/lib/types";
 
@@ -47,48 +46,54 @@ const addonSchema = z.object({
   tiers: z.array(tierSchema).optional(),
 });
 
+const saleOfferSchema = z.object({
+  recipe: z.array(recipeItemSchema).min(1, "Adicione ao menos um insumo à base."),
+  adicionais: z.array(addonSchema).default([]),
+  tiers: z.array(tierSchema).min(1, "Informe ao menos uma faixa de preço."),
+});
+
+const resaleOfferSchema = z.object({
+  insumoId: z.string().min(1, "Selecione o item do estoque."),
+  tiers: z.array(tierSchema).min(1, "Informe ao menos uma faixa de preço."),
+  // Seller commission, % of the amount sold. Omitted/0 = off. Resale only.
+  commissionPercent: z.number().min(0).max(100, "A comissão deve ser de no máximo 100%.").optional(),
+});
+
+// A product offers a prepared SALE (open-package portions, no commission), a
+// RESALE (whole sealed packages, earns commission), or both — each optional.
 const productShape = z.object({
   storeId: z.string().min(1),
   name: z.string().trim().min(1, "Informe o nome do produto."),
-  price: z.number().int().positive("Preço deve ser maior que zero."),
   category: z.enum(PRODUCT_CATEGORIES),
   typeTags: z.array(z.enum(PRODUCT_TYPE_TAGS)).default([]),
   description: z.string().trim().max(280).optional(),
   active: z.boolean().default(true),
-  saleType: z.enum(PRODUCT_SALE_TYPES).default("menu"),
-  recipe: z.array(recipeItemSchema).default([]),
-  adicionais: z.array(addonSchema).default([]),
-  tiers: z.array(tierSchema).min(1).default([{ qty: 1, price: 0 }]),
-  insumoId: z.string().optional(),
-  // Seller commission, % of the amount sold. Omitted/0 = off.
-  commissionPercent: z.number().min(0).max(100, "A comissão deve ser de no máximo 100%.").optional(),
+  sale: saleOfferSchema.optional(),
+  resale: resaleOfferSchema.optional(),
+  /** A resale-only item also offered as an add-on inside other products. */
+  adicional: z.boolean().default(false),
 });
 
-// Cross-field consistency, on top of the per-row stockItemId requirement above:
-// a "menu" item must be prepared from at least one real insumo (no bought-in
-// item hiding as a bodyless recipe), and revenda/adicional must link their one
-// insumo — this mirrors the client's own `linksInsumo` check (product-form-
-// sheet.tsx) so the rule holds even if a caller bypasses the form.
 const productSchema = productShape.superRefine((data, ctx) => {
-  if (data.saleType === "menu" && data.recipe.length === 0) {
+  if (!data.sale && !data.resale) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Adicione ao menos um insumo à base.",
-      path: ["recipe"],
+      message: "Ofereça o item por dose (menu) ou por embalagem (revenda).",
+      path: ["sale"],
     });
   }
-  if (data.saleType === "adicional" && data.commissionPercent) {
+  if (data.adicional && (data.sale || !data.resale)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Um adicional é só revenda, sem preparo.",
+      path: ["adicional"],
+    });
+  }
+  if (data.adicional && data.resale?.commissionPercent) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Adicionais não têm comissão própria.",
-      path: ["commissionPercent"],
-    });
-  }
-  if ((data.saleType === "revenda" || data.saleType === "adicional") && !data.insumoId) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Selecione o item do estoque.",
-      path: ["insumoId"],
+      path: ["resale", "commissionPercent"],
     });
   }
 });

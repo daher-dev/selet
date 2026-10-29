@@ -14,6 +14,7 @@ import type {
 } from "@/lib/types";
 import { orderCode } from "@/lib/format";
 import { auditChanges } from "@/lib/order-audit";
+import { lineOffer } from "@/lib/product-offers";
 import { appendOrderAudit, snapOfDoc, type OrderAuditInput } from "./order-audit";
 import {
   commissionOf,
@@ -298,10 +299,22 @@ function stampSaleTypes(
   items: OrderItem[],
   products: Map<string, Product>,
 ): OrderItem[] {
-  return items.map((item) => ({
-    ...item,
-    saleType: products.get(item.productId)?.saleType ?? item.saleType ?? "menu",
-  }));
+  return items.map((item) => {
+    const product = products.get(item.productId);
+    if (!product) return { ...item, saleType: item.saleType ?? "menu" };
+    // A dual product's line says which offer it sells; resale lines are Revenda.
+    const offer = lineOffer(product, item.offer);
+    return {
+      ...item,
+      offer,
+      saleType: offer === "resale" ? (product.saleType === "adicional" ? "adicional" : "revenda") : "menu",
+    };
+  });
+}
+
+/** Only the resale offer earns commission — sale lines never do. */
+function commissionOfLine(product: Product | undefined, offer?: "sale" | "resale"): number {
+  return product && lineOffer(product, offer) === "resale" ? (product.resale?.commissionPercent ?? 0) : 0;
 }
 
 /**
@@ -324,7 +337,7 @@ function stampCommissions(
     commissionPercent:
       item.shake || item.pudim || item.cartelaSale
         ? 0
-        : (prev.get(item.productId) ?? products.get(item.productId)?.commissionPercent ?? 0),
+        : (prev.get(item.productId) ?? commissionOfLine(products.get(item.productId), item.offer)),
   }));
 }
 
@@ -402,7 +415,7 @@ async function planConsumption(
   const req =
     newItems && products
       ? buildConsumptionRequests(newItems, products, shakeCatalogs, pudimCatalogs)
-      : { insumos: new Map<string, { amount: number; uses: number }>() };
+      : { insumos: new Map<string, { amount: number; uses: number; packages?: number }>() };
 
   const stockIds = new Set<string>();
   // Legacy "produced" draws (batch production was removed) are ignored.
@@ -460,6 +473,7 @@ async function planConsumption(
     const { movements: ms, draw } = consumeWork(itemId, entry.work, {
       amount: need.amount,
       uses: need.uses,
+      packages: need.packages,
       reason: "VENDA",
       refOrder: orderId,
       refItem: `Pedido #${code}`,

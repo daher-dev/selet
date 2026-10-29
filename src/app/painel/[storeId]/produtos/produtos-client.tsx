@@ -1,5 +1,6 @@
 "use client";
 
+import { unitPriceOf } from "@/lib/product-offers";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -295,10 +296,11 @@ function ProductCard({
   // Only "menu" items have a BASE recipe/Opcionais/Produção — revenda and
   // adicional both just link a single insumo (see product-form-sheet).
   const usesRecipe = isMenu;
-  const linkedInsumo =
-    !usesRecipe && product.insumoId
-      ? stockItemFor({ stockItemId: product.insumoId, name: "" })
-      : undefined;
+  const dual = Boolean(product.sale && product.resale);
+  const resaleInsumoId = product.resale?.insumoId || (usesRecipe ? undefined : product.insumoId);
+  const linkedInsumo = resaleInsumoId
+    ? stockItemFor({ stockItemId: resaleInsumoId, name: "" })
+    : undefined;
   const tiers = [...product.tiers].sort((a, b) => a.qty - b.qty);
   const unitTier =
     tiers.find((t) => t.qty === 1) ?? tiers[0] ?? { qty: 1, price: product.price };
@@ -333,15 +335,22 @@ function ProductCard({
           </h3>
         </div>
         <div className="flex shrink-0 gap-1.5">
-          {product.commissionPercent ? (
+          {product.resale?.commissionPercent ? (
             <span
               title="Comissão para quem vendeu"
               className="inline-flex shrink-0 items-center rounded-full bg-commission-wash px-2.5 py-1 text-[10.5px] font-bold text-commission"
             >
-              {String(product.commissionPercent).replace(".", ",")}% comissão
+              {String(product.resale.commissionPercent).replace(".", ",")}% comissão
             </span>
           ) : null}
-          <TypeBadge saleType={product.saleType} />
+          {dual ? (
+            <>
+              <TypeBadge saleType="menu" />
+              <TypeBadge saleType="revenda" />
+            </>
+          ) : (
+            <TypeBadge saleType={product.saleType} />
+          )}
         </div>
       </div>
 
@@ -463,6 +472,15 @@ function ProductCard({
           {unitTier.qty === 1 ? "/ unidade" : `/ ${formatQty(unitTier.qty, "un")}`}
         </span>
       </div>
+
+      {dual && product.resale && (
+        <div className="mt-2 flex items-baseline gap-2">
+          <span className="tabular text-[15px] font-bold text-primary">
+            {formatBRL(unitPriceOf(product.resale.tiers))}
+          </span>
+          <span className="text-[11.5px] text-ink-faint">/ embalagem (revenda)</span>
+        </div>
+      )}
 
       {batches.length > 0 && (
         <div className="mt-2.5 flex flex-wrap gap-1.5">

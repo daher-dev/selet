@@ -162,6 +162,8 @@ export interface OrderItem {
    * Absent/0 = the line earns no commission.
    */
   commissionPercent?: number;
+  /** Which offer of a dual product this line sells; absent = derive from saleType (legacy). */
+  offer?: "sale" | "resale";
   addons?: string[];
   /** Present only for "Montar shake" lines; mutually exclusive with `addons`. */
   shake?: ShakeSelection;
@@ -194,6 +196,8 @@ export interface ConsumptionDraw {
   mode?: ConsumptionMode;
   amount?: number;
   usos?: number;
+  /** Sealed packages debited whole (resale) — reversed straight back into `sealed`. */
+  packages?: number;
 }
 
 export interface Order {
@@ -269,10 +273,12 @@ export const PRODUCT_TYPE_TAGS = [
 ] as const;
 export type ProductTypeTag = (typeof PRODUCT_TYPE_TAGS)[number];
 
-// How a catalog item is sold. "menu" = prepared in-store from a recipe (BASE)
-// that consumes stock; "revenda" = a stock item resold directly; "adicional"
-// = not independently orderable, only offered as a live-linked add-on inside
-// other products (stock behaves like revenda: a single optional insumo link).
+// How a catalog item is sold (derived from its offers, see Product.sale/resale).
+// "menu" = prepared in-store from a recipe (BASE) that consumes stock;
+// "revenda" = a stock item resold directly; "adicional" = a resale-style item
+// that is ALSO offered as a live-linked add-on inside other products. All of
+// them can be ordered on their own. A product offering both sale and resale
+// reports "menu".
 export const PRODUCT_SALE_TYPES = ["menu", "revenda", "adicional"] as const;
 export type ProductSaleType = (typeof PRODUCT_SALE_TYPES)[number];
 
@@ -307,6 +313,21 @@ export interface PriceTier {
   price: number; // centavos
 }
 
+/** The prepared-in-store offer: consumes the open package by portion; no commission. */
+export interface SaleOffer {
+  recipe: RecipeItem[];
+  adicionais: ProductAddon[];
+  tiers: PriceTier[];
+}
+
+/** The resale offer: sells whole sealed packages of one stock item; earns commission. */
+export interface ResaleOffer {
+  insumoId: string;
+  tiers: PriceTier[];
+  /** Seller commission, % of the amount sold (after discount). Absent/0 = none. */
+  commissionPercent?: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -316,7 +337,14 @@ export interface Product {
   description?: string;
   active: boolean;
   createdAt: string;
-  /** Sale type — defaults to "menu" for legacy docs without the field. */
+  /** At least one of the two offers exists. Legacy docs are read into this shape. */
+  sale?: SaleOffer;
+  resale?: ResaleOffer;
+  /**
+   * Derived from the offers (and mirrored with the fields below so older
+   * readers keep working): sale only → menu, resale only → revenda/adicional,
+   * both → menu.
+   */
   saleType: ProductSaleType;
   /** BASE recipe (menu items). Empty for revenda/adicional. */
   recipe: RecipeItem[];
@@ -326,7 +354,7 @@ export interface Product {
   tiers: PriceTier[];
   /** Linked stock item slug (revenda/adicional items link one insumo). */
   insumoId?: string;
-  /** Seller commission, % of the amount sold (after discount). Absent/0 = none. */
+  /** Mirror of resale.commissionPercent. Sale lines never earn commission. */
   commissionPercent?: number;
   /** Hidden from the default catálogo list (e.g. old retail SKUs archived on sync). */
   archived: boolean;

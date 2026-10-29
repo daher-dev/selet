@@ -10,7 +10,7 @@ import {
   updateOrder,
   type OrderInput,
 } from "./orders";
-import { createProduct, updateProduct, type ProductInput } from "./products";
+import { createProduct, updateProduct, type LegacyProductInput } from "./products";
 import { computeSummary, readSummary } from "./summary";
 import {
   listCommissionItems,
@@ -35,13 +35,15 @@ async function mirror(storeId: string, orderId: string) {
   return snap.exists ? snap.data()! : null;
 }
 
-const product = (over: Partial<ProductInput> = {}): ProductInput => ({
+const product = (over: Partial<LegacyProductInput> = {}): LegacyProductInput => ({
   name: "Coxinha Proteica",
   price: 1500,
   category: "salgados",
   typeTags: [],
   active: true,
-  saleType: "menu",
+  // Commission belongs to the resale offer only.
+  saleType: "revenda",
+  insumoId: "stock-coxinha",
   recipe: [],
   adicionais: [],
   tiers: [{ qty: 1, price: 1500 }],
@@ -49,7 +51,7 @@ const product = (over: Partial<ProductInput> = {}): ProductInput => ({
   ...over,
 });
 
-async function setup(storeId: string, over: Partial<ProductInput> = {}) {
+async function setup(storeId: string, over: Partial<LegacyProductInput> = {}) {
   const productId = await createProduct(storeId, product(over));
   const customerId = await createCustomer(storeId, { name: "Rafael", tags: [] });
   const input = (qty: number, extra: Partial<OrderInput> = {}): OrderInput => ({

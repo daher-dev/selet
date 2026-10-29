@@ -41,6 +41,7 @@ import type {
 } from "@/lib/types";
 import { DISCOUNT_REASONS, ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
 import { formatBRL, initials } from "@/lib/format";
+import { lineOffer, unitPriceOf } from "@/lib/product-offers";
 import type { OrderAuditEntry } from "@/data/order-audit";
 import {
   balanceValue,
@@ -550,12 +551,15 @@ function OrderForm({
       ? [...sellers, { email: order.sellerEmail, name: order.sellerName ?? order.sellerEmail }]
       : sellers;
   const seller = sellerOptions.find((s) => s.email === sellerEmail) ?? null;
+  // Only the resale offer earns commission (mirrors the server's stamping).
+  const previewCommission = (p: Product | undefined, offerPick?: "sale" | "resale") =>
+    p && lineOffer(p, offerPick) === "resale" ? (p.resale?.commissionPercent ?? 0) : 0;
   const stampedItems = items.map((i) => ({
     ...i,
     commissionPercent:
       i.shake || i.pudim || i.cartelaSale
         ? 0
-        : (i.commissionPercent ?? productById.get(i.productId)?.commissionPercent ?? 0),
+        : (i.commissionPercent ?? previewCommission(productById.get(i.productId), i.offer)),
   }));
   const commission = seller
     ? commissionOf(stampedItems, money.total, discountInput)
@@ -630,6 +634,7 @@ function OrderForm({
       const idx = prev.findIndex((i) => {
         if (i.productId !== item.productId) return false;
         if (i.cartelaSale) return false;
+        if (i.offer !== item.offer) return false;
         if (item.shake) return shakeSignature(i.shake) === sig;
         if (item.pudim) return pudimSignature(i.pudim) === sig;
         return addonSignature(i.addons) === sig;
@@ -1804,13 +1809,12 @@ function ProductPickerDialog({
     onOpenChange(false);
   }
 
-  // Adicional-type products aren't independently orderable — they only show
-  // up as live add-ons inside another product's config step.
-  const orderable = products.filter((p) => p.saleType !== "adicional");
+  // Every Cardápio item can be added by hand — adicionais included (they are
+  // also offered as live add-ons inside other products' config step).
   const q = query.trim().toLowerCase();
   const filtered = q
-    ? orderable.filter((p) => p.name.toLowerCase().includes(q))
-    : orderable;
+    ? products.filter((p) => p.name.toLowerCase().includes(q))
+    : products;
 
   function handleAdd(item: OrderItem) {
     onAdd(item);
@@ -1918,7 +1922,7 @@ function ProductPickerDialog({
               <div className="min-h-0 flex-1 overflow-y-auto p-3">
                 {filtered.length === 0 ? (
                   <p className="px-2 py-8 text-center text-[12.5px] text-ink-faint">
-                    {orderable.length === 0
+                    {products.length === 0
                       ? "Cadastre produtos no Cardápio primeiro."
                       : "Nenhum produto encontrado"}
                   </p>
@@ -1943,7 +1947,14 @@ function ProductPickerDialog({
                                 <span className="text-[11px] text-ink-faint">
                                   {meta.label}
                                 </span>
-                                <SaleTypeBadge saleType={product.saleType} />
+                                {product.sale && product.resale ? (
+                                  <>
+                                    <SaleTypeBadge saleType="menu" />
+                                    <SaleTypeBadge saleType="revenda" />
+                                  </>
+                                ) : (
+                                  <SaleTypeBadge saleType={product.saleType} />
+                                )}
                               </span>
                             </span>
                             <span className="tabular shrink-0 text-[13.5px] font-bold text-primary">
@@ -2029,8 +2040,14 @@ function ProductConfig({
 }) {
   const [qty, setQty] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
+  // A product can offer a dose (sale), a whole package (resale), or both —
+  // the toggle only shows when it has both. Each offer has its own price.
+  const [offer, setOffer] = useState<"sale" | "resale">(() => lineOffer(product));
+  const dual = Boolean(product.sale && product.resale);
+  const offerTiers = (offer === "resale" ? product.resale?.tiers : product.sale?.tiers) ?? product.tiers;
+  const basePrice = dual ? unitPriceOf(offerTiers) : product.price;
   const meta = PRODUCT_CATEGORY_META[product.category] ?? NEUTRAL_TILE;
-  const addons = product.adicionais ?? [];
+  const addons = offer === "sale" ? (product.sale?.adicionais ?? product.adicionais ?? []) : [];
 
   function toggleAddon(name: string) {
     setSelected((prev) =>
@@ -2041,16 +2058,17 @@ function ProductConfig({
   const addonsTotal = addons
     .filter((a) => selected.includes(a.name))
     .reduce((s, a) => s + a.price, 0);
-  const unitPrice = product.price + addonsTotal;
+  const unitPrice = basePrice + addonsTotal;
   const subtotal = qty * unitPrice;
 
   function confirm() {
     onConfirm({
       productId: product.id,
-      name: product.name,
+      name: dual ? `${product.name} (${offer === "resale" ? "embalagem" : "dose"})` : product.name,
       qty,
       unitPrice,
-      ...(selected.length > 0 ? { addons: selected } : {}),
+      ...(dual ? { offer } : {}),
+      ...(selected.length > 0 && offer === "sale" ? { addons: selected } : {}),
     });
   }
 
@@ -2079,10 +2097,36 @@ function ProductConfig({
               {product.name}
             </span>
             <span className="tabular text-[11.5px] text-ink-faint">
-              {meta.label} · {formatBRL(product.price)}
+              {meta.label} · {formatBRL(basePrice)}
             </span>
           </span>
         </div>
+
+        {dual && (
+          <div className="space-y-1.5">
+            <Label>Vender</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {(["sale", "resale"] as const).map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => setOffer(o)}
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors",
+                    offer === o
+                      ? "border-primary bg-mist text-primary"
+                      : "border-border bg-card text-ink-soft hover:border-primary/40",
+                  )}
+                >
+                  {o === "sale" ? "Dose" : "Embalagem"}
+                  <span className="tabular ml-1.5 text-[12px] font-bold">
+                    {formatBRL(unitPriceOf((o === "sale" ? product.sale : product.resale)?.tiers ?? []))}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <Label>Quantidade</Label>

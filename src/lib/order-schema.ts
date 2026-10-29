@@ -90,6 +90,9 @@ export const orderItemSchema = z
     name: z.string().min(1),
     qty: z.number().int().min(1),
     unitPrice: z.number().int().min(0),
+    // Which offer of a dual product the line sells (dose vs embalagem).
+    // Spelled out for the same strip-on-parse reason as the fields below.
+    offer: z.enum(["sale", "resale"]).optional(),
     addons: z.array(z.string()).optional(),
     // "Montar shake"/"Montar pudim" lines carry their picks here instead of
     // addons — without this, z.object() silently strips the field

@@ -38,13 +38,27 @@ function line(overrides: Partial<OrderItem> & { productId: string }): OrderItem 
 }
 
 describe("buildConsumptionRequests", () => {
-  it("revenda line decrements its linked insumo by lineQty", () => {
+  it("revenda line debits whole sealed packages of its linked insumo", () => {
     const shake = product({ id: "shake", saleType: "revenda", insumoId: "ins-1" });
     const { insumos } = buildConsumptionRequests(
       [line({ productId: "shake", qty: 3 })],
       new Map([["shake", shake]]),
     );
-    expect(insumos.get("ins-1")).toEqual({ amount: 3, uses: 3 });
+    expect(insumos.get("ins-1")).toEqual({ amount: 0, uses: 0, packages: 3 });
+  });
+
+  it("a product offering both follows the line's offer", () => {
+    const both = product({
+      id: "both",
+      saleType: "menu",
+      sale: { recipe: [{ stockItemId: "ins-pó", name: "Pó", qty: 2, unit: "g" }], adicionais: [], tiers: [{ qty: 1, price: 500 }] },
+      resale: { insumoId: "ins-pó", tiers: [{ qty: 1, price: 9000 }], commissionPercent: 10 },
+    });
+    const products = new Map([["both", both]]);
+    const dose = buildConsumptionRequests([line({ productId: "both", qty: 2, offer: "sale" })], products);
+    expect(dose.insumos.get("ins-pó")).toEqual({ amount: 4, uses: 2 });
+    const pack = buildConsumptionRequests([line({ productId: "both", qty: 2, offer: "resale" })], products);
+    expect(pack.insumos.get("ins-pó")).toEqual({ amount: 0, uses: 0, packages: 2 });
   });
 
   it("adicional line decrements its linked insumo like revenda", () => {

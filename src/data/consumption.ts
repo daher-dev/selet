@@ -1,3 +1,4 @@
+import { lineOffer } from "@/lib/product-offers";
 import type { OrderItem, Product } from "@/lib/types";
 import type { ShakeCatalogs } from "./shakes";
 import type { PudimCatalogs } from "./pudim";
@@ -6,6 +7,8 @@ import type { PudimCatalogs } from "./pudim";
 export interface InsumoNeed {
   amount: number;
   uses: number;
+  /** Whole sealed packages to debit (resale) — never opens a package. */
+  packages?: number;
 }
 
 export interface ConsumptionRequests {
@@ -13,27 +16,34 @@ export interface ConsumptionRequests {
   insumos: Map<string, InsumoNeed>;
 }
 
-function addInsumo(map: Map<string, InsumoNeed>, id: string, amount: number, uses: number) {
+function addInsumo(map: Map<string, InsumoNeed>, id: string, amount: number, uses: number, packages = 0) {
   const cur = map.get(id) ?? { amount: 0, uses: 0 };
   cur.amount += amount;
   cur.uses += uses;
+  if (packages > 0) cur.packages = (cur.packages ?? 0) + packages;
   map.set(id, cur);
 }
 
 /**
- * Draws `qty` units of `product`'s own stock — revenda/adicional decrements
- * its linked insumo; menu consumes the BASE recipe.
+ * Draws `qty` units of `product`'s own stock, per the offer the line sells:
+ *  - resale: `qty` whole sealed packages of its linked insumo (a stand-alone
+ *    adicional keeps the older per-unit draw);
+ *  - sale: the BASE recipe, consumed from the open package by portion.
  */
 function drawForProduct(
   product: Product,
   qty: number,
   insumos: Map<string, InsumoNeed>,
+  offer?: "sale" | "resale",
 ) {
-  if (product.saleType === "revenda" || product.saleType === "adicional") {
-    if (product.insumoId) addInsumo(insumos, product.insumoId, qty, qty);
+  if (lineOffer(product, offer) === "resale") {
+    const insumoId = product.resale?.insumoId ?? product.insumoId;
+    if (!insumoId) return;
+    if (product.saleType === "adicional") addInsumo(insumos, insumoId, qty, qty);
+    else addInsumo(insumos, insumoId, 0, 0, qty);
     return;
   }
-  for (const r of product.recipe) {
+  for (const r of product.sale?.recipe ?? product.recipe) {
     if (!r.stockItemId) continue;
     addInsumo(insumos, r.stockItemId, (r.qty ?? 0) * qty, qty);
   }
@@ -214,7 +224,7 @@ export function buildConsumptionRequests(
     if (!product) continue; // unresolved product → best-effort skip
     const lineQty = line.qty;
 
-    drawForProduct(product, lineQty, insumos);
+    drawForProduct(product, lineQty, insumos, line.offer);
 
     // Add-ons are consumed at sale time regardless of production mode.
     for (const name of line.addons ?? []) {

@@ -38,9 +38,7 @@ export default async function EstoquePage({
   const recipeUsage: Record<string, RecipeUsage[]> = {};
   for (const p of products) {
     if (!p.active) continue;
-    if ((p.saleType === "revenda" || p.saleType === "adicional") && p.insumoId) {
-      (resaleByStock[p.insumoId] ??= []).push(p.name);
-    }
+    if (p.resale?.insumoId) (resaleByStock[p.resale.insumoId] ??= []).push(p.name);
     for (const r of p.recipe) {
       if (!r.stockItemId) continue;
       (recipeUsage[r.stockItemId] ??= []).push({ name: p.name, qty: r.qty, unit: r.unit });
