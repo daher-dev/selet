@@ -34,6 +34,7 @@ interface Props {
   entries: RaffleEntry[];
   customers: Customer[];
   origin: string;
+  storeInstagram?: string;
   userName: string;
   initialSelectedId?: string | null;
   canSend: boolean;
@@ -55,7 +56,7 @@ function rowNote(raffle: Raffle, e: RaffleEntry): string {
   return miss ? `Falta ${miss} ${miss > 1 ? "regras" : "regra"}` : "";
 }
 
-export function RaffleDetailClient({ storeId, raffle, entries, customers, origin, userName, initialSelectedId = null, canSend }: Props) {
+export function RaffleDetailClient({ storeId, raffle, entries, customers, origin, storeInstagram, userName, initialSelectedId = null, canSend }: Props) {
   const [tab, setTab] = useState<"part" | "num">("part");
   const [filter, setFilter] = useState<Filter>("todos");
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
@@ -372,7 +373,7 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
         userName={userName}
         onClose={() => setSelectedId(null)}
       />
-      <RaffleFormSheet storeId={storeId} origin={origin} raffle={raffle} hasEntries={entries.length > 0} open={editOpen} onOpenChange={setEditOpen} />
+      <RaffleFormSheet storeId={storeId} storeInstagram={storeInstagram} origin={origin} raffle={raffle} hasEntries={entries.length > 0} open={editOpen} onOpenChange={setEditOpen} />
       <DrawSheet
         storeId={storeId}
         raffle={raffle}

@@ -58,6 +58,7 @@ import { commissionLines, commissionOf, orderMoney, type DiscountInput } from "@
 import { zonedParts, zonedTimeToUtc } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customer-picker";
+import { InternalBadge } from "@/components/internal-badge";
 import { CartelaPunchDots } from "@/components/cartela-punch-dots";
 import {
   createOrderAction,
@@ -400,7 +401,11 @@ function OrderForm({
   const [discountReason, setDiscountReason] = useState<DiscountReason | undefined>(
     order?.discount?.reason,
   );
-  const discountInput: DiscountInput | null = discountOpen
+  // INTERNO customers' orders are always comped (the server enforces the same).
+  const isInternal = customers.find((c) => c.id === customerId)?.internal === true;
+  const discountInput: DiscountInput | null = isInternal
+    ? { kind: "free", value: 0, reason: "cortesia" }
+    : discountOpen
     ? {
         kind: discountKind,
         value: parseDiscountValue(discountKind, discountValueInput),
@@ -851,6 +856,11 @@ function OrderForm({
             value={customerId}
             onChange={setCustomerId}
           />
+          {isInternal && (
+            <p className="flex items-center gap-1.5 text-[11.5px] text-ink-faint">
+              <InternalBadge /> Pedido sem cobrança (100% de desconto) e fora dos relatórios.
+            </p>
+          )}
           {!customerId && (
             <p className="text-[11.5px] text-ink-faint">
               Selecione um cliente para registrar o pedido.
@@ -1170,6 +1180,12 @@ function OrderForm({
                 <span className="tabular font-semibold">− {formatBRL(money.covered)}</span>
               </div>
             )}
+            {isInternal ? (
+              <div className="flex items-center justify-between text-[12.5px] text-ink-soft">
+                <span>Desconto · Cliente interno</span>
+                <span className="tabular font-semibold">100%</span>
+              </div>
+            ) : (
             <DiscountRow
               open={discountOpen}
               kind={discountKind}
@@ -1192,6 +1208,7 @@ function OrderForm({
               onValueChange={setDiscountValueInput}
               onReasonChange={setDiscountReason}
             />
+            )}
             <div className="flex items-center gap-2 border-t border-mint-wash/70 pt-2.5">
               <span className="flex-1 text-[13px] font-semibold text-ink-soft">
                 Total a pagar

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { DatePicker, MonthPicker } from "@/components/ui/date-picker";
 import {
   Select,
@@ -34,6 +35,8 @@ interface CustomerFormSheetProps {
   storeId: string;
   storeName: string;
   defaultDDD?: string;
+  /** Admins only: may flag the customer as INTERNO. */
+  canSetInternal?: boolean;
   customer: Customer | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -43,6 +46,7 @@ export function CustomerFormSheet({
   storeId,
   storeName,
   defaultDDD,
+  canSetInternal,
   customer,
   open,
   onOpenChange,
@@ -66,6 +70,7 @@ export function CustomerFormSheet({
           storeId={storeId}
           storeName={storeName}
           defaultDDD={defaultDDD}
+          canSetInternal={canSetInternal}
           customer={customer}
           onClose={() => onOpenChange(false)}
         />
@@ -95,12 +100,15 @@ function CustomerForm({
   storeId,
   storeName,
   defaultDDD,
+  canSetInternal,
   customer,
   onClose,
 }: {
   storeId: string;
   storeName: string;
   defaultDDD?: string;
+  /** Admins only: may flag the customer as INTERNO. */
+  canSetInternal?: boolean;
   customer: Customer | null;
   onClose: () => void;
 }) {
@@ -120,6 +128,7 @@ function CustomerForm({
   );
   const [tags, setTags] = useState<string[]>(customer?.tags ?? []);
   const [notes, setNotes] = useState(customer?.notes ?? "");
+  const [internal, setInternal] = useState(customer?.internal ?? false);
   const [archived, setArchived] = useState(customer?.archived ?? false);
   const [pending, startTransition] = useTransition();
 
@@ -148,6 +157,7 @@ function CustomerForm({
         tags,
         notes: notes || undefined,
         ...(customer ? { archived } : {}),
+        ...(canSetInternal ? { internal } : {}),
       };
       const result = customer
         ? await updateCustomerAction(customer.id, input)
@@ -304,6 +314,21 @@ function CustomerForm({
             className="rounded-xl"
           />
         </div>
+
+        {canSetInternal && (
+          <label
+            htmlFor="customer-internal"
+            className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-3 transition-colors hover:bg-surface"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-semibold text-ink">Cliente interno</span>
+              <span className="block text-[11.5px] text-ink-faint">
+                Equipe e amigos da casa: pedidos saem com 100% de desconto e ficam fora dos relatórios.
+              </span>
+            </span>
+            <Switch id="customer-internal" checked={internal} onCheckedChange={setInternal} />
+          </label>
+        )}
 
         {customer && (
           <button

@@ -143,6 +143,8 @@ export interface Store {
   address?: string;
   whatsapp?: string;
   email?: string;
+  /** Instagram handle without "@" (e.g. "selet.vv"); default profile of new sorteios. */
+  instagram?: string;
 }
 
 export interface OrderItem {
@@ -219,6 +221,8 @@ export interface Order {
   cartelaSold: string[];
   /** Manual order-level discount (applied after cartela coverage, before total). */
   discount?: OrderDiscount | null;
+  /** Snapshot of customer.internal at write time: comped + excluded from reports. */
+  internal?: boolean;
   /** Free-text order note, visible to the team only (never shown in list rows). */
   notes?: string;
   /** Who sold it (member email); earns the commission of the lines that carry one. */
@@ -241,6 +245,8 @@ export interface Customer {
   since: string;
   tags: string[];
   notes?: string;
+  /** Team / friends of the house: orders are comped (100% off) and excluded from reports. */
+  internal?: boolean;
   archived: boolean;
   orderCount: number;
   totalSpent: number; // centavos

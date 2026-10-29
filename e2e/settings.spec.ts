@@ -52,3 +52,17 @@ test("a category created in Configurações → Cardápio shows up in the Cardá
   await page.getByRole("button", { name: "Todas as categorias" }).click();
   await expect(page.getByRole("menuitem", { name: "Sobremesas", exact: true })).toBeVisible();
 });
+
+test("the store Instagram is normalized (@ and case dropped) and pre-fills a new sorteio", async ({ page, context, request, baseURL }) => {
+  await logIn(request, context, baseURL!);
+  await page.goto("/painel/vila-velha/configuracoes/loja");
+  await page.getByLabel("Instagram").fill("@Selet.VV");
+  await page.getByRole("button", { name: "Salvar alterações" }).click();
+  await expect(page.getByText("Dados da loja atualizados.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Instagram")).toHaveValue("selet.vv");
+
+  await page.goto("/painel/vila-velha/sorteios");
+  await page.getByRole("button", { name: /novo sorteio/i }).first().click();
+  await expect(page.getByLabel("Onde acontece o sorteio")).toHaveValue("Ao vivo no Instagram @selet.vv");
+});

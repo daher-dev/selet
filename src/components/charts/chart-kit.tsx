@@ -331,6 +331,17 @@ export function HoverColumns({
   );
 }
 
+/**
+ * Axis-label thinning for dense charts (52 weeks): every `step`-th slot counted
+ * back from the last one, so the open period is always labelled.
+ */
+export function labelStep(slot: number, minWidth = 34): number {
+  return Math.max(1, Math.ceil(minWidth / slot));
+}
+export function labelShown(i: number, n: number, step: number): boolean {
+  return (n - 1 - i) % step === 0;
+}
+
 /** Which series keys are hidden, given a toggle request. Never hides the last visible one. */
 export function toggleSeries<K extends string>(
   hidden: ReadonlySet<K>,

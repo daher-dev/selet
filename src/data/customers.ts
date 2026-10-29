@@ -7,6 +7,7 @@ import { zonedParts } from "@/lib/timezone";
 import {
   monthKey,
   readSummaryTx,
+  refreshSummary,
   summaryAddCustomer,
   summaryArchiveCustomer,
   writeSummaryTx,
@@ -32,6 +33,7 @@ export function toCustomer(
     since: d.since?.toDate().toISOString() ?? "",
     tags: d.tags ?? [],
     notes: d.notes,
+    internal: d.internal ?? false,
     archived: d.archived ?? false,
     orderCount: d.orderCount ?? 0,
     totalSpent: d.totalSpent ?? 0,
@@ -85,6 +87,8 @@ export interface CustomerInput {
   since?: string; // ISO date; defaults to now on create
   tags: string[];
   notes?: string;
+  /** Marks a team/friend customer: comped orders, excluded from reports. */
+  internal?: boolean;
   /** Only honoured on update — lets the edit form archive/reactivate inline. */
   archived?: boolean;
 }
@@ -103,13 +107,14 @@ export async function createCustomer(
 
   await db.runTransaction(async (tx) => {
     const summary = await readSummaryTx(tx, storeId);
-    summaryAddCustomer(summary, { mk: monthKey(sinceTs.toDate()) });
+    if (!input.internal) summaryAddCustomer(summary, { mk: monthKey(sinceTs.toDate()) });
     writeSummaryTx(tx, storeId, summary);
     tx.set(ref, {
       ...data,
       nameLower: input.name.toLowerCase(),
       since: sinceTs,
       archived: false,
+      internal: !!input.internal,
       orderCount: 0,
       totalSpent: 0,
       lastOrderAt: null,
@@ -126,16 +131,21 @@ export async function updateCustomer(
 ): Promise<void> {
   const db = getDb();
   const ref = customersCol(storeId).doc(customerId);
-  const { since, archived, ...data } = input;
+  const { since, archived, internal, ...data } = input;
+  let internalChanged = false;
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new Error("Cliente não encontrado.");
     const wasArchived = snap.data()!.archived ?? false;
+    const wasInternal = snap.data()!.internal ?? false;
+    internalChanged = internal !== undefined && internal !== wasInternal;
 
     // Reflect an archive/reactivate toggle in the active-base counter (read the
     // summary during the read phase, before any write).
-    if (archived !== undefined && archived !== wasArchived) {
+    // Internal customers are not in the active base; a flag flip is reconciled
+    // by a full recompute below.
+    if (archived !== undefined && archived !== wasArchived && !wasInternal) {
       const summary = await readSummaryTx(tx, storeId);
       summaryArchiveCustomer(summary, archived ? -1 : 1);
       writeSummaryTx(tx, storeId, summary);
@@ -149,8 +159,13 @@ export async function updateCustomer(
       birthday: input.birthday ?? null,
       ...(since ? { since: Timestamp.fromDate(new Date(since)) } : {}),
       ...(archived === undefined ? {} : { archived }),
+      ...(internal === undefined ? {} : { internal }),
     });
   });
+
+  // Existing orders keep their own `internal` snapshot; only the customer-level
+  // counters (active base, newCustomers) need re-deriving.
+  if (internalChanged) await refreshSummary(storeId);
 }
 
 export async function setCustomerArchived(
@@ -167,9 +182,11 @@ export async function setCustomerArchived(
     const wasArchived = snap.data()!.archived ?? false;
 
     if (archived !== wasArchived) {
-      const summary = await readSummaryTx(tx, storeId);
-      summaryArchiveCustomer(summary, archived ? -1 : 1);
-      writeSummaryTx(tx, storeId, summary);
+      if (!(snap.data()!.internal ?? false)) {
+        const summary = await readSummaryTx(tx, storeId);
+        summaryArchiveCustomer(summary, archived ? -1 : 1);
+        writeSummaryTx(tx, storeId, summary);
+      }
       tx.update(ref, { archived });
     }
   });

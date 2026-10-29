@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -22,7 +23,9 @@ import {
   CustomerSplitChart,
   MonthlySalesChart,
 } from "@/components/charts/evolution-charts";
-import type { RankedItem } from "@/lib/dashboard-core";
+import { Skeleton } from "@/components/ui/skeleton";
+import { loadWeeksAction } from "@/actions/dashboard";
+import type { MonthPoint, RankedItem } from "@/lib/dashboard-core";
 import type { DashboardView } from "./dashboard-data";
 
 export function DashboardClient({
@@ -44,6 +47,24 @@ export function DashboardClient({
   });
 
   const { kpis, topProducts, topFlavors, months } = view;
+
+  // Mensal | Semanal toggle: same 12-month horizon, weeks loaded on first use.
+  const [view_, setView] = useState<"month" | "week">("month");
+  const [weeks, setWeeks] = useState<MonthPoint[] | null>(null);
+  const [weeksError, setWeeksError] = useState(false);
+  const loadWeeks = async () => {
+    setWeeksError(false);
+    const res = await loadWeeksAction(storeId);
+    if (res.ok) setWeeks(res.weeks);
+    else setWeeksError(true);
+  };
+  const pickView = (next: "month" | "week") => {
+    setView(next);
+    if (next === "week" && !weeks) void loadWeeks();
+  };
+  const weekly = view_ === "week";
+  const series = weekly ? weeks : months;
+
   const kpiCards: {
     key: string;
     label: string;
@@ -101,28 +122,81 @@ export function DashboardClient({
       {months && (
         <>
           <div className="mt-[34px] mb-7 h-px bg-[#E1EADC]" />
-          <SectionHeading title="Evolução mensal" chip="Últimos 12 meses" />
-          <TintedCard
-            tone="green"
-            icon={CircleDollarSign}
-            title="Vendas"
-            subtitle="Faturamento mensal em R$ mil"
-            className="mb-2.5 lg:mb-4"
-          >
-            <MonthlySalesChart months={months} />
-          </TintedCard>
-          <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-4">
-            <TintedCard tone="pink" icon={ChartPie} title="Canais de venda">
-              <ChannelStackChart months={months} />
-            </TintedCard>
-            <TintedCard tone="blue" icon={Users} title="Clientes ativos">
-              <CustomerSplitChart months={months} />
-            </TintedCard>
+          <div className="mb-3.5 flex flex-wrap items-center gap-3">
+            <h2 className="text-[16px] font-bold text-ink">
+              {weekly ? "Evolução semanal" : "Evolução mensal"}
+            </h2>
+            <span className="rounded-full bg-[#E2F0DA] px-2.5 py-1 text-[12px] font-bold text-primary">
+              {weekly ? "Últimas 52 semanas" : "Últimos 12 meses"}
+            </span>
+            <div role="group" aria-label="Período" className="ml-auto flex rounded-full border border-border bg-card p-0.5">
+              {(
+                [
+                  ["month", "Mensal"],
+                  ["week", "Semanal"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  aria-pressed={view_ === key}
+                  onClick={() => pickView(key)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-[12px] font-bold transition-colors focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none",
+                    view_ === key ? "bg-primary text-primary-foreground" : "text-ink-soft hover:bg-wash",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
+          {!series ? (
+            <WeeksPlaceholder error={weeksError} onRetry={loadWeeks} />
+          ) : (
+            <>
+              <TintedCard
+                tone="green"
+                icon={CircleDollarSign}
+                title="Vendas"
+                subtitle={weekly ? "Faturamento semanal em R$ mil" : "Faturamento mensal em R$ mil"}
+                className="mb-2.5 lg:mb-4"
+              >
+                <MonthlySalesChart months={series} unit={view_} />
+              </TintedCard>
+              <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-4">
+                <TintedCard tone="pink" icon={ChartPie} title="Canais de venda">
+                  <ChannelStackChart months={series} unit={view_} />
+                </TintedCard>
+                <TintedCard
+                  tone="blue"
+                  icon={Users}
+                  title="Clientes ativos"
+                  subtitle={weekly ? "Clientes únicos por semana" : undefined}
+                >
+                  <CustomerSplitChart months={series} unit={view_} />
+                </TintedCard>
+              </div>
+            </>
+          )}
         </>
       )}
     </>
   );
+}
+
+function WeeksPlaceholder({ error, onRetry }: { error: boolean; onRetry: () => void }) {
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-2 rounded-2xl border bg-card py-12 text-[13px] text-ink-soft">
+        Não foi possível carregar as semanas.
+        <button type="button" onClick={onRetry} className="font-bold text-primary underline">
+          Tentar de novo
+        </button>
+      </div>
+    );
+  }
+  return <Skeleton aria-label="Carregando semanas" className="h-[420px] w-full rounded-2xl" />;
 }
 
 function KpiCard({

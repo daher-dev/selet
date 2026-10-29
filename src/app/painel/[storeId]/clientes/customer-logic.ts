@@ -365,7 +365,7 @@ export function computeStoreAvgTicket(customers: Customer[]): number | null {
   let spent = 0;
   let count = 0;
   for (const c of customers) {
-    if (c.archived) continue;
+    if (c.archived || c.internal) continue;
     spent += c.totalSpent;
     count += c.orderCount;
   }

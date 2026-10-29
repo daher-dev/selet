@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, ChevronDown, Crown, Search, User, UserPlus } from "lucide-react";
 import Link from "next/link";
 import type { Customer } from "@/lib/types";
+import { InternalBadge } from "@/components/internal-badge";
 import { initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -77,6 +78,7 @@ export function CustomerPicker({
           >
             {selected ? selected.name : "Selecione um cliente"}
           </span>
+          {selected?.internal && <InternalBadge />}
           <ChevronDown className="size-4 shrink-0 text-ink-faint" />
         </button>
       </PopoverTrigger>
@@ -115,6 +117,7 @@ export function CustomerPicker({
                     </span>
                   )}
                 </span>
+                {c.internal && <InternalBadge />}
                 {vip && (
                   <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-wash px-2 py-0.5 text-[10px] font-bold text-amber">
                     <Crown className="size-3" />

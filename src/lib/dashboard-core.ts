@@ -6,6 +6,7 @@
  *  - monthlySeries:   the 12-month evolution rows, from the summary doc.
  */
 import type { Order } from "./types";
+import { zonedParts } from "./timezone";
 import {
   activeCustomerCount,
   customerKey,
@@ -44,7 +45,7 @@ export function summarizeRecent(
   flavorNames: Map<string, string>,
   n = 5,
 ): RecentSummary {
-  const active = orders.filter((o) => o.status !== "cancelado");
+  const active = orders.filter((o) => o.status !== "cancelado" && !o.internal);
   const customers = new Set<string>();
   const products = new Map<string, RankedItem>();
   const flavors = new Map<string, RankedItem>();
@@ -103,8 +104,10 @@ export interface MonthPoint {
   sales: number;
   /** % change vs the previous month's sales; null when there's no base */
   mom: number | null;
-  /** the current, still-open month */
+  /** the current, still-open month (or week) */
   partial: boolean;
+  /** tooltip title when it isn't the month name (weekly points) */
+  title?: string;
   orderCount: number;
   channels: { instagram: number; whatsapp: number; loja: number };
   novos: number;
@@ -153,6 +156,110 @@ export function monthlySeries(
       out: b?.out ?? 0,
       avgTicket: b && b.orderCount ? Math.round(b.ticketSum / b.orderCount) : 0,
       activeCustomers: activeCustomerCount(b),
+    };
+  });
+}
+
+/** Weeks shown by the "Semanal" view: 52 ≈ the same 12-month horizon as the monthly one. */
+export const EVOLUTION_WEEKS = 52;
+
+const DAY_MS = 86_400_000;
+const MONTH_ABBR = [
+  "jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez",
+];
+
+/** Calendar date of an instant in STORE_TIME_ZONE as a day number (days since epoch, UTC-safe). */
+function zonedDayNumber(d: Date): number {
+  const p = zonedParts(d);
+  return Math.floor(Date.UTC(p.year, p.month - 1, p.day) / DAY_MS);
+}
+
+/** Day number of the Monday that starts the week containing `day` (weeks start on Monday, pt-BR). */
+function mondayOf(day: number): number {
+  // 1970-01-01 (day 0) was a Thursday → (day + 3) % 7 is 0 on Mondays.
+  return day - ((day + 3) % 7);
+}
+
+/** "5 out" for a day number. */
+function dayLabel(day: number): string {
+  const d = new Date(day * DAY_MS);
+  return `${d.getUTCDate()} ${MONTH_ABBR[d.getUTCMonth()]}`;
+}
+
+/**
+ * Last `count` weeks (Monday–Sunday in STORE_TIME_ZONE, the current one last),
+ * in the same shape as `monthlySeries` so the same charts render it; `mom`
+ * carries the week-over-week change (null for the open week, which is partial).
+ *
+ * Clientes are distinct PER WEEK (a client who ordered in two weeks counts
+ * once in each, so weeks don't sum to a month). Same split as the month:
+ * "novo" when the registered customer's `firstOrderAt` falls in that week,
+ * "recorrente" otherwise (walk-ins without an id are always recorrentes).
+ */
+export function weeklySeries(input: {
+  orders: Pick<Order, "status" | "total" | "channel" | "customerId" | "customerName" | "createdAt">[];
+  /** customerId → first non-cancelled order (complete history) */
+  firstOrderAt: Map<string, Date>;
+  now: Date;
+  count?: number;
+}): MonthPoint[] {
+  const count = input.count ?? EVOLUTION_WEEKS;
+  const lastStart = mondayOf(zonedDayNumber(input.now));
+  const firstStart = lastStart - (count - 1) * 7;
+  /** Index of the week holding `date`, or -1 outside the window. */
+  const weekOf = (date: Date): number => {
+    const w = Math.floor((zonedDayNumber(date) - firstStart) / 7);
+    return w >= 0 && w < count ? w : -1;
+  };
+
+  const rows = Array.from({ length: count }, () => ({
+    sales: 0,
+    orderCount: 0,
+    channels: { instagram: 0, whatsapp: 0, loja: 0 },
+    customers: new Set<string>(),
+    registered: new Set<string>(),
+  }));
+  for (const o of input.orders) {
+    if (o.status === "cancelado") continue;
+    const w = weekOf(new Date(o.createdAt));
+    if (w < 0) continue;
+    const r = rows[w];
+    r.sales += o.total ?? 0;
+    r.orderCount += 1;
+    r.channels[o.channel] += 1;
+    r.customers.add(customerKey(o.customerId, o.customerName));
+    if (o.customerId) r.registered.add(o.customerId);
+  }
+
+  return rows.map((r, i) => {
+    let novos = 0;
+    for (const id of r.registered) {
+      const first = input.firstOrderAt.get(id);
+      if (first && weekOf(first) === i) novos += 1;
+    }
+    const start = firstStart + i * 7;
+    const partial = i === count - 1;
+    const prev = rows[i - 1];
+    const mom =
+      prev && prev.sales > 0 && !partial
+        ? Math.round(((r.sales - prev.sales) / prev.sales) * 1000) / 10
+        : null;
+    const iso = new Date(start * DAY_MS).toISOString().slice(0, 10);
+    return {
+      key: iso,
+      label: `${new Date(start * DAY_MS).getUTCDate()}/${String(new Date(start * DAY_MS).getUTCMonth() + 1).padStart(2, "0")}`,
+      title: `Semana de ${dayLabel(start)} a ${dayLabel(start + 6)}`,
+      sales: r.sales,
+      mom,
+      partial,
+      orderCount: r.orderCount,
+      channels: r.channels,
+      novos,
+      recorrentes: r.customers.size - novos,
+      in: 0,
+      out: 0,
+      avgTicket: r.orderCount ? Math.round(r.sales / r.orderCount) : 0,
+      activeCustomers: r.customers.size,
     };
   });
 }

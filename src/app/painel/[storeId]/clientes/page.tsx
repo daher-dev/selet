@@ -14,7 +14,7 @@ export default async function ClientesPage({
 }) {
   const { storeId } = await params;
   const { seg } = await searchParams;
-  await requireAccess(storeId, "clientes");
+  const user = await requireAccess(storeId, "clientes");
   // Orders feed the per-customer "Histórico recente" and the "A receber" /
   // reorder signals in the detail sheet; filtered by customerId on the client.
   // Cartelas feed the per-customer Cartela summary card in the detail sheet;
@@ -34,6 +34,7 @@ export default async function ClientesPage({
       storeId={storeId}
       storeName={store?.name ?? ""}
       defaultDDD={store?.defaultDDD}
+      canSetInternal={user.role === "admin"}
       customers={customers}
       orders={orders}
       cartelas={cartelas}

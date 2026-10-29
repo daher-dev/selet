@@ -152,6 +152,7 @@ export async function computeSummary(storeId: string): Promise<SummaryData> {
         createdAt: d.createdAt?.toDate() ?? new Date(0),
         channel: d.channel,
         items: d.items ?? [],
+        internal: d.internal ?? false,
       };
     }),
     finance: financeSnap.docs.map((doc) => {
@@ -173,6 +174,7 @@ export async function computeSummary(storeId: string): Promise<SummaryData> {
       return {
         since: d.since?.toDate() ?? new Date(0),
         archived: d.archived ?? false,
+        internal: d.internal ?? false,
       };
     }),
   });

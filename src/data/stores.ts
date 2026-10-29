@@ -17,6 +17,7 @@ export async function listStores(): Promise<Store[]> {
       address: d.address ?? undefined,
       whatsapp: d.whatsapp ?? undefined,
       email: d.email ?? undefined,
+      instagram: d.instagram ?? undefined,
     };
   });
 }
@@ -33,6 +34,7 @@ export interface StoreProfileInput {
   address?: string;
   whatsapp?: string;
   email?: string;
+  instagram?: string;
 }
 
 /** Updates the store profile (Configurações → Loja). `initial` follows the name. */
@@ -47,6 +49,7 @@ export async function updateStoreProfile(storeId: string, input: StoreProfileInp
       address: input.address?.trim() || FieldValue.delete(),
       whatsapp: input.whatsapp?.trim() || FieldValue.delete(),
       email: input.email?.trim() || FieldValue.delete(),
+      instagram: input.instagram || FieldValue.delete(),
     });
 }
 
@@ -63,5 +66,6 @@ export async function getStore(storeId: string): Promise<Store | null> {
     address: d.address ?? undefined,
     whatsapp: d.whatsapp ?? undefined,
     email: d.email ?? undefined,
+    instagram: d.instagram ?? undefined,
   };
 }

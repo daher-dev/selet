@@ -21,6 +21,7 @@ export function LojaClient({ store }: { store: Store }) {
     address: store.address ?? "",
     whatsapp: store.whatsapp ?? "",
     email: store.email ?? "",
+    instagram: store.instagram ?? "",
   };
   const [form, setForm] = useState(initial);
   const [pending, startTransition] = useTransition();
@@ -76,6 +77,19 @@ export function LojaClient({ store }: { store: Store }) {
                 maxLength={160}
                 className={FIELD}
               />
+            </div>
+            <div>
+              <label className={LABEL} htmlFor="store-instagram">Instagram</label>
+              <input
+                id="store-instagram"
+                value={form.instagram}
+                onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+                placeholder="@sualoja"
+                maxLength={31}
+                autoCapitalize="none"
+                className={FIELD}
+              />
+              <p className="mt-1.5 text-[12px] text-ink-faint">Perfil usado por padrão nas regras dos sorteios.</p>
             </div>
             <div className="grid gap-4 min-[640px]:grid-cols-2">
               <div>

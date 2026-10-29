@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { publishRaffleAction, saveRaffleAction } from "@/actions/raffles";
@@ -45,6 +46,8 @@ function defaultInput(daysAhead: number, hh: string, mm: string): string {
 
 interface Props {
   storeId: string;
+  /** Store Instagram handle (Configurações → Loja); default profile for new follow rules. */
+  storeInstagram?: string;
   origin: string;
   raffle: Raffle | null;
   /** Someone already submitted: range, per-person limit and link are frozen. */
@@ -77,7 +80,6 @@ const KIND_LABEL: Record<RuleKind, string> = {
   comment: "Comentar post",
   custom: "Outra regra",
 };
-const DEFAULT_FOLLOW_LINK = "@espaco_selet_passos";
 const KIND_PLACEHOLDER: Record<RuleKind, string> = {
   follow: "@selet.vv",
   like: "Link do post no Instagram",
@@ -87,6 +89,7 @@ const KIND_PLACEHOLDER: Record<RuleKind, string> = {
 
 function RaffleForm({
   storeId,
+  storeInstagram,
   origin,
   raffle,
   hasEntries,
@@ -96,7 +99,7 @@ function RaffleForm({
   const locked = published && hasEntries;
   const [name, setName] = useState(raffle?.name ?? "");
   const [prize, setPrize] = useState(raffle?.prize ?? "");
-  const [location, setLocation] = useState(raffle?.location ?? "Ao vivo no Instagram");
+  const [location, setLocation] = useState(raffle?.location ?? `Ao vivo no Instagram${storeInstagram ? ` @${storeInstagram}` : ""}`);
   const [signupUntil, setSignupUntil] = useState(
     raffle ? isoToLocalInput(raffle.signupUntil) : defaultInput(7, "23", "59"),
   );
@@ -230,6 +233,15 @@ function RaffleForm({
             />
             <span className="text-[11.5px] font-medium text-ink-soft">
               Aparece no link, no cartão do sorteio e no regulamento. Cada loja usa o próprio perfil aqui e nas regras.
+              {!storeInstagram && (
+                <>
+                  {" "}
+                  <Link href={`/painel/${storeId}/configuracoes/loja`} className="font-semibold text-primary underline">
+                    Cadastre o Instagram da loja
+                  </Link>{" "}
+                  para preencher isso automaticamente.
+                </>
+              )}
             </span>
           </label>
         </section>
@@ -338,7 +350,7 @@ function RaffleForm({
                             (k === "follow") === (kind === "follow") && k !== "custom"
                               ? r.link
                               : k === "follow"
-                                ? DEFAULT_FOLLOW_LINK
+                                ? (storeInstagram ? `@${storeInstagram}` : "")
                                 : "",
                         })
                       }

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Cartela, Customer, Order } from "@/lib/types";
+import { InternalBadge } from "@/components/internal-badge";
 import { formatBRL, initials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { monthKey } from "@/lib/timezone";
@@ -103,6 +104,7 @@ export function ClientesClient({
   storeId,
   storeName,
   defaultDDD,
+  canSetInternal,
   customers,
   orders = [],
   cartelas = [],
@@ -111,6 +113,7 @@ export function ClientesClient({
   storeId: string;
   storeName: string;
   defaultDDD?: string;
+  canSetInternal?: boolean;
   customers: Customer[];
   orders?: Order[];
   cartelas?: Cartela[];
@@ -378,6 +381,7 @@ export function ClientesClient({
         storeId={storeId}
         storeName={storeName}
         defaultDDD={defaultDDD}
+        canSetInternal={canSetInternal}
         customer={editing}
         open={formOpen}
         onOpenChange={setFormOpen}
@@ -400,6 +404,25 @@ function RowTags({
   // The overdue badge takes the Tags-column slot alongside any manual tags
   // (design Mock Clientes 1a, Luiza Castro row) — it isn't a third under-name
   // badge, birthday/unpaid already fill that slot on their own.
+  if (customer.internal) {
+    return (
+      <>
+        <InternalBadge />
+        {tags.map((t) => (
+          <span
+            key={t.id}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+              t.chipClass,
+            )}
+          >
+            <t.icon className="size-3" />
+            {t.label}
+          </span>
+        ))}
+      </>
+    );
+  }
   if (overdueDays == null && tags.length === 0) {
     if (isNewCustomer(customer)) return <NewChip />;
     return <span className="text-[12px] text-ink-faint max-[819px]:hidden">—</span>;

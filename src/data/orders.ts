@@ -108,6 +108,7 @@ function toOrder(id: string, d: FirebaseFirestore.DocumentData): Order {
     cartelaConsumed: d.cartelaConsumed ?? [],
     cartelaSold: d.cartelaSold ?? [],
     discount: d.discount ?? null,
+    internal: d.internal ?? false,
     notes: d.notes ?? undefined,
     sellerEmail: d.sellerEmail ?? undefined,
     sellerName: d.sellerName ?? undefined,
@@ -129,13 +130,15 @@ function sellerItems(items: OrderItem[]): OrderItem[] {
 
 export async function listOrders(
   storeId: string,
-  opts: { limit?: number; since?: Date } = {},
+  opts: { limit?: number; since?: Date; until?: Date; excludeInternal?: boolean } = {},
 ): Promise<Order[]> {
   let q = ordersCol(storeId).orderBy("createdAt", "desc");
   if (opts.since) q = q.where("createdAt", ">=", Timestamp.fromDate(opts.since));
+  if (opts.until) q = q.where("createdAt", "<", Timestamp.fromDate(opts.until));
   if (opts.limit) q = q.limit(opts.limit);
   const snap = await q.get();
-  return snap.docs.map((doc) => toOrder(doc.id, doc.data()));
+  const orders = snap.docs.map((doc) => toOrder(doc.id, doc.data()));
+  return opts.excludeInternal ? orders.filter((o) => !o.internal) : orders;
 }
 
 /**
@@ -204,7 +207,7 @@ async function recomputeAggregates(
   storeId: string,
   customerId: string,
   /** pending change applied on top of stored docs (the tx hasn't committed) */
-  override: { orderId: string; total: number | null; createdAt: Timestamp | null } | undefined,
+  override: { orderId: string; total: number | null; createdAt: Timestamp | null; internal?: boolean } | undefined,
   /** working summary — its per-month `novos` follows the customer's first order */
   summary: SummaryData,
 ): Promise<() => void> {
@@ -221,21 +224,22 @@ async function recomputeAggregates(
     tx.get(customerRef),
   ]);
 
-  const rows: { total: number; createdAt: Timestamp }[] = [];
+  const rows: { total: number; createdAt: Timestamp; internal: boolean }[] = [];
   for (const doc of snap.docs) {
     if (override && doc.id === override.orderId) continue;
     const d = doc.data();
-    if (d.createdAt) rows.push({ total: d.total ?? 0, createdAt: d.createdAt });
+    if (d.createdAt) rows.push({ total: d.total ?? 0, createdAt: d.createdAt, internal: d.internal === true });
   }
   if (override && override.total !== null && override.createdAt !== null) {
-    rows.push({ total: override.total, createdAt: override.createdAt });
+    rows.push({ total: override.total, createdAt: override.createdAt, internal: !!override.internal });
   }
 
   rows.sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
   const count = rows.length;
   const totalSpent = rows.reduce((s, r) => s + r.total, 0);
   const last = rows[count - 1]?.createdAt ?? null;
-  const first = rows[0]?.createdAt ?? null;
+  // "Primeiro pedido" ignores comped internal orders so novos matches the reports.
+  const first = rows.find((r) => !r.internal)?.createdAt ?? null;
   const avgReorderDays =
     count >= 2 && first && last
       ? (last.toMillis() - first.toMillis()) / (count - 1) / 86_400_000
@@ -503,6 +507,16 @@ async function planConsumption(
   return { draws, commit };
 }
 
+/** Comped discount every order of an INTERNO customer carries (100% off, via the normal mechanism). */
+const INTERNAL_DISCOUNT: DiscountInput = { kind: "free", value: 0, reason: "cortesia" };
+
+/** Reads the customer's INTERNO flag (outside the tx, like fetchLineProducts). */
+async function isInternalCustomer(storeId: string, customerId: string | null): Promise<boolean> {
+  if (!customerId) return false;
+  const snap = await storeRef(storeId).collection("customers").doc(customerId).get();
+  return snap.data()?.internal === true;
+}
+
 export async function createOrder(
   storeId: string,
   input: OrderInput,
@@ -517,7 +531,9 @@ export async function createOrder(
   // Destructure the three new fields out — never spread them raw into the doc
   // (createdAt is an ISO string, not a Timestamp; discount must be the
   // server-computed shape, never a client-sent `amount`).
-  const { discount: discountInput, notes, createdAt: createdAtISO, ...rest } = input;
+  const { discount: clientDiscount, notes, createdAt: createdAtISO, ...rest } = input;
+  const internal = await isInternalCustomer(storeId, input.customerId);
+  const discountInput = internal ? INTERNAL_DISCOUNT : clientDiscount;
   const money = orderMoney(input.items, discountInput);
   const total = money.total;
   // A R$0 order can never be marked paid — only "nada a cobrar" (paid:false).
@@ -572,6 +588,7 @@ export async function createOrder(
           orderId: ref.id,
           total,
           createdAt: now,
+          internal,
         }, summary)
       : null;
     // Summary: a new order enters the current-month aggregates.
@@ -584,6 +601,7 @@ export async function createOrder(
       paid: payment.paid,
       channel: input.channel,
       items: sellerItems(input.items),
+      internal,
     });
     // Paid at creation → its finance income mirror lands this month too.
     if (payment.paid) {
@@ -608,6 +626,7 @@ export async function createOrder(
       paid: payment.paid,
       payMethod: payment.paid ? payment.payMethod : null,
       discount: money.discount ?? null,
+      internal,
       notes: notes?.trim() || null,
       stockConsumed,
       cartelaConsumed,
@@ -659,7 +678,9 @@ export async function updateOrder(
   const db = getDb();
   const ref = ordersCol(storeId).doc(orderId);
   // Same discipline as createOrder: never spread these three raw into the doc.
-  const { discount: discountInput, notes, createdAt: createdAtISO, ...rest } = input;
+  const { discount: clientDiscount, notes, createdAt: createdAtISO, ...rest } = input;
+  const internal = await isInternalCustomer(storeId, input.customerId);
+  const discountInput = internal ? INTERNAL_DISCOUNT : clientDiscount;
   const products = await fetchLineProducts(storeId, input.items);
   const shakeCatalogs = await loadShakeCatalogsForItems(storeId, input.items);
   const pudimCatalogs = await loadPudimCatalogsForItems(storeId, input.items);
@@ -744,6 +765,7 @@ export async function updateOrder(
           total: !cancelled && customerId === input.customerId ? total : null,
           createdAt:
             !cancelled && customerId === input.customerId ? newCreatedAt : null,
+          internal,
         }, summary),
       );
     }
@@ -766,6 +788,7 @@ export async function updateOrder(
         paid: paidBefore,
         channel: current.channel,
         items: sellerItems((current.items ?? []) as OrderItem[]),
+        internal: current.internal === true,
       });
       summaryAddOrder(summary, {
         mk: newMk,
@@ -775,6 +798,7 @@ export async function updateOrder(
         paid: paidAfter,
         channel: input.channel,
         items: sellerItems(input.items),
+        internal,
       });
     }
 
@@ -824,6 +848,7 @@ export async function updateOrder(
       paid: paidAfter,
       payMethod: paidAfter ? (current.payMethod ?? null) : null,
       discount: money.discount ?? null,
+      internal,
       notes: notes?.trim() || null,
       ...sellerFields(seller),
       stockConsumed: plan.draws,
@@ -964,6 +989,7 @@ export async function setOrderStatus(
             orderId,
             total: willBeCancelled ? null : (current.total ?? 0),
             createdAt: willBeCancelled ? null : current.createdAt,
+            internal: current.internal === true,
           }, summary)
         : null;
 
@@ -987,6 +1013,7 @@ export async function setOrderStatus(
         paid,
         channel,
         items: sellerItems(items),
+        internal: current.internal === true,
       });
       if (paid && financeMirrorSnap?.exists) {
         const md = financeMirrorSnap.data()!;
@@ -1011,6 +1038,7 @@ export async function setOrderStatus(
         paid,
         channel,
         items: sellerItems(items),
+        internal: current.internal === true,
       });
       if (paid && total > 0) {
         summaryFinance(summary, {

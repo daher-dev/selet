@@ -10,6 +10,8 @@ import {
   monthlySeries,
   summarizeRecent,
   trailingMonthKeys,
+  weeklySeries,
+  EVOLUTION_WEEKS,
   type MonthPoint,
   type RankedItem,
 } from "@/lib/dashboard-core";
@@ -75,7 +77,7 @@ export async function loadDashboard(ctx: {
 
   const [recentOrders, shakeFlavors, pudimFlavors, birthdayCustomers, lowCount] =
     await Promise.all([
-      canPedidos || canClientes ? listOrders(storeId, { since }) : Promise.resolve([]),
+      canPedidos || canClientes ? listOrders(storeId, { since, excludeInternal: true }) : Promise.resolve([]),
       canPedidos ? listShakeFlavors(storeId) : Promise.resolve([]),
       canPedidos ? listPudimFlavors(storeId) : Promise.resolve([]),
       canClientes ? listUpcomingBirthdays(storeId) : Promise.resolve([]),
@@ -94,7 +96,7 @@ export async function loadDashboard(ctx: {
       // Fallback: one month extra so the first bar still gets a MoM base.
       const start = addZonedMonths(now, -EVOLUTION_MONTHS);
       const [orders, customers] = await Promise.all([
-        listOrders(storeId, { since: start }),
+        listOrders(storeId, { since: start, excludeInternal: true }),
         listCustomers(storeId),
       ]);
       source = computeSummaryFrom({
@@ -126,4 +128,23 @@ export async function loadDashboard(ctx: {
     topFlavors: canPedidos ? recent.topFlavors : null,
     months,
   };
+}
+
+/**
+ * The "Semanal" view of Evolução: last EVOLUTION_WEEKS weeks. Weekly aggregates
+ * are NOT materialized (the summary is per month): one bounded read of those
+ * weeks' orders, plus the customers' stored firstOrderAt for "novos".
+ */
+export async function loadWeeks(storeId: string, now: Date): Promise<MonthPoint[]> {
+  const { year, month, day } = zonedParts(now);
+  const weekday = (new Date(Date.UTC(year, month - 1, day)).getUTCDay() + 6) % 7; // 0 = Monday
+  const since = zonedTimeToUtc(year, month, day - weekday - (EVOLUTION_WEEKS - 1) * 7);
+  const [orders, customers] = await Promise.all([
+    // Internal (comped INTERNO) orders never reach the reports, same as the monthly summary.
+    listOrders(storeId, { since, excludeInternal: true }),
+    listCustomers(storeId),
+  ]);
+  const firstOrderAt = new Map<string, Date>();
+  for (const c of customers) if (c.firstOrderAt) firstOrderAt.set(c.id, new Date(c.firstOrderAt));
+  return weeklySeries({ orders, firstOrderAt, now });
 }

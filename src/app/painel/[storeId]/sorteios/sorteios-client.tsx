@@ -25,6 +25,7 @@ interface Props {
   raffles: RaffleSummary[];
   leadCounts: { total: number; novos: number };
   origin: string;
+  storeInstagram?: string;
 }
 
 const FOOTER = "flex items-center gap-2 border-t border-[#EEF3EA] bg-paper py-3 pl-5 pr-3.5";
@@ -33,7 +34,7 @@ const BTN_OUTLINE =
 const BTN_PRIMARY =
   "flex h-11 items-center justify-center gap-1.5 rounded-[9px] bg-primary px-3 text-[12.5px] font-semibold text-white min-[820px]:h-[34px]";
 
-export function SorteiosClient({ storeId, raffles, leadCounts, origin }: Props) {
+export function SorteiosClient({ storeId, raffles, leadCounts, origin, storeInstagram }: Props) {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<RaffleSummary | null>(null);
   const [toPublish, setToPublish] = useState<Raffle | null>(null);
@@ -123,6 +124,7 @@ export function SorteiosClient({ storeId, raffles, leadCounts, origin }: Props) 
 
       <RaffleFormSheet
         storeId={storeId}
+        storeInstagram={storeInstagram}
         origin={origin}
         raffle={editing}
         hasEntries={(editing?.entryCount ?? 0) > 0}
