@@ -1,5 +1,5 @@
 import { requireAccess } from "@/lib/access";
-import { listOrders } from "@/data/orders";
+import { getOrder, listOrders } from "@/data/orders";
 import { listSellers } from "@/data/commissions";
 import { listCustomers } from "@/data/customers";
 import { listProducts } from "@/data/products";
@@ -22,10 +22,13 @@ import { PedidosClient } from "./pedidos-client";
 
 export default async function PedidosPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ storeId: string }>;
+  searchParams: Promise<{ order?: string }>;
 }) {
   const { storeId } = await params;
+  const { order: linkedId } = await searchParams;
   const user = await requireAccess(storeId, "pedidos");
 
   // Shake/Pudim catalogs (including brindes) are fetched here (not gated
@@ -66,6 +69,12 @@ export default async function PedidosPage({
     listPudimBrindes(storeId),
     listSellers(storeId),
   ]);
+
+  // A shared ?order=<id> link can point past the 200 most recent orders.
+  if (linkedId && !orders.some((o) => o.id === linkedId)) {
+    const linked = await getOrder(storeId, linkedId);
+    if (linked) orders.push(linked);
+  }
 
   return (
     <PedidosClient

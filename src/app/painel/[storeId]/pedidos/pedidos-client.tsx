@@ -178,16 +178,18 @@ export function PedidosClient({
   // Deep link from the dashboard's "Novo pedido" action (?novo=1): open the
   // create sheet straight from the initial render (no setState-in-effect).
   const [creating, setCreating] = useState(() => searchParams.get("novo") === "1");
-  // Deep link from a Movimentações "Origem" chip (?order=<id>): open that
-  // order's sheet straight from the initial render, same pattern as ?novo=1.
-  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get("order"));
+  // The open order lives in the URL (?order=<id>) so the link is shareable and
+  // back closes the sheet. pushState/replaceState keep it client-side: Next
+  // syncs them into useSearchParams without re-fetching the page.
+  const selectedId = searchParams.get("order");
+  const openOrder = (id: string) => window.history.pushState(null, "", `?order=${id}`);
 
   usePageAction({ label: "Novo pedido", onClick: () => setCreating(true) });
 
-  // Strip whichever deep-link param brought us here once mounted, so
-  // back/refresh doesn't reopen it.
+  // ?novo=1 is an action, not a place: strip it once mounted so refresh
+  // doesn't reopen the create sheet.
   useEffect(() => {
-    if (searchParams.get("novo") !== "1" && !searchParams.get("order")) return;
+    if (searchParams.get("novo") !== "1") return;
     router.replace(pathname, { scroll: false });
   }, [searchParams, router, pathname]);
 
@@ -369,7 +371,7 @@ export function PedidosClient({
               return (
                 <DataListRow
                   key={order.id}
-                  onClick={() => setSelectedId(order.id)}
+                  onClick={() => openOrder(order.id)}
                 >
                   <span className="font-mono text-[12px] font-semibold text-ink-faint">
                     #{order.code}
@@ -440,7 +442,7 @@ export function PedidosClient({
                 <li key={order.id}>
                   <button
                     type="button"
-                    onClick={() => setSelectedId(order.id)}
+                    onClick={() => openOrder(order.id)}
                     className="w-full rounded-2xl border border-border bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(24,107,65,.28)]"
                   >
                     <div className="flex items-center gap-2">
@@ -526,7 +528,7 @@ export function PedidosClient({
         onOpenChange={(open) => {
           if (!open) {
             setCreating(false);
-            setSelectedId(null);
+            if (selectedId) window.history.replaceState(null, "", pathname);
           }
         }}
       />
