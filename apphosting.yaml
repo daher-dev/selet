@@ -16,5 +16,5 @@ env:
     value: selet-prod
     availability: [BUILD, RUNTIME]
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: 1:584397934144:web:caa435f04b7d9fd720d9a5
+    value: 1:584397934144:web:897657e1098cdf6620d9a5
     availability: [BUILD, RUNTIME]
