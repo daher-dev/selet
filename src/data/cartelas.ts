@@ -123,6 +123,7 @@ export async function cancelCartela(
   storeId: string,
   cartelaId: string,
   by = "sistema",
+  reason?: string,
 ): Promise<{ cancelledOrderIds: string[] }> {
   const cartela = await getCartela(storeId, cartelaId);
   if (!cartela) throw new Error("Cartela não encontrada.");
@@ -132,7 +133,13 @@ export async function cancelCartela(
 
   await cartelasCol(storeId)
     .doc(cartelaId)
-    .update({ status: "cancelada" satisfies CartelaStatus, updatedAt: Timestamp.now() });
+    .update({
+      status: "cancelada" satisfies CartelaStatus,
+      updatedAt: Timestamp.now(),
+      cancelledAt: Timestamp.now(),
+      cancelledBy: by,
+      ...(reason ? { cancelReason: reason } : {}),
+    });
 
   const orderIds = new Set<string>();
   if (cartela.soldOnOrderId) orderIds.add(cartela.soldOnOrderId);
@@ -144,11 +151,41 @@ export async function cancelCartela(
   for (const orderId of orderIds) {
     const order = await getOrder(storeId, orderId);
     if (order && order.status !== "cancelado") {
-      await setOrderStatus(storeId, orderId, "cancelado", by, { cause: { kind: "cartela", cartelaId } });
+      await setOrderStatus(storeId, orderId, "cancelado", by, {
+        cause: { kind: "cartela", cartelaId },
+        ...(reason ? { reason } : {}),
+      });
       cancelledOrderIds.push(orderId);
     }
   }
   return { cancelledOrderIds };
+}
+
+export interface CartelaCancelImpact {
+  orderId: string;
+  /** Entradas month ("YYYY-MM") the order's paid income would leave. */
+  month: string;
+  total: number;
+  paid: boolean;
+}
+
+/** Read-only: the live orders cancelling this cartela would cancel, with the money at stake. */
+export async function previewCartelaCancel(
+  storeId: string,
+  cartelaId: string,
+): Promise<CartelaCancelImpact[]> {
+  const cartela = await getCartela(storeId, cartelaId);
+  if (!cartela) throw new Error("Cartela não encontrada.");
+  const ids = new Set<string>();
+  if (cartela.soldOnOrderId) ids.add(cartela.soldOnOrderId);
+  for (const u of cartela.uses) if (u.kind === "order") ids.add(u.orderId);
+  const out: CartelaCancelImpact[] = [];
+  for (const orderId of ids) {
+    const order = await getOrder(storeId, orderId);
+    if (!order || order.status === "cancelado") continue;
+    out.push({ orderId, month: order.createdAt.slice(0, 7), total: order.total, paid: order.paid });
+  }
+  return out;
 }
 
 export interface ManualCartelaUseInput {

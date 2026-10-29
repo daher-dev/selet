@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Minus } from "lucide-react";
 import { toast } from "sonner";
 import type { Cartela } from "@/lib/types";
@@ -12,7 +12,9 @@ import {
   usesByOrder,
 } from "@/lib/cartelas";
 import { cn } from "@/lib/utils";
-import { cancelCartelaAction } from "@/actions/cartelas";
+import { cancelCartelaAction, previewCartelaCancelAction } from "@/actions/cartelas";
+import type { CartelaCancelImpact } from "@/data/cartelas";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,6 +50,19 @@ export function CartelaHistorySheet({
   const [pending, startTransition] = useTransition();
   const [manualOpen, setManualOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  // The live orders (and money) this cancel would take out of Financeiro.
+  const [loaded, setLoaded] = useState<{ id: string; list: CartelaCancelImpact[] } | null>(null);
+  useEffect(() => {
+    if (!confirmOpen || !cartela) return;
+    let live = true;
+    previewCartelaCancelAction(storeId, cartela.id).then((list) => live && setLoaded({ id: cartela.id, list }));
+    return () => {
+      live = false;
+    };
+  }, [confirmOpen, cartela, storeId]);
+  // Only ever show the impact computed for THIS cartela.
+  const impact = loaded && loaded.id === cartela?.id ? loaded.list : null;
 
   function cancel() {
     if (!cartela) return;
@@ -55,6 +70,7 @@ export function CartelaHistorySheet({
       const result = await cancelCartelaAction({
         storeId,
         cartelaId: cartela.id,
+        reason: reason.trim(),
       });
       if (result.ok) {
         toast.success("Cartela cancelada.");
@@ -228,6 +244,31 @@ export function CartelaHistorySheet({
                 : "."}
             </DialogDescription>
           </DialogHeader>
+          {impact && impact.some((i) => i.paid && i.total > 0) && (
+            <ul className="space-y-1 rounded-xl border border-border bg-paper p-3 text-[12.5px]">
+              {impact
+                .filter((i) => i.paid && i.total > 0)
+                .map((i) => (
+                  <li key={i.orderId} className="flex justify-between gap-3">
+                    <span>Pedido #{orderCode(i.orderId)} · Entradas {i.month}</span>
+                    <strong className="tabular text-destructive">−{formatBRL(i.total)}</strong>
+                  </li>
+                ))}
+            </ul>
+          )}
+          <div className="space-y-1.5">
+            <label htmlFor="cartela-cancel-reason" className="text-[12.5px] font-semibold">
+              Motivo do cancelamento
+            </label>
+            <Textarea
+              id="cartela-cancel-reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              maxLength={300}
+              placeholder="Por que essa cartela está sendo cancelada?"
+              className="min-h-[64px] resize-none rounded-xl text-[13px]"
+            />
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
@@ -239,7 +280,7 @@ export function CartelaHistorySheet({
             <Button
               variant="destructive"
               onClick={confirmCancel}
-              disabled={pending}
+              disabled={pending || reason.trim().length < 3}
             >
               Cancelar cartela e {affectedOrderCount} pedido
               {affectedOrderCount === 1 ? "" : "s"}

@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAccess } from "@/lib/access";
-import { cancelCartela, listCartelasByCustomer, markManualCartelaUse } from "@/data/cartelas";
+import {
+  cancelCartela,
+  listCartelasByCustomer,
+  markManualCartelaUse,
+  previewCartelaCancel,
+  type CartelaCancelImpact,
+} from "@/data/cartelas";
 import { logActivity } from "@/data/activity";
 import { cartelaCode } from "@/lib/cartelas";
 import { orderCode } from "@/lib/format";
@@ -38,18 +44,24 @@ function revalidate(storeId: string) {
 const cancelSchema = z.object({
   storeId: z.string().min(1),
   cartelaId: z.string().min(1),
+  // Cancelling cascades onto paid orders (money leaves a month's Entradas) — always say why.
+  reason: z
+    .string()
+    .trim()
+    .min(3, "Informe o motivo do cancelamento.")
+    .max(300, "O motivo pode ter no máximo 300 caracteres."),
 });
 
 export async function cancelCartelaAction(
   input: z.input<typeof cancelSchema>,
 ): Promise<ActionResult> {
   return run(async () => {
-    const { storeId, cartelaId } = cancelSchema.parse(input);
+    const { storeId, cartelaId, reason } = cancelSchema.parse(input);
     const user = await requireAccess(storeId, "cartelas");
-    const { cancelledOrderIds } = await cancelCartela(storeId, cartelaId, user.email);
+    const { cancelledOrderIds } = await cancelCartela(storeId, cartelaId, user.email, reason);
     await logActivity(storeId, {
       icon: "ban",
-      label: `Cancelou cartela #${cartelaCode(cartelaId)}`,
+      label: `Cancelou cartela #${cartelaCode(cartelaId)} · ${reason}`,
       detail: "Cartelas",
       by: user.email,
       section: "cartelas",
@@ -57,7 +69,7 @@ export async function cancelCartelaAction(
     for (const orderId of cancelledOrderIds) {
       await logActivity(storeId, {
         icon: "ban",
-        label: `Cancelou pedido #${orderCode(orderId)} (cartela #${cartelaCode(cartelaId)} cancelada)`,
+        label: `Cancelou pedido #${orderCode(orderId)} (cartela #${cartelaCode(cartelaId)} cancelada · ${reason})`,
         detail: "Pedidos",
         by: user.email,
         section: "pedidos",
@@ -113,4 +125,12 @@ export async function listCartelasByCustomerAction(
     return [];
   }
   return listCartelasByCustomer(storeId, customerId);
+}
+
+export async function previewCartelaCancelAction(
+  storeId: string,
+  cartelaId: string,
+): Promise<CartelaCancelImpact[]> {
+  await requireAccess(storeId, "cartelas");
+  return previewCartelaCancel(storeId, cartelaId);
 }
