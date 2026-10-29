@@ -41,6 +41,7 @@ import type {
 } from "@/lib/types";
 import { DISCOUNT_REASONS, ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
 import { formatBRL, initials } from "@/lib/format";
+import type { OrderAuditEntry } from "@/data/order-audit";
 import {
   balanceValue,
   cartelaCode,
@@ -56,6 +57,7 @@ import { CartelaPunchDots } from "@/components/cartela-punch-dots";
 import {
   createOrderAction,
   setOrderPaymentAction,
+  listOrderAuditAction,
   setOrderStatusAction,
   updateOrderAction,
 } from "@/actions/orders";
@@ -710,15 +712,20 @@ function OrderForm({
     doSubmit(stripped);
   }
 
-  function changeStatus(status: Order["status"]) {
+  // Cancelling a PAID order asks for a motivo first (null = not asking).
+  const [cancelReason, setCancelReason] = useState<string | null>(null);
+
+  function changeStatus(status: Order["status"], reason?: string) {
     if (!order) return;
     startTransition(async () => {
       const result = await setOrderStatusAction({
         storeId,
         orderId: order.id,
         status,
+        reason,
       });
-      if (!result.ok) toast.error(result.error);
+      if (result.ok) setCancelReason(null);
+      else toast.error(result.error);
     });
   }
 
@@ -901,18 +908,45 @@ function OrderForm({
                 disabled={pending}
               />
             </div>
-            {!cancelled && (
+            {!cancelled && cancelReason === null && (
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => changeStatus("cancelado")}
+                onClick={() => (order.paid ? setCancelReason("") : changeStatus("cancelado"))}
                 className="mx-auto mt-2 block rounded-lg px-2.5 py-1 text-[12.5px] font-semibold text-ink-faint transition-colors hover:text-destructive disabled:opacity-50"
               >
                 Cancelar pedido
               </button>
             )}
+            {!cancelled && cancelReason !== null && (
+              <div className="mt-2 space-y-2 rounded-xl border border-border bg-paper p-3">
+                <Label>Motivo do cancelamento</Label>
+                <Textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  maxLength={300}
+                  placeholder="Pedido pago: o valor sai das Entradas do mês. Por que está sendo cancelado?"
+                  className="min-h-[64px] resize-none rounded-xl border-border bg-paper text-[13px]"
+                />
+                <div className="flex justify-end gap-3 text-[12.5px] font-semibold">
+                  <button type="button" disabled={pending} onClick={() => setCancelReason(null)} className="text-ink-faint">
+                    Voltar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending || !cancelReason.trim()}
+                    onClick={() => changeStatus("cancelado", cancelReason.trim())}
+                    className="text-destructive disabled:opacity-50"
+                  >
+                    Cancelar pedido
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
+
+        {order && <OrderHistory storeId={storeId} orderId={order.id} version={order.updatedAt} />}
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -2125,5 +2159,73 @@ function ProductConfig({
         </Button>
       </div>
     </>
+  );
+}
+
+const FIELD_LABEL: Record<string, string> = {
+  status: "Status",
+  paid: "Pago",
+  payMethod: "Forma de pagamento",
+  total: "Total",
+  customerName: "Cliente",
+  channel: "Canal",
+  createdAt: "Data da venda",
+  sellerEmail: "Vendedor",
+  notes: "Nota",
+  items: "Itens",
+};
+const ACTION_LABEL: Record<string, string> = {
+  created: "Criou o pedido",
+  edited: "Editou o pedido",
+  status: "Mudou o status",
+  payment: "Mudou o pagamento",
+};
+
+function auditValue(field: string, v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  if (field === "total") return formatBRL(v as number);
+  if (field === "paid") return v ? "sim" : "não";
+  if (field === "createdAt") return new Date(v as string).toLocaleDateString("pt-BR");
+  return Array.isArray(v) ? v.join(", ") : String(v);
+}
+
+/** Append-only change history of one order (who, when, what, money impact). */
+function OrderHistory({ storeId, orderId, version }: { storeId: string; orderId: string; version: string }) {
+  const [entries, setEntries] = useState<OrderAuditEntry[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    listOrderAuditAction(storeId, orderId).then((e) => live && setEntries(e));
+    return () => {
+      live = false;
+    };
+  }, [storeId, orderId, version]);
+  if (!entries?.length) return null;
+  return (
+    <div className="space-y-2">
+      <Label>Histórico</Label>
+      <ul className="space-y-2.5">
+        {entries.map((e) => (
+          <li key={e.id} className="rounded-xl border border-border bg-paper px-3 py-2 text-[12.5px]">
+            <div className="font-semibold">{ACTION_LABEL[e.action] ?? e.action}</div>
+            <div className="text-ink-faint">
+              {e.by} · {new Date(e.at).toLocaleString("pt-BR")}
+              {e.cause ? ` · ao cancelar a cartela #${e.cause.cartelaId.slice(0, 4).toUpperCase()}` : ""}
+            </div>
+            {e.reason && <div className="mt-1">Motivo: {e.reason}</div>}
+            {e.action !== "created" &&
+              e.changes.map((c) => (
+                <div key={c.field} className="mt-0.5">
+                  {FIELD_LABEL[c.field] ?? c.field}: {auditValue(c.field, c.from)} → {auditValue(c.field, c.to)}
+                </div>
+              ))}
+            {e.finance.map((f) => (
+              <div key={f.month} className="mt-0.5 font-semibold">
+                Entradas {f.month}: {f.amount > 0 ? "+" : "−"}{formatBRL(Math.abs(f.amount))}
+              </div>
+            ))}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

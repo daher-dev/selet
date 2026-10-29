@@ -144,7 +144,7 @@ export async function cancelCartela(
   for (const orderId of orderIds) {
     const order = await getOrder(storeId, orderId);
     if (order && order.status !== "cancelado") {
-      await setOrderStatus(storeId, orderId, "cancelado", by);
+      await setOrderStatus(storeId, orderId, "cancelado", by, { cause: { kind: "cartela", cartelaId } });
       cancelledOrderIds.push(orderId);
     }
   }

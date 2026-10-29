@@ -13,6 +13,8 @@ import type {
   Product,
 } from "@/lib/types";
 import { orderCode } from "@/lib/format";
+import { auditChanges } from "@/lib/order-audit";
+import { appendOrderAudit, snapOfDoc, type OrderAuditInput } from "./order-audit";
 import {
   commissionOf,
   orderMoney,
@@ -611,6 +613,21 @@ export async function createOrder(
         }),
       );
     }
+    appendOrderAudit(tx, storeId, ref.id, {
+      action: "created",
+      by,
+      changes: auditChanges(null, snapOfDoc({
+        ...rest,
+        items,
+        total,
+        status: NEW_ORDER_STATUS,
+        paid: payment.paid,
+        payMethod: payment.paid ? payment.payMethod : null,
+        notes: notes?.trim() || null,
+        createdAt: now,
+      })),
+      finance: payment.paid ? [{ month: mk, amount: total }] : [],
+    });
   });
   return ref.id;
 }
@@ -798,6 +815,32 @@ export async function updateOrder(
       createdAt: newCreatedAt,
       updatedAt: Timestamp.now(),
     });
+    const finance =
+      paidBefore && !paidAfter
+        ? [{ month: financeMk, amount: -(mirrorAmount ?? 0) }]
+        : paidAfter && total !== oldTotal
+          ? [{ month: financeMk, amount: total - oldTotal }]
+          : [];
+    appendOrderAudit(tx, storeId, orderId, {
+      action: "edited",
+      by,
+      changes: auditChanges(
+        snapOfDoc(current),
+        snapOfDoc({
+          ...current,
+          items,
+          total,
+          paid: paidAfter,
+          payMethod: paidAfter ? (current.payMethod ?? null) : null,
+          customerName: input.customerName,
+          channel: input.channel,
+          sellerEmail: seller.sellerEmail,
+          notes: notes?.trim() || null,
+          createdAt: newCreatedAt,
+        }),
+      ),
+      finance,
+    });
     if (paidBefore && !paidAfter) {
       tx.delete(financeMirrorRef);
     } else if (paidAfter) {
@@ -817,6 +860,7 @@ export async function setOrderStatus(
   orderId: string,
   status: OrderStatus,
   by = "sistema",
+  why: Pick<OrderAuditInput, "reason" | "cause"> = {},
 ): Promise<void> {
   const db = getDb();
   const ref = ordersCol(storeId).doc(orderId);
@@ -979,6 +1023,21 @@ export async function setOrderStatus(
     if (plan) patch.stockConsumed = plan.draws;
     if (cartelaPlan) patch.cartelaConsumed = cartelaPlan.consumed;
     tx.update(ref, patch);
+    if (current.status !== status) {
+      const md = financeMirrorSnap?.data();
+      appendOrderAudit(tx, storeId, orderId, {
+        action: "status",
+        by,
+        changes: [{ field: "status", from: current.status, to: status }],
+        finance:
+          !wasCancelled && willBeCancelled && paid && md
+            ? [{ month: md.date ? monthKey((md.date as Timestamp).toDate()) : mk, amount: -(md.amount ?? 0) }]
+            : wasCancelled && !willBeCancelled && paid && total > 0
+              ? [{ month: mk, amount: total }]
+              : [],
+        ...why,
+      });
+    }
     if (!wasCancelled && willBeCancelled && paid && financeMirrorSnap?.exists) {
       tx.delete(financeMirrorRef);
     } else if (wasCancelled && !willBeCancelled && paid && total > 0) {
@@ -1008,6 +1067,7 @@ export async function setOrderPayment(
   orderId: string,
   paid: boolean,
   payMethod: PayMethod | null,
+  by = "sistema",
 ): Promise<void> {
   const db = getDb();
   const ref = ordersCol(storeId).doc(orderId);
@@ -1070,6 +1130,19 @@ export async function setOrderPayment(
     }
     writeSummaryTx(tx, storeId, summary);
 
+    const md = mirrorSnap.data();
+    appendOrderAudit(tx, storeId, orderId, {
+      action: "payment",
+      by,
+      changes: auditChanges(
+        snapOfDoc(current),
+        snapOfDoc({ ...current, paid, payMethod: paid ? payMethod : null }),
+      ),
+      finance: [
+        ...(md ? [{ month: md.date ? monthKey((md.date as Timestamp).toDate()) : orderMk, amount: -(md.amount ?? 0) }] : []),
+        ...(paid ? [{ month: monthKey(now.toDate()), amount: total }] : []),
+      ],
+    });
     if (paid) {
       tx.set(
         financeRef,

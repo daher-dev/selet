@@ -5,11 +5,13 @@ import { z } from "zod";
 import { requireAccess } from "@/lib/access";
 import {
   createOrder,
+  getOrder,
   setOrderPayment,
   setOrderStatus,
   updateOrder,
 } from "@/data/orders";
 import { logActivity } from "@/data/activity";
+import { listOrderAudit, type OrderAuditEntry } from "@/data/order-audit";
 import { resolveSeller } from "@/data/commissions";
 import { orderCode } from "@/lib/format";
 import { orderMoney } from "@/lib/order-money";
@@ -215,15 +217,23 @@ const statusSchema = z.object({
   storeId: z.string().min(1),
   orderId: z.string().min(1),
   status: z.enum(ORDER_STATUSES),
+  reason: z.string().trim().max(300, "O motivo pode ter no máximo 300 caracteres.").optional(),
 });
 
 export async function setOrderStatusAction(
   input: z.input<typeof statusSchema>,
 ): Promise<ActionResult> {
   return run(async () => {
-    const { storeId, orderId, status } = statusSchema.parse(input);
+    const { storeId, orderId, status, reason } = statusSchema.parse(input);
     const user = await requireAccess(storeId, "pedidos");
-    await setOrderStatus(storeId, orderId, status, user.email);
+    // Cancelling a paid order removes money from a month's Entradas — always say why.
+    if (status === "cancelado" && !reason) {
+      const order = await getOrder(storeId, orderId);
+      if (order?.paid && order.status !== "cancelado") {
+        throw new Error("Informe o motivo para cancelar um pedido pago.");
+      }
+    }
+    await setOrderStatus(storeId, orderId, status, user.email, { reason });
     const code = orderCode(orderId);
     if (status === "concluido") {
       await logActivity(storeId, {
@@ -262,7 +272,7 @@ export async function setOrderPaymentAction(
       throw new Error("Selecione a forma de pagamento.");
     }
     const user = await requireAccess(storeId, "pedidos");
-    await setOrderPayment(storeId, orderId, paid, payMethod);
+    await setOrderPayment(storeId, orderId, paid, payMethod, user.email);
     if (paid && payMethod) {
       await logActivity(storeId, {
         icon: "wallet",
@@ -274,4 +284,12 @@ export async function setOrderPaymentAction(
     }
     revalidate(storeId);
   });
+}
+
+export async function listOrderAuditAction(
+  storeId: string,
+  orderId: string,
+): Promise<OrderAuditEntry[]> {
+  await requireAccess(storeId, "pedidos");
+  return listOrderAudit(storeId, orderId);
 }
