@@ -1,3 +1,4 @@
+import { monthKey } from "@/lib/timezone";
 import "server-only";
 
 import { Timestamp } from "firebase-admin/firestore";
@@ -183,7 +184,7 @@ export async function previewCartelaCancel(
   for (const orderId of ids) {
     const order = await getOrder(storeId, orderId);
     if (!order || order.status === "cancelado") continue;
-    out.push({ orderId, month: order.createdAt.slice(0, 7), total: order.total, paid: order.paid });
+    out.push({ orderId, month: monthKey(new Date(order.createdAt)), total: order.total, paid: order.paid });
   }
   return out;
 }

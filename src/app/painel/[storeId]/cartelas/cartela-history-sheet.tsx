@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { cancelCartelaAction, previewCartelaCancelAction } from "@/actions/cartelas";
 import type { CartelaCancelImpact } from "@/data/cartelas";
 import { Textarea } from "@/components/ui/textarea";
+import { isPastMonth } from "@/lib/past-month";
+import { PastMonthWarning } from "@/components/past-month-warning";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -244,6 +246,12 @@ export function CartelaHistorySheet({
                 : "."}
             </DialogDescription>
           </DialogHeader>
+          {impact && impact.some((i) => i.paid && i.total > 0 && isPastMonth(i.month)) && (
+            <PastMonthWarning
+              months={impact.filter((i) => i.paid && i.total > 0 && isPastMonth(i.month)).map((i) => i.month)}
+              action="Cancelar esta cartela"
+            />
+          )}
           {impact && impact.some((i) => i.paid && i.total > 0) && (
             <ul className="space-y-1 rounded-xl border border-border bg-paper p-3 text-[12.5px]">
               {impact

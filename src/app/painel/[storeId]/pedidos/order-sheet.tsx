@@ -42,6 +42,9 @@ import type {
 import { DISCOUNT_REASONS, ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
 import { formatBRL, initials } from "@/lib/format";
 import { lineOffer, unitPriceOf } from "@/lib/product-offers";
+import { isPastMonth } from "@/lib/past-month";
+import { monthKey } from "@/lib/timezone";
+import { PastMonthWarning } from "@/components/past-month-warning";
 import type { OrderAuditEntry } from "@/data/order-audit";
 import {
   balanceValue,
@@ -459,6 +462,8 @@ function OrderForm({
   const itemCount = items.reduce((s, i) => s + i.qty, 0);
   const coveredUses = items.reduce((s, i) => (i.cartelaUse ? s + i.qty : s), 0);
   const cancelled = order?.status === "cancelado";
+  // The Entradas month this order lives in (its "Data da venda", store timezone).
+  const orderMonth = order ? monthKey(new Date(order.createdAt)) : "";
 
   // "Nada a cobrar" (Part A.4) — never a persisted field, always derived from
   // the live total. Pago/A receber are disabled once the total hits zero;
@@ -902,6 +907,10 @@ function OrderForm({
             </div>
           )}
         </div>
+
+        {order && order.total > 0 && isPastMonth(orderMonth) && (
+          <PastMonthWarning months={[orderMonth]} action="Alterar, cancelar ou mudar o pagamento deste pedido" />
+        )}
 
         {order && (
           <div className="space-y-1.5">

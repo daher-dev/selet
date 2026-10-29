@@ -113,7 +113,9 @@ test("Movimentações: dashboard link, create/edit avulso, follow a vinculado Or
   await expect(page).toHaveURL(/\/painel\/vila-velha\/pedidos\?order=/);
   // The origin order's sheet auto-opens on arrival.
   await expect(orderSheet.getByText("Carla Mendes")).toBeVisible();
-  // The deep-link query param is stripped after opening (no reopen on refresh).
+  // The open order stays in the URL so the link is shareable; closing removes it.
+  await expect(page).toHaveURL(/\/painel\/vila-velha\/pedidos\?order=/);
+  await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/painel\/vila-velha\/pedidos$/);
 });
 
@@ -128,10 +130,15 @@ test("Comissão: produto com comissão → pedido pago → Financeiro → regist
 }) => {
   await logIn(request, context, baseURL!);
 
-  // --- 10% on "Bowl de salmão".
+  // --- Commission belongs to the resale offer: give "Bowl de salmão" a resale
+  // offer (by package, linked to the Salmão stock item) and put 10% on it.
   await page.goto("/painel/vila-velha/produtos");
   await page.getByText("Bowl de salmão").first().click();
   const sheet = page.locator('[data-slot="sheet-content"]');
+  await sheet.getByRole("button", { name: "Revenda", exact: true }).click();
+  await sheet.getByRole("button", { name: "Selecionar item do estoque" }).click();
+  await sheet.getByRole("button", { name: "Salmão" }).click();
+  await sheet.getByPlaceholder("0,00").last().fill("39,90");
   await sheet.getByRole("switch", { name: "Pagar comissão neste item" }).click();
   await sheet.locator("#product-commission").fill("10");
   await sheet.getByRole("button", { name: "Salvar" }).click();
@@ -148,6 +155,8 @@ test("Comissão: produto com comissão → pedido pago → Financeiro → regist
     .getByRole("button", { name: "Nenhum item — toque para adicionar do cardápio." })
     .click();
   await page.getByRole("dialog").getByText("Bowl de salmão").click();
+  // Dual product: pick the package (resale) offer — only it earns commission.
+  await page.getByRole("dialog").getByRole("button", { name: /Embalagem/ }).click();
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Adicionar", exact: true })
