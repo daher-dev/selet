@@ -239,7 +239,6 @@ export function ProdutosClient({
         storeId={storeId}
         product={editing}
         stockItems={stockItems}
-        allProducts={products}
         open={formOpen}
         onOpenChange={setFormOpen}
       />
@@ -381,41 +380,6 @@ function ProductCard({
                   <span className="tabular shrink-0 text-[12.5px] font-semibold text-ink-faint">
                     {item.qty == null ? "sem medição" : formatQty(item.qty, item.unit)}
                   </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {isMenu && product.adicionais.length > 0 && (
-        <div className="mt-3">
-          <SectionLabel>Opcionais</SectionLabel>
-          <div className="mt-2 flex flex-col gap-1.5">
-            {product.adicionais.map((add, i) => {
-              const addonTiers = [...(add.tiers ?? [])].sort((a, b) => a.qty - b.qty);
-              const addonBatches = addonTiers.filter((t) => t.qty !== 1);
-              return (
-                <div key={i} className="flex flex-wrap items-center gap-1.5">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-paper px-2.5 py-1 text-[11.5px] text-ink-soft">
-                    {add.name}
-                    <span className="font-bold text-primary">
-                      + {formatBRL(add.price)}
-                    </span>
-                  </span>
-                  {addonBatches.map((b, bi) => (
-                    <span
-                      key={bi}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border bg-paper px-2 py-0.5 text-[10.5px] text-ink-faint"
-                    >
-                      <span className="font-semibold text-ink">
-                        {formatQty(b.qty, "un")}
-                      </span>
-                      <span className="font-bold text-primary">
-                        {formatBRL(b.price)}
-                      </span>
-                    </span>
-                  ))}
                 </div>
               );
             })}

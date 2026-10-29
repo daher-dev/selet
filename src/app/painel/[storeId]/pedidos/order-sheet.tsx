@@ -2102,7 +2102,6 @@ function ProductConfig({
   onConfirm: (item: OrderItem) => void;
 }) {
   const [qty, setQty] = useState(1);
-  const [selected, setSelected] = useState<string[]>([]);
   // A product can offer a dose (sale), a whole package (resale), or both —
   // the toggle only shows when it has both. Each offer has its own price.
   const [offer, setOffer] = useState<"sale" | "resale">(() => lineOffer(product));
@@ -2110,18 +2109,7 @@ function ProductConfig({
   const offerTiers = (offer === "resale" ? product.resale?.tiers : product.sale?.tiers) ?? product.tiers;
   const basePrice = dual ? unitPriceOf(offerTiers) : product.price;
   const meta = PRODUCT_CATEGORY_META[product.category] ?? NEUTRAL_TILE;
-  const addons = offer === "sale" ? (product.sale?.adicionais ?? product.adicionais ?? []) : [];
-
-  function toggleAddon(name: string) {
-    setSelected((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
-    );
-  }
-
-  const addonsTotal = addons
-    .filter((a) => selected.includes(a.name))
-    .reduce((s, a) => s + a.price, 0);
-  const unitPrice = basePrice + addonsTotal;
+  const unitPrice = basePrice;
   const subtotal = qty * unitPrice;
 
   function confirm() {
@@ -2131,7 +2119,6 @@ function ProductConfig({
       qty,
       unitPrice,
       ...(dual ? { offer } : {}),
-      ...(selected.length > 0 && offer === "sale" ? { addons: selected } : {}),
     });
   }
 
@@ -2206,46 +2193,6 @@ function ProductConfig({
           </div>
         </div>
 
-        {addons.length > 0 && (
-          <div className="space-y-2">
-            <Label>Opcionais</Label>
-            <div className="space-y-2">
-              {addons.map((addon) => {
-                const active = selected.includes(addon.name);
-                return (
-                  <button
-                    key={addon.name}
-                    type="button"
-                    onClick={() => toggleAddon(addon.name)}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors",
-                      active
-                        ? "border-primary bg-mist"
-                        : "border-border bg-card hover:border-primary/40",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors",
-                        active
-                          ? "border-primary bg-primary text-white"
-                          : "border-border bg-paper text-transparent",
-                      )}
-                    >
-                      <Check className="size-3.5" strokeWidth={3} />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">
-                      {addon.name}
-                    </span>
-                    <span className="tabular shrink-0 text-[12.5px] font-bold text-primary">
-                      + {formatBRL(addon.price)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-3 border-t border-border p-4">
