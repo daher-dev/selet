@@ -1,5 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Dumbbell,
+  MilkOff,
+  Vegan,
+  WheatOff,
   Apple,
   Banana,
   Bean,
@@ -142,6 +146,14 @@ export function buildStockCategoryMeta(categories: StockCategoryDef[]): Record<s
     }),
   );
 }
+
+export const PRODUCT_TYPE_TAG_ICONS: Record<string, LucideIcon> = {
+  vegano: Vegan,
+  vegetariano: Salad,
+  "sem-lactose": MilkOff,
+  "sem-gluten": WheatOff,
+  proteico: Dumbbell,
+};
 
 export const PRODUCT_TYPE_TAG_LABELS: Record<string, string> = {
   vegano: "Vegano",

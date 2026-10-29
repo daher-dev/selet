@@ -43,6 +43,7 @@ import {
 import {
   CategoryTile,
   PRODUCT_CATEGORY_META,
+  PRODUCT_TYPE_TAG_ICONS,
   PRODUCT_TYPE_TAG_LABELS,
 } from "@/components/category-meta";
 import { usableAmount } from "../estoque/stock-view";
@@ -548,6 +549,7 @@ function ProductForm({
           <div className="flex flex-wrap gap-2">
             {PRODUCT_TYPE_TAGS.map((tag) => {
               const selected = typeTags.includes(tag);
+              const TagIcon = PRODUCT_TYPE_TAG_ICONS[tag];
               return (
                 <button
                   key={tag}
@@ -560,12 +562,13 @@ function ProductForm({
                     )
                   }
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors",
                     selected
                       ? "border-primary bg-primary text-white"
                       : "border-border bg-card text-ink-soft hover:border-primary/40",
                   )}
                 >
+                  {TagIcon && <TagIcon className="size-3.5" strokeWidth={1.8} aria-hidden />}
                   {PRODUCT_TYPE_TAG_LABELS[tag]}
                 </button>
               );
