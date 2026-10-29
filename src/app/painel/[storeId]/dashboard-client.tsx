@@ -168,12 +168,7 @@ export function DashboardClient({
                 <TintedCard tone="pink" icon={ChartPie} title="Canais de venda">
                   <ChannelStackChart months={series} unit={view_} />
                 </TintedCard>
-                <TintedCard
-                  tone="blue"
-                  icon={Users}
-                  title="Clientes ativos"
-                  subtitle={weekly ? "Clientes únicos por semana" : undefined}
-                >
+                <TintedCard tone="blue" icon={Users} title="Clientes ativos">
                   <CustomerSplitChart months={series} unit={view_} />
                 </TintedCard>
               </div>

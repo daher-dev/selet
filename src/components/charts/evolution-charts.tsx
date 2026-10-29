@@ -26,6 +26,7 @@ import {
   pctLabel,
   useSeriesVisibility,
   type TooltipModel,
+  type TooltipRow,
 } from "./chart-kit";
 
 type SalesPoint = Pick<MonthPoint, "key" | "label" | "title" | "sales" | "mom" | "partial" | "orderCount">;
@@ -125,7 +126,7 @@ export function MonthlySalesChart({
               </g>
             ))}
             <text x={0} y={244} fontSize={compact ? 9 : 10.5} fontWeight={700} fill={AXIS_TEXT}>
-              {compact ? `${u.delta} %` : u.delta}
+              {u.delta}
             </text>
             {months.map((m, i) => {
               const cx = left + slot * i + slot / 2;
@@ -206,8 +207,8 @@ export function MonthlySalesChart({
                         fontWeight={700}
                         fill={m.mom < 0 ? NEGATIVE : POSITIVE}
                       >
-                        {/* Phones: whole percent, no "%" (the row is labelled "MoM %"). */}
-                        {compact ? pctLabel(Math.round(m.mom)).replace("%", "") : pctLabel(m.mom)}
+                        {/* Dense charts: whole percent, always with the "%". */}
+                        {compact ? pctLabel(Math.round(m.mom)) : pctLabel(m.mom)}
                       </text>
                     )
                   )}
@@ -424,14 +425,26 @@ export function CustomerSplitChart({
     nov: showNov ? m.novos : 0,
   });
 
+  const total = (m: CustomerPoint) => parts(m).rec + parts(m).nov;
+  /** % change of the (visible) total vs the previous period; null without a base. */
+  const delta = (i: number): number | null => {
+    const prev = i > 0 ? total(months[i - 1]) : 0;
+    return prev > 0 ? Math.round(((total(months[i]) - prev) / prev) * 1000) / 10 : null;
+  };
+  const u = UNIT[unit];
+
   const tooltip = (i: number): TooltipModel => {
     const m = months[i];
     const { rec, nov } = parts(m);
-    const rows = CUSTOMER_SERIES.filter((c) => isVisible(c.key)).map((c) => ({
+    const rows: TooltipRow[] = CUSTOMER_SERIES.filter((c) => isVisible(c.key)).map((c) => ({
       label: c.label,
       value: (c.key === "recorrentes" ? rec : nov).toLocaleString("pt-BR"),
       color: c.color,
     }));
+    const d = delta(i);
+    if (d !== null && !m.partial) {
+      rows.push({ label: u.prev, value: pctLabel(d), tone: d < 0 ? ("negative" as const) : ("positive" as const) });
+    }
     return {
       title: pointTitle(m),
       badge: m.partial ? "parcial" : undefined,
@@ -453,7 +466,7 @@ export function CustomerSplitChart({
           onToggle={(k) => toggle(k as (typeof CUSTOMER_KEYS)[number])}
         />
       </div>
-      <ChartFrame height={218} label={`Clientes ativos ${UNIT[unit].per}`} tooltip={tooltip}>
+      <ChartFrame height={240} label={`Clientes ativos ${UNIT[unit].per}`} tooltip={tooltip}>
         {(W, hover) => {
           const f = smallFrame(W, months.length);
           const compact = f.slot < 30;
@@ -465,6 +478,9 @@ export function CustomerSplitChart({
           return (
             <>
               <Hatch id="hatch-customers" />
+              <text x={0} y={232} fontSize={compact ? 9 : 10.5} fontWeight={700} fill={AXIS_TEXT}>
+                {u.delta}
+              </text>
               {[0, 1, 2, 3].map((i) => {
                 const t = (axisMax / 3) * i;
                 const yy = f.base - (i / 3) * h;
@@ -513,6 +529,32 @@ export function CustomerSplitChart({
                     {m.partial && (
                       <CurrentColumn cx={cx} slot={f.slot} hatchId="hatch-customers" base={f.base} />
                     )}
+                    {labelShown(i, months.length, step) &&
+                      (m.partial ? (
+                        <text
+                          x={Math.min(cx, W - 18)}
+                          y={232}
+                          textAnchor="middle"
+                          fontSize={compact ? 9.5 : 11}
+                          fontWeight={700}
+                          fill={POSITIVE}
+                        >
+                          {compact ? "parc." : "parcial"}
+                        </text>
+                      ) : (
+                        delta(i) !== null && (
+                          <text
+                            x={Math.min(cx, W - 18)}
+                            y={232}
+                            textAnchor="middle"
+                            fontSize={compact ? 9 : 11}
+                            fontWeight={700}
+                            fill={(delta(i) ?? 0) < 0 ? NEGATIVE : POSITIVE}
+                          >
+                            {compact ? pctLabel(Math.round(delta(i) ?? 0)) : pctLabel(delta(i) ?? 0)}
+                          </text>
+                        )
+                      ))}
                     {total > 0 && (!compact || m.partial) && (
                       <text
                         x={cx}
