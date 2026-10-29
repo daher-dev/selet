@@ -66,6 +66,13 @@ const profileSchema = z.object({
     .max(120)
     .refine((v) => v === "" || z.email().safeParse(v).success, "E-mail inválido.")
     .optional(),
+  // "@Selet" or "selet" → "selet"; empty clears it.
+  instagram: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/^@/, "").toLowerCase())
+    .refine((v) => v === "" || /^[a-z0-9._]{1,30}$/.test(v), "Instagram inválido. Use letras, números, ponto e _ (até 30).")
+    .optional(),
 });
 
 export async function updateStoreProfileAction(input: z.input<typeof profileSchema>): Promise<SettingsResult> {

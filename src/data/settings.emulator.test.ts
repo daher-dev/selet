@@ -114,10 +114,13 @@ describe.skipIf(!hasEmulator)("settings repository (emulator)", () => {
       address: "Av. Central, 10",
       whatsapp: "(27) 99999-0000",
       email: "",
+      instagram: "selet.vv",
     });
     const d = (await store().get()).data()!;
-    expect(d).toMatchObject({ name: "Espaço Selet", initial: "E", address: "Av. Central, 10", whatsapp: "(27) 99999-0000" });
+    expect(d).toMatchObject({ name: "Espaço Selet", initial: "E", address: "Av. Central, 10", whatsapp: "(27) 99999-0000", instagram: "selet.vv" });
     expect(d.email).toBeUndefined();
+    await updateStoreProfile(storeId, { name: "Espaço Selet", instagram: "" });
+    expect((await store().get()).data()!.instagram).toBeUndefined();
   });
 
   it("manages Cardápio categories: defaults, create/edit/reorder, move-before-delete", async () => {

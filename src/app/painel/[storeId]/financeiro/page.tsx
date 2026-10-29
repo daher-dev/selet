@@ -38,6 +38,7 @@ export default async function FinanceiroPage({
   if (!summary) {
     const orders = await listOrders(storeId, {
       since: addZonedMonths(now, -EVOLUTION_MONTHS),
+      excludeInternal: true,
     });
     summary = computeSummaryFrom({
       orders: orders.map((o) => ({ ...o, createdAt: new Date(o.createdAt) })),

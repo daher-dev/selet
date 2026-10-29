@@ -191,10 +191,16 @@ export interface OrderAggInput {
   paid: boolean;
   channel: OrderChannel;
   items: SellerLine[];
+  /** Internal orders stay operational (openOrders) but never reach the reports. */
+  internal?: boolean;
 }
 
 /** An order enters the active (non-cancelled) aggregates. */
 export function summaryAddOrder(s: SummaryData, o: OrderAggInput): void {
+  if (o.internal) {
+    if (o.open) s.openOrders += 1;
+    return;
+  }
   const b = bucket(s, o.mk);
   b.orderCount += 1;
   b.ticketSum += o.total;
@@ -210,6 +216,10 @@ export function summaryAddOrder(s: SummaryData, o: OrderAggInput): void {
 
 /** An order leaves the active aggregates (cancellation). Exact inverse. */
 export function summaryRemoveOrder(s: SummaryData, o: OrderAggInput): void {
+  if (o.internal) {
+    if (o.open) s.openOrders = Math.max(0, s.openOrders - 1);
+    return;
+  }
   const b = bucket(s, o.mk);
   b.orderCount = Math.max(0, b.orderCount - 1);
   b.ticketSum = Math.max(0, b.ticketSum - o.total);
@@ -308,6 +318,7 @@ export interface OrderLike {
   createdAt: Date;
   channel: OrderChannel;
   items: SellerLine[];
+  internal?: boolean;
 }
 export interface FinanceLike {
   direction: "in" | "out";
@@ -325,6 +336,7 @@ export interface StockLike {
 export interface CustomerLike {
   since: Date;
   archived: boolean;
+  internal?: boolean;
 }
 
 export function computeSummaryFrom(input: {
@@ -344,13 +356,14 @@ export function computeSummaryFrom(input: {
       paid: !!o.paid,
       channel: o.channel,
       items: o.items ?? [],
+      internal: o.internal,
     });
   }
   // novos: each registered customer counts once, in the month of their
   // earliest non-cancelled order (mirrors customer.firstOrderAt).
   const firstOrder = new Map<string, Date>();
   for (const o of input.orders) {
-    if (o.status === "cancelado" || !o.customerId) continue;
+    if (o.status === "cancelado" || !o.customerId || o.internal) continue;
     const cur = firstOrder.get(o.customerId);
     if (!cur || o.createdAt < cur) firstOrder.set(o.customerId, o.createdAt);
   }
@@ -368,6 +381,7 @@ export function computeSummaryFrom(input: {
     s.lowStock += lowStockContribution(!!st.lowStock, !!st.archived);
   }
   for (const c of input.customers) {
+    if (c.internal) continue;
     if (!c.archived) s.activeCustomers += 1;
     bucket(s, monthKey(c.since)).newCustomers += 1;
   }

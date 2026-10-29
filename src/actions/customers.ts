@@ -33,6 +33,7 @@ const customerSchema = z.object({
   tags: z.array(z.string()).default([]),
   notes: z.string().trim().optional(),
   archived: z.boolean().optional(),
+  internal: z.boolean().optional(),
 });
 
 export type CustomerFormInput = z.input<typeof customerSchema>;
@@ -58,7 +59,11 @@ export async function createCustomerAction(
   return run(async () => {
     const { storeId, ...data } = customerSchema.parse(input);
     const user = await requireAccess(storeId, "clientes");
-    await createCustomer(storeId, data);
+    // Only admins can flag INTERNO (it zeroes orders and hides them from reports).
+    await createCustomer(storeId, {
+      ...data,
+      internal: user.role === "admin" ? data.internal : undefined,
+    });
     await logActivity(storeId, {
       icon: "user-plus",
       label: `Cadastrou cliente · ${data.name}`,
@@ -76,8 +81,12 @@ export async function updateCustomerAction(
 ): Promise<ActionResult> {
   return run(async () => {
     const { storeId, ...data } = customerSchema.parse(input);
-    await requireAccess(storeId, "clientes");
-    await updateCustomer(storeId, customerId, data);
+    const user = await requireAccess(storeId, "clientes");
+    // Non-admins leave the INTERNO flag as it is.
+    await updateCustomer(storeId, customerId, {
+      ...data,
+      internal: user.role === "admin" ? data.internal : undefined,
+    });
     revalidatePath(`/painel/${storeId}/clientes`);
   });
 }

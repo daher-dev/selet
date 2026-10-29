@@ -105,6 +105,23 @@ describe("chart tooltips", () => {
   });
 });
 
+describe("weekly unit", () => {
+  it("swaps the MoM row and tooltip wording for WoW, and thins labels when dense", async () => {
+    const user = userEvent.setup();
+    const weeks = Array.from({ length: 52 }, (_, i) =>
+      month(`2026-W${i}`, { label: `${i}/01`, title: "Semana de 5 out a 11 out", sales: 100_000, mom: 10, partial: i === 51 }),
+    );
+    const { container } = render(<MonthlySalesChart months={weeks} unit="week" />);
+    expect(screen.getByText(/WoW/)).toBeInTheDocument();
+    expect(screen.getByText("51/01")).toBeInTheDocument(); // open week always labelled
+    expect(screen.queryByText("50/01")).toBeNull(); // thinned
+    await user.hover(columns(container)[0]);
+    const tip = screen.getByRole("tooltip");
+    expect(tip).toHaveTextContent("Semana de 5 out a 11 out");
+    expect(tip).toHaveTextContent("vs. semana anterior");
+  });
+});
+
 describe("legend toggles", () => {
   it("ChannelStackChart: hiding a channel removes it, renormalises the rest and drops it from the tooltip", async () => {
     const user = userEvent.setup();

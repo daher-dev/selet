@@ -89,3 +89,35 @@ describe("commission in Saídas", () => {
     expect(s.months["2026-07"]).toMatchObject({ in: 10000, out: 4700 });
   });
 });
+
+describe("INTERNO", () => {
+  const base = { mk: "2026-06", total: 0, custKey: "id_i", open: true, paid: false, channel: "loja" as const, items: [] };
+
+  it("keeps internal orders out of every report counter but still counts them as open", () => {
+    const s = emptySummary();
+    summaryAddOrder(s, { ...base, internal: true });
+    expect(s.openOrders).toBe(1);
+    expect(s.months["2026-06"]).toBeUndefined();
+  });
+
+  it("recompute skips internal orders and internal customers", () => {
+    const order: OrderLike = {
+      status: "novo", total: 0, paid: false, customerId: "i", customerName: "Equipe",
+      createdAt: new Date("2026-06-10T12:00:00Z"), channel: "loja", items: [], internal: true,
+    };
+    const s = computeSummaryFrom({
+      orders: [order],
+      finance: [],
+      stock: [],
+      customers: [
+        { since: new Date("2026-06-01T12:00:00Z"), archived: false, internal: true },
+        { since: new Date("2026-06-01T12:00:00Z"), archived: false },
+      ],
+    });
+    expect(s.activeCustomers).toBe(1);
+    expect(s.months["2026-06"].newCustomers).toBe(1);
+    expect(s.months["2026-06"].orderCount).toBe(0);
+    expect(s.months["2026-06"].novos).toBe(0);
+    expect(s.openOrders).toBe(1);
+  });
+});

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getDb } from "@/lib/firebase-admin";
-import { createCustomer, getCustomer } from "./customers";
+import { createCustomer, getCustomer, updateCustomer } from "./customers";
+import { readSummary } from "./summary";
 import {
   createOrder,
   getOrder,
@@ -425,5 +426,43 @@ describe.skipIf(!hasEmulator)("orders repository (emulator)", () => {
     await setOrderPayment(storeId, orderId, false, null);
     await setOrderPayment(storeId, orderId, true, "dinheiro");
     expect(await financeDoc(storeId, orderId)).toMatchObject({ revendaAmount: 12000 });
+  });
+});
+
+describe.skipIf(!hasEmulator)("INTERNO customers (emulator)", () => {
+  it("comps the order, keeps it out of the summary, and survives edits", async () => {
+    const storeId = `test-orders-interno-${Date.now()}`;
+    const customerId = await createCustomer(storeId, { name: "Equipe", tags: [], internal: true });
+    const orderId = await createOrder(storeId, {
+      customerId,
+      customerName: "Equipe",
+      channel: "loja",
+      items: ITEMS,
+      discount: null, // a client can't opt out
+    });
+
+    const order = await getOrder(storeId, orderId);
+    expect(order).toMatchObject({ total: 0, internal: true, paid: false });
+    expect(order?.discount).toMatchObject({ kind: "free", amount: 7200 });
+
+    const s = await readSummary(storeId);
+    expect(s?.openOrders).toBe(0); // concluido on creation
+    expect(Object.values(s?.months ?? {}).every((m) => m.orderCount === 0)).toBe(true);
+    expect((await getCustomer(storeId, customerId))?.firstOrderAt).toBeNull();
+
+    // Editing keeps it comped even when the client sends a different discount.
+    await updateOrder(storeId, orderId, {
+      customerId,
+      customerName: "Equipe",
+      channel: "loja",
+      items: ITEMS,
+      discount: { kind: "percent", value: 10 },
+    });
+    expect((await getOrder(storeId, orderId))?.total).toBe(0);
+
+    // Unflagging later does not rewrite the existing order.
+    await updateCustomer(storeId, customerId, { name: "Equipe", tags: [], internal: false });
+    expect((await getOrder(storeId, orderId))?.internal).toBe(true);
+    expect((await readSummary(storeId))?.activeCustomers).toBe(1);
   });
 });

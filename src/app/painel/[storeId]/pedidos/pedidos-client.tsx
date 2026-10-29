@@ -1,5 +1,6 @@
 "use client";
 
+import { InternalBadge } from "@/components/internal-badge";
 import { useProductCategoryMeta } from "@/components/product-settings-context";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -380,6 +381,7 @@ export function PedidosClient({
                   <span className="min-w-0">
                     <span className="block truncate text-[13.5px] font-semibold text-ink">
                       {order.customerName}
+                      {order.internal && <InternalBadge className="ml-1.5 align-middle" />}
                     </span>
                     <span className="block text-[11.5px] text-ink-faint">
                       {formatRelative(order.createdAt)}
@@ -456,6 +458,7 @@ export function PedidosClient({
                     </div>
                     <div className="mt-2.5 text-[15px] font-semibold text-ink">
                       {order.customerName}
+                      {order.internal && <InternalBadge className="ml-1.5 align-middle" />}
                     </div>
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
                       {visible.map((item, i) => (

@@ -18,6 +18,8 @@ import {
   STRONG_TEXT,
   dimOpacity,
   kLabel,
+  labelShown,
+  labelStep,
   milLabel,
   monthTitle,
   niceMax,
@@ -26,7 +28,20 @@ import {
   type TooltipModel,
 } from "./chart-kit";
 
-type SalesPoint = Pick<MonthPoint, "key" | "label" | "sales" | "mom" | "partial" | "orderCount">;
+type SalesPoint = Pick<MonthPoint, "key" | "label" | "title" | "sales" | "mom" | "partial" | "orderCount">;
+
+/** Months (12-month view) or weeks of a month (drill-down). */
+export type Unit = "month" | "week";
+
+/** Tooltip title: the weekly range, or the month name. */
+function pointTitle(p: { key: string; title?: string }): string {
+  return p.title ?? monthTitle(p.key);
+}
+
+const UNIT = {
+  month: { delta: "MoM", prev: "vs. mês anterior", per: "por mês", adj: "mensais" },
+  week: { delta: "WoW", prev: "vs. semana anterior", per: "por semana", adj: "semanais" },
+} as const;
 
 /** Month `<g>` style while another month is hovered. */
 function dimStyle(hover: number | null, i: number) {
@@ -48,11 +63,18 @@ function share(part: number, total: number): string {
  * 12-month faturamento bars (R$ mil) with a MoM row under the months. The
  * current month is darker, sits on a tinted column and is hatched ("parcial").
  */
-export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
+export function MonthlySalesChart({
+  months,
+  unit = "month",
+}: {
+  months: SalesPoint[];
+  unit?: Unit;
+}) {
+  const u = UNIT[unit];
   const tooltip = (i: number): TooltipModel => {
     const m = months[i];
     return {
-      title: monthTitle(m.key),
+      title: pointTitle(m),
       badge: m.partial ? "parcial" : undefined,
       rows: [
         { label: "Faturamento", value: formatBRL(m.sales), color: m.partial ? "#186B41" : "#92C17D" },
@@ -60,7 +82,7 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
         ...(m.mom !== null && !m.partial
           ? [
               {
-                label: "vs. mês anterior",
+                label: u.prev,
                 value: pctLabel(m.mom),
                 tone: m.mom < 0 ? ("negative" as const) : ("positive" as const),
               },
@@ -70,7 +92,7 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
     };
   };
   return (
-    <ChartFrame height={252} fallback={1016} label="Vendas mensais" tooltip={tooltip}>
+    <ChartFrame height={252} fallback={1016} label={`Vendas ${u.adj}`} tooltip={tooltip}>
       {(W, hover) => {
         const left = 40;
         const top = 20;
@@ -79,6 +101,7 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
         const slot = (W - left) / n;
         const bw = Math.min(46, slot * 0.56);
         const compact = slot < 34;
+        const step = labelStep(slot);
         const maxReais = Math.max(0, ...months.map((m) => m.sales / 100));
         const axisMax = niceMax(maxReais, 4);
         const y = (reais: number) => base - (reais / axisMax) * (base - top);
@@ -102,10 +125,11 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
               </g>
             ))}
             <text x={0} y={244} fontSize={compact ? 9 : 10.5} fontWeight={700} fill={AXIS_TEXT}>
-              {compact ? "MoM %" : "MoM"}
+              {compact ? `${u.delta} %` : u.delta}
             </text>
             {months.map((m, i) => {
               const cx = left + slot * i + slot / 2;
+              const lx = Math.min(cx, W - 16); // keep the open week's labels inside the frame
               const barTop = y(m.sales / 100);
               const h = Math.max(0, base - barTop);
               const col = { x: cx - slot * 0.45, w: slot * 0.9 };
@@ -139,7 +163,7 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
                   )}
                   {m.sales > 0 && (!compact || m.partial) && (
                     <text
-                      x={cx}
+                      x={lx}
                       y={barTop - 7}
                       textAnchor="middle"
                       fontSize={compact ? 10 : 11.5}
@@ -149,8 +173,9 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
                       {milLabel(m.sales)}
                     </text>
                   )}
+                  {labelShown(i, months.length, step) && (
                   <text
-                    x={cx}
+                    x={lx}
                     y={220}
                     textAnchor="middle"
                     fontSize={compact ? 10.5 : 12}
@@ -159,9 +184,10 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
                   >
                     {m.label}
                   </text>
-                  {m.partial ? (
+                  )}
+                  {!labelShown(i, months.length, step) ? null : m.partial ? (
                     <text
-                      x={Math.min(cx, W - 1 - (compact ? 16 : 20))}
+                      x={lx}
                       y={244}
                       textAnchor="middle"
                       fontSize={compact ? 9.5 : 11}
@@ -173,7 +199,7 @@ export function MonthlySalesChart({ months }: { months: SalesPoint[] }) {
                   ) : (
                     m.mom !== null && (
                       <text
-                        x={cx}
+                        x={lx}
                         y={244}
                         textAnchor="middle"
                         fontSize={compact ? 9 : 11}
@@ -248,10 +274,11 @@ function CurrentBg({ cx, slot }: { cx: number; slot: number }) {
   return <rect x={cx - w / 2} y={30} width={w} height={188} rx={6} fill={CURRENT_BG} />;
 }
 
-function MonthLabel({ x, m, compact }: { x: number; m: { label: string; partial: boolean }; compact: boolean }) {
+function MonthLabel({ x, m, compact, show = true, maxX = Infinity }: { x: number; m: { label: string; partial: boolean }; compact: boolean; show?: boolean; maxX?: number }) {
+  if (!show) return null;
   return (
     <text
-      x={x}
+      x={Math.min(x, maxX)}
       y={209}
       textAnchor="middle"
       fontSize={compact ? 9.5 : 11}
@@ -263,12 +290,18 @@ function MonthLabel({ x, m, compact }: { x: number; m: { label: string; partial:
   );
 }
 
-type ChannelPoint = Pick<MonthPoint, "key" | "label" | "partial" | "channels">;
+type ChannelPoint = Pick<MonthPoint, "key" | "label" | "title" | "partial" | "channels">;
 
 const CHANNEL_KEYS = CHANNEL_SERIES.map((c) => c.key);
 
 /** 100% stacked bars of orders per channel (Loja bottom → Instagram top). */
-export function ChannelStackChart({ months }: { months: ChannelPoint[] }) {
+export function ChannelStackChart({
+  months,
+  unit = "month",
+}: {
+  months: ChannelPoint[];
+  unit?: Unit;
+}) {
   const { hidden, isVisible, toggle } = useSeriesVisibility(CHANNEL_KEYS);
   // Stack order, bottom → top; hidden channels drop out and the rest renormalise.
   const order = (["loja", "whatsapp", "instagram"] as const).filter(isVisible);
@@ -284,7 +317,7 @@ export function ChannelStackChart({ months }: { months: ChannelPoint[] }) {
       color: c.color,
     }));
     return {
-      title: monthTitle(m.key),
+      title: pointTitle(m),
       badge: m.partial ? "parcial" : undefined,
       rows,
       footer: rows.length > 1 ? { label: "Total", value: pedidos(total) } : undefined,
@@ -304,10 +337,11 @@ export function ChannelStackChart({ months }: { months: ChannelPoint[] }) {
           onToggle={(k) => toggle(k as (typeof CHANNEL_KEYS)[number])}
         />
       </div>
-      <ChartFrame height={218} label="Canais de venda por mês" tooltip={tooltip}>
+      <ChartFrame height={218} label={`Canais de venda ${UNIT[unit].per}`} tooltip={tooltip}>
         {(W, hover) => {
           const f = smallFrame(W, months.length);
           const compact = f.slot < 30;
+          const step = labelStep(f.slot, unit === "week" ? 44 : 30);
           const h = f.base - f.top;
           return (
             <>
@@ -349,7 +383,7 @@ export function ChannelStackChart({ months }: { months: ChannelPoint[] }) {
                           />
                         );
                       })}
-                    <MonthLabel x={cx} m={m} compact={compact} />
+                    <MonthLabel x={cx} m={m} compact={compact} show={labelShown(i, months.length, step)} maxX={W - 14} />
                     {m.partial && (
                       <CurrentColumn cx={cx} slot={f.slot} hatchId="hatch-channels" base={f.base} />
                     )}
@@ -365,7 +399,7 @@ export function ChannelStackChart({ months }: { months: ChannelPoint[] }) {
   );
 }
 
-type CustomerPoint = Pick<MonthPoint, "key" | "label" | "partial" | "novos" | "recorrentes">;
+type CustomerPoint = Pick<MonthPoint, "key" | "label" | "title" | "partial" | "novos" | "recorrentes">;
 
 const CUSTOMER_SERIES = [
   { key: "recorrentes", label: "Recorrentes", color: "#186B41" },
@@ -375,7 +409,13 @@ const CUSTOMER_SERIES = [
 const CUSTOMER_KEYS = CUSTOMER_SERIES.map((c) => c.key);
 
 /** Stacked recorrentes (bottom) + novos (top) per month, total on top. */
-export function CustomerSplitChart({ months }: { months: CustomerPoint[] }) {
+export function CustomerSplitChart({
+  months,
+  unit = "month",
+}: {
+  months: CustomerPoint[];
+  unit?: Unit;
+}) {
   const { hidden, isVisible, toggle } = useSeriesVisibility(CUSTOMER_KEYS);
   const showRec = isVisible("recorrentes");
   const showNov = isVisible("novos");
@@ -393,7 +433,7 @@ export function CustomerSplitChart({ months }: { months: CustomerPoint[] }) {
       color: c.color,
     }));
     return {
-      title: monthTitle(m.key),
+      title: pointTitle(m),
       badge: m.partial ? "parcial" : undefined,
       rows,
       footer: rows.length > 1 ? { label: "Total", value: (rec + nov).toLocaleString("pt-BR") } : undefined,
@@ -413,10 +453,11 @@ export function CustomerSplitChart({ months }: { months: CustomerPoint[] }) {
           onToggle={(k) => toggle(k as (typeof CUSTOMER_KEYS)[number])}
         />
       </div>
-      <ChartFrame height={218} label="Clientes ativos por mês" tooltip={tooltip}>
+      <ChartFrame height={218} label={`Clientes ativos ${UNIT[unit].per}`} tooltip={tooltip}>
         {(W, hover) => {
           const f = smallFrame(W, months.length);
           const compact = f.slot < 30;
+          const step = labelStep(f.slot, unit === "week" ? 44 : 30);
           const maxTotal = Math.max(0, ...months.map((m) => parts(m).rec + parts(m).nov));
           const axisMax = countAxisMax(maxTotal, 3);
           const h = f.base - f.top;
@@ -468,7 +509,7 @@ export function CustomerSplitChart({ months }: { months: CustomerPoint[] }) {
                         fill="#2F6FB5"
                       />
                     )}
-                    <MonthLabel x={cx} m={m} compact={compact} />
+                    <MonthLabel x={cx} m={m} compact={compact} show={labelShown(i, months.length, step)} maxX={W - 14} />
                     {m.partial && (
                       <CurrentColumn cx={cx} slot={f.slot} hatchId="hatch-customers" base={f.base} />
                     )}
