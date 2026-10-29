@@ -1,7 +1,7 @@
 "use client";
 
 import { useProductCategories, useProductCategoryMeta } from "@/components/product-settings-context";
-import { productKind, unitPriceOf } from "@/lib/product-offers";
+import { productKind } from "@/lib/product-offers";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -289,19 +289,13 @@ function ProductCard({
   const STOCK_CATEGORY_META = useStockCategoryMeta();
   const { unitLabel } = useUnits();
   const meta = PRODUCT_CATEGORY_META[product.category];
-  const isMenu = product.saleType === "menu";
-  // Only "menu" items have a BASE recipe/Opcionais/Produção — revenda and
-  // adicional both just link a single insumo (see product-form-sheet).
-  const usesRecipe = isMenu;
-  const dual = Boolean(product.sale && product.resale);
-  const resaleInsumoId = product.resale?.insumoId || (usesRecipe ? undefined : product.insumoId);
-  const linkedInsumo = resaleInsumoId
-    ? stockItemFor({ stockItemId: resaleInsumoId, name: "" })
-    : undefined;
-  const tiers = [...product.tiers].sort((a, b) => a.qty - b.qty);
-  const unitTier =
-    tiers.find((t) => t.qty === 1) ?? tiers[0] ?? { qty: 1, price: product.price };
-  const batches = tiers.filter((t) => t !== unitTier);
+  const kind = productKind(product);
+  // Stock link shown once: the resale item, or the single ingredient of a dose.
+  const stockRefId =
+    product.resale?.insumoId || (kind === "estoque" ? product.sale?.recipe[0]?.stockItemId : undefined);
+  const linkedInsumo = stockRefId ? stockItemFor({ stockItemId: stockRefId, name: "" }) : undefined;
+  const dose = kind === "estoque" ? product.sale?.recipe[0] : undefined;
+  const doseDetail = dose ? (dose.qty == null ? "sem medição" : `${formatQty(dose.qty, dose.unit)} por dose`) : undefined;
 
   return (
     <div
@@ -331,33 +325,20 @@ function ProductCard({
             )}
           </h3>
         </div>
-        <div className="flex shrink-0 gap-1.5">
-          {[
-            { pct: product.sale?.commissionPercent, tag: dual ? "dose" : "" },
-            { pct: product.resale?.commissionPercent, tag: dual ? "embalagem" : "" },
-          ]
-            .filter((c) => c.pct)
-            .map((c) => (
-              <span
-                key={c.tag || "x"}
-                title="Comissão para quem vendeu"
-                className="inline-flex shrink-0 items-center rounded-full bg-commission-wash px-2.5 py-1 text-[10.5px] font-bold text-commission"
-              >
-                {String(c.pct).replace(".", ",")}% comissão{c.tag ? ` · ${c.tag}` : ""}
-              </span>
-            ))}
-          {productKind(product) === "receita" ? (
-            <WayBadge tone="menu" icon={ChefHat} label="Receita" />
-          ) : (
-            <>
-              {product.resale && <WayBadge tone="stock" icon={Box} label="Embalagem" />}
-              {product.sale && <WayBadge tone="menu" icon={Tag} label="Dose" />}
-            </>
-          )}
-        </div>
       </div>
 
-      {usesRecipe && product.recipe.length > 0 && (
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        {kind === "receita" ? (
+          <WayBadge tone="menu" icon={ChefHat} label="Receita" />
+        ) : (
+          <>
+            {product.resale && <WayBadge tone="stock" icon={Box} label="Embalagem" />}
+            {product.sale && <WayBadge tone="menu" icon={Tag} label="Dose" />}
+          </>
+        )}
+      </div>
+
+      {kind === "receita" && product.recipe.length > 0 && (
         <div className="mt-3.5">
           <SectionLabel>Base</SectionLabel>
           <div className="mt-2 flex flex-col gap-1.5">
@@ -432,32 +413,101 @@ function ProductCard({
         </div>
       )}
 
-      <div className="mt-3.5 flex items-baseline gap-2 border-t border-border pt-3">
-        <span className="tabular text-[22px] font-bold leading-none text-primary">
-          {formatBRL(unitTier.price)}
-        </span>
-        <span className="text-[11.5px] text-ink-faint">
-          {unitTier.qty === 1 ? "/ unidade" : `/ ${formatQty(unitTier.qty, "un")}`}
-        </span>
+      <div className="mt-3.5 space-y-3 border-t border-border pt-3">
+        {kind === "receita" ? (
+          <WayPrice tiers={product.sale?.tiers ?? product.tiers} unit="unidade" commission={product.sale?.commissionPercent} />
+        ) : (
+          <>
+            {product.resale && (
+              <WayPrice
+                label="Embalagem"
+                tone="stock"
+                tiers={product.resale.tiers}
+                unit="embalagem"
+                commission={product.resale.commissionPercent}
+              />
+            )}
+            {product.sale && (
+              <WayPrice
+                label="Dose"
+                tone="menu"
+                tiers={product.sale.tiers}
+                unit="dose"
+                detail={doseDetail}
+                commission={product.sale.commissionPercent}
+              />
+            )}
+          </>
+        )}
       </div>
+    </div>
+  );
+}
 
-      {dual && product.resale && (
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="tabular text-[15px] font-bold text-primary">
-            {formatBRL(unitPriceOf(product.resale.tiers))}
-          </span>
-          <span className="text-[11.5px] text-ink-faint">/ embalagem (revenda)</span>
+/** "embalagem" → "embalagens", "dose" → "doses". */
+const pluralOf = (unit: string) => (unit.endsWith("m") ? `${unit.slice(0, -1)}ns` : `${unit}s`);
+
+/** One way of selling: its price, tiers and (if any) its own commission. */
+function WayPrice({
+  label,
+  tone,
+  tiers,
+  unit,
+  detail,
+  commission,
+}: {
+  label?: string;
+  tone?: "menu" | "stock";
+  tiers: Product["tiers"];
+  unit: string;
+  detail?: string;
+  commission?: number;
+}) {
+  const sorted = [...tiers].sort((a, b) => a.qty - b.qty);
+  const first = sorted.find((t) => t.qty === 1) ?? sorted[0];
+  const batches = sorted.filter((t) => t !== first);
+  return (
+    <div className="space-y-1.5">
+      {(label || commission) && (
+        <div className="flex items-center gap-2">
+          {label && (
+            <span
+              className={cn(
+                "text-[11px] font-bold uppercase tracking-wide",
+                tone === "stock" ? "text-amber" : "text-primary",
+              )}
+            >
+              {label}
+            </span>
+          )}
+          <span className="flex-1" />
+          {commission ? (
+            <span
+              title="Comissão para quem vendeu"
+              className="inline-flex items-center rounded-full bg-commission-wash px-2 py-0.5 text-[10.5px] font-bold text-commission"
+            >
+              {String(commission).replace(".", ",")}% comissão
+            </span>
+          ) : null}
         </div>
       )}
-
+      {first && (
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="tabular text-[20px] font-bold leading-none text-primary">{formatBRL(first.price)}</span>
+          <span className="text-[11.5px] text-ink-faint">
+            {first.qty === 1 ? `/ ${unit}` : `/ ${first.qty} ${pluralOf(unit)}`}
+            {detail ? ` · ${detail}` : ""}
+          </span>
+        </div>
+      )}
       {batches.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {batches.map((b, i) => (
+        <div className="flex flex-wrap gap-1.5">
+          {batches.map((b) => (
             <span
-              key={i}
+              key={b.qty}
               className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border bg-paper px-2.5 py-1 text-[11.5px] text-ink-soft"
             >
-              <span className="font-semibold text-ink">{formatQty(b.qty, "un")}</span>
+              <span className="font-semibold text-ink">{b.qty} {pluralOf(unit)}</span>
               <span className="font-bold text-primary">{formatBRL(b.price)}</span>
             </span>
           ))}
