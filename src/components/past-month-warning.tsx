@@ -11,7 +11,7 @@ export function PastMonthWarning({ months, action }: { months: string[]; action:
     >
       <TriangleAlert className="mt-0.5 size-4 shrink-0" strokeWidth={2} />
       <p>
-        <strong className="font-bold">Mês anterior.</strong> {action} altera as Entradas de{" "}
+        <strong className="font-bold">Mês anterior.</strong> {action} afeta as Entradas de{" "}
         {uniq.map(monthLabel).join(" e ")}, que já passou e pode estar fechado. A mudança fica registrada
         no histórico.
       </p>

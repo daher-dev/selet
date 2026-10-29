@@ -40,7 +40,7 @@ import type {
   ShakeUtensil,
 } from "@/lib/types";
 import { DISCOUNT_REASONS, ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
-import { formatBRL, initials } from "@/lib/format";
+import { formatBRL, initials, orderCode } from "@/lib/format";
 import { lineOffer, unitPriceOf } from "@/lib/product-offers";
 import { isPastMonth } from "@/lib/past-month";
 import { monthKey } from "@/lib/timezone";
@@ -73,7 +73,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -464,6 +471,39 @@ function OrderForm({
   const cancelled = order?.status === "cancelado";
   // The Entradas month this order lives in (its "Data da venda", store timezone).
   const orderMonth = order ? monthKey(new Date(order.createdAt)) : "";
+  // A change to a valued order of a previous month moves that month's Entradas:
+  // those changes go through a confirmation dialog carrying the warning.
+  const affectsPast = Boolean(order && order.total > 0 && isPastMonth(orderMonth));
+  const [pastConfirm, setPastConfirm] = useState<(() => void) | null>(null);
+  function guard(run: () => void) {
+    if (affectsPast) setPastConfirm(() => run);
+    else run();
+  }
+  const pastMonthDialog = (
+    <Dialog open={pastConfirm !== null} onOpenChange={(o) => !o && setPastConfirm(null)}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Alterar um pedido de mês anterior?</DialogTitle>
+          <DialogDescription>Pedido #{order ? orderCode(order.id) : ""}</DialogDescription>
+        </DialogHeader>
+        <PastMonthWarning months={[orderMonth]} action="Esta alteração" />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setPastConfirm(null)}>
+            Voltar
+          </Button>
+          <Button
+            onClick={() => {
+              const run = pastConfirm;
+              setPastConfirm(null);
+              run?.();
+            }}
+          >
+            Confirmar alteração
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
   // "Nada a cobrar" (Part A.4) — never a persisted field, always derived from
   // the live total. Pago/A receber are disabled once the total hits zero;
@@ -669,6 +709,10 @@ function OrderForm({
   }
 
   function doSubmit(finalItems: OrderItem[]) {
+    guard(() => submitNow(finalItems));
+  }
+
+  function submitNow(finalItems: OrderItem[]) {
     startTransition(async () => {
       const base = {
         storeId,
@@ -727,6 +771,13 @@ function OrderForm({
 
   function changeStatus(status: Order["status"], reason?: string) {
     if (!order) return;
+    // Only cancelling or reviving moves money; stepping through the open statuses doesn't.
+    if (status === "cancelado" || cancelled) guard(() => applyStatus(status, reason));
+    else applyStatus(status, reason);
+  }
+
+  function applyStatus(status: Order["status"], reason?: string) {
+    if (!order) return;
     startTransition(async () => {
       const result = await setOrderStatusAction({
         storeId,
@@ -740,22 +791,27 @@ function OrderForm({
   }
 
   function changePayment(nextPaid: boolean, nextMethod: PayMethod | null) {
-    setPaid(nextPaid);
-    setPayMethod(nextPaid ? nextMethod : null);
-    if (!order) return; // create mode: applied on save
-    if (nextPaid && !nextMethod) return; // wait for method selection
-    startTransition(async () => {
-      const result = await setOrderPaymentAction({
-        storeId,
-        orderId: order.id,
-        paid: nextPaid,
-        payMethod: nextMethod,
+    const apply = () => {
+      setPaid(nextPaid);
+      setPayMethod(nextPaid ? nextMethod : null);
+    };
+    if (!order) return apply(); // create mode: applied on save
+    if (nextPaid && !nextMethod) return apply(); // wait for method selection
+    guard(() => {
+      apply();
+      startTransition(async () => {
+        const result = await setOrderPaymentAction({
+          storeId,
+          orderId: order.id,
+          paid: nextPaid,
+          payMethod: nextMethod,
+        });
+        if (result.ok) {
+          toast.success(nextPaid ? "Pagamento registrado." : "Pagamento removido.");
+        } else {
+          toast.error(result.error);
+        }
       });
-      if (result.ok) {
-        toast.success(nextPaid ? "Pagamento registrado." : "Pagamento removido.");
-      } else {
-        toast.error(result.error);
-      }
     });
   }
 
@@ -773,12 +829,14 @@ function OrderForm({
           onSkip={skipCartela}
           onConfirm={() => doSubmit(items)}
         />
+        {pastMonthDialog}
       </>
     );
   }
 
   return (
     <>
+      {pastMonthDialog}
       <div className="flex-1 space-y-5 p-4">
         <div className="space-y-1.5">
           <Label>Cliente</Label>
@@ -907,10 +965,6 @@ function OrderForm({
             </div>
           )}
         </div>
-
-        {order && order.total > 0 && isPastMonth(orderMonth) && (
-          <PastMonthWarning months={[orderMonth]} action="Alterar, cancelar ou mudar o pagamento deste pedido" />
-        )}
 
         {order && (
           <div className="space-y-1.5">
