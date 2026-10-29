@@ -37,6 +37,7 @@ test("Movimentações: dashboard link, create/edit avulso, follow a vinculado Or
   await page.goto("/painel/vila-velha/produtos");
   await page.getByRole("button", { name: "Novo produto" }).first().click();
   await page.locator("#product-name").fill("Bowl de salmão");
+  await page.getByRole("button", { name: "Receita", exact: true }).click();
   await page.locator("#product-price").fill("39,90");
   await page.getByRole("button", { name: "Adicionar insumo" }).click();
   await page.getByRole("button", { name: "Salmão" }).click();
@@ -130,17 +131,12 @@ test("Comissão: produto com comissão → pedido pago → Financeiro → regist
 }) => {
   await logIn(request, context, baseURL!);
 
-  // --- Commission belongs to the resale offer: give "Bowl de salmão" a resale
-  // offer (by package, linked to the Salmão stock item) and put 10% on it.
+  // --- 10% commission on the "Bowl de salmão" recipe item.
   await page.goto("/painel/vila-velha/produtos");
   await page.getByText("Bowl de salmão").first().click();
   const sheet = page.locator('[data-slot="sheet-content"]');
-  await sheet.getByRole("button", { name: "Revenda", exact: true }).click();
-  await sheet.getByRole("button", { name: "Selecionar item do estoque" }).click();
-  await sheet.getByRole("button", { name: "Salmão" }).click();
-  await sheet.getByPlaceholder("0,00").last().fill("39,90");
-  await sheet.getByRole("switch", { name: "Pagar comissão na revenda (por embalagem)" }).click();
-  await sheet.locator("#product-commission-resale").fill("10");
+  await sheet.getByRole("switch", { name: "Pagar comissão do vendedor" }).click();
+  await sheet.locator("#product-commission-sale").fill("10");
   await sheet.getByRole("button", { name: "Salvar" }).click();
   await expect(page.getByText("Produto atualizado.")).toBeVisible();
   await expect(page.getByText("10% comissão")).toBeVisible();
@@ -155,8 +151,6 @@ test("Comissão: produto com comissão → pedido pago → Financeiro → regist
     .getByRole("button", { name: "Nenhum item — toque para adicionar do cardápio." })
     .click();
   await page.getByRole("dialog").getByText("Bowl de salmão").click();
-  // Dual product: pick the package (resale) offer — only it earns commission.
-  await page.getByRole("dialog").getByRole("button", { name: /Embalagem/ }).click();
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Adicionar", exact: true })

@@ -42,7 +42,7 @@ import type {
 } from "@/lib/types";
 import { DISCOUNT_REASONS, ORDER_CHANNELS, PAY_METHODS } from "@/lib/types";
 import { formatBRL, initials, orderCode } from "@/lib/format";
-import { lineOffer, unitPriceOf } from "@/lib/product-offers";
+import { lineOffer, productKind, unitPriceOf } from "@/lib/product-offers";
 import { isPastMonth } from "@/lib/past-month";
 import { monthKey } from "@/lib/timezone";
 import { PastMonthWarning } from "@/components/past-month-warning";
@@ -2016,13 +2016,13 @@ function ProductPickerDialog({
                                 <span className="text-[11px] text-ink-faint">
                                   {meta.label}
                                 </span>
-                                {product.sale && product.resale ? (
-                                  <>
-                                    <SaleTypeBadge saleType="menu" />
-                                    <SaleTypeBadge saleType="revenda" />
-                                  </>
+                                {productKind(product) === "receita" ? (
+                                  <WayBadge label="Receita" tone="menu" />
                                 ) : (
-                                  <SaleTypeBadge saleType={product.saleType} />
+                                  <>
+                                    {product.resale && <WayBadge label="Embalagem" tone="stock" />}
+                                    {product.sale && <WayBadge label="Dose" tone="menu" />}
+                                  </>
                                 )}
                               </span>
                             </span>
@@ -2071,21 +2071,13 @@ function ProductPickerDialog({
   );
 }
 
-// Menu vs Revenda vs Adicional tag on catalog rows (design addProductList typeBadge).
-function SaleTypeBadge({ saleType }: { saleType: Product["saleType"] }) {
-  const style =
-    saleType === "revenda"
-      ? "bg-info-wash text-info"
-      : saleType === "adicional"
-        ? "bg-violet-wash text-violet"
-        : "bg-mist text-primary";
-  const label =
-    saleType === "revenda" ? "Revenda" : saleType === "adicional" ? "Adicional" : "Menu";
+// Way-of-selling tag on catalog rows (Receita / Embalagem / Dose).
+function WayBadge({ label, tone }: { label: string; tone: "menu" | "stock" }) {
   return (
     <span
       className={cn(
         "rounded-full px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide",
-        style,
+        tone === "menu" ? "bg-mist text-primary" : "bg-info-wash text-info",
       )}
     >
       {label}

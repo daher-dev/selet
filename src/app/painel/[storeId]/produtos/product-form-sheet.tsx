@@ -4,6 +4,7 @@ import { useProductCategories, useProductCategoryMeta } from "@/components/produ
 import { useMemo, useState, useTransition } from "react";
 import {
   Boxes,
+  Box,
   ChefHat,
   Loader2,
   Package,
@@ -22,6 +23,7 @@ import type {
   StockItem,
 } from "@/lib/types";
 import { PRODUCT_TYPE_TAGS } from "@/lib/types";
+import { productKind } from "@/lib/product-offers";
 import { formatBRL, formatQty, parseBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
@@ -171,11 +173,17 @@ function ProductForm({
   const [category, setCategory] = useState<string>(
     productCategories.some((c) => c.id === product?.category) ? product!.category : productCategories[0].id,
   );
-  // Two optional offers on one record, each with its own prices and commission:
-  // SALE (prepared by the dose, from the open package) and RESALE (whole
-  // sealed packages).
-  const [hasSale, setHasSale] = useState(product ? Boolean(product.sale) : true);
-  const [hasResale, setHasResale] = useState(Boolean(product?.resale));
+  // What the item IS: a stock item sold as-is ("estoque": by whole package
+  // and/or by single dose) or something prepared from a recipe ("receita").
+  // Stored as the sale/resale offers; each way of selling keeps its own price
+  // and commission.
+  const [kind, setKind] = useState<"estoque" | "receita">(product ? productKind(product) : "estoque");
+  const [packOn, setPackOn] = useState(product ? Boolean(product.resale) : true);
+  const [doseOn, setDoseOn] = useState(
+    product ? Boolean(product.sale) && productKind(product) === "estoque" : false,
+  );
+  const hasSale = kind === "receita" || doseOn;
+  const hasResale = kind === "estoque" && packOn;
   const [typeTags, setTypeTags] = useState<string[]>(product?.typeTags ?? []);
   const [description, setDescription] = useState(product?.description ?? "");
   const [active, setActive] = useState(product?.active ?? true);
@@ -185,9 +193,17 @@ function ProductForm({
   const [saleCommissionPct, setSaleCommissionPct] = useState(pctText(product?.sale?.commissionPercent));
   const [resaleCommissionOn, setResaleCommissionOn] = useState((product?.resale?.commissionPercent ?? 0) > 0);
   const [resaleCommissionPct, setResaleCommissionPct] = useState(pctText(product?.resale?.commissionPercent));
-  const [insumoId, setInsumoId] = useState<string | undefined>(product?.resale?.insumoId || undefined);
+  const [insumoId, setInsumoId] = useState<string | undefined>(
+    product?.resale?.insumoId ||
+      (product && productKind(product) === "estoque" ? product.sale?.recipe[0]?.stockItemId : undefined) ||
+      undefined,
+  );
+  // Quantity of the stock item one dose takes (null = "sem medição" items).
+  const [doseQty, setDoseQty] = useState<number | null>(
+    product && productKind(product) === "estoque" ? (product.sale?.recipe[0]?.qty ?? null) : 1,
+  );
   const [recipe, setRecipe] = useState<RecipeRow[]>(
-    (product?.sale?.recipe ?? product?.recipe ?? []).map((r) => ({
+    (product && productKind(product) === "receita" ? (product.sale?.recipe ?? product.recipe ?? []) : []).map((r) => ({
       ...r,
       _id: nextId(),
       continuo: resolveItem(r)?.consumptionMode === "continuo",
@@ -210,17 +226,28 @@ function ProductForm({
   );
   const [pending, startTransition] = useTransition();
 
-  // Offer toggles: at least one offer stays on.
-  function toggleSale() {
-    if (hasSale && !hasResale) return;
-    setHasSale(!hasSale);
+  // Ways of selling a stock item: at least one stays on.
+  function togglePack() {
+    if (packOn && !doseOn) return;
+    setPackOn(!packOn);
   }
-  function toggleResale() {
-    if (hasResale && !hasSale) return;
-    setHasResale(!hasResale);
+  function toggleDose() {
+    if (doseOn && !packOn) return;
+    setDoseOn(!doseOn);
   }
 
   const selectedInsumo = insumoId ? byId.get(insumoId) : undefined;
+  const doseContinuo = selectedInsumo?.consumptionMode === "continuo";
+  const doseRow: RecipeRow | null = selectedInsumo
+    ? {
+        _id: "dose",
+        stockItemId: selectedInsumo.id,
+        name: selectedInsumo.name,
+        qty: doseContinuo ? null : doseQty,
+        unit: selectedInsumo.unit,
+        continuo: doseContinuo,
+      }
+    : null;
   const usedInRecipe = useMemo(
     () =>
       new Set(recipe.map((r) => r.stockItemId).filter((x): x is string => Boolean(x))),
@@ -248,32 +275,40 @@ function ProductForm({
       toast.error("Informe ao menos uma faixa de preço válida.");
       return;
     }
-    if (hasResale && !insumoId) {
+    if (kind === "estoque" && !insumoId) {
       toast.error("Selecione o item do estoque.");
+      return;
+    }
+    if (kind === "estoque" && doseOn && doseRow && !doseRow.continuo && !(doseRow.qty && doseRow.qty > 0)) {
+      toast.error("Informe a quantidade do item por dose.");
       return;
     }
     // Each offer has its own commission rate (switch off = none).
     const saleCommission = saleCommissionOn && hasSale ? parsePercent(saleCommissionPct) : 0;
     if (saleCommissionOn && hasSale && saleCommission <= 0) {
-      toast.error("Informe o percentual da comissão do menu (entre 0 e 100).");
+      toast.error("Informe o percentual da comissão (entre 0 e 100).");
       return;
     }
     const resaleCommission = resaleCommissionOn && hasResale ? parsePercent(resaleCommissionPct) : 0;
     if (resaleCommissionOn && hasResale && resaleCommission <= 0) {
-      toast.error("Informe o percentual da comissão da revenda (entre 0 e 100).");
+      toast.error("Informe o percentual da comissão da embalagem (entre 0 e 100).");
       return;
     }
 
-    const cleanRecipe: RecipeItem[] = hasSale
-      ? recipe
+    const cleanRecipe: RecipeItem[] = !hasSale
+      ? []
+      : kind === "estoque"
+        ? doseRow
+          ? [{ stockItemId: doseRow.stockItemId, name: doseRow.name, qty: doseRow.qty, unit: doseRow.unit }]
+          : []
+        : recipe
           .filter((r) => r.name.trim())
           .map((r) => ({
             ...(r.stockItemId ? { stockItemId: r.stockItemId } : {}),
             name: r.name.trim(),
             qty: r.continuo ? null : r.qty,
             unit: r.unit.trim(),
-          }))
-      : [];
+          }));
     // Every insumo/opcional must trace to a real Estoque item — no more
     // "topping, no stock link" catalog holes (see actions/products.ts's
     // productSchema, which enforces the same rule server-side).
@@ -385,77 +420,30 @@ function ProductForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Como é vendido</Label>
+          <Label>O que é este item?</Label>
           <div className="grid grid-cols-2 gap-2">
             <SaleTypeButton
-              active={hasSale}
-              onClick={toggleSale}
-              icon={<ChefHat className="size-4" />}
-              label="Menu"
+              active={kind === "estoque"}
+              onClick={() => setKind("estoque")}
+              icon={<Package className="size-4" />}
+              label="Item do estoque"
             />
             <SaleTypeButton
-              active={hasResale}
-              onClick={toggleResale}
-              icon={<Tag className="size-4" />}
-              label="Revenda"
+              active={kind === "receita"}
+              onClick={() => setKind("receita")}
+              icon={<ChefHat className="size-4" />}
+              label="Receita"
             />
           </div>
           <p className="text-[11.5px] text-ink-faint">
-            {hasSale && hasResale
-              ? "Os dois modos no mesmo item — preço, estoque e comissão separados. Quem vende escolhe no pedido."
-              : "Ligue os dois se o mesmo item sai por dose e também fechado."}
+            {kind === "estoque"
+              ? "Um item do estoque vendido como está — fechado, avulso (dose) ou os dois."
+              : "Feito na loja com uma receita de vários insumos."}
           </p>
         </div>
 
-        {hasSale && (
-          <OfferCard
-            icon={<ChefHat className="size-[18px]" />}
-            title="Menu · por dose"
-            hint="Preparado na loja: cada venda consome do pacote aberto."
-          >
-            <InsumoSection
-              title="Consome do estoque (por dose)"
-              rows={recipe}
-              stockItems={stockItems}
-              usedStockIds={usedInRecipe}
-              addLabel="Adicionar insumo"
-              onAdd={addRecipeRow}
-              onRemove={(id) => setRecipe((rs) => rs.filter((r) => r._id !== id))}
-              renderRow={(row) => (
-                <RecipeRowFields
-                  row={row}
-                  onQty={(qty) =>
-                    setRecipe((rs) =>
-                      rs.map((r) => (r._id === row._id ? { ...r, qty } : r)),
-                    )
-                  }
-                />
-              )}
-            />
-            <TierEditor
-              label="Preço por dose"
-              tiers={tiers}
-              setTiers={setTiers}
-              firstId="product-price"
-            />
-            <CommissionField
-              id="product-commission-menu"
-              title="Comissão no menu (por dose)"
-              on={saleCommissionOn}
-              onToggle={setSaleCommissionOn}
-              percent={saleCommissionPct}
-              onPercent={setSaleCommissionPct}
-              tiers={parseTierRows(tiers)}
-            />
-          </OfferCard>
-        )}
-
-        {hasResale && (
-          <OfferCard
-            icon={<Tag className="size-[18px]" />}
-            title="Revenda · por embalagem"
-            hint="Item do estoque vendido fechado: cada venda baixa uma embalagem lacrada."
-          >
+        {kind === "estoque" && (
+          <>
             <div className="space-y-1.5">
               <Label>Item do estoque</Label>
               <InsumoTriggerPicker
@@ -477,20 +465,119 @@ function ProductForm({
                 </div>
               )}
             </div>
-            <TierEditor
-              label="Preço por embalagem"
-              tiers={resaleTiers}
-              setTiers={setResaleTiers}
-              firstId={hasSale ? undefined : "product-price"}
+
+            <div className="space-y-1.5">
+              <Label>Formas de venda</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <SaleTypeButton
+                  active={packOn}
+                  onClick={togglePack}
+                  icon={<Box className="size-4" />}
+                  label="Embalagem fechada"
+                />
+                <SaleTypeButton
+                  active={doseOn}
+                  onClick={toggleDose}
+                  icon={<Tag className="size-4" />}
+                  label="Dose avulsa"
+                />
+              </div>
+            </div>
+
+            {packOn && (
+              <OfferCard
+                icon={<Box className="size-[18px]" />}
+                title="Embalagem fechada"
+                hint="Cada venda baixa uma embalagem lacrada do estoque."
+              >
+                <TierEditor
+                  label="Preço por embalagem"
+                  tiers={resaleTiers}
+                  setTiers={setResaleTiers}
+                  firstId={doseOn ? undefined : "product-price"}
+                />
+                <CommissionField
+                  id="product-commission-resale"
+                  title="Comissão na embalagem fechada"
+                  on={resaleCommissionOn}
+                  onToggle={setResaleCommissionOn}
+                  percent={resaleCommissionPct}
+                  onPercent={setResaleCommissionPct}
+                  tiers={parseTierRows(resaleTiers)}
+                />
+              </OfferCard>
+            )}
+
+            {doseOn && (
+              <OfferCard
+                icon={<Tag className="size-[18px]" />}
+                title="Dose avulsa"
+                hint="Cada venda tira uma dose do pacote aberto."
+              >
+                {doseRow ? (
+                  <div className="space-y-1.5">
+                    <Label>Quantidade por dose</Label>
+                    <div className="rounded-xl border border-border bg-paper px-3 py-2.5">
+                      <RecipeRowFields row={doseRow} label="Cada dose usa" onQty={setDoseQty} />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[12px] text-ink-faint">Selecione o item do estoque acima para definir a dose.</p>
+                )}
+                <TierEditor
+                  label="Preço por dose"
+                  tiers={tiers}
+                  setTiers={setTiers}
+                  firstId="product-price"
+                />
+                <CommissionField
+                  id="product-commission-sale"
+                  title="Comissão na dose avulsa"
+                  on={saleCommissionOn}
+                  onToggle={setSaleCommissionOn}
+                  percent={saleCommissionPct}
+                  onPercent={setSaleCommissionPct}
+                  tiers={parseTierRows(tiers)}
+                />
+              </OfferCard>
+            )}
+          </>
+        )}
+
+        {kind === "receita" && (
+          <OfferCard
+            icon={<ChefHat className="size-[18px]" />}
+            title="Receita"
+            hint="Feita na loja: cada venda consome os insumos da receita do pacote aberto."
+          >
+            <InsumoSection
+              title="Receita (por unidade)"
+              rows={recipe}
+              stockItems={stockItems}
+              usedStockIds={usedInRecipe}
+              addLabel="Adicionar insumo"
+              onAdd={addRecipeRow}
+              onRemove={(id) => setRecipe((rs) => rs.filter((r) => r._id !== id))}
+              renderRow={(row) => (
+                <RecipeRowFields
+                  row={row}
+                  onQty={(qty) =>
+                    setRecipe((rs) =>
+                      rs.map((r) => (r._id === row._id ? { ...r, qty } : r)),
+                    )
+                  }
+                />
+              )}
             />
+            <TierEditor label="Preço" tiers={tiers} setTiers={setTiers} firstId="product-price" />
             <CommissionField
-              id="product-commission-resale"
-              title="Comissão na revenda (por embalagem)"
-              on={resaleCommissionOn}
-              onToggle={setResaleCommissionOn}
-              percent={resaleCommissionPct}
-              onPercent={setResaleCommissionPct}
-              tiers={parseTierRows(resaleTiers)}
+              id="product-commission-sale"
+              title="Comissão do vendedor"
+              on={saleCommissionOn}
+              onToggle={setSaleCommissionOn}
+              percent={saleCommissionPct}
+              onPercent={setSaleCommissionPct}
+              tiers={parseTierRows(tiers)}
             />
           </OfferCard>
         )}
@@ -699,14 +786,16 @@ function findCategory(
 function RecipeRowFields({
   row,
   onQty,
+  label = "Quantidade por preparo",
 }: {
   row: RecipeRow;
   onQty: (qty: number | null) => void;
+  label?: string;
 }) {
   if (row.continuo) return <SemMedicaoChip />;
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[11.5px] text-ink-faint">Quantidade por preparo</span>
+      <span className="text-[11.5px] text-ink-faint">{label}</span>
       <span className="flex-1" />
       <div className="flex h-9 items-center rounded-lg border border-border bg-card px-2.5">
         <Input

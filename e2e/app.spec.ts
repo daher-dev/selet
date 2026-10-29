@@ -43,6 +43,7 @@ test("full flow: login → product → customer → order → paid → dashboard
   await page.goto("/painel/vila-velha/produtos");
   await page.getByRole("button", { name: "Novo produto" }).first().click();
   await page.locator("#product-name").fill("Bowl de salmão");
+  await page.getByRole("button", { name: "Receita", exact: true }).click();
   await page.locator("#product-price").fill("39,90");
   await page.getByRole("button", { name: "Adicionar insumo" }).click();
   await page.getByRole("button", { name: "Salmão" }).click();

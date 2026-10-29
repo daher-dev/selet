@@ -1,13 +1,14 @@
 "use client";
 
 import { useProductCategories, useProductCategoryMeta } from "@/components/product-settings-context";
-import { unitPriceOf } from "@/lib/product-offers";
+import { productKind, unitPriceOf } from "@/lib/product-offers";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   Archive,
-  Blocks,
+  Box,
   ChefHat,
+  Package,
   ChevronDown,
   Filter,
   List,
@@ -48,9 +49,8 @@ interface ProdutosClientProps {
 
 const TYPE_FILTERS: { value: string; label: string }[] = [
   { value: "all", label: "Todos" },
-  { value: "menu", label: "Menu" },
-  { value: "revenda", label: "Revenda" },
-  { value: "adicional", label: "Adicional" },
+  { value: "estoque", label: "Item do estoque" },
+  { value: "receita", label: "Receita" },
   { value: "arquivados", label: "Arquivados" },
 ];
 
@@ -96,7 +96,7 @@ export function ProdutosClient({
         return false;
       }
       if (category !== "all" && p.category !== category) return false;
-      if (saleType !== "all" && saleType !== "arquivados" && p.saleType !== saleType)
+      if (saleType !== "all" && saleType !== "arquivados" && productKind(p) !== saleType)
         return false;
       const catLabel = PRODUCT_CATEGORY_META[p.category]?.label ?? p.category;
       const haystack = `${p.name} ${catLabel}`.toLowerCase();
@@ -117,8 +117,8 @@ export function ProdutosClient({
       : (PRODUCT_CATEGORY_META[category]?.label ?? "Todas as categorias");
   const typeLabel =
     saleType === "all"
-      ? "Menu e revenda"
-      : (TYPE_FILTERS.find((t) => t.value === saleType)?.label ?? "Menu e revenda");
+      ? "Todos os itens"
+      : (TYPE_FILTERS.find((t) => t.value === saleType)?.label ?? "Todos os itens");
 
   return (
     <>
@@ -164,15 +164,13 @@ export function ProdutosClient({
         <FilterDropdown label={typeLabel} active={saleType !== "all"}>
           {TYPE_FILTERS.map((opt) => {
             const Icon =
-              opt.value === "menu"
+              opt.value === "receita"
                 ? ChefHat
-                : opt.value === "revenda"
-                  ? Tag
-                  : opt.value === "adicional"
-                    ? Blocks
-                    : opt.value === "arquivados"
-                      ? Archive
-                      : List;
+                : opt.value === "estoque"
+                  ? Package
+                  : opt.value === "arquivados"
+                    ? Archive
+                    : List;
             return (
               <DropdownMenuItem
                 key={opt.value}
@@ -181,15 +179,13 @@ export function ProdutosClient({
               >
                 <DropdownMenuItemIcon
                   className={
-                    opt.value === "menu"
+                    opt.value === "receita"
                       ? "bg-mist text-primary"
-                      : opt.value === "revenda"
+                      : opt.value === "estoque"
                         ? "bg-amber-wash text-amber"
-                        : opt.value === "adicional"
-                          ? "bg-violet-wash text-violet"
-                          : opt.value === "arquivados"
-                            ? "bg-wash text-ink-faint"
-                            : undefined
+                        : opt.value === "arquivados"
+                          ? "bg-wash text-ink-faint"
+                          : undefined
                   }
                 >
                   <Icon />
@@ -350,13 +346,13 @@ function ProductCard({
                 {String(c.pct).replace(".", ",")}% comissão{c.tag ? ` · ${c.tag}` : ""}
               </span>
             ))}
-          {dual ? (
-            <>
-              <TypeBadge saleType="menu" />
-              <TypeBadge saleType="revenda" />
-            </>
+          {productKind(product) === "receita" ? (
+            <WayBadge tone="menu" icon={ChefHat} label="Receita" />
           ) : (
-            <TypeBadge saleType={product.saleType} />
+            <>
+              {product.resale && <WayBadge tone="stock" icon={Box} label="Embalagem" />}
+              {product.sale && <WayBadge tone="menu" icon={Tag} label="Dose" />}
+            </>
           )}
         </div>
       </div>
@@ -471,21 +467,20 @@ function ProductCard({
   );
 }
 
-function TypeBadge({ saleType }: { saleType: Product["saleType"] }) {
-  const style =
-    saleType === "menu"
-      ? "bg-mist text-primary"
-      : saleType === "adicional"
-        ? "bg-violet-wash text-violet"
-        : "bg-amber-wash text-amber";
-  const Icon = saleType === "menu" ? ChefHat : saleType === "adicional" ? Blocks : Tag;
-  const label =
-    saleType === "menu" ? "Menu" : saleType === "adicional" ? "Adicional" : "Revenda";
+function WayBadge({
+  tone,
+  icon: Icon,
+  label,
+}: {
+  tone: "menu" | "stock";
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
   return (
     <span
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold",
-        style,
+        tone === "menu" ? "bg-mist text-primary" : "bg-amber-wash text-amber",
       )}
     >
       <Icon className="size-3" />

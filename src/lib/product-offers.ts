@@ -35,3 +35,14 @@ export function lineOffer(product: Pick<Product, "sale" | "resale" | "saleType">
   if (product.resale && !product.sale) return "resale";
   return product.saleType === "revenda" || product.saleType === "adicional" ? "resale" : "sale";
 }
+
+/**
+ * What the item IS, from the user's point of view: a stock item sold as-is
+ * (whole packages and/or single doses of one item) or something prepared from
+ * a multi-ingredient recipe. Derived — the stored shape stays sale/resale.
+ */
+export function productKind(p: Pick<Product, "sale" | "resale">): "estoque" | "receita" {
+  if (p.resale) return "estoque";
+  const recipe = p.sale?.recipe ?? [];
+  return recipe.length === 1 && recipe[0].stockItemId ? "estoque" : "receita";
+}
