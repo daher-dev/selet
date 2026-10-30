@@ -160,7 +160,7 @@ export function monthlySeries(
   });
 }
 
-/** Finer-than-month views of Evolução. Both cover the same 12 months as the monthly view (the daily chart is just denser). */
+/** Finer-than-month views of Evolução. Both cover the same 12 months as the monthly view (the daily chart is just denser, weekdays only). */
 export type PeriodUnit = "week" | "day";
 export const EVOLUTION_BUCKETS: Record<PeriodUnit, number> = { week: 52, day: 365 };
 
@@ -186,6 +186,11 @@ function mondayOf(day: number): number {
 function dayLabel(day: number): string {
   const d = new Date(day * DAY_MS);
   return `${d.getUTCDate()} ${MONTH_ABBR[d.getUTCMonth()]}`;
+}
+
+/** Month (0–11) of a day number. */
+function monthOf(day: number): number {
+  return new Date(day * DAY_MS).getUTCMonth();
 }
 
 /** Day number of the first bucket shown (the oldest) for `unit`, given today's day number. */
@@ -216,14 +221,21 @@ export function periodSeries(input: {
   const { unit } = input;
   const size = unit === "week" ? 7 : 1;
   const count = input.count ?? EVOLUTION_BUCKETS[unit];
-  const firstStart = periodStart(unit, zonedDayNumber(input.now), count);
-  /** Index of the bucket holding `date`, or -1 outside the window. */
+  const today = zonedDayNumber(input.now);
+  const firstStart = periodStart(unit, today, count);
+  // Daily view skips Saturdays and Sundays ((day + 3) % 7 is 0 on Mondays … 5 Saturday, 6 Sunday).
+  const starts = Array.from({ length: count }, (_, i) => firstStart + i * size).filter(
+    (d) => unit === "week" || (d + 3) % 7 < 5,
+  );
+  const slotOf = new Map(starts.map((d, i) => [d, i]));
+  /** Index of the bucket holding `date`, or -1 outside the window (or on a skipped weekend). */
   const weekOf = (date: Date): number => {
-    const w = Math.floor((zonedDayNumber(date) - firstStart) / size);
-    return w >= 0 && w < count ? w : -1;
+    const day = zonedDayNumber(date);
+    return slotOf.get(unit === "week" ? mondayOf(day) : day) ?? -1;
   };
+  const currentStart = unit === "week" ? mondayOf(today) : today;
 
-  const rows = Array.from({ length: count }, () => ({
+  const rows = starts.map(() => ({
     sales: 0,
     orderCount: 0,
     channels: { instagram: 0, whatsapp: 0, loja: 0 },
@@ -248,8 +260,9 @@ export function periodSeries(input: {
       const first = input.firstOrderAt.get(id);
       if (first && weekOf(first) === i) novos += 1;
     }
-    const start = firstStart + i * size;
-    const partial = i === count - 1;
+    const start = starts[i];
+    const partial = start === currentStart;
+    const first = i === 0 || monthOf(starts[i - 1]) !== monthOf(start);
     const prev = rows[i - 1];
     const mom =
       prev && prev.sales > 0 && !partial
@@ -258,10 +271,10 @@ export function periodSeries(input: {
     const iso = new Date(start * DAY_MS).toISOString().slice(0, 10);
     return {
       key: iso,
-      // Daily bars are hairline-thin over 12 months: the 1st of each month is labelled by its name ("nov").
+      // Daily bars are hairline-thin over 12 months: a month's first bar is labelled by its name ("nov").
       label:
-        unit === "day" && new Date(start * DAY_MS).getUTCDate() === 1
-          ? MONTH_ABBR[new Date(start * DAY_MS).getUTCMonth()]
+        unit === "day" && first && i > 0
+          ? MONTH_ABBR[monthOf(start)]
           : `${new Date(start * DAY_MS).getUTCDate()}/${String(new Date(start * DAY_MS).getUTCMonth() + 1).padStart(2, "0")}`,
       title:
         unit === "week"

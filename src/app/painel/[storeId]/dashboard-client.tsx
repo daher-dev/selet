@@ -185,7 +185,7 @@ export function DashboardClient({
 const VIEW_COPY: Record<Unit, { title: string; chip: string; adj: string }> = {
   month: { title: "Evolução mensal", chip: "Últimos 12 meses", adj: "mensal" },
   week: { title: "Evolução semanal", chip: "Últimos 12 meses", adj: "semanal" },
-  day: { title: "Evolução diária", chip: "Últimos 12 meses", adj: "diário" },
+  day: { title: "Evolução diária", chip: "Últimos 12 meses", adj: "diário (seg–sex)" },
 };
 
 const NO_POINTS: MonthPoint[] = [];
