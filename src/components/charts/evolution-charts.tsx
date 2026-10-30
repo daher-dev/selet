@@ -18,8 +18,7 @@ import {
   STRONG_TEXT,
   dimOpacity,
   kLabel,
-  labelShown,
-  labelStep,
+  axisLabels,
   milLabel,
   monthTitle,
   niceMax,
@@ -103,7 +102,7 @@ export function MonthlySalesChart({
         const slot = (W - left) / n;
         const bw = Math.min(46, slot * 0.56);
         const compact = slot < 34;
-        const step = labelStep(slot);
+        const { show, dense } = axisLabels(months, slot, 34, unit);
         const maxReais = Math.max(0, ...months.map((m) => m.sales / 100));
         const axisMax = niceMax(maxReais, 4);
         const y = (reais: number) => base - (reais / axisMax) * (base - top);
@@ -126,9 +125,11 @@ export function MonthlySalesChart({
                 </text>
               </g>
             ))}
-            <text x={0} y={244} fontSize={compact ? 9 : 10.5} fontWeight={700} fill={AXIS_TEXT}>
-              {u.delta}
-            </text>
+            {!dense && (
+              <text x={0} y={244} fontSize={compact ? 9 : 10.5} fontWeight={700} fill={AXIS_TEXT}>
+                {u.delta}
+              </text>
+            )}
             {months.map((m, i) => {
               const cx = left + slot * i + slot / 2;
               const lx = Math.min(cx, W - 16); // keep the open week's labels inside the frame
@@ -175,7 +176,7 @@ export function MonthlySalesChart({
                       {milLabel(m.sales)}
                     </text>
                   )}
-                  {labelShown(i, months.length, step) && (
+                  {show[i] && (
                   <text
                     x={lx}
                     y={220}
@@ -187,7 +188,7 @@ export function MonthlySalesChart({
                     {m.label}
                   </text>
                   )}
-                  {!labelShown(i, months.length, step) ? null : m.partial ? (
+                  {!show[i] || dense ? null : m.partial ? (
                     <text
                       x={lx}
                       y={244}
@@ -343,7 +344,7 @@ export function ChannelStackChart({
         {(W, hover) => {
           const f = smallFrame(W, months.length);
           const compact = f.slot < 30;
-          const step = labelStep(f.slot, unit === "week" ? 44 : 30);
+          const { show } = axisLabels(months, f.slot, unit === "week" ? 44 : 30, unit);
           const h = f.base - f.top;
           return (
             <>
@@ -385,7 +386,7 @@ export function ChannelStackChart({
                           />
                         );
                       })}
-                    <MonthLabel x={cx} m={m} compact={compact} show={labelShown(i, months.length, step)} maxX={W - 14} />
+                    <MonthLabel x={cx} m={m} compact={compact} show={show[i]} maxX={W - 14} />
                     {m.partial && (
                       <CurrentColumn cx={cx} slot={f.slot} hatchId="hatch-channels" base={f.base} />
                     )}
@@ -471,7 +472,7 @@ export function CustomerSplitChart({
         {(W, hover) => {
           const f = smallFrame(W, months.length);
           const compact = f.slot < 30;
-          const step = labelStep(f.slot, unit === "week" ? 44 : 30);
+          const { show, dense } = axisLabels(months, f.slot, unit === "week" ? 44 : 30, unit);
           const maxTotal = Math.max(0, ...months.map((m) => parts(m).rec + parts(m).nov));
           const axisMax = countAxisMax(maxTotal, 3);
           const h = f.base - f.top;
@@ -479,9 +480,11 @@ export function CustomerSplitChart({
           return (
             <>
               <Hatch id="hatch-customers" />
-              <text x={0} y={232} fontSize={compact ? 9 : 10.5} fontWeight={700} fill={AXIS_TEXT}>
-                {u.delta}
-              </text>
+              {!dense && (
+                <text x={0} y={232} fontSize={compact ? 9 : 10.5} fontWeight={700} fill={AXIS_TEXT}>
+                  {u.delta}
+                </text>
+              )}
               {[0, 1, 2, 3].map((i) => {
                 const t = (axisMax / 3) * i;
                 const yy = f.base - (i / 3) * h;
@@ -526,11 +529,11 @@ export function CustomerSplitChart({
                         fill="#2F6FB5"
                       />
                     )}
-                    <MonthLabel x={cx} m={m} compact={compact} show={labelShown(i, months.length, step)} maxX={W - 14} />
+                    <MonthLabel x={cx} m={m} compact={compact} show={show[i]} maxX={W - 14} />
                     {m.partial && (
                       <CurrentColumn cx={cx} slot={f.slot} hatchId="hatch-customers" base={f.base} />
                     )}
-                    {labelShown(i, months.length, step) &&
+                    {show[i] && !dense &&
                       (m.partial ? (
                         <text
                           x={Math.min(cx, W - 18)}

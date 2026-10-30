@@ -24,7 +24,6 @@ import {
   MonthlySalesChart,
   type Unit,
 } from "@/components/charts/evolution-charts";
-import { Skeleton } from "@/components/ui/skeleton";
 import { loadPeriodsAction } from "@/actions/dashboard";
 import type { MonthPoint, PeriodUnit, RankedItem } from "@/lib/dashboard-core";
 import type { DashboardView } from "./dashboard-data";
@@ -64,6 +63,7 @@ export function DashboardClient({
     if (next !== "month" && !loaded[next]) void loadPeriod(next);
   };
   const series = view_ === "month" ? months : loaded[view_];
+  const points = series ?? NO_POINTS;
   const heading = VIEW_COPY[view_];
 
   const kpiCards: {
@@ -153,29 +153,29 @@ export function DashboardClient({
               ))}
             </div>
           </div>
-          {!series ? (
-            <PeriodPlaceholder error={loadError} onRetry={() => void loadPeriod(view_ as PeriodUnit)} />
-          ) : (
-            <>
-              <TintedCard
-                tone="green"
-                icon={CircleDollarSign}
-                title="Vendas"
-                subtitle={`Faturamento ${heading.adj} em R$ mil`}
-                className="mb-2.5 lg:mb-4"
-              >
-                <MonthlySalesChart months={series} unit={view_} />
-              </TintedCard>
-              <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-4">
-                <TintedCard tone="pink" icon={ChartPie} title="Canais de venda">
-                  <ChannelStackChart months={series} unit={view_} />
-                </TintedCard>
-                <TintedCard tone="blue" icon={Users} title="Clientes ativos">
-                  <CustomerSplitChart months={series} unit={view_} />
-                </TintedCard>
-              </div>
-            </>
-          )}
+          <TintedCard
+            tone="green"
+            icon={CircleDollarSign}
+            title="Vendas"
+            subtitle={`Faturamento ${heading.adj} em R$ mil`}
+            className="mb-2.5 lg:mb-4"
+          >
+            <Pending on={!series} error={loadError} onRetry={() => void loadPeriod(view_ as PeriodUnit)}>
+              <MonthlySalesChart months={points} unit={view_} />
+            </Pending>
+          </TintedCard>
+          <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-4">
+            <TintedCard tone="pink" icon={ChartPie} title="Canais de venda">
+              <Pending on={!series}>
+                <ChannelStackChart months={points} unit={view_} />
+              </Pending>
+            </TintedCard>
+            <TintedCard tone="blue" icon={Users} title="Clientes ativos">
+              <Pending on={!series}>
+                <CustomerSplitChart months={points} unit={view_} />
+              </Pending>
+            </TintedCard>
+          </div>
         </>
       )}
     </>
@@ -184,22 +184,41 @@ export function DashboardClient({
 
 const VIEW_COPY: Record<Unit, { title: string; chip: string; adj: string }> = {
   month: { title: "Evolução mensal", chip: "Últimos 12 meses", adj: "mensal" },
-  week: { title: "Evolução semanal", chip: "Últimas 52 semanas", adj: "semanal" },
-  day: { title: "Evolução diária", chip: "Últimos 30 dias", adj: "diário" },
+  week: { title: "Evolução semanal", chip: "Últimos 12 meses", adj: "semanal" },
+  day: { title: "Evolução diária", chip: "Últimos 12 meses", adj: "diário (seg–sex)" },
 };
 
-function PeriodPlaceholder({ error, onRetry }: { error: boolean; onRetry: () => void }) {
-  if (error) {
-    return (
-      <div className="flex flex-col items-center gap-2 rounded-2xl border bg-card py-12 text-[13px] text-ink-soft">
-        Não foi possível carregar o período.
-        <button type="button" onClick={onRetry} className="font-bold text-primary underline">
-          Tentar de novo
-        </button>
-      </div>
-    );
-  }
-  return <Skeleton aria-label="Carregando período" className="h-[420px] w-full rounded-2xl" />;
+const NO_POINTS: MonthPoint[] = [];
+
+/**
+ * While a view's data loads, the real chart renders empty and dimmed in its
+ * place, so the cards keep their exact height and the page doesn't jump.
+ */
+function Pending({
+  on,
+  error,
+  onRetry,
+  children,
+}: {
+  on: boolean;
+  error?: boolean;
+  onRetry?: () => void;
+  children: React.ReactNode;
+}) {
+  if (!on) return children;
+  return (
+    <div className="relative" aria-busy="true">
+      <div className={cn("pointer-events-none opacity-40", !error && "animate-pulse")}>{children}</div>
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[13px] text-ink-soft">
+          Não foi possível carregar o período.
+          <button type="button" onClick={onRetry} className="font-bold text-primary underline">
+            Tentar de novo
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function KpiCard({

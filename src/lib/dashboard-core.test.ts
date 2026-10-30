@@ -186,5 +186,26 @@ describe("periodSeries (day)", () => {
     expect(d[1].mom).toBe(6.7);
     expect(d[2]).toMatchObject({ partial: true, mom: null });
     expect(d[1].title).toBe("qua, 28 out");
+    expect(d[0].label).toBe("27/10");
+  });
+
+  it("skips weekends; Monday's DoD compares with Friday; a month's first weekday is labelled by name", () => {
+    const orders = [
+      mkOrder({ customerId: "bia", total: 1000, createdAt: "2026-10-30T15:00:00Z" }), // Fri
+      mkOrder({ customerId: "bia", total: 5000, createdAt: "2026-10-31T15:00:00Z" }), // Sat: not shown
+      mkOrder({ customerId: "bia", total: 1500, createdAt: "2026-11-02T15:00:00Z" }), // Mon
+    ];
+    const d = periodSeries({
+      unit: "day",
+      orders,
+      firstOrderAt: new Map(),
+      now: new Date("2026-11-03T15:00:00Z"), // Tue
+      count: 6,
+    });
+    expect(d.map((p) => p.key)).toEqual(["2026-10-29", "2026-10-30", "2026-11-02", "2026-11-03"]);
+    expect(d.map((p) => p.sales)).toEqual([0, 1000, 1500, 0]);
+    expect(d.map((p) => p.label)).toEqual(["29/10", "30/10", "nov", "3/11"]);
+    expect(d[2].mom).toBe(50);
+    expect(d[3].partial).toBe(true);
   });
 });

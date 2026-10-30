@@ -342,6 +342,29 @@ export function labelShown(i: number, n: number, step: number): boolean {
   return (n - 1 - i) % step === 0;
 }
 
+/**
+ * Which x-axis labels to draw. Normally every `step`-th point, counted back from
+ * the open one. When bars get hairline-thin (`dense`, e.g. 365 days) a date per
+ * bar is hopeless, so only the first bar of each month is labelled (thinned the same way).
+ */
+export function axisLabels(
+  points: { key: string }[],
+  slot: number,
+  minWidth: number,
+  unit: "month" | "week" | "day",
+): { show: boolean[]; dense: boolean } {
+  const n = points.length;
+  const dense = unit === "day" && slot < 8;
+  if (!dense) {
+    const step = labelStep(slot, minWidth);
+    return { show: points.map((_, i) => labelShown(i, n, step)), dense };
+  }
+  const starts = points.flatMap((p, i) => (i > 0 && p.key.slice(0, 7) !== points[i - 1].key.slice(0, 7) ? [i] : []));
+  const every = Math.max(1, Math.ceil(minWidth / (30 * slot)));
+  const keep = new Set(starts.filter((_, j) => (starts.length - 1 - j) % every === 0));
+  return { show: points.map((_, i) => keep.has(i)), dense };
+}
+
 /** Which series keys are hidden, given a toggle request. Never hides the last visible one. */
 export function toggleSeries<K extends string>(
   hidden: ReadonlySet<K>,
