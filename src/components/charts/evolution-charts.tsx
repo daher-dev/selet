@@ -1,6 +1,6 @@
 "use client";
 
-import type { MonthPoint } from "@/lib/dashboard-core";
+import type { MonthPoint, PeriodUnit } from "@/lib/dashboard-core";
 import { formatBRL } from "@/lib/format";
 import {
   AXIS_TEXT,
@@ -31,8 +31,8 @@ import {
 
 type SalesPoint = Pick<MonthPoint, "key" | "label" | "title" | "sales" | "mom" | "partial" | "orderCount">;
 
-/** Months (12-month view) or weeks of a month (drill-down). */
-export type Unit = "month" | "week";
+/** Months (12-month view), or the finer weekly / daily views. */
+export type Unit = "month" | PeriodUnit;
 
 /** Tooltip title: the weekly range, or the month name. */
 function pointTitle(p: { key: string; title?: string }): string {
@@ -42,6 +42,7 @@ function pointTitle(p: { key: string; title?: string }): string {
 const UNIT = {
   month: { delta: "MoM", prev: "vs. mês anterior", per: "por mês", adj: "mensais" },
   week: { delta: "WoW", prev: "vs. semana anterior", per: "por semana", adj: "semanais" },
+  day: { delta: "DoD", prev: "vs. dia anterior", per: "por dia", adj: "diários" },
 } as const;
 
 /** Month `<g>` style while another month is hovered. */
