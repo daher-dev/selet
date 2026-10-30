@@ -3,6 +3,7 @@
 import { useProductCategories, useProductCategoryMeta } from "@/components/product-settings-context";
 import { productKind } from "@/lib/product-offers";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Archive,
@@ -109,7 +110,12 @@ export function ProdutosClient({
     setFormOpen(true);
   }
 
-  usePageAction({ label: "Novo item", onClick: openNew });
+  const router = useRouter();
+  usePageAction({
+    label: "Novo item",
+    onClick: openNew,
+    secondary: { label: "Cardápio público", onClick: () => router.push(`/painel/${storeId}/produtos/cardapio-publico`) },
+  });
 
   const categoryLabel =
     category === "all"

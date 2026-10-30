@@ -2,9 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE = "__session";
 
-/** Public sorteio link (/s/<slug>) and its generated share image. Server
- *  Functions post to the page URL, so this also lets public sign-ups through. */
-const PUBLIC_PATH = /^\/s\/[^/]+(\/opengraph-image[^/]*)?\/?$/;
+/** Public sorteio link (/s/<slug>) and its generated share image (Server
+ *  Functions post to the page URL, so this also lets public sign-ups through),
+ *  and the public cardápio (/cardapio/<storeId>) with its photos. */
+const PUBLIC_PATH = /^\/(s\/[^/]+(\/opengraph-image[^/]*)?|cardapio\/[^/]+(\/foto\/[^/]+)?)\/?$/;
 
 /**
  * Cheap cookie-presence gate only — firebase-admin cannot run here.

@@ -5,6 +5,9 @@ import type { Product, StockItem } from "@/lib/types";
 import { AppShellProvider } from "@/components/shell/app-shell-context";
 import { ProdutosClient } from "./produtos-client";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 vi.mock("@/actions/products", () => ({
   createProductAction: vi.fn(),
   updateProductAction: vi.fn(),
