@@ -160,9 +160,9 @@ export function monthlySeries(
   });
 }
 
-/** Finer-than-month views of Evolução. Weeks: 52 ≈ the monthly view's 12-month horizon; days: 30 bars stay readable. */
+/** Finer-than-month views of Evolução. Both cover the same 12 months as the monthly view (the daily chart is just denser). */
 export type PeriodUnit = "week" | "day";
-export const EVOLUTION_BUCKETS: Record<PeriodUnit, number> = { week: 52, day: 30 };
+export const EVOLUTION_BUCKETS: Record<PeriodUnit, number> = { week: 52, day: 365 };
 
 const DAY_MS = 86_400_000;
 const WEEKDAY_ABBR = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
@@ -258,7 +258,11 @@ export function periodSeries(input: {
     const iso = new Date(start * DAY_MS).toISOString().slice(0, 10);
     return {
       key: iso,
-      label: `${new Date(start * DAY_MS).getUTCDate()}/${String(new Date(start * DAY_MS).getUTCMonth() + 1).padStart(2, "0")}`,
+      // Daily bars are hairline-thin over 12 months: the 1st of each month is labelled by its name ("nov").
+      label:
+        unit === "day" && new Date(start * DAY_MS).getUTCDate() === 1
+          ? MONTH_ABBR[new Date(start * DAY_MS).getUTCMonth()]
+          : `${new Date(start * DAY_MS).getUTCDate()}/${String(new Date(start * DAY_MS).getUTCMonth() + 1).padStart(2, "0")}`,
       title:
         unit === "week"
           ? `Semana de ${dayLabel(start)} a ${dayLabel(start + 6)}`

@@ -186,5 +186,11 @@ describe("periodSeries (day)", () => {
     expect(d[1].mom).toBe(6.7);
     expect(d[2]).toMatchObject({ partial: true, mom: null });
     expect(d[1].title).toBe("qua, 28 out");
+    expect(d[0].label).toBe("27/10");
+  });
+
+  it("labels the 1st of a month by its name", () => {
+    const d = periodSeries({ unit: "day", orders: [], firstOrderAt: new Map(), now: new Date("2026-11-02T15:00:00Z"), count: 3 });
+    expect(d.map((p) => p.label)).toEqual(["31/10", "nov", "2/11"]);
   });
 });

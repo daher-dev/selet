@@ -122,16 +122,23 @@ describe("weekly unit", () => {
   });
 });
 
-describe("daily unit", () => {
-  it("uses DoD wording and keeps at most every few labels so they don't collide", () => {
-    const days = Array.from({ length: 30 }, (_, i) =>
-      month(`2026-10-${i}`, { label: `${i + 1}/10`, sales: 100_000, mom: 5, partial: i === 29 }),
-    );
+describe("daily unit, 12 months", () => {
+  it("labels only the 1st of each month and drops the DoD row when bars are hairline", () => {
+    const days = Array.from({ length: 365 }, (_, i) => {
+      const d = new Date(Date.UTC(2025, 10, 1 + i));
+      return month(d.toISOString().slice(0, 10), {
+        label: `${d.getUTCDate()}/${d.getUTCMonth() + 1}`,
+        sales: 10_000,
+        mom: 5,
+        partial: i === 364,
+      });
+    });
     render(<MonthlySalesChart months={days} unit="day" />);
-    expect(screen.getByText(/DoD/)).toBeInTheDocument();
-    expect(screen.getByText("30/10")).toBeInTheDocument(); // open day always labelled
-    expect(screen.queryByText("29/10")).toBeNull(); // thinned
-    expect(screen.getAllByText(/\d+\/10/).length).toBeLessThanOrEqual(15);
+    expect(screen.queryByText(/DoD/)).toBeNull();
+    const labels = screen.getAllByText(/^\d+\/\d+$/).map((e) => e.textContent ?? "");
+    expect(labels.length).toBeGreaterThanOrEqual(3);
+    expect(labels.length).toBeLessThanOrEqual(12);
+    expect(labels.every((l) => l.startsWith("1/"))).toBe(true);
   });
 });
 
