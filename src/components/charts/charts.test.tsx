@@ -122,6 +122,19 @@ describe("weekly unit", () => {
   });
 });
 
+describe("daily unit", () => {
+  it("uses DoD wording and keeps at most every few labels so they don't collide", () => {
+    const days = Array.from({ length: 30 }, (_, i) =>
+      month(`2026-10-${i}`, { label: `${i + 1}/10`, sales: 100_000, mom: 5, partial: i === 29 }),
+    );
+    render(<MonthlySalesChart months={days} unit="day" />);
+    expect(screen.getByText(/DoD/)).toBeInTheDocument();
+    expect(screen.getByText("30/10")).toBeInTheDocument(); // open day always labelled
+    expect(screen.queryByText("29/10")).toBeNull(); // thinned
+    expect(screen.getAllByText(/\d+\/10/).length).toBeLessThanOrEqual(15);
+  });
+});
+
 describe("legend toggles", () => {
   it("ChannelStackChart: hiding a channel removes it, renormalises the rest and drops it from the tooltip", async () => {
     const user = userEvent.setup();

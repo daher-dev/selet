@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Order } from "./types";
 import { emptySummary, summaryAddOrder, summaryFirstOrderShift } from "./summary-core";
-import { monthlySeries, summarizeRecent, trailingMonthKeys, weeklySeries } from "./dashboard-core";
+import { monthlySeries, summarizeRecent, trailingMonthKeys, periodSeries } from "./dashboard-core";
 
 function mkOrder(partial: Partial<Order>): Order {
   return {
@@ -126,7 +126,7 @@ describe("monthlySeries", () => {
   });
 });
 
-describe("weeklySeries", () => {
+describe("periodSeries (week)", () => {
   // Thu 29/10/2026 → current week Mon 26/10; 3 weeks: 12/10, 19/10, 26/10.
   const now = new Date("2026-10-29T15:00:00Z");
   const at = (day: number, hour = 15) => new Date(Date.UTC(2026, 9, day, hour)).toISOString();
@@ -146,7 +146,7 @@ describe("weeklySeries", () => {
       mkOrder({ customerId: null, customerName: "Joana", total: 100, createdAt: at(28) }),
       mkOrder({ customerId: "bia", total: 777, createdAt: at(5) }), // outside the 3-week window
     ];
-    const w = weeklySeries({ orders, firstOrderAt, now, count: 3 });
+    const w = periodSeries({ unit: "week", orders, firstOrderAt, now, count: 3 });
     expect(w.map((p) => p.key)).toEqual(["2026-10-12", "2026-10-19", "2026-10-26"]);
     expect(w.map((p) => p.sales)).toEqual([4000, 3500, 400]);
     expect(w[1]).toMatchObject({ orderCount: 3, activeCustomers: 2, novos: 1, recorrentes: 1 });
@@ -165,7 +165,26 @@ describe("weeklySeries", () => {
       mkOrder({ customerId: "bia", total: 100, createdAt: "2026-10-26T02:30:00Z" }), // Sun 25 23:30 BRT
       mkOrder({ customerId: "bia", total: 200, createdAt: "2026-10-26T03:30:00Z" }), // Mon 26 00:30 BRT
     ];
-    const w = weeklySeries({ orders, firstOrderAt, now, count: 2 });
+    const w = periodSeries({ unit: "week", orders, firstOrderAt, now, count: 2 });
     expect(w.map((p) => p.sales)).toEqual([100, 200]);
+  });
+});
+
+describe("periodSeries (day)", () => {
+  const now = new Date("2026-10-29T15:00:00Z"); // Thu
+  it("buckets per store-timezone day, distinct clients per day, DoD on closed days", () => {
+    const orders = [
+      mkOrder({ customerId: "bia", total: 1000, createdAt: "2026-10-27T15:00:00Z" }),
+      mkOrder({ customerId: "bia", total: 500, createdAt: "2026-10-27T18:00:00Z" }),
+      mkOrder({ customerId: "ana", total: 1500, createdAt: "2026-10-28T15:00:00Z" }),
+      mkOrder({ customerId: "ana", total: 100, createdAt: "2026-10-29T02:00:00Z" }), // 28/10 23:00 BRT
+    ];
+    const d = periodSeries({ unit: "day", orders, firstOrderAt: new Map(), now, count: 3 });
+    expect(d.map((p) => p.key)).toEqual(["2026-10-27", "2026-10-28", "2026-10-29"]);
+    expect(d.map((p) => p.sales)).toEqual([1500, 1600, 0]);
+    expect(d[0]).toMatchObject({ orderCount: 2, activeCustomers: 1 });
+    expect(d[1].mom).toBe(6.7);
+    expect(d[2]).toMatchObject({ partial: true, mom: null });
+    expect(d[1].title).toBe("qua, 28 out");
   });
 });

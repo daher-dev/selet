@@ -160,10 +160,12 @@ export function monthlySeries(
   });
 }
 
-/** Weeks shown by the "Semanal" view: 52 ≈ the same 12-month horizon as the monthly one. */
-export const EVOLUTION_WEEKS = 52;
+/** Finer-than-month views of Evolução. Weeks: 52 ≈ the monthly view's 12-month horizon; days: 30 bars stay readable. */
+export type PeriodUnit = "week" | "day";
+export const EVOLUTION_BUCKETS: Record<PeriodUnit, number> = { week: 52, day: 30 };
 
 const DAY_MS = 86_400_000;
+const WEEKDAY_ABBR = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 const MONTH_ABBR = [
   "jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez",
 ];
@@ -186,29 +188,38 @@ function dayLabel(day: number): string {
   return `${d.getUTCDate()} ${MONTH_ABBR[d.getUTCMonth()]}`;
 }
 
+/** Day number of the first bucket shown (the oldest) for `unit`, given today's day number. */
+export function periodStart(unit: PeriodUnit, today: number, count = EVOLUTION_BUCKETS[unit]): number {
+  const last = unit === "week" ? mondayOf(today) : today;
+  return last - (count - 1) * (unit === "week" ? 7 : 1);
+}
+
 /**
- * Last `count` weeks (Monday–Sunday in STORE_TIME_ZONE, the current one last),
- * in the same shape as `monthlySeries` so the same charts render it; `mom`
- * carries the week-over-week change (null for the open week, which is partial).
+ * Last `count` weeks (Monday–Sunday in STORE_TIME_ZONE) or days, the current
+ * one last, in the same shape as `monthlySeries` so the same charts render it;
+ * `mom` carries the week-over-week / day-over-day change (null for the open
+ * bucket, which is partial).
  *
- * Clientes are distinct PER WEEK (a client who ordered in two weeks counts
- * once in each, so weeks don't sum to a month). Same split as the month:
- * "novo" when the registered customer's `firstOrderAt` falls in that week,
+ * Clientes are distinct PER BUCKET (a client who ordered in two weeks counts
+ * once in each, so buckets don't sum to a month). Same split as the month:
+ * "novo" when the registered customer's `firstOrderAt` falls in that bucket,
  * "recorrente" otherwise (walk-ins without an id are always recorrentes).
  */
-export function weeklySeries(input: {
+export function periodSeries(input: {
+  unit: PeriodUnit;
   orders: Pick<Order, "status" | "total" | "channel" | "customerId" | "customerName" | "createdAt">[];
   /** customerId → first non-cancelled order (complete history) */
   firstOrderAt: Map<string, Date>;
   now: Date;
   count?: number;
 }): MonthPoint[] {
-  const count = input.count ?? EVOLUTION_WEEKS;
-  const lastStart = mondayOf(zonedDayNumber(input.now));
-  const firstStart = lastStart - (count - 1) * 7;
-  /** Index of the week holding `date`, or -1 outside the window. */
+  const { unit } = input;
+  const size = unit === "week" ? 7 : 1;
+  const count = input.count ?? EVOLUTION_BUCKETS[unit];
+  const firstStart = periodStart(unit, zonedDayNumber(input.now), count);
+  /** Index of the bucket holding `date`, or -1 outside the window. */
   const weekOf = (date: Date): number => {
-    const w = Math.floor((zonedDayNumber(date) - firstStart) / 7);
+    const w = Math.floor((zonedDayNumber(date) - firstStart) / size);
     return w >= 0 && w < count ? w : -1;
   };
 
@@ -237,7 +248,7 @@ export function weeklySeries(input: {
       const first = input.firstOrderAt.get(id);
       if (first && weekOf(first) === i) novos += 1;
     }
-    const start = firstStart + i * 7;
+    const start = firstStart + i * size;
     const partial = i === count - 1;
     const prev = rows[i - 1];
     const mom =
@@ -248,7 +259,10 @@ export function weeklySeries(input: {
     return {
       key: iso,
       label: `${new Date(start * DAY_MS).getUTCDate()}/${String(new Date(start * DAY_MS).getUTCMonth() + 1).padStart(2, "0")}`,
-      title: `Semana de ${dayLabel(start)} a ${dayLabel(start + 6)}`,
+      title:
+        unit === "week"
+          ? `Semana de ${dayLabel(start)} a ${dayLabel(start + 6)}`
+          : `${WEEKDAY_ABBR[new Date(start * DAY_MS).getUTCDay()]}, ${dayLabel(start)}`,
       sales: r.sales,
       mom,
       partial,
