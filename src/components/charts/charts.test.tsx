@@ -174,6 +174,18 @@ describe("legend toggles", () => {
     expect(tip).toHaveTextContent(/Total.*12/);
   });
 
+  it("CustomerSplitChart: MoM of the visible total in the row and tooltip, 'parcial' on the open month", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<CustomerSplitChart months={months} />);
+    expect(screen.getByText("+20%")).toBeInTheDocument(); // 10 → 12
+    expect(screen.getByText("parcial")).toBeInTheDocument();
+    await user.hover(columns(container)[1]);
+    expect(screen.getByRole("tooltip")).toHaveTextContent(/vs\. mês anterior.*\+20%/);
+    await user.unhover(columns(container)[1]);
+    await user.click(screen.getByRole("button", { name: "Novos" })); // 6 → 9 recorrentes only
+    expect(screen.getByText("+50%")).toBeInTheDocument();
+  });
+
   it("EntradaSaidaChart: shows saldo with both series, hides it (and the bars) with one", async () => {
     const user = userEvent.setup();
     const { container } = render(<EntradaSaidaChart months={months} />);
