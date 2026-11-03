@@ -214,6 +214,8 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
     await setRuleCheck(storeId, mine.id, "gru", 3);
     const lower = input(`${slug}-novo`, { rules: rules.map((r) => (r.id === "gru" ? { ...r, max: 2 } : r)) });
     await expect(saveRaffle(storeId, raffleId, lower)).rejects.toThrow(/Ajuste na conferência/);
+    // unrelated edits are not blocked by it
+    await saveRaffle(storeId, raffleId, input(`${slug}-novo`, { prize: "Outro prêmio" }));
     await setRuleCheck(storeId, mine.id, "gru", 1);
   });
 
