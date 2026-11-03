@@ -13,6 +13,7 @@ import {
   formatWhen,
   missingRules,
   padNumber,
+  ruleMax,
   totalNumbers,
   type Raffle,
   type RaffleEntry,
@@ -24,7 +25,7 @@ import { ConfirmDialog } from "../confirm-dialog";
 import { DrawSheet } from "../draw-sheet";
 import { ParticipantSheet } from "../participant-sheet";
 import { RaffleFormSheet } from "../raffle-form-sheet";
-import { ENTRY_STATUS, Pill, RAFFLE_STATUS, avatarColors, copyLink, linkLabel } from "../ui";
+import { ENTRY_STATUS, Pill, PointsStepper, RAFFLE_STATUS, avatarColors, copyLink, linkLabel } from "../ui";
 
 type Filter = "todos" | "pend" | "ok" | "excl";
 
@@ -85,11 +86,12 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
   const selected = entries.find((e) => e.id === selectedId) ?? null;
   const canDraw = raffle.status === "aberto" || raffle.status === "encerrado";
 
-  const gridCols = `minmax(240px,1fr) 150px ${rules.map((r) => (r.type === "bonus" ? "120px" : "96px")).join(" ")} 170px`;
+  const gridCols = `minmax(240px,1fr) 150px ${rules.map((r) => (ruleMax(r) > 1 ? "132px" : r.type === "bonus" ? "120px" : "96px")).join(" ")} 170px`;
 
-  function toggle(e: RaffleEntry, r: RaffleRule) {
+  /** `points` omitted = flip sim/não; a rule with several points passes the new count. */
+  function toggle(e: RaffleEntry, r: RaffleRule, points?: number) {
     startTransition(async () => {
-      const res = await setRuleCheckAction(storeId, e.id, r.id, !e.checks[r.id]);
+      const res = await setRuleCheckAction(storeId, e.id, r.id, points ?? ((e.checks[r.id] ?? 0) > 0 ? 0 : 1));
       if (!res.ok) toast.error(res.error ?? "Não foi possível salvar.");
     });
   }
@@ -269,7 +271,9 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
                         title={r.text}
                       >
                         <span className="line-clamp-3">{r.text}</span>
-                        {r.type === "bonus" && <span className="block">+1 número</span>}
+                        {r.type === "bonus" && (
+                          <span className="block">{ruleMax(r) > 1 ? `+1 por ponto · até ${ruleMax(r)}` : "+1 número"}</span>
+                        )}
                       </span>
                     ))}
                     <span className="pr-[18px]">Situação</span>
@@ -292,7 +296,17 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
                         </div>
                         {rules.map((r) => (
                           <span key={r.id} className={cn("flex justify-center", dim)}>
-                            <CheckButton entry={e} rule={r} disabled={pending || e.status === "excl"} onToggle={() => toggle(e, r)} />
+                            {ruleMax(r) > 1 ? (
+                              <PointsStepper
+                                value={e.checks[r.id] ?? 0}
+                                max={ruleMax(r)}
+                                label={`${r.text}: ${e.name}`}
+                                disabled={pending || e.status === "excl"}
+                                onChange={(v) => toggle(e, r, v)}
+                              />
+                            ) : (
+                              <CheckButton entry={e} rule={r} disabled={pending || e.status === "excl"} onToggle={() => toggle(e, r)} />
+                            )}
                           </span>
                         ))}
                         <div className={cn("pr-[18px]", dim)}>
@@ -322,6 +336,25 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
                   {e.status !== "excl" && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {rules.map((r) => {
+                        if (ruleMax(r) > 1) {
+                          return (
+                            <div key={r.id} className="flex w-full items-center gap-2.5">
+                              <span className="min-w-0 flex-1 text-[12.5px] font-semibold leading-[1.3] text-[#6B4A0C]">
+                                {r.text}
+                                <span className="block font-medium text-ink-soft">+1 por ponto · até {ruleMax(r)}</span>
+                              </span>
+                              <PointsStepper
+                                size="lg"
+                                className="w-[150px] shrink-0"
+                                value={e.checks[r.id] ?? 0}
+                                max={ruleMax(r)}
+                                label={`${r.text}: ${e.name}`}
+                                disabled={pending}
+                                onChange={(v) => toggle(e, r, v)}
+                              />
+                            </div>
+                          );
+                        }
                         const on = !!e.checks[r.id] || !!e.waived[r.id];
                         return (
                           <button

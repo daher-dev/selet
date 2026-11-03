@@ -12,7 +12,9 @@ import {
   deriveStatus,
   linkState,
   matchCustomer,
-  missingBonusSlots,
+  bonusOwed,
+  normalizeChecks,
+  ruleMax,
   normalizePhone,
   pickProblem,
   publishProblem,
@@ -114,7 +116,7 @@ export function toEntry(id: string, d: FirebaseFirestore.DocumentData): RaffleEn
     birthday: d.birthday ?? undefined,
     novidades: d.novidades ?? false,
     createdAt: iso(d.createdAt),
-    checks: d.checks ?? {},
+    checks: normalizeChecks(d.checks),
     waived: d.waived ?? {},
     status: d.status ?? "pend",
     exclReason: d.exclReason ?? undefined,
@@ -488,30 +490,35 @@ async function mutateEntry(
   });
 }
 
+/** Gives `points` to a rule: 0/1 for obligatory, 0..max for bonus (each point = +1 número). */
 export async function setRuleCheck(
   storeId: string,
   entryDocId: string,
   ruleId: string,
-  on: boolean,
+  points: number,
 ): Promise<void> {
   await mutateEntry(storeId, entryDocId, async ({ entry, raffle }) => {
     const rule = raffle.rules.find((r) => r.id === ruleId);
     if (!rule) throw new Error("Regra não encontrada.");
     if (entry.status === "excl") throw new Error("Esse participante foi excluído.");
-    const checks = { ...entry.checks, [ruleId]: on };
+    if (!Number.isInteger(points) || points < 0) throw new Error("Pontos inválidos.");
+    const max = ruleMax(rule);
+    if (points > max) throw new Error(`No máximo ${max} ${max > 1 ? "pontos" : "ponto"} nessa regra.`);
+    const checks = { ...entry.checks };
+    if (points > 0) checks[ruleId] = points;
+    else delete checks[ruleId];
     let slots = entry.slots;
     if (rule.type === "bonus") {
-      if (on) {
-        const owed = missingBonusSlots(raffle.rules, { checks, numbers: entry.numbers, slots });
-        slots = [
-          ...slots,
-          ...owed
-            .filter((r) => r.id === ruleId)
-            .map((r): EntrySlot => ({ kind: "bonus", ruleId: r.id, at: new Date().toISOString() })),
-        ];
+      // Only not-yet-chosen numbers are taken back here; chosen ones are removed by hand.
+      const owed = bonusOwed(rule, { checks, numbers: entry.numbers, slots: slots.filter((s) => s.ruleId !== ruleId) });
+      const mine = slots.filter((s) => s.ruleId === ruleId);
+      if (owed >= mine.length) {
+        const at = new Date().toISOString();
+        const added = Array.from({ length: owed - mine.length }, (): EntrySlot => ({ kind: "bonus", ruleId, at }));
+        slots = [...slots, ...added];
       } else {
-        // Only a not-yet-chosen number can be taken back here; chosen ones are removed by hand.
-        slots = slots.filter((s) => s.ruleId !== ruleId);
+        let drop = mine.length - owed;
+        slots = [...slots].reverse().filter((s) => !(s.ruleId === ruleId && drop-- > 0)).reverse();
       }
     }
     return { checks, slots, status: deriveStatus(raffle.rules, { ...entry, checks }) };

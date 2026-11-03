@@ -8,7 +8,10 @@ import {
   formatWhen,
   linkState,
   maskWhatsapp,
+  bonusOwed,
   missingBonusSlots,
+  normalizeChecks,
+  ruleMax,
   missingRules,
   raffleSlug,
   normalizePhone,
@@ -79,22 +82,22 @@ describe("entry status", () => {
     const base = { checks: {}, waived: {}, status: "pend" as const };
     expect(deriveStatus(rules, base)).toBe("pend");
     expect(missingRules(rules, base).map((r) => r.id)).toEqual(["seg", "cur"]);
-    expect(deriveStatus(rules, { ...base, checks: { seg: true, cur: true } })).toBe("ok");
+    expect(deriveStatus(rules, { ...base, checks: { seg: 1, cur: 1 } })).toBe("ok");
     expect(
       deriveStatus(rules, {
         ...base,
-        checks: { seg: true },
+        checks: { seg: 1 },
         waived: { cur: { by: "a@b", at: "x", reason: "post apagado" } },
       }),
     ).toBe("ok");
   });
   it("keeps an excluded entry excluded", () => {
     expect(
-      deriveStatus(rules, { checks: { seg: true, cur: true }, waived: {}, status: "excl" }),
+      deriveStatus(rules, { checks: { seg: 1, cur: 1 }, waived: {}, status: "excl" }),
     ).toBe("excl");
   });
   it("owes a number for each checked bonus rule until it is chosen or pending", () => {
-    const e = { checks: { gru: true }, numbers: [], slots: [] };
+    const e = { checks: { gru: 1 }, numbers: [], slots: [] };
     expect(missingBonusSlots(rules, e).map((r) => r.id)).toEqual(["gru"]);
     expect(
       missingBonusSlots(rules, { ...e, slots: [{ kind: "bonus", ruleId: "gru", at: "x" }] }),
@@ -106,6 +109,43 @@ describe("entry status", () => {
       }),
     ).toEqual([]);
     expect(missingBonusSlots(rules, { ...e, checks: {} })).toEqual([]);
+  });
+});
+
+describe("bonus rule with several points", () => {
+  const amigos: RaffleRule = { id: "ami", text: "Convidar amigos", type: "bonus", max: 5 };
+  const e = (checks: Record<string, number>, numbers = 0, slots = 0) => ({
+    checks,
+    numbers: Array.from({ length: numbers }, (_, i) => ({ n: i + 1, kind: "bonus" as const, ruleId: "ami", at: "x" })),
+    slots: Array.from({ length: slots }, () => ({ kind: "bonus" as const, ruleId: "ami", at: "x" })),
+  });
+  it("caps points at max; obligatory is always sim/não; no max = 1", () => {
+    expect(ruleMax(amigos)).toBe(5);
+    expect(ruleMax({ type: "bonus" })).toBe(1);
+    expect(ruleMax({ type: "obr", max: 5 })).toBe(1);
+    expect(ruleMax({ type: "bonus", max: 99 })).toBe(10);
+  });
+  it("owes one number per point, minus the ones chosen or waiting", () => {
+    expect(bonusOwed(amigos, e({ ami: 3 }))).toBe(3);
+    expect(bonusOwed(amigos, e({ ami: 3 }, 1, 1))).toBe(1);
+    expect(bonusOwed(amigos, e({ ami: 3 }, 3))).toBe(0);
+    expect(bonusOwed(amigos, e({ ami: 9 }))).toBe(5);
+    expect(bonusOwed(amigos, e({}))).toBe(0);
+  });
+  it("keeps max on finalizeRule only for bonus rules with more than one point", () => {
+    expect(finalizeRule(amigos)).toEqual(amigos);
+    expect(finalizeRule({ ...amigos, max: 1 })).toEqual({ id: "ami", text: "Convidar amigos", type: "bonus" });
+    expect(finalizeRule({ ...amigos, type: "obr" })).toEqual({ id: "ami", text: "Convidar amigos", type: "obr" });
+  });
+  it("reads legacy true/false checks as 1/0", () => {
+    expect(normalizeChecks({ a: true, b: false, c: 3 })).toEqual({ a: 1, c: 3 });
+    expect(normalizeChecks(undefined)).toEqual({});
+  });
+  it("says it in the regulamento", () => {
+    const sections = buildRegulamento(raffle({ rules: [...rules, amigos] }), { name: "Selet" });
+    const how = sections.find((x) => x.title === "Como participar")!.lines.join(" ");
+    expect(how).toContain("Convidar amigos vale +1 número por ponto, até 5.");
+    expect(how).toContain("Convidar alguém vale +1 número.");
   });
 });
 
