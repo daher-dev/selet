@@ -86,7 +86,11 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
   const selected = entries.find((e) => e.id === selectedId) ?? null;
   const canDraw = raffle.status === "aberto" || raffle.status === "encerrado";
 
-  const gridCols = `minmax(240px,1fr) 150px ${rules.map((r) => (ruleMax(r) > 1 ? "132px" : r.type === "bonus" ? "120px" : "96px")).join(" ")} 170px`;
+  // Fixed widths per rule column; the participant column takes the rest (min 240px) and truncates long names.
+  const ruleWidths = rules.map((r) => (ruleMax(r) > 1 ? 132 : r.type === "bonus" ? 120 : 96));
+  const gridCols = `minmax(240px,1fr) 150px ${ruleWidths.map((w) => `${w}px`).join(" ")} 170px`;
+  // Smallest width the grid needs (tracks + 10px gaps), so the box scrolls instead of squeezing columns.
+  const tableMinWidth = 240 + 150 + ruleWidths.reduce((a, b) => a + b, 0) + 170 + 10 * (ruleWidths.length + 2);
 
   /** `points` omitted = flip sim/não; a rule with several points passes the new count. */
   function toggle(e: RaffleEntry, r: RaffleRule, points?: number) {
@@ -257,12 +261,12 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
             {/* Desktop table: scrolls sideways when there are many rules; the participant column stays pinned (board 2c) */}
             <div className="hidden overflow-hidden rounded-[14px] border border-border bg-white min-[820px]:block">
               <div className="overflow-x-auto">
-                <div className="w-max min-w-full">
+                <div className="w-full" style={{ minWidth: tableMinWidth }}>
                   <div
                     className="grid items-end gap-2.5 border-b border-border bg-paper py-3 text-[10.5px] font-bold uppercase tracking-[.4px] text-ink-soft"
                     style={{ gridTemplateColumns: gridCols }}
                   >
-                    <span className="sticky left-0 z-[1] bg-paper pl-[18px] pr-2.5">Participante</span>
+                    <span className="sticky left-0 z-[1] flex items-end self-stretch bg-paper pl-[18px] pr-2.5">Participante</span>
                     <span>Números</span>
                     {rules.map((r) => (
                       <span
@@ -286,7 +290,7 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
                         className="grid items-center gap-2.5 border-b border-[#F0F4ED] py-3"
                         style={{ gridTemplateColumns: gridCols }}
                       >
-                        <div className="sticky left-0 z-[1] flex min-w-0 bg-white pl-[18px] pr-2.5">
+                        <div className="sticky left-0 z-[1] flex min-w-0 items-center self-stretch bg-white pl-[18px] pr-2.5">
                           <div className={cn("flex min-w-0 flex-1", dim)}>
                             <PersonCell entry={e} onOpen={() => setSelectedId(e.id)} />
                           </div>
