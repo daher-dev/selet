@@ -210,6 +210,18 @@ export function ruleMax(rule: Pick<RaffleRule, "type" | "max">): number {
   return Number.isFinite(m) ? Math.min(MAX_RULE_POINTS, Math.max(1, m)) : 1;
 }
 
+/** First rule whose (new) maximum is below points already given to someone, or null. */
+export function maxConflict(
+  rules: RaffleRule[],
+  allChecks: Record<string, number>[],
+): { rule: RaffleRule; given: number } | null {
+  for (const rule of rules) {
+    const given = Math.max(0, ...allChecks.map((c) => c[rule.id] ?? 0));
+    if (given > ruleMax(rule)) return { rule, given };
+  }
+  return null;
+}
+
 /** Legacy entries stored `true`/`false`; points are numbers now. */
 export function normalizeChecks(raw: unknown): Record<string, number> {
   const out: Record<string, number> = {};

@@ -13,6 +13,7 @@ import {
   linkState,
   matchCustomer,
   bonusOwed,
+  maxConflict,
   normalizeChecks,
   ruleMax,
   normalizePhone,
@@ -320,9 +321,15 @@ export async function saveRaffle(
     if (cur.status === "sorteado") throw new Error("Esse sorteio já foi realizado.");
     const patch = writable(input);
     if (cur.status !== "rascunho") {
-      const hasEntries = !(await tx.get(
-        entriesCol(storeId).where("raffleId", "==", raffleId).limit(1),
-      )).empty;
+      const entriesSnap = await tx.get(entriesCol(storeId).where("raffleId", "==", raffleId));
+      const hasEntries = !entriesSnap.empty;
+      // A lower maximum must not strand points (or unchosen numbers) already given.
+      const conflict = maxConflict(input.rules, entriesSnap.docs.map((d) => normalizeChecks(d.data().checks)));
+      if (conflict) {
+        throw new Error(
+          `Alguém já recebeu ${conflict.given} ${conflict.given > 1 ? "pontos" : "ponto"} em "${conflict.rule.text}". Ajuste na conferência antes de reduzir o máximo.`,
+        );
+      }
       const slugChanged = !hasEntries && input.slug !== cur.slug;
       if (slugChanged) {
         const taken = await tx.get(slugsCol().doc(input.slug));

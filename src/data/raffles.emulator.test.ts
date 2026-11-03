@@ -208,6 +208,15 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
     expect(e.numbers.filter((n) => n.ruleId === "gru")).toHaveLength(1); // chosen numbers stay
   });
 
+  it("refuses to lower a bonus maximum below points already given", async () => {
+    // "gru" has max 3 and someone holds 1 point; give 3, then try to cut the max to 2
+    const [mine] = (await listEntries(storeId, raffleId)).filter((e) => e.phone === phoneN(1));
+    await setRuleCheck(storeId, mine.id, "gru", 3);
+    const lower = input(`${slug}-novo`, { rules: rules.map((r) => (r.id === "gru" ? { ...r, max: 2 } : r)) });
+    await expect(saveRaffle(storeId, raffleId, lower)).rejects.toThrow(/Ajuste na conferência/);
+    await setRuleCheck(storeId, mine.id, "gru", 1);
+  });
+
   it("extra numbers carry a reason and can be chosen by the store", async () => {
     const [mine] = (await listEntries(storeId, raffleId)).filter((e) => e.phone === phoneN(1));
     await grantExtraNumbers(storeId, mine.id, 2, "Trouxe 2 amigas à loja", "ana@selet.app");

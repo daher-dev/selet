@@ -9,6 +9,7 @@ import {
   linkState,
   maskWhatsapp,
   bonusOwed,
+  maxConflict,
   missingBonusSlots,
   normalizeChecks,
   ruleMax,
@@ -136,6 +137,11 @@ describe("bonus rule with several points", () => {
     expect(finalizeRule(amigos)).toEqual(amigos);
     expect(finalizeRule({ ...amigos, max: 1 })).toEqual({ id: "ami", text: "Convidar amigos", type: "bonus" });
     expect(finalizeRule({ ...amigos, type: "obr" })).toEqual({ id: "ami", text: "Convidar amigos", type: "obr" });
+  });
+  it("finds points that a lower maximum would strand", () => {
+    expect(maxConflict([{ ...amigos, max: 2 }], [{ ami: 1 }, { ami: 5 }])).toMatchObject({ given: 5 });
+    expect(maxConflict([amigos], [{ ami: 5 }, {}])).toBeNull();
+    expect(maxConflict([{ ...amigos, type: "obr" }], [{ ami: 2 }])).toMatchObject({ given: 2 });
   });
   it("reads legacy true/false checks as 1/0", () => {
     expect(normalizeChecks({ a: true, b: false, c: 3 })).toEqual({ a: 1, c: 3 });
