@@ -47,7 +47,7 @@ const hasEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 const rules: RaffleRule[] = [
   { id: "seg", text: "Seguir @selet.vv", type: "obr" },
   { id: "cur", text: "Curtir o post", type: "obr" },
-  { id: "gru", text: "Convidar alguém", type: "bonus" },
+  { id: "gru", text: "Convidar alguém", type: "bonus", max: 3 },
 ];
 
 const day = 86_400_000;
@@ -168,7 +168,7 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
 
   it("recomputes the situation when the team checks rules", async () => {
     const [mine] = (await listEntries(storeId, raffleId)).filter((e) => e.phone === phoneN(1));
-    await setRuleCheck(storeId, mine.id, "seg", true);
+    await setRuleCheck(storeId, mine.id, "seg", 1);
     expect((await listEntries(storeId, raffleId)).find((e) => e.id === mine.id)?.status).toBe("pend");
     await waiveRule(storeId, mine.id, "cur", "Post apagado e repostado", "ana@selet.app");
     const after = (await listEntries(storeId, raffleId)).find((e) => e.id === mine.id)!;
@@ -179,8 +179,8 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
 
   it("a checked bonus rule owes one number, chosen from the person's own link", async () => {
     const [mine] = (await listEntries(storeId, raffleId)).filter((e) => e.phone === phoneN(1));
-    await setRuleCheck(storeId, mine.id, "gru", true);
-    await setRuleCheck(storeId, mine.id, "gru", true); // idempotent
+    await setRuleCheck(storeId, mine.id, "gru", 1);
+    await setRuleCheck(storeId, mine.id, "gru", 1); // idempotent
     let e = (await listEntries(storeId, raffleId)).find((x) => x.id === mine.id)!;
     expect(e.slots).toHaveLength(1);
 
@@ -191,6 +191,32 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
     expect(e.slots).toHaveLength(0);
     expect(e.numbers.map((n) => [n.n, n.kind])).toEqual([[7, "cadastro"], [9, "bonus"]]);
     await expect(pickOwnSlots(storeId, raffleId, e.token, [10])).rejects.toThrow(/Não há números/);
+  });
+
+  it("a bonus rule worth several points owes one number per point, up to its max", async () => {
+    const [mine] = (await listEntries(storeId, raffleId)).filter((e) => e.phone === phoneN(1));
+    const slotsOf = async () => (await listEntries(storeId, raffleId)).find((x) => x.id === mine.id)!.slots.filter((s) => s.ruleId === "gru");
+    await setRuleCheck(storeId, mine.id, "gru", 3); // one point is already a chosen number
+    expect(await slotsOf()).toHaveLength(2);
+    await setRuleCheck(storeId, mine.id, "gru", 2);
+    expect(await slotsOf()).toHaveLength(1);
+    await expect(setRuleCheck(storeId, mine.id, "gru", 4)).rejects.toThrow(/No máximo 3/);
+    await setRuleCheck(storeId, mine.id, "gru", 1);
+    const e = (await listEntries(storeId, raffleId)).find((x) => x.id === mine.id)!;
+    expect(e.slots).toHaveLength(0);
+    expect(e.checks.gru).toBe(1);
+    expect(e.numbers.filter((n) => n.ruleId === "gru")).toHaveLength(1); // chosen numbers stay
+  });
+
+  it("refuses to lower a bonus maximum below points already given", async () => {
+    // "gru" has max 3 and someone holds 1 point; give 3, then try to cut the max to 2
+    const [mine] = (await listEntries(storeId, raffleId)).filter((e) => e.phone === phoneN(1));
+    await setRuleCheck(storeId, mine.id, "gru", 3);
+    const lower = input(`${slug}-novo`, { rules: rules.map((r) => (r.id === "gru" ? { ...r, max: 2 } : r)) });
+    await expect(saveRaffle(storeId, raffleId, lower)).rejects.toThrow(/Ajuste na conferência/);
+    // unrelated edits are not blocked by it
+    await saveRaffle(storeId, raffleId, input(`${slug}-novo`, { prize: "Outro prêmio" }));
+    await setRuleCheck(storeId, mine.id, "gru", 1);
   });
 
   it("extra numbers carry a reason and can be chosen by the store", async () => {
@@ -302,8 +328,8 @@ describe.skipIf(!hasEmulator)("raffles repository (emulator)", () => {
       ).rejects.toThrow(/ainda não cumpriu/);
       await expect(confirmWinner(storeId, raffleId, 20, [], "ana@selet.app")).rejects.toThrow(/Ninguém escolheu/);
 
-      await setRuleCheck(storeId, pending.id, "seg", true);
-      await setRuleCheck(storeId, pending.id, "cur", true);
+      await setRuleCheck(storeId, pending.id, "seg", 1);
+      await setRuleCheck(storeId, pending.id, "cur", 1);
       await confirmWinner(
         storeId,
         raffleId,

@@ -28,13 +28,13 @@ vi.mock("@/actions/raffles", () => ({
   announceResultAction: vi.fn(async () => ({ ok: true, sent: 0, failed: 0 })),
 }));
 
-const juliana = entry({ checks: { seg: true } });
+const juliana = entry({ checks: { seg: 1 } });
 const thiago = entry({
   id: "r1_27999990002",
   name: "Thiago Ramos",
   phone: "27999990002",
   status: "ok",
-  checks: { seg: true, cur: true, gru: true },
+  checks: { seg: 1, cur: 1, gru: 1 },
   numbers: [
     { n: 150, kind: "cadastro", at: "2026-10-18T14:32:00-03:00" },
     { n: 77, kind: "extra", reason: "Trouxe amigas", by: "Ana Costa", at: "2026-10-19T09:00:00-03:00" },
@@ -76,7 +76,29 @@ describe("RaffleDetailClient", () => {
   it("checks a rule by hand through the server action", async () => {
     renderDetail();
     await userEvent.click(screen.getByRole("button", { name: "Curtir o post: Juliana Prado" }));
-    expect(setRuleCheckAction).toHaveBeenCalledWith("s1", "r1_27999990001", "cur", true);
+    expect(setRuleCheckAction).toHaveBeenCalledWith("s1", "r1_27999990001", "cur", 1);
+  });
+
+  it("gives 0..max points on a bonus rule that is worth several", async () => {
+    render(
+      <AppShellProvider routeKey="/painel/s1/sorteios/r1">
+        <RaffleDetailClient
+          storeId="s1"
+          raffle={raffle({ rules: [{ id: "ami", text: "Convidar amigos", type: "bonus", max: 5 }] })}
+          entries={[entry({ checks: { ami: 2 } })]}
+          customers={[]}
+          origin="https://selet.app"
+          userName="Ana Costa"
+          canSend
+        />
+      </AppShellProvider>,
+    );
+    const [group] = screen.getAllByRole("group", { name: "Convidar amigos: Juliana Prado" });
+    expect(within(group).getByText("2/5")).toBeInTheDocument();
+    await userEvent.click(within(group).getByRole("button", { name: /^Mais um ponto/ }));
+    expect(setRuleCheckAction).toHaveBeenLastCalledWith("s1", "r1_27999990001", "ami", 3);
+    await userEvent.click(within(group).getByRole("button", { name: /^Menos um ponto/ }));
+    expect(setRuleCheckAction).toHaveBeenLastCalledWith("s1", "r1_27999990001", "ami", 1);
   });
 
   it("filters the table by situation", async () => {

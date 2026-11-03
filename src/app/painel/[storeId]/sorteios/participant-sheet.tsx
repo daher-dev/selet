@@ -26,6 +26,7 @@ import {
   matchCustomer,
   missingRules,
   padNumber,
+  ruleMax,
   type Raffle,
   type RaffleEntry,
 } from "@/lib/raffles";
@@ -33,7 +34,7 @@ import type { Customer } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "./confirm-dialog";
 import { ExtraNumberDialog, WaiveRuleDialog } from "./exception-dialogs";
-import { avatarColors } from "./ui";
+import { PointsStepper, avatarColors } from "./ui";
 
 interface Props {
   storeId: string;
@@ -320,13 +321,31 @@ function Ficha({
             {raffle.rules.map((r) => {
               const waived = entry.waived[r.id];
               const bonus = r.type === "bonus";
+              const max = ruleMax(r);
+              if (max > 1) {
+                return (
+                  <div key={r.id} className="flex items-center gap-[11px] bg-[#FBF6EC] px-3.5 py-3">
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px]">{r.text}</span>
+                      <span className="mt-0.5 block text-[11px] font-bold text-[#8A6312]">Bônus · +1 número por ponto, até {max}</span>
+                    </span>
+                    <PointsStepper
+                      value={entry.checks[r.id] ?? 0}
+                      max={max}
+                      label={r.text}
+                      disabled={pending || excluded}
+                      onChange={(v) => run(() => setRuleCheckAction(storeId, entry.id, r.id, v))}
+                    />
+                  </div>
+                );
+              }
               return (
                 <label key={r.id} className="flex items-center gap-[11px] bg-white px-3.5 py-3">
                   <input
                     type="checkbox"
                     checked={!!entry.checks[r.id] || !!waived}
                     disabled={pending || excluded || !!waived}
-                    onChange={(e) => run(() => setRuleCheckAction(storeId, entry.id, r.id, e.target.checked))}
+                    onChange={(e) => run(() => setRuleCheckAction(storeId, entry.id, r.id, e.target.checked ? 1 : 0))}
                     className={cn("size-[18px]", bonus ? "accent-[#8A6312]" : "accent-[#186B41]")}
                   />
                   <span className="min-w-0 flex-1">

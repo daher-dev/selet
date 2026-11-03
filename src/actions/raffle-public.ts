@@ -57,6 +57,8 @@ async function load(slug: string): Promise<PublicRaffle | null> {
   return pub && pub.state !== "indisponivel" ? pub : null;
 }
 
+/** Most numbers a person can claim in one go (12 rules × 10 points, plus extras). */
+const MAX_BONUS_PICKS = 200;
 const NOT_OPEN = "Esse sorteio não está aceitando cadastros.";
 
 function errMessage(err: unknown): string {
@@ -210,7 +212,7 @@ export async function pickBonusAction(
     const pub = await load(slug);
     if (!pub) return fail("Esse sorteio não está disponível.");
     const token = (await cookies()).get(tokenCookie(pub.raffle.id))?.value ?? "";
-    await pickOwnSlots(pub.storeId, pub.raffle.id, token, z.array(z.number().int()).max(10).parse(picks));
+    await pickOwnSlots(pub.storeId, pub.raffle.id, token, z.array(z.number().int()).max(MAX_BONUS_PICKS).parse(picks));
     const entry = await getEntryByToken(pub.storeId, pub.raffle.id, token);
     if (!entry) return fail("Link inválido. Peça um novo à loja.");
     return { ok: true, entry: publicEntryView(pub.raffle, entry) };

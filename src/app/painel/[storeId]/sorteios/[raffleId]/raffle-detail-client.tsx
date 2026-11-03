@@ -13,6 +13,7 @@ import {
   formatWhen,
   missingRules,
   padNumber,
+  ruleMax,
   totalNumbers,
   type Raffle,
   type RaffleEntry,
@@ -24,7 +25,7 @@ import { ConfirmDialog } from "../confirm-dialog";
 import { DrawSheet } from "../draw-sheet";
 import { ParticipantSheet } from "../participant-sheet";
 import { RaffleFormSheet } from "../raffle-form-sheet";
-import { ENTRY_STATUS, Pill, RAFFLE_STATUS, avatarColors, copyLink, linkLabel } from "../ui";
+import { ENTRY_STATUS, Pill, PointsStepper, RAFFLE_STATUS, avatarColors, copyLink, linkLabel } from "../ui";
 
 type Filter = "todos" | "pend" | "ok" | "excl";
 
@@ -85,11 +86,16 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
   const selected = entries.find((e) => e.id === selectedId) ?? null;
   const canDraw = raffle.status === "aberto" || raffle.status === "encerrado";
 
-  const gridCols = `minmax(0,1fr) 150px ${rules.map((r) => (r.type === "bonus" ? "120px" : "96px")).join(" ")} 150px`;
+  // Fixed widths per rule column; the participant column takes the rest (min 240px) and truncates long names.
+  const ruleWidths = rules.map((r) => (ruleMax(r) > 1 ? 132 : r.type === "bonus" ? 120 : 96));
+  const gridCols = `minmax(240px,1fr) 150px ${ruleWidths.map((w) => `${w}px`).join(" ")} 170px`;
+  // Smallest width the grid needs (tracks + 10px gaps), so the box scrolls instead of squeezing columns.
+  const tableMinWidth = 240 + 150 + ruleWidths.reduce((a, b) => a + b, 0) + 170 + 10 * (ruleWidths.length + 2);
 
-  function toggle(e: RaffleEntry, r: RaffleRule) {
+  /** `points` omitted = flip sim/não; a rule with several points passes the new count. */
+  function toggle(e: RaffleEntry, r: RaffleRule, points?: number) {
     startTransition(async () => {
-      const res = await setRuleCheckAction(storeId, e.id, r.id, !e.checks[r.id]);
+      const res = await setRuleCheckAction(storeId, e.id, r.id, points ?? ((e.checks[r.id] ?? 0) > 0 ? 0 : 1));
       if (!res.ok) toast.error(res.error ?? "Não foi possível salvar.");
     });
   }
@@ -252,45 +258,69 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
           </div>
         ) : (
           <>
-            {/* Desktop table */}
+            {/* Desktop table: scrolls sideways when there are many rules; the participant column stays pinned (board 2c) */}
             <div className="hidden overflow-hidden rounded-[14px] border border-border bg-white min-[820px]:block">
-              <div
-                className="grid items-end gap-2.5 border-b border-border bg-paper px-[18px] py-3 text-[10.5px] font-bold uppercase tracking-[.4px] text-ink-soft"
-                style={{ gridTemplateColumns: gridCols }}
-              >
-                <span>Participante</span>
-                <span>Números</span>
-                {rules.map((r) => (
-                  <span
-                    key={r.id}
-                    className={cn("text-center leading-[1.3]", r.type === "bonus" && "text-[#8A6312]")}
-                    title={r.text}
+              <div className="overflow-x-auto">
+                <div className="w-full" style={{ minWidth: tableMinWidth }}>
+                  <div
+                    className="grid items-end gap-2.5 border-b border-border bg-paper py-3 text-[10.5px] font-bold uppercase tracking-[.4px] text-ink-soft"
+                    style={{ gridTemplateColumns: gridCols }}
                   >
-                    <span className="line-clamp-3">{r.text}</span>
-                    {r.type === "bonus" && <span className="block">+1 número</span>}
-                  </span>
-                ))}
-                <span>Situação</span>
-              </div>
-              {view.map((e) => (
-                <div
-                  key={e.id}
-                  className={cn(
-                    "grid items-center gap-2.5 border-b border-[#F0F4ED] px-[18px] py-3",
-                    e.status === "excl" && "opacity-60",
-                  )}
-                  style={{ gridTemplateColumns: gridCols }}
-                >
-                  <PersonCell entry={e} onOpen={() => setSelectedId(e.id)} />
-                  <Balls entry={e} />
-                  {rules.map((r) => (
-                    <span key={r.id} className="flex justify-center">
-                      <CheckButton entry={e} rule={r} disabled={pending || e.status === "excl"} onToggle={() => toggle(e, r)} />
-                    </span>
-                  ))}
-                  <Situation entry={e} note={rowNote(raffle, e)} />
+                    <span className="sticky left-0 z-[1] flex items-end self-stretch bg-paper pl-[18px] pr-2.5">Participante</span>
+                    <span>Números</span>
+                    {rules.map((r) => (
+                      <span
+                        key={r.id}
+                        className={cn("text-center leading-[1.3]", r.type === "bonus" && "text-[#8A6312]")}
+                        title={r.text}
+                      >
+                        <span className="line-clamp-3">{r.text}</span>
+                        {r.type === "bonus" && (
+                          <span className="block">{ruleMax(r) > 1 ? `+1 por ponto · até ${ruleMax(r)}` : "+1 número"}</span>
+                        )}
+                      </span>
+                    ))}
+                    <span className="pr-[18px]">Situação</span>
+                  </div>
+                  {view.map((e) => {
+                    const dim = e.status === "excl" && "opacity-60";
+                    return (
+                      <div
+                        key={e.id}
+                        className="grid items-center gap-2.5 border-b border-[#F0F4ED] py-3"
+                        style={{ gridTemplateColumns: gridCols }}
+                      >
+                        <div className="sticky left-0 z-[1] flex min-w-0 items-center self-stretch bg-white pl-[18px] pr-2.5">
+                          <div className={cn("flex min-w-0 flex-1", dim)}>
+                            <PersonCell entry={e} onOpen={() => setSelectedId(e.id)} />
+                          </div>
+                        </div>
+                        <div className={dim || undefined}>
+                          <Balls entry={e} />
+                        </div>
+                        {rules.map((r) => (
+                          <span key={r.id} className={cn("flex justify-center", dim)}>
+                            {ruleMax(r) > 1 ? (
+                              <PointsStepper
+                                value={e.checks[r.id] ?? 0}
+                                max={ruleMax(r)}
+                                label={`${r.text}: ${e.name}`}
+                                disabled={pending || e.status === "excl"}
+                                onChange={(v) => toggle(e, r, v)}
+                              />
+                            ) : (
+                              <CheckButton entry={e} rule={r} disabled={pending || e.status === "excl"} onToggle={() => toggle(e, r)} />
+                            )}
+                          </span>
+                        ))}
+                        <div className={cn("pr-[18px]", dim)}>
+                          <Situation entry={e} note={rowNote(raffle, e)} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
               <div className="px-[18px] py-3 text-xs text-ink-soft">
                 Mostrando {view.length} de {counts.todos} · ordenado por cadastro mais recente
               </div>
@@ -310,6 +340,25 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
                   {e.status !== "excl" && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {rules.map((r) => {
+                        if (ruleMax(r) > 1) {
+                          return (
+                            <div key={r.id} className="flex w-full items-center gap-2.5">
+                              <span className="min-w-0 flex-1 text-[12.5px] font-semibold leading-[1.3] text-[#6B4A0C]">
+                                {r.text}
+                                <span className="block font-medium text-ink-soft">+1 por ponto · até {ruleMax(r)}</span>
+                              </span>
+                              <PointsStepper
+                                size="lg"
+                                className="w-[150px] shrink-0"
+                                value={e.checks[r.id] ?? 0}
+                                max={ruleMax(r)}
+                                label={`${r.text}: ${e.name}`}
+                                disabled={pending}
+                                onChange={(v) => toggle(e, r, v)}
+                              />
+                            </div>
+                          );
+                        }
                         const on = !!e.checks[r.id] || !!e.waived[r.id];
                         return (
                           <button

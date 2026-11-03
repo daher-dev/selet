@@ -20,6 +20,8 @@ export interface RaffleRule {
   kind?: RuleKind;
   /** Where the person is sent: profile (follow) or post (like/comment). */
   link?: string;
+  /** Bonus rules only: most points the team can give per person (each = +1 número). Missing = 1 (sim/não). */
+  max?: number;
 }
 
 export interface RaffleFields {
@@ -104,7 +106,8 @@ export interface RaffleEntry {
   birthday?: { day: number; month: number };
   novidades: boolean;
   createdAt: string;
-  checks: Record<string, boolean>;
+  /** Points the team gave per rule: 0/1 for obligatory, 0..max for bonus. */
+  checks: Record<string, number>;
   waived: Record<string, WaivedRule>;
   status: EntryStatus;
   exclReason?: string;
@@ -131,6 +134,8 @@ export interface Lead {
 }
 
 export const MAX_PER_PERSON = 10;
+/** Most points a single bonus rule can be worth. */
+export const MAX_RULE_POINTS = 10;
 
 // ---------------------------------------------------------------- phone ---
 
@@ -198,18 +203,50 @@ export function instagramPostUrl(input: string): string | null {
   return m ? `https://www.instagram.com/${m[1].toLowerCase().replace("reels", "reel")}/${m[2]}/` : null;
 }
 
+/** Points a rule can reach: obligatory is sim/não, bonus goes up to `max` (default 1). */
+export function ruleMax(rule: Pick<RaffleRule, "type" | "max">): number {
+  if (rule.type !== "bonus") return 1;
+  const m = Math.trunc(rule.max ?? 1);
+  return Number.isFinite(m) ? Math.min(MAX_RULE_POINTS, Math.max(1, m)) : 1;
+}
+
+/** First rule whose (new) maximum is below points already given to someone, or null. */
+export function maxConflict(
+  rules: RaffleRule[],
+  allChecks: Record<string, number>[],
+): { rule: RaffleRule; given: number } | null {
+  for (const rule of rules) {
+    const given = Math.max(0, ...allChecks.map((c) => c[rule.id] ?? 0));
+    if (given > ruleMax(rule)) return { rule, given };
+  }
+  return null;
+}
+
+/** Legacy entries stored `true`/`false`; points are numbers now. */
+export function normalizeChecks(raw: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const n = typeof v === "boolean" ? (v ? 1 : 0) : typeof v === "number" ? Math.trunc(v) : 0;
+    if (n > 0) out[k] = n;
+  }
+  return out;
+}
+
 /** Validates a typed rule and derives its text/link; custom rules pass through. Returns an error message otherwise. */
 export function finalizeRule(r: RaffleRule): RaffleRule | string {
   const { id, text, type } = r;
-  if (!r.kind || r.kind === "custom") return { id, text, type };
+  const max = ruleMax(r);
+  const pts = type === "bonus" && max > 1 ? { max } : {};
+  if (!r.kind || r.kind === "custom") return { id, text, type, ...pts };
   if (r.kind === "follow") {
     const handle = instagramHandle(r.link ?? "");
     if (!handle) return "Informe o @ do perfil a seguir.";
-    return { id, type, kind: "follow", link: `https://instagram.com/${handle}`, text: `Seguir @${handle}` };
+    return { id, type, kind: "follow", link: `https://instagram.com/${handle}`, text: `Seguir @${handle}`, ...pts };
   }
   const link = instagramPostUrl(r.link ?? "");
   if (!link) return "Cole o link do post do Instagram.";
-  return { id, type, kind: r.kind, link, text: r.kind === "like" ? "Curtir o post" : "Comentar no post" };
+  return { id, type, kind: r.kind, link, text: r.kind === "like" ? "Curtir o post" : "Comentar no post", ...pts };
 }
 
 export function obligatoryRules(rules: RaffleRule[]): RaffleRule[] {
@@ -238,18 +275,24 @@ export function deriveStatus(
   return missingRules(rules, entry).length === 0 ? "ok" : "pend";
 }
 
+/** How many numbers a bonus rule still owes: points given − numbers already chosen − slots waiting. */
+export function bonusOwed(
+  rule: RaffleRule,
+  entry: Pick<RaffleEntry, "checks" | "numbers" | "slots">,
+): number {
+  if (rule.type !== "bonus") return 0;
+  const points = Math.min(entry.checks[rule.id] ?? 0, ruleMax(rule));
+  const chosen = entry.numbers.filter((n) => n.ruleId === rule.id).length;
+  const waiting = entry.slots.filter((s) => s.ruleId === rule.id).length;
+  return Math.max(0, points - chosen - waiting);
+}
+
 /** Bonus rules checked by the team that still owe the person a number. */
 export function missingBonusSlots(
   rules: RaffleRule[],
   entry: Pick<RaffleEntry, "checks" | "numbers" | "slots">,
 ): RaffleRule[] {
-  return rules.filter(
-    (r) =>
-      r.type === "bonus" &&
-      entry.checks[r.id] &&
-      !entry.numbers.some((n) => n.ruleId === r.id) &&
-      !entry.slots.some((s) => s.ruleId === r.id),
-  );
+  return rules.filter((r) => bonusOwed(r, entry) > 0);
 }
 
 // ----------------------------------------------------------- link state ---
@@ -442,7 +485,10 @@ export function buildRegulamento(
   ];
   const label = (x: RaffleRule) => (x.kind === "like" || x.kind === "comment" ? `${x.text} (${x.link})` : x.text);
   if (obr.length) how.push(`Regras obrigatórias: ${obr.map(label).join("; ")}.`);
-  for (const b of bonus) how.push(`Bônus: ${label(b)} vale +1 número.`);
+  for (const b of bonus) {
+    const max = ruleMax(b);
+    how.push(max > 1 ? `Bônus: ${label(b)} vale +1 número por ponto, até ${max}.` : `Bônus: ${label(b)} vale +1 número.`);
+  }
 
   const sections: RegulamentoSection[] = [
     {

@@ -46,7 +46,7 @@ export interface PublicRaffleView {
   numberFrom: number;
   numberTo: number;
   perPerson: number;
-  rules: { text: string; type: "obr" | "bonus"; link?: string }[];
+  rules: { text: string; type: "obr" | "bonus"; link?: string; max?: number }[];
   fields: { instagram: boolean; birthday: boolean; email: boolean };
   winner: { number: number; name: string } | null;
   regulamentoAt: string;
@@ -501,7 +501,14 @@ export function PublicFlow({
         bonus: false,
       },
       ...obr.map((r, i) => ({ n: String(3 + i), text: r.text, bonus: false })),
-      ...bonus.map((r) => ({ n: "+", text: `Bônus: ${r.text.charAt(0).toLowerCase()}${r.text.slice(1)} e ganhe mais 1 número`, bonus: true })),
+      ...bonus.map((r) => {
+        const what = `${r.text.charAt(0).toLowerCase()}${r.text.slice(1)}`;
+        return {
+          n: "+",
+          text: (r.max ?? 1) > 1 ? `Bônus: ${what} e ganhe +1 número por ponto (até ${r.max})` : `Bônus: ${what} e ganhe mais 1 número`,
+          bonus: true,
+        };
+      }),
     ];
     return shell(
       <>

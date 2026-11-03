@@ -232,19 +232,21 @@ export function NumberPicker({
             <span className="flex-1 text-[13px] font-semibold">
               {valid.length} de {quantos} escolhidos
             </span>
-            {Array.from({ length: quantos }, (_, i) => (
-              <span
-                key={i}
-                className={cn(
-                  "tabular inline-flex size-[34px] items-center justify-center rounded-full text-[13px] font-bold",
-                  valid[i] != null
-                    ? "bg-primary text-white"
-                    : "border-[1.5px] border-dashed border-[#C9D3CB]",
-                )}
-              >
-                {valid[i] != null ? padNumber(valid[i]) : ""}
-              </span>
-            ))}
+            <span className="flex min-w-0 max-w-[62%] gap-2 overflow-x-auto py-0.5">
+              {Array.from({ length: quantos }, (_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "tabular inline-flex size-[34px] shrink-0 items-center justify-center rounded-full text-[13px] font-bold",
+                    valid[i] != null
+                      ? "bg-primary text-white"
+                      : "border-[1.5px] border-dashed border-[#C9D3CB]",
+                  )}
+                >
+                  {valid[i] != null ? padNumber(valid[i]) : ""}
+                </span>
+              ))}
+            </span>
           </div>
         )}
         {ready ? (

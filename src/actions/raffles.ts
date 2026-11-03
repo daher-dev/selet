@@ -20,7 +20,7 @@ import {
   setSignupsOpen,
   waiveRule,
 } from "@/data/raffles";
-import { finalizeRule, MAX_PER_PERSON } from "@/lib/raffles";
+import { finalizeRule, MAX_PER_PERSON, MAX_RULE_POINTS } from "@/lib/raffles";
 import type { ActionResult } from "./products";
 
 const dateTime = z.iso.datetime({ offset: true });
@@ -31,6 +31,7 @@ const ruleSchema = z.object({
   type: z.enum(["obr", "bonus"]),
   kind: z.enum(["follow", "like", "comment", "custom"]).optional(),
   link: z.string().trim().max(300).optional(),
+  max: z.number().int().min(1).max(MAX_RULE_POINTS).optional(),
 }).transform((r, ctx) => {
   const out = finalizeRule(r);
   if (typeof out === "string") {
@@ -151,11 +152,11 @@ export async function setRuleCheckAction(
   storeId: string,
   entryId: string,
   ruleId: string,
-  on: boolean,
+  points: number,
 ): Promise<Result> {
   return run(async () => {
     await access(storeId);
-    await setRuleCheck(storeId, entryId, ruleId, on);
+    await setRuleCheck(storeId, entryId, ruleId, z.number().int().min(0).max(MAX_RULE_POINTS).parse(points));
     refresh(storeId);
   });
 }
