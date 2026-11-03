@@ -85,7 +85,7 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
   const selected = entries.find((e) => e.id === selectedId) ?? null;
   const canDraw = raffle.status === "aberto" || raffle.status === "encerrado";
 
-  const gridCols = `minmax(0,1fr) 150px ${rules.map((r) => (r.type === "bonus" ? "120px" : "96px")).join(" ")} 150px`;
+  const gridCols = `minmax(240px,1fr) 150px ${rules.map((r) => (r.type === "bonus" ? "120px" : "96px")).join(" ")} 170px`;
 
   function toggle(e: RaffleEntry, r: RaffleRule) {
     startTransition(async () => {
@@ -252,45 +252,57 @@ export function RaffleDetailClient({ storeId, raffle, entries, customers, origin
           </div>
         ) : (
           <>
-            {/* Desktop table */}
+            {/* Desktop table: scrolls sideways when there are many rules; the participant column stays pinned (board 2c) */}
             <div className="hidden overflow-hidden rounded-[14px] border border-border bg-white min-[820px]:block">
-              <div
-                className="grid items-end gap-2.5 border-b border-border bg-paper px-[18px] py-3 text-[10.5px] font-bold uppercase tracking-[.4px] text-ink-soft"
-                style={{ gridTemplateColumns: gridCols }}
-              >
-                <span>Participante</span>
-                <span>Números</span>
-                {rules.map((r) => (
-                  <span
-                    key={r.id}
-                    className={cn("text-center leading-[1.3]", r.type === "bonus" && "text-[#8A6312]")}
-                    title={r.text}
+              <div className="overflow-x-auto">
+                <div className="w-max min-w-full">
+                  <div
+                    className="grid items-end gap-2.5 border-b border-border bg-paper py-3 text-[10.5px] font-bold uppercase tracking-[.4px] text-ink-soft"
+                    style={{ gridTemplateColumns: gridCols }}
                   >
-                    <span className="line-clamp-3">{r.text}</span>
-                    {r.type === "bonus" && <span className="block">+1 número</span>}
-                  </span>
-                ))}
-                <span>Situação</span>
-              </div>
-              {view.map((e) => (
-                <div
-                  key={e.id}
-                  className={cn(
-                    "grid items-center gap-2.5 border-b border-[#F0F4ED] px-[18px] py-3",
-                    e.status === "excl" && "opacity-60",
-                  )}
-                  style={{ gridTemplateColumns: gridCols }}
-                >
-                  <PersonCell entry={e} onOpen={() => setSelectedId(e.id)} />
-                  <Balls entry={e} />
-                  {rules.map((r) => (
-                    <span key={r.id} className="flex justify-center">
-                      <CheckButton entry={e} rule={r} disabled={pending || e.status === "excl"} onToggle={() => toggle(e, r)} />
-                    </span>
-                  ))}
-                  <Situation entry={e} note={rowNote(raffle, e)} />
+                    <span className="sticky left-0 z-[1] bg-paper pl-[18px] pr-2.5">Participante</span>
+                    <span>Números</span>
+                    {rules.map((r) => (
+                      <span
+                        key={r.id}
+                        className={cn("text-center leading-[1.3]", r.type === "bonus" && "text-[#8A6312]")}
+                        title={r.text}
+                      >
+                        <span className="line-clamp-3">{r.text}</span>
+                        {r.type === "bonus" && <span className="block">+1 número</span>}
+                      </span>
+                    ))}
+                    <span className="pr-[18px]">Situação</span>
+                  </div>
+                  {view.map((e) => {
+                    const dim = e.status === "excl" && "opacity-60";
+                    return (
+                      <div
+                        key={e.id}
+                        className="grid items-center gap-2.5 border-b border-[#F0F4ED] py-3"
+                        style={{ gridTemplateColumns: gridCols }}
+                      >
+                        <div className="sticky left-0 z-[1] flex min-w-0 bg-white pl-[18px] pr-2.5">
+                          <div className={cn("flex min-w-0 flex-1", dim)}>
+                            <PersonCell entry={e} onOpen={() => setSelectedId(e.id)} />
+                          </div>
+                        </div>
+                        <div className={dim || undefined}>
+                          <Balls entry={e} />
+                        </div>
+                        {rules.map((r) => (
+                          <span key={r.id} className={cn("flex justify-center", dim)}>
+                            <CheckButton entry={e} rule={r} disabled={pending || e.status === "excl"} onToggle={() => toggle(e, r)} />
+                          </span>
+                        ))}
+                        <div className={cn("pr-[18px]", dim)}>
+                          <Situation entry={e} note={rowNote(raffle, e)} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
               <div className="px-[18px] py-3 text-xs text-ink-soft">
                 Mostrando {view.length} de {counts.todos} · ordenado por cadastro mais recente
               </div>
