@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CategoryTile } from "@/components/category-meta";
 import { useStockCategoryMeta, useUnits } from "@/components/stock-settings-context";
 import { todayDateInput } from "../financeiro/finance-shared";
+import { useCanDeposito } from "./deposito-access";
 import { buildStockCard, pkgCount, pkgPlural } from "./stock-view";
 
 interface Props {
@@ -70,12 +71,13 @@ function CompraForm({
   onCreateNew: () => void;
 }) {
   const { units, unitLabel } = useUnits();
+  const canDep = useCanDeposito();
   const pickable = useMemo(
     () => items.filter((i) => i.tracked && !i.archived),
     [items],
   );
   const [itemId, setItemId] = useState<string | null>(preselectId);
-  const [dest, setDest] = useState<StockLocation>("deposito");
+  const [dest, setDest] = useState<StockLocation>(canDep ? "deposito" : "loja");
   const [qty, setQty] = useState("");
   const [total, setTotal] = useState("");
   const [date, setDate] = useState(() => todayDateInput());
@@ -161,7 +163,7 @@ function CompraForm({
         <div>
           <FieldLabel>Guardar em</FieldLabel>
           <div role="group" aria-label="Guardar em" className="grid grid-cols-2 gap-2">
-            <DestOption
+            {canDep && <DestOption
               on={dest === "deposito"}
               onClick={() => setDest("deposito")}
               icon={<Warehouse className="size-3.5 shrink-0 text-depot" strokeWidth={2} />}
@@ -170,7 +172,7 @@ function CompraForm({
               sub="Guarda e repõe a loja depois"
               subClass="text-depot-soft"
               onClass="border-[1.5px] border-depot bg-depot-wash shadow-[0_0_0_3px_var(--color-depot-wash)]"
-            />
+            />}
             <DestOption
               on={dest === "loja"}
               onClick={() => setDest("loja")}

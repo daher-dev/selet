@@ -50,7 +50,7 @@ function toItem(id: string, d: FirebaseFirestore.DocumentData): StockItem {
     resellable: d.resellable ?? false,
     cost: d.cost,
     sellPrice: d.sellPrice,
-    reorderAt: d.reorderAt ?? 0,
+    reorderAt: d.reorderAt ?? null,
     lowStock: d.lowStock ?? false,
     yieldPct: d.yieldPct,
     archived: d.archived ?? false,
@@ -78,7 +78,7 @@ function computeLowStock(f: {
   open?: number;
   qty?: number;
   openPkg?: boolean;
-  reorderAt?: number;
+  reorderAt?: number | null;
 }): boolean {
   const tracked = f.tracked ?? false;
   const continuo = f.continuousUse ?? false;
@@ -150,7 +150,7 @@ export interface StockItemInput {
   resellable: boolean;
   cost?: number;
   sellPrice?: number;
-  reorderAt: number;
+  reorderAt: number | null;
   yieldPct?: number;
   archived?: boolean;
 }
@@ -364,7 +364,7 @@ function replayMovementState(
     usos: baseline.usos,
     continuousUse: item.continuousUse ?? false,
     consumptionMode: item.consumptionMode ?? (item.continuousUse ? "continuo" : "medido"),
-    reorderAt: item.reorderAt ?? 0,
+    reorderAt: item.reorderAt ?? null,
   };
   let latestPurchasePrice: number | undefined;
 
@@ -679,7 +679,7 @@ export async function applyMovement(
           pkgSize,
           ...state,
           openPkg: d.openPkg ?? false,
-          reorderAt: d.reorderAt ?? 0,
+          reorderAt: d.reorderAt ?? null,
         }),
         updatedAt: Timestamp.now(),
       };
@@ -706,6 +706,7 @@ export async function updateMovement(
   itemId: string,
   movementId: string,
   input: UpdateMovementInput,
+  lojaOnly = false,
 ): Promise<void> {
   const db = getDb();
   const itemRef = stockCol(storeId).doc(itemId);
@@ -722,6 +723,7 @@ export async function updateMovement(
     if (!isEditableMovement(prev)) {
       throw new Error("Movimentações automáticas ou vinculadas são somente leitura.");
     }
+    if (lojaOnly && prev.loc === "deposito") throw new Error("Acesso negado.");
     if ((prev.byPackage ?? false) && !Number.isInteger(input.qty)) {
       throw new Error("Movimentações por embalagem precisam de quantidade inteira.");
     }
@@ -765,6 +767,7 @@ export async function deleteMovement(
   storeId: string,
   itemId: string,
   movementId: string,
+  lojaOnly = false,
 ): Promise<void> {
   const db = getDb();
   const itemRef = stockCol(storeId).doc(itemId);
@@ -781,6 +784,7 @@ export async function deleteMovement(
     if (!isEditableMovement(prev)) {
       throw new Error("Movimentações automáticas ou vinculadas são somente leitura.");
     }
+    if (lojaOnly && prev.loc === "deposito") throw new Error("Acesso negado.");
 
     const allMovements = await tx.get(itemRef.collection("movements").orderBy("at", "asc"));
     const baseline = replayBaselineState(
@@ -1109,7 +1113,7 @@ export interface StockWork {
   usos: number;
   continuousUse: boolean;
   consumptionMode: ConsumptionMode;
-  reorderAt: number;
+  reorderAt: number | null;
 }
 
 export function readStockWork(d: FirebaseFirestore.DocumentData): StockWork {
@@ -1123,7 +1127,7 @@ export function readStockWork(d: FirebaseFirestore.DocumentData): StockWork {
     usos: d.usos ?? 0,
     continuousUse: d.continuousUse ?? false,
     consumptionMode: d.consumptionMode ?? (d.continuousUse ? "continuo" : "medido"),
-    reorderAt: d.reorderAt ?? 0,
+    reorderAt: d.reorderAt ?? null,
   };
 }
 
@@ -1349,7 +1353,7 @@ export interface MovementPage {
 export async function listMovementsPage(
   storeId: string,
   itemId: string,
-  opts: { loc?: StockLocation; kind?: MovementKind; before?: string; limit?: number } = {},
+  opts: { loc?: StockLocation; kind?: MovementKind; before?: string; limit?: number; lojaOnly?: boolean } = {},
 ): Promise<MovementPage> {
   const limit = opts.limit ?? 15;
   const col = stockCol(storeId).doc(itemId).collection("movements");
@@ -1363,6 +1367,7 @@ export async function listMovementsPage(
     for (const doc of snap.docs) {
       cursor = doc.data().at;
       const m = toMovement(doc);
+      if (opts.lojaOnly && (m.loc === "deposito" || m.loc === "ambos")) continue;
       if (opts.loc && m.loc !== opts.loc && m.loc !== "ambos") continue;
       if (opts.kind && movementKind(m) !== opts.kind) continue;
       rows.push(m);

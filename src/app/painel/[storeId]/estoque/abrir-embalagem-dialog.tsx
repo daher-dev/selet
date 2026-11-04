@@ -9,6 +9,7 @@ import { expectedUses, yieldPercent } from "@/lib/stock-yield";
 import { openNextPackageAction } from "@/actions/stock";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useCanDeposito } from "./deposito-access";
 import type { RecipeUsage } from "./estoque-detail-sheet";
 import { pkgCount } from "./stock-view";
 
@@ -52,7 +53,8 @@ function AbrirForm({
   onClose: () => void;
 }) {
   const label = item.pkgLabel ?? "embalagem";
-  const [from, setFrom] = useState<StockLocation>(item.sealed > 0 || item.depSealed === 0 ? "loja" : "deposito");
+  const canDep = useCanDeposito();
+  const [from, setFrom] = useState<StockLocation>(item.sealed > 0 || item.depSealed === 0 || !canDep ? "loja" : "deposito");
   const [pending, startTransition] = useTransition();
 
   const available = from === "loja" ? item.sealed : item.depSealed;
@@ -121,7 +123,7 @@ function AbrirForm({
               ring="border-primary bg-mint-wash"
               dot="border-primary"
             />
-            <Origin
+            {canDep && <Origin
               checked={from === "deposito"}
               disabled={item.depSealed === 0}
               onSelect={() => setFrom("deposito")}
@@ -132,7 +134,7 @@ function AbrirForm({
               subClass="text-depot-soft"
               ring="border-depot bg-depot-wash"
               dot="border-depot"
-            />
+            />}
           </div>
         </div>
       </div>

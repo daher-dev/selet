@@ -43,6 +43,8 @@ const TONE_FG = { ink: "text-ink", depot: "text-depot", amber: "text-[#8a5a0f]" 
  * Depósito) and by type, grouped by day, loading older entries as it scrolls.
  * A manual entrada/saída opens its correction form from the row.
  */
+import { useCanDeposito } from "./deposito-access";
+
 export function Movimentacoes({
   storeId,
   item,
@@ -56,6 +58,7 @@ export function Movimentacoes({
   onEdit: (movement: StockMovement) => void;
 }) {
   const { unitLabel } = useUnits();
+  const canDep = useCanDeposito();
   const [loc, setLoc] = useState<LocFilter>("tudo");
   const [kind, setKind] = useState<KindFilter>("todos");
   const [rows, setRows] = useState<StockMovement[] | null>(null);
@@ -137,7 +140,7 @@ export function Movimentacoes({
         <span className="flex-1 text-[11px] font-bold uppercase tracking-[.5px] text-ink-soft">Movimentações</span>
         {item.tracked && (
           <div role="group" aria-label="Local" className="flex rounded-lg bg-[#f1f6ee] p-0.5">
-            {(["tudo", "loja", "deposito"] as const).map((v) => (
+            {(canDep ? (["tudo", "loja", "deposito"] as const) : (["tudo", "loja"] as const)).map((v) => (
               <button
                 key={v}
                 type="button"

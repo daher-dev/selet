@@ -88,7 +88,7 @@ function TransferForm({
 
   const inLines = new Set(lines.map((l) => l.itemId));
   const suggestions = eligible.filter(
-    (i) => !inLines.has(i.id) && !discarded.includes(i.id) && ["repor", "esgotado"].includes(stockStatus(i)),
+    (i) => !inLines.has(i.id) && !discarded.includes(i.id) && i.reorderAt != null && ["repor", "esgotado"].includes(stockStatus(i)),
   );
   const addable = eligible.filter((i) => !inLines.has(i.id));
 
@@ -116,6 +116,7 @@ function TransferForm({
   }
   function why(item: StockItem): { text: string; cls: string } {
     const st = stockStatus(item);
+    if (item.reorderAt == null) return { text: `${lojaAfter(item, 0)} na loja`, cls: "text-ink-soft" };
     if (st === "esgotado") return { text: `Esgotado na loja · mínimo ${minimumLabel(item, unitLabel)}`, cls: "text-[#b23a22]" };
     if (st === "repor") return { text: `Abaixo do mínimo · mínimo ${minimumLabel(item, unitLabel)}`, cls: "text-[#8a5a0f]" };
     return { text: `${lojaAfter(item, 0)} na loja · mínimo ${minimumLabel(item, unitLabel)}`, cls: "text-ink-soft" };

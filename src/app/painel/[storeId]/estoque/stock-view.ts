@@ -50,8 +50,8 @@ export function usableAmount(item: StockItem): number {
 /** Low-stock threshold in the same terms as {@link usableAmount}. */
 export function threshold(item: StockItem): number {
   return item.tracked && !item.continuousUse
-    ? item.reorderAt * (item.pkgSize || 1)
-    : item.reorderAt;
+    ? (item.reorderAt ?? 0) * (item.pkgSize || 1)
+    : (item.reorderAt ?? 0);
 }
 
 export type StockStatus = "ok" | "repor" | "esgotado" | "arquivado";
@@ -139,7 +139,7 @@ export function buildStockCard(item: StockItem, units: StockUnitDef[] = DEFAULT_
       else segs.push({ kind: "open", pct: Math.max(5, Math.min(100, Math.round((item.open / pkgSize) * 100))) });
     }
     // Slots still missing up to the minimum, drawn first so a shortage reads from the left.
-    const min = Math.min(MAX_SEGS, Math.max(1, Math.ceil(item.reorderAt)));
+    const min = item.reorderAt == null ? 0 : Math.min(MAX_SEGS, Math.max(1, Math.ceil(item.reorderAt)));
     while (segs.length < min) segs.unshift({ kind: "missing" });
   }
 
@@ -179,6 +179,7 @@ export function suggestTransferQty(item: StockItem): number {
  * ("2 potes"), base units for the rest ("10 un").
  */
 export function minimumLabel(item: StockItem, unitLabelFn: (unit: string, plural: boolean) => string): string {
+  if (item.reorderAt == null) return "";
   if (item.continuousUse) return `${item.reorderAt} ${pkgCount(item, item.reorderAt)}`;
   const min = threshold(item);
   return formatQty(min, unitLabelFn(item.unit, min !== 1));

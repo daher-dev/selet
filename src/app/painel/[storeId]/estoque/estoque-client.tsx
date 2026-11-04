@@ -16,6 +16,7 @@ import {
 import { usePageAction } from "@/components/shell/app-shell-context";
 import { CategoryTile } from "@/components/category-meta";
 import { useStockCategoryMeta, useStockSettings, useUnits } from "@/components/stock-settings-context";
+import { DepositoAccessProvider, useCanDeposito } from "./deposito-access";
 import { StockItemFormSheet } from "./stock-item-form-sheet";
 import { StockDetailSheet, type OrderRef, type RecipeUsage } from "./estoque-detail-sheet";
 import { RegistrarCompraDialog } from "./registrar-compra-dialog";
@@ -42,6 +43,7 @@ export function EstoqueClient({
   menuProducts,
   resaleByStock,
   recipeUsage,
+  canDeposito,
 }: {
   storeId: string;
   storeName: string;
@@ -50,6 +52,7 @@ export function EstoqueClient({
   menuProducts: Product[];
   resaleByStock: Record<string, string[]>;
   recipeUsage: Record<string, RecipeUsage[]>;
+  canDeposito: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
@@ -129,7 +132,7 @@ export function EstoqueClient({
   if (counts.arquivados > 0) chips.push({ value: "arquivados", label: "Arquivados", count: counts.arquivados });
 
   return (
-    <>
+    <DepositoAccessProvider value={canDeposito}>
       <div className="mb-4 flex flex-wrap items-center gap-2.5">
         <label className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-border bg-card px-3.5 md:w-[260px]">
           <Search />
@@ -142,7 +145,7 @@ export function EstoqueClient({
           />
         </label>
 
-        <div
+        {canDeposito && <div
           role="group"
           aria-label="Onde"
           className="flex items-center gap-0.5 rounded-[11px] border border-border bg-card p-[3px]"
@@ -164,7 +167,7 @@ export function EstoqueClient({
               {opt.label}
             </button>
           ))}
-        </div>
+        </div>}
 
         <span className="hidden flex-1 md:block" />
 
@@ -295,7 +298,7 @@ export function EstoqueClient({
         }}
         onCreateNew={() => setFormOpen(true)}
       />
-    </>
+    </DepositoAccessProvider>
   );
 }
 
@@ -371,7 +374,7 @@ function StockCard({
       ? { ...meta, fg: "text-destructive", bg: "bg-danger-wash" }
       : meta;
   const showLoja = where !== "dep";
-  const showDep = where !== "loja" && view.tracked;
+  const showDep = useCanDeposito() && where !== "loja" && view.tracked;
 
   const lojaRow = (
     <>

@@ -9,6 +9,7 @@ export const SECTIONS = [
   "clientes",
   "produtos",
   "estoque",
+  "deposito",
   "financeiro",
   "cartelas",
   "shakes",
@@ -36,6 +37,8 @@ export const GRANTABLE_SECTIONS = [
   "clientes",
   "produtos",
   "estoque",
+  // Sub-permission of estoque: without it the funcionário sees only the Loja.
+  "deposito",
   "financeiro",
   "cartelas",
   "shakes",
@@ -390,7 +393,8 @@ export interface StockItem {
   resellable: boolean;
   cost?: number; // centavos per package (tracked) or base unit
   sellPrice?: number; // centavos, resellable items
-  reorderAt: number;
+  /** null = the user never configured a minimum: no low-stock alert, no transfer suggestion. */
+  reorderAt: number | null;
   lowStock: boolean;
   yieldPct?: number; // rendimento
   /** hidden from the default estoque list (e.g. non-food resale lines) */
