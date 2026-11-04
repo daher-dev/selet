@@ -426,7 +426,7 @@ export function FinanceiroClient({
         </TintedCard>
       </div>
 
-      <TintedCard tone="pink" icon={TrendingUp} title="Ticket médio e clientes ativos" className="mt-4">
+      <TintedCard tone="pink" icon={TrendingUp} title="Ticket médio e acessos" className="mt-4">
         {hasTicket ? (
           <>
             <TicketChart months={lastSix} />

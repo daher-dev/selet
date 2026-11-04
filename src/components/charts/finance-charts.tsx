@@ -154,12 +154,12 @@ type TicketPoint = Pick<MonthPoint, "key" | "label" | "partial" | "avgTicket" | 
 
 const TICKET_SERIES = [
   { key: "ticket", label: "Ticket médio", color: "#186B41", line: true },
-  { key: "clientes", label: "Clientes ativos", color: "#CDE3C2", line: false },
+  { key: "clientes", label: "Acessos", color: "#CDE3C2", line: false },
 ] as const;
 
 const TICKET_KEYS = TICKET_SERIES.map((s) => s.key);
 
-/** Ticket médio line (left axis, R$) over clientes ativos bars (right axis). */
+/** Ticket médio line (left axis, R$) over acessos bars (right axis). */
 export function TicketChart({ months }: { months: TicketPoint[] }) {
   const { hidden, isVisible, toggle } = useSeriesVisibility(TICKET_KEYS);
   const showTicket = isVisible("ticket");
@@ -184,7 +184,7 @@ export function TicketChart({ months }: { months: TicketPoint[] }) {
         ...(showClients
           ? [
               {
-                label: "Clientes ativos",
+                label: "Acessos",
                 value: m.activeCustomers.toLocaleString("pt-BR"),
                 color: "#CDE3C2",
               },
@@ -196,7 +196,7 @@ export function TicketChart({ months }: { months: TicketPoint[] }) {
 
   return (
     <>
-      <ChartFrame height={210} label="Ticket médio e clientes ativos" tooltip={tooltip}>
+      <ChartFrame height={210} label="Ticket médio e acessos" tooltip={tooltip}>
         {(W, hover) => {
           const left = 62;
           const right = 50;
@@ -321,7 +321,7 @@ export function TicketChart({ months }: { months: TicketPoint[] }) {
                   fontWeight={700}
                   fill="#5E8A4C"
                 >
-                  Clientes ativos (nº)
+                  Acessos (nº)
                 </text>
               )}
               <HoverColumns n={months.length} x0={left} slot={slot} top={0} bottom={210} />

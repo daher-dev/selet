@@ -209,7 +209,7 @@ describe("legend toggles", () => {
     const user = userEvent.setup();
     const { container } = render(<TicketChart months={months} />);
     expect(screen.getByText("Ticket médio (R$)")).toBeInTheDocument();
-    expect(screen.getByText("Clientes ativos (nº)")).toBeInTheDocument();
+    expect(screen.getByText("Acessos (nº)")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Ticket médio" }));
     expect(seriesRects(container, "ticket")).toHaveLength(0);
@@ -218,13 +218,13 @@ describe("legend toggles", () => {
 
     await user.hover(columns(container)[0]);
     const tip = screen.getByRole("tooltip");
-    expect(tip).toHaveTextContent(/Clientes ativos.*10/);
+    expect(tip).toHaveTextContent(/Acessos.*10/);
     expect(tip).not.toHaveTextContent("Ticket médio");
     await user.unhover(columns(container)[0]);
 
     await user.click(screen.getByRole("button", { name: "Ticket médio" }));
-    await user.click(screen.getByRole("button", { name: "Clientes ativos" }));
-    expect(screen.queryByText("Clientes ativos (nº)")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Acessos" }));
+    expect(screen.queryByText("Acessos (nº)")).toBeNull();
     expect(seriesRects(container, "ticket").length).toBeGreaterThan(0);
     await user.hover(columns(container)[1]);
     expect(screen.getByRole("tooltip")).toHaveTextContent(/Ticket médio.*208,33/);

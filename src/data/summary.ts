@@ -15,6 +15,7 @@ import {
 export type { MonthAgg, SummaryData } from "@/lib/summary-core";
 export {
   activeCustomerCount,
+  customerDayKey,
   customerKey,
   isOpenStatus,
   monthCustomerSplit,
