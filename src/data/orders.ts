@@ -34,7 +34,7 @@ import { loadShakeCatalogsForItems, type ShakeCatalogs } from "./shakes";
 import { loadPudimCatalogsForItems, type PudimCatalogs } from "./pudim";
 import { consumeWork, readStockWork, reverseWork, stockPatch } from "./stock";
 import {
-  customerKey,
+  customerDayKey,
   isOpenStatus,
   lowStockContribution,
   monthKey,
@@ -596,7 +596,7 @@ export async function createOrder(
     summaryAddOrder(summary, {
       mk,
       total,
-      custKey: customerKey(input.customerId, input.customerName),
+      custKey: customerDayKey(input.customerId, input.customerName, now.toDate()),
       open: isOpenStatus(NEW_ORDER_STATUS),
       paid: payment.paid,
       channel: input.channel,
@@ -783,7 +783,7 @@ export async function updateOrder(
       summaryRemoveOrder(summary, {
         mk: oldMk,
         total: oldTotal,
-        custKey: customerKey(current.customerId ?? null, current.customerName),
+        custKey: customerDayKey(current.customerId ?? null, current.customerName, oldCreatedAt.toDate()),
         open,
         paid: paidBefore,
         channel: current.channel,
@@ -793,7 +793,7 @@ export async function updateOrder(
       summaryAddOrder(summary, {
         mk: newMk,
         total,
-        custKey: customerKey(input.customerId, input.customerName),
+        custKey: customerDayKey(input.customerId, input.customerName, newCreatedAt.toDate()),
         open,
         paid: paidAfter,
         channel: input.channel,
@@ -1000,7 +1000,11 @@ export async function setOrderStatus(
     // states only shifts the open-orders badge count.
     const mk = monthKey((current.createdAt as Timestamp).toDate());
     const total = current.total ?? 0;
-    const custKey = customerKey(current.customerId ?? null, current.customerName);
+    const custKey = customerDayKey(
+      current.customerId ?? null,
+      current.customerName,
+      (current.createdAt as Timestamp).toDate(),
+    );
     const paid = current.paid ?? false;
     const channel = current.channel as OrderChannel;
     const items = (current.items ?? []) as OrderItem[];

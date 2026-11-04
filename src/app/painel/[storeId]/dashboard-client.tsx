@@ -74,7 +74,7 @@ export function DashboardClient({
     icon: LucideIcon;
     href: string;
   }[] = [
-    { key: "clientes", label: "Clientes ativos", value: kpis.activeCustomers, tone: "green", icon: Users, href: `${base}/clientes` },
+    { key: "clientes", label: "Acessos", value: kpis.activeCustomers, tone: "green", icon: Users, href: `${base}/clientes` },
     { key: "pedidos", label: "Pedidos", value: kpis.orders, tone: "blue", icon: ShoppingBag, href: `${base}/pedidos` },
     { key: "aniversarios", label: "Aniversários próximos", value: kpis.birthdays, tone: "pink", icon: Cake, href: `${base}/clientes?seg=aniversarios` },
     { key: "estoque", label: "Estoque baixo", value: kpis.lowStock, tone: "amber", icon: Package, href: `${base}/estoque` },
@@ -170,7 +170,7 @@ export function DashboardClient({
                 <ChannelStackChart months={points} unit={view_} />
               </Pending>
             </TintedCard>
-            <TintedCard tone="blue" icon={Users} title="Clientes ativos">
+            <TintedCard tone="blue" icon={Users} title="Acessos">
               <Pending on={!series}>
                 <CustomerSplitChart months={points} unit={view_} />
               </Pending>

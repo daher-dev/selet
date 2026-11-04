@@ -135,11 +135,12 @@ describe("periodSeries (week)", () => {
     ["bia", new Date("2026-08-01T12:00:00Z")],
   ]);
 
-  it("buckets Monday–Sunday and counts distinct clients per week", () => {
+  it("buckets Monday–Sunday and counts acessos (client × day) per week", () => {
     const orders = [
       mkOrder({ customerId: "bia", total: 4000, createdAt: at(13), channel: "loja" }),
       mkOrder({ customerId: "ana", total: 1000, createdAt: at(21), channel: "instagram" }),
       mkOrder({ customerId: "ana", total: 500, createdAt: at(25), channel: "instagram" }), // Sun, same week
+      mkOrder({ customerId: "ana", total: 0, createdAt: at(21, 18), channel: "whatsapp" }), // same day as the 1st: no extra acesso
       mkOrder({ customerId: "bia", total: 2000, createdAt: at(22), channel: "whatsapp" }),
       mkOrder({ customerId: "ana", total: 300, createdAt: at(27) }),
       mkOrder({ customerId: "ana", total: 9999, createdAt: at(27), status: "cancelado" }),
@@ -149,9 +150,9 @@ describe("periodSeries (week)", () => {
     const w = periodSeries({ unit: "week", orders, firstOrderAt, now, count: 3 });
     expect(w.map((p) => p.key)).toEqual(["2026-10-12", "2026-10-19", "2026-10-26"]);
     expect(w.map((p) => p.sales)).toEqual([4000, 3500, 400]);
-    expect(w[1]).toMatchObject({ orderCount: 3, activeCustomers: 2, novos: 1, recorrentes: 1 });
-    expect(w[1].channels).toEqual({ instagram: 2, whatsapp: 1, loja: 0 });
-    // ana ordered in two weeks: counted once in each; already recorrente in the later one.
+    expect(w[1]).toMatchObject({ orderCount: 4, activeCustomers: 3, novos: 1, recorrentes: 2 });
+    expect(w[1].channels).toEqual({ instagram: 2, whatsapp: 2, loja: 0 });
+    // ana came on 27/10 too: one acesso there; already recorrente in the later week.
     expect(w[2]).toMatchObject({ activeCustomers: 2, novos: 0, recorrentes: 2 });
     expect(w.map((p) => p.partial)).toEqual([false, false, true]);
     expect(w[0].mom).toBeNull();

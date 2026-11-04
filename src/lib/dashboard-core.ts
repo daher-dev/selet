@@ -9,7 +9,7 @@ import type { Order } from "./types";
 import { zonedParts } from "./timezone";
 import {
   activeCustomerCount,
-  customerKey,
+  customerDayKey,
   monthCustomerSplit,
   type SummaryData,
 } from "./summary-core";
@@ -21,7 +21,7 @@ export interface RankedItem {
 
 export interface RecentSummary {
   orderCount: number;
-  /** distinct customers with at least one order in the window */
+  /** acessos: distinct customer×day pairs with an order in the window */
   activeCustomers: number;
   topProducts: RankedItem[];
   topFlavors: RankedItem[];
@@ -50,7 +50,7 @@ export function summarizeRecent(
   const products = new Map<string, RankedItem>();
   const flavors = new Map<string, RankedItem>();
   for (const o of active) {
-    customers.add(customerKey(o.customerId, o.customerName));
+    customers.add(customerDayKey(o.customerId, o.customerName, new Date(o.createdAt)));
     for (const item of o.items) {
       if (item.cartelaSale) continue;
       const p = products.get(item.productId) ?? { name: item.name, qty: 0 };
@@ -250,7 +250,7 @@ export function periodSeries(input: {
     r.sales += o.total ?? 0;
     r.orderCount += 1;
     r.channels[o.channel] += 1;
-    r.customers.add(customerKey(o.customerId, o.customerName));
+    r.customers.add(customerDayKey(o.customerId, o.customerName, new Date(o.createdAt)));
     if (o.customerId) r.registered.add(o.customerId);
   }
 

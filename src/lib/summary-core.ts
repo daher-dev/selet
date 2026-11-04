@@ -18,8 +18,8 @@
  *      orderCount    — non-cancelled orders opened that month
  *      ticketSum     — Σ order.total (avgTicket = ticketSum / orderCount)
  *      unpaidTotal / unpaidCount — outstanding "a receber" for that month
- *      customers     — distinct-set as a multiset { key -> live order count };
- *                      activeCustomerCount(b) = number of keys
+ *      customers     — distinct-set as a multiset { customer@day -> live order
+ *                      count }; activeCustomerCount(b) = number of keys = acessos
  *      channels      — order count per sales channel {instagram, whatsapp, loja}
  *      sellers       — top-sellers as productId -> { name, qty } (Σ line qty)
  *      newCustomers  — customers whose `since` falls in that month
@@ -31,7 +31,7 @@
  */
 
 import type { OrderChannel } from "./types";
-import { monthKey } from "./timezone";
+import { monthKey, zonedParts } from "./timezone";
 
 /** Per-channel order counts for a month bucket. */
 export type ChannelCounts = Record<OrderChannel, number>;
@@ -49,7 +49,7 @@ export interface MonthAgg {
   ticketSum: number;
   unpaidTotal: number;
   unpaidCount: number;
-  /** distinct active customers as a multiset (key -> count of live orders) */
+  /** acessos (customer@day) as a multiset (key -> count of live orders) */
   customers: Record<string, number>;
   /** order count per sales channel */
   channels: ChannelCounts;
@@ -77,6 +77,21 @@ export function isOpenStatus(status: string): boolean {
 
 /** "2026-07" for a given date, in the store's timezone (America/Sao_Paulo). */
 export { monthKey };
+
+/**
+ * One "acesso": a customer visiting on a calendar day (store time zone). The
+ * same person ordering twice in a day is a single acesso, so this — not the bare
+ * customerKey — is what the month buckets and recent windows count.
+ */
+export function customerDayKey(
+  customerId: string | null | undefined,
+  customerName: string,
+  at: Date,
+): string {
+  const { year, month, day } = zonedParts(at);
+  const d = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return `${customerKey(customerId, customerName)}@${d}`;
+}
 
 /**
  * Stable, Firestore-map-safe distinct key for a customer. Prefers the customer
@@ -351,7 +366,7 @@ export function computeSummaryFrom(input: {
     summaryAddOrder(s, {
       mk: monthKey(o.createdAt),
       total: o.total ?? 0,
-      custKey: customerKey(o.customerId, o.customerName),
+      custKey: customerDayKey(o.customerId, o.customerName, o.createdAt),
       open: isOpenStatus(o.status),
       paid: !!o.paid,
       channel: o.channel,
@@ -428,7 +443,7 @@ export function pruneMonths(s: SummaryData, keep = 18): SummaryData {
   };
 }
 
-/** activeCustomers for a month bucket = number of distinct customer keys. */
+/** Acessos for a month bucket = number of distinct customer@day keys. */
 export function activeCustomerCount(b: MonthAgg | undefined): number {
   return b ? Object.keys(b.customers).length : 0;
 }

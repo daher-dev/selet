@@ -274,6 +274,8 @@ function DetailBody({
             item={liveItem}
             orders={orders}
             menuProducts={menuProducts}
+            // Loja empty and stock only in the depósito: that is where a perda happens.
+            defaultLoc={canRepor && liveItem.sealed === 0 ? "deposito" : "loja"}
             onDone={() => {
               setAdjusting(false);
               refreshDetail();
@@ -306,49 +308,48 @@ function DetailBody({
         />
       </div>
 
-      <div className="flex shrink-0 gap-2.5 border-t border-[#f0f4ed] px-5 py-3.5">
-        {canRepor ? (
-          <>
+      <div className="flex shrink-0 flex-col gap-2 border-t border-[#f0f4ed] px-5 py-3.5">
+        {canRepor && (
+          <Button
+            onClick={() => onTransfer(liveItem)}
+            className="h-11 w-full gap-2 rounded-[11px] bg-depot text-[13.5px] font-semibold text-white hover:bg-depot/90"
+          >
+            Repor {reporQty} {pkgCount(liveItem, reporQty)} do depósito
+          </Button>
+        )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEditingMovement(null);
+              setAdjusting((v) => !v);
+            }}
+            aria-pressed={adjusting}
+            className={cn(
+              "h-11 flex-1 gap-2 rounded-[11px] px-4 text-[13.5px] font-semibold",
+              adjusting ? "border-primary bg-mist text-primary" : "text-[#3d4a42]",
+            )}
+          >
+            <Pencil className="size-3.5" strokeWidth={2} />
+            Ajustar estoque
+          </Button>
+          {canRepor ? (
             <Button
               variant="outline"
               onClick={() => onBuy(liveItem)}
-              className="h-11 rounded-[11px] border-[#cddcc4] px-4 text-[13.5px] font-semibold text-primary"
+              className="h-11 flex-1 rounded-[11px] border-[#cddcc4] px-4 text-[13.5px] font-semibold text-primary"
             >
               Registrar compra
             </Button>
-            <Button
-              onClick={() => onTransfer(liveItem)}
-              className="h-11 flex-1 gap-2 rounded-[11px] bg-depot text-[13.5px] font-semibold text-white hover:bg-depot/90"
-            >
-              Repor {reporQty} {pkgCount(liveItem, reporQty)} do depósito
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setEditingMovement(null);
-                setAdjusting((v) => !v);
-              }}
-              aria-pressed={adjusting}
-              className={cn(
-                "h-11 gap-2 rounded-[11px] px-4 text-[13.5px] font-semibold",
-                liveItem.tracked ? "" : "flex-1",
-                adjusting ? "border-primary bg-mist text-primary" : "text-[#3d4a42]",
-              )}
-            >
-              <Pencil className="size-3.5" strokeWidth={2} />
-              Ajustar estoque
-            </Button>
-            {liveItem.tracked && (
+          ) : (
+            liveItem.tracked && (
               <Button onClick={() => onBuy(liveItem)} className="h-11 flex-1 gap-2 rounded-[11px] text-[13.5px] font-semibold">
                 <ShoppingCart className="size-3.5" strokeWidth={2} />
                 Comprar
               </Button>
-            )}
-          </>
-        )}
+            )
+          )}
+        </div>
       </div>
     </>
   );
@@ -697,16 +698,18 @@ function AdjustPanel({
   item,
   orders,
   menuProducts,
+  defaultLoc,
   onDone,
 }: {
   storeId: string;
   item: StockItem;
   orders: OrderRef[];
   menuProducts: Product[];
+  defaultLoc: StockLocation;
   onDone: () => void;
 }) {
   const [mode, setMode] = useState<"in" | "out">("in");
-  const [loc, setLoc] = useState<StockLocation>("loja");
+  const [loc, setLoc] = useState<StockLocation>(defaultLoc);
   const canDep = useCanDeposito();
   return (
     <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-paper p-3">
@@ -722,11 +725,11 @@ function AdjustPanel({
       {item.tracked && canDep && (
         <div role="group" aria-label="Onde" className="flex gap-2">
           <PanelToggle on={loc === "loja"} onClick={() => setLoc("loja")}>
-            <Store className="size-3 text-primary" strokeWidth={2.2} />
+            <Store className="size-3" strokeWidth={2.2} />
             Loja
           </PanelToggle>
-          <PanelToggle on={loc === "deposito"} onClick={() => setLoc("deposito")}>
-            <Warehouse className="size-3 text-depot" strokeWidth={2.2} />
+          <PanelToggle on={loc === "deposito"} onClick={() => setLoc("deposito")} tone="depot">
+            <Warehouse className="size-3" strokeWidth={2.2} />
             Depósito
           </PanelToggle>
         </div>
@@ -740,7 +743,18 @@ function AdjustPanel({
   );
 }
 
-function PanelToggle({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+/** Icons inherit the button colour (white when selected); `tone` tints the selected Depósito blue. */
+function PanelToggle({
+  on,
+  onClick,
+  tone = "primary",
+  children,
+}: {
+  on: boolean;
+  onClick: () => void;
+  tone?: "primary" | "depot";
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
@@ -748,7 +762,11 @@ function PanelToggle({ on, onClick, children }: { on: boolean; onClick: () => vo
       onClick={onClick}
       className={cn(
         "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
-        on ? "border-primary bg-primary text-white" : "border-border bg-card text-ink-soft hover:border-primary/40",
+        on
+          ? tone === "depot"
+            ? "border-depot bg-depot text-white"
+            : "border-primary bg-primary text-white"
+          : "border-border bg-card text-ink-soft hover:border-primary/40",
       )}
     >
       {children}

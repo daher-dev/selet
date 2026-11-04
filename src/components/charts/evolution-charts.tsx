@@ -468,7 +468,7 @@ export function CustomerSplitChart({
           onToggle={(k) => toggle(k as (typeof CUSTOMER_KEYS)[number])}
         />
       </div>
-      <ChartFrame height={240} label={`Clientes ativos ${UNIT[unit].per}`} tooltip={tooltip}>
+      <ChartFrame height={240} label={`Acessos ${UNIT[unit].per}`} tooltip={tooltip}>
         {(W, hover) => {
           const f = smallFrame(W, months.length);
           const compact = f.slot < 30;
