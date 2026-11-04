@@ -53,6 +53,7 @@ import {
 import { CategoryTile } from "@/components/category-meta";
 import { useStockCategoryMeta, useStockSettings, useUnits } from "@/components/stock-settings-context";
 import { ConfirmDialog } from "../sorteios/confirm-dialog";
+import { useCanDeposito } from "./deposito-access";
 import { Movimentacoes } from "./movimentacoes";
 import { OpenMeter } from "./open-meter";
 import { UnitPicker } from "./unit-picker";
@@ -215,7 +216,8 @@ function DetailBody({
 
   const status = stockStatus(liveItem);
   const pill = STATUS_PILL[status];
-  const canRepor = liveItem.tracked && needsAttention(status) && liveItem.depSealed > 0;
+  const canDep = useCanDeposito();
+  const canRepor = canDep && liveItem.tracked && liveItem.reorderAt != null && needsAttention(status) && liveItem.depSealed > 0;
   const reporQty = suggestTransferQty(liveItem);
 
   return (
@@ -364,6 +366,7 @@ function LocationTiles({
   onTransfer: () => void;
 }) {
   const { units, unitLabel } = useUnits();
+  const canDep = useCanDeposito();
   const status = stockStatus(item);
   const card = buildStockCard(item, units);
 
@@ -400,7 +403,7 @@ function LocationTiles({
     : item.open > 0
       ? `+ ${formatQty(item.open, unitLabel(item.unit, item.open !== 1))}`
       : "";
-  const lojaSub = alert && status === "esgotado" ? `mínimo ${minimumLabel(item, unitLabel)}` : [openPart, `mín. ${minimumLabel(item, unitLabel)}`].filter(Boolean).join(" · ");
+  const lojaSub = alert && status === "esgotado" && item.reorderAt != null ? `mínimo ${minimumLabel(item, unitLabel)}` : [openPart, item.reorderAt == null ? "" : `mín. ${minimumLabel(item, unitLabel)}`].filter(Boolean).join(" · ");
 
   const depBody = (
     <>
@@ -415,8 +418,8 @@ function LocationTiles({
   );
 
   return (
-    <div className="grid grid-cols-2 gap-2.5">
-      {dep > 0 ? (
+    <div className={cn("grid gap-2.5", canDep ? "grid-cols-2" : "grid-cols-1")}>
+      {!canDep ? null : dep > 0 ? (
         <button
           type="button"
           onClick={onTransfer}
@@ -704,6 +707,7 @@ function AdjustPanel({
 }) {
   const [mode, setMode] = useState<"in" | "out">("in");
   const [loc, setLoc] = useState<StockLocation>("loja");
+  const canDep = useCanDeposito();
   return (
     <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-paper p-3">
       <div className="flex items-center gap-2">
@@ -715,7 +719,7 @@ function AdjustPanel({
           Saída
         </PanelToggle>
       </div>
-      {item.tracked && (
+      {item.tracked && canDep && (
         <div role="group" aria-label="Onde" className="flex gap-2">
           <PanelToggle on={loc === "loja"} onClick={() => setLoc("loja")}>
             <Store className="size-3 text-primary" strokeWidth={2.2} />
@@ -835,7 +839,7 @@ function EditPanel({
   const [pkgLabel, setPkgLabel] = useState(item.pkgLabel ?? "caixa");
   const [pkgLabelPluralInput, setPkgLabelPluralInput] = useState(item.pkgLabelPlural ?? "");
   const [pkgSize, setPkgSize] = useState(item.pkgSize ? String(item.pkgSize) : "");
-  const [reorder, setReorder] = useState(String(item.reorderAt));
+  const [reorder, setReorder] = useState(item.reorderAt == null ? "" : String(item.reorderAt));
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -863,7 +867,7 @@ function EditPanel({
         resellable: item.resellable,
         cost: item.cost,
         sellPrice: item.sellPrice,
-        reorderAt: reorder ? Number(reorder.replace(",", ".")) : 0,
+        reorderAt: reorder.trim() ? Number(reorder.replace(",", ".")) : null,
         yieldPct: item.yieldPct,
         archived: item.archived,
       });

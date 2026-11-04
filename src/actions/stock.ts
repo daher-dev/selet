@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireAccess } from "@/lib/access";
+import { canAccessSection, requireAccess } from "@/lib/access";
 import {
   adjustOpenBalance,
   applyMovement,
@@ -56,7 +56,7 @@ const itemSchema = z
     resellable: z.boolean().default(false),
     cost: z.number().int().nonnegative().optional(),
     sellPrice: z.number().int().nonnegative().optional(),
-    reorderAt: z.number().nonnegative().default(0),
+    reorderAt: z.number().nonnegative().nullable().default(null),
     yieldPct: z.number().min(0).max(100).optional(),
     archived: z.boolean().default(false),
     initialSealed: z.number().int().nonnegative().default(0),
@@ -107,6 +107,9 @@ export async function createStockItemAction(
     const { storeId, initialSealed, initialDepSealed, initialOpen, ...rest } =
       itemSchema.parse(input);
     const user = await requireAccess(storeId, "estoque");
+    if (initialDepSealed > 0 && !canAccessSection(user, "deposito")) {
+      throw new Error("Sem acesso ao depósito.");
+    }
     const data = {
       ...rest,
       ...resolveItemConfig(await getStockSettings(storeId), rest.category, rest.unit),
@@ -216,16 +219,28 @@ export async function listMovementsAction(
   itemId: string,
   opts: { loc?: "loja" | "deposito"; kind?: MovementKind; before?: string } = {},
 ): Promise<MovementPage> {
-  await requireAccess(storeId, "estoque");
-  return listMovementsPage(storeId, itemId, { ...opts, limit: 15 });
+  const user = await requireAccess(storeId, "estoque");
+  return listMovementsPage(storeId, itemId, {
+    ...opts,
+    limit: 15,
+    lojaOnly: !canAccessSection(user, "deposito"),
+  });
 }
 
 export async function getStockItemAction(
   storeId: string,
   itemId: string,
 ): Promise<import("@/lib/types").StockItem | null> {
-  await requireAccess(storeId, "estoque");
-  return getStockItem(storeId, itemId);
+  const user = await requireAccess(storeId, "estoque");
+  const item = await getStockItem(storeId, itemId);
+  return item && !canAccessSection(user, "deposito") ? { ...item, depSealed: 0 } : item;
+}
+
+/** Depósito gate: funcionários without the "deposito" section only ever touch the Loja. */
+async function requireDeposito(storeId: string) {
+  const user = await requireAccess(storeId, "estoque");
+  if (!canAccessSection(user, "deposito")) throw new Error("Sem acesso ao depósito.");
+  return user;
 }
 
 /** Uses per package the catalog's recipes expect, from the amount each recipe line takes per use. */
@@ -244,7 +259,7 @@ export async function openNextPackageAction(
   from: "loja" | "deposito" = "loja",
 ): Promise<ActionResult> {
   return run(async () => {
-    const user = await requireAccess(storeId, "estoque");
+    const user = from === "deposito" ? await requireDeposito(storeId) : await requireAccess(storeId, "estoque");
     if (!STOCK_LOCATIONS.includes(from)) throw new Error("Origem inválida.");
     const item = await getStockItem(storeId, itemId);
     const note = item
@@ -345,7 +360,7 @@ export async function applyMovementAction(
 ): Promise<ActionResult> {
   return run(async () => {
     const { storeId, itemId, date, ...data } = movementSchema.parse(input);
-    const user = await requireAccess(storeId, "estoque");
+    const user = data.loc === "deposito" ? await requireDeposito(storeId) : await requireAccess(storeId, "estoque");
     const name = await applyMovement(storeId, itemId, {
       ...data,
       at: date ? zonedDateToInstant(date) : undefined,
@@ -397,8 +412,8 @@ export async function updateMovementAction(
   return run(async () => {
     const parsed = updateMovementSchema.parse(input);
     const { storeId, itemId, movementId, qty, price } = parsed;
-    await requireAccess(storeId, "estoque");
-    await updateMovement(storeId, itemId, movementId, { qty, price });
+    const user = await requireAccess(storeId, "estoque");
+    await updateMovement(storeId, itemId, movementId, { qty, price }, !canAccessSection(user, "deposito"));
     revalidatePath(`/painel/${storeId}/estoque`);
     revalidatePath(`/painel/${storeId}`);
   });
@@ -417,8 +432,8 @@ export async function deleteMovementAction(
 ): Promise<ActionResult> {
   return run(async () => {
     const { storeId, itemId, movementId } = deleteMovementSchema.parse(input);
-    await requireAccess(storeId, "estoque");
-    await deleteMovement(storeId, itemId, movementId);
+    const user = await requireAccess(storeId, "estoque");
+    await deleteMovement(storeId, itemId, movementId, !canAccessSection(user, "deposito"));
     revalidatePath(`/painel/${storeId}/estoque`);
     revalidatePath(`/painel/${storeId}`);
   });
@@ -445,7 +460,7 @@ export async function transferToStoreAction(
 ): Promise<ActionResult & { trCode?: string }> {
   try {
     const { storeId, lines, note } = transferSchema.parse(input);
-    const user = await requireAccess(storeId, "estoque");
+    const user = await requireDeposito(storeId);
     const { trCode, count } = await transferToStore(storeId, lines, user.email, note);
     await logActivity(storeId, {
       icon: "package-plus",

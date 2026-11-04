@@ -16,6 +16,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useStockCategoryMeta, useStockSettings, useUnits } from "@/components/stock-settings-context";
+import { useCanDeposito } from "./deposito-access";
 import { pkgPlural } from "./stock-view";
 import { UnitPicker } from "./unit-picker";
 
@@ -57,6 +58,7 @@ function StockItemForm({
   storeId: string;
   onClose: () => void;
 }) {
+  const canDep = useCanDeposito();
   const [name, setName] = useState("");
   const STOCK_CATEGORY_META = useStockCategoryMeta();
   const { categories } = useStockSettings();
@@ -97,7 +99,7 @@ function StockItemForm({
     const reorderN =
       reorder.trim() !== ""
         ? Math.max(0, Number(String(reorder).replace(",", ".")) || 0)
-        : Math.max(1, Math.round(sealedN / 3));
+        : null;
 
     startTransition(async () => {
       const r = await createStockItemAction({
@@ -219,9 +221,11 @@ function StockItemForm({
             <LocationField label="Na loja" tone="loja">
               <InlineInput value={sealed} onChange={setSealed} suffix={pkgLabelPlural} placeholder="0" inputMode="numeric" />
             </LocationField>
-            <LocationField label="No depósito" tone="deposito">
-              <InlineInput value={depSealed} onChange={setDepSealed} suffix={pkgLabelPlural} placeholder="0" inputMode="numeric" />
-            </LocationField>
+            {canDep && (
+              <LocationField label="No depósito" tone="deposito">
+                <InlineInput value={depSealed} onChange={setDepSealed} suffix={pkgLabelPlural} placeholder="0" inputMode="numeric" />
+              </LocationField>
+            )}
           </div>
           <div className="mt-3">
             <SmallField label={`Preço de compra por ${pkgLabelValue}`}>
@@ -240,7 +244,7 @@ function StockItemForm({
             onChange={setReorder}
             prefix="avisar abaixo de"
             suffix={pkgLabelPlural}
-            placeholder="auto"
+            placeholder="sem mínimo"
             inputMode="decimal"
           />
         </div>

@@ -1,4 +1,4 @@
-import { requireAccess } from "@/lib/access";
+import { canAccessSection, requireAccess } from "@/lib/access";
 import { listStockItems } from "@/data/stock";
 import { listOrders } from "@/data/orders";
 import { listStoresForUser } from "@/data/stores";
@@ -13,12 +13,15 @@ export default async function EstoquePage({
 }) {
   const { storeId } = await params;
   const user = await requireAccess(storeId, "estoque");
-  const [items, orders, products, stores] = await Promise.all([
+  const canDeposito = canAccessSection(user, "deposito");
+  const [allItems, orders, products, stores] = await Promise.all([
     listStockItems(storeId),
     listOrders(storeId, { limit: 20 }),
     listProducts(storeId),
     listStoresForUser(user),
   ]);
+  // Loja-only staff never receive the depósito balances (hidden server-side, not just in the UI).
+  const items = canDeposito ? allItems : allItems.map((i) => ({ ...i, depSealed: 0 }));
   const storeName = stores.find((s) => s.id === storeId)?.name ?? "";
 
   // Reference pickers on a saída: VENDA → recent orders, CONSUMO → menu items.
@@ -62,6 +65,7 @@ export default async function EstoquePage({
       menuProducts={menuProducts}
       resaleByStock={resaleByStock}
       recipeUsage={recipeUsage}
+      canDeposito={canDeposito}
     />
   );
 }

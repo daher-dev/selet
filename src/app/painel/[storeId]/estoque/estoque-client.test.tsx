@@ -82,6 +82,7 @@ function renderList(props: Partial<React.ComponentProps<typeof EstoqueClient>> =
         menuProducts={[]}
         resaleByStock={{}}
         recipeUsage={{}}
+        canDeposito
         {...props}
       />
     </AppShellProvider>,
@@ -89,6 +90,12 @@ function renderList(props: Partial<React.ComponentProps<typeof EstoqueClient>> =
 }
 
 describe("EstoqueClient", () => {
+  it("hides every Depósito control without the deposito permission", () => {
+    renderList({ canDeposito: false });
+    expect(screen.queryByText("Depósito")).toBeNull();
+    expect(screen.queryByRole("group", { name: "Onde" })).toBeNull();
+  });
+
   it("hides archived items in the default view", () => {
     renderList();
     expect(screen.getAllByText("Morango").length).toBeGreaterThan(0);

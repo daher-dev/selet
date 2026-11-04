@@ -167,7 +167,7 @@ export const REAL_TEAM: RealMember[] = [
     name: "Rebecca",
     role: "funcionario",
     storeIds: ["vila-velha"],
-    sections: ["pedidos", "clientes", "produtos", "estoque"],
+    sections: ["pedidos", "clientes", "produtos", "estoque", "deposito"],
     status: "convidado",
   },
 ];

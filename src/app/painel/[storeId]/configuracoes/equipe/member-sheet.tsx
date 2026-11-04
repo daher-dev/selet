@@ -29,6 +29,7 @@ import {
   UserPlus,
   Users,
   Wallet,
+  Warehouse,
 } from "lucide-react";
 import { toast } from "sonner";
 import type {
@@ -83,6 +84,7 @@ const ACCESS_MODULES: {
   { key: "pudim", label: "Pudim", icon: Dessert },
   { key: "cartelas", label: "Cartelas", icon: Ticket },
   { key: "estoque", label: "Estoque", icon: Package },
+  { key: "deposito", label: "Depósito", icon: Warehouse },
   { key: "financeiro", label: "Financeiro", icon: CircleDollarSign },
 ];
 
