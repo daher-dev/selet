@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { registerAction, sendCodeAction, startAction } from "./raffle-public";
+import { getEntryByToken, pickOwnSlots } from "@/data/raffles";
+import { pickBonusAction, registerAction, sendCodeAction, startAction } from "./raffle-public";
 
 const data = vi.hoisted(() => ({
   getPublicRaffle: vi.fn(),
@@ -96,5 +97,15 @@ describe("public sign-up with WhatsApp delivery", () => {
     const res = await registerAction("s", signup);
     expect(res).toMatchObject({ ok: false, error: expect.stringContaining("código") });
     expect(data.registerEntry).not.toHaveBeenCalled();
+  });
+});
+
+describe("claiming bonus numbers from the link", () => {
+  it("accepts more than 10 numbers at once (several rules worth several points)", async () => {
+    vi.mocked(getEntryByToken).mockResolvedValue({ name: "Ana", instagram: "ana", numbers: [], slots: [], checks: {}, waived: {}, status: "pend" } as never);
+    const picks = Array.from({ length: 12 }, (_, i) => i + 1);
+    const res = await pickBonusAction("s", picks);
+    expect(res.ok).toBe(true);
+    expect(pickOwnSlots).toHaveBeenCalledWith("s1", "r1", "", picks);
   });
 });

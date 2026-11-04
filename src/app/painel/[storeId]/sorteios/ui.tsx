@@ -40,6 +40,60 @@ export function Pill({
   );
 }
 
+/** Bonus rule worth several points: the team gives 0..max, each point = +1 número (boards 2d, 2e, 11d). */
+export function PointsStepper({
+  value,
+  max,
+  label,
+  disabled,
+  onChange,
+  size = "md",
+  className,
+}: {
+  value: number;
+  max: number;
+  label: string;
+  disabled?: boolean;
+  onChange: (next: number) => void;
+  size?: "md" | "lg";
+  className?: string;
+}) {
+  const on = value > 0;
+  const btn = cn(
+    "flex h-full items-center justify-center text-base disabled:opacity-40",
+    size === "lg" ? "w-12 text-[19px]" : "w-[30px]",
+    on ? "text-[#6B4A0C]" : "text-ink-soft",
+  );
+  return (
+    <span
+      role="group"
+      aria-label={label}
+      className={cn(
+        "inline-flex items-center overflow-hidden",
+        size === "lg" ? "h-11 rounded-[11px]" : "h-[34px] rounded-[10px]",
+        on ? "border border-[#E7CF8E] bg-[#F6EAC6]" : "border-[1.5px] border-dashed border-[#C9D3CB] bg-white",
+        className,
+      )}
+    >
+      <button type="button" aria-label={`Menos um ponto: ${label}`} disabled={disabled || value <= 0} onClick={() => onChange(value - 1)} className={btn}>
+        −
+      </button>
+      <span
+        className={cn(
+          "tabular min-w-[38px] flex-1 text-center font-bold",
+          size === "lg" ? "text-sm" : "text-[13px]",
+          on ? "text-[#6B4A0C]" : "text-[#8A9A90]",
+        )}
+      >
+        {value}/{max}
+      </span>
+      <button type="button" aria-label={`Mais um ponto: ${label}`} disabled={disabled || value >= max} onClick={() => onChange(value + 1)} className={btn}>
+        +
+      </button>
+    </span>
+  );
+}
+
 export const RAFFLE_STATUS: Record<RaffleStatus, { label: string; tone: PillTone; dot: boolean }> = {
   aberto: { label: "Inscrições abertas", tone: "green", dot: true },
   encerrado: { label: "Inscrições encerradas", tone: "amber", dot: true },

@@ -10,8 +10,9 @@ import {
   monthlySeries,
   summarizeRecent,
   trailingMonthKeys,
-  weeklySeries,
-  EVOLUTION_WEEKS,
+  periodSeries,
+  periodStart,
+  type PeriodUnit,
   type MonthPoint,
   type RankedItem,
 } from "@/lib/dashboard-core";
@@ -131,14 +132,14 @@ export async function loadDashboard(ctx: {
 }
 
 /**
- * The "Semanal" view of Evolução: last EVOLUTION_WEEKS weeks. Weekly aggregates
- * are NOT materialized (the summary is per month): one bounded read of those
- * weeks' orders, plus the customers' stored firstOrderAt for "novos".
+ * The "Semanal" / "Diário" views of Evolução. Their aggregates are NOT
+ * materialized (the summary is per month): one bounded read of those
+ * periods' orders, plus the customers' stored firstOrderAt for "novos".
  */
-export async function loadWeeks(storeId: string, now: Date): Promise<MonthPoint[]> {
+export async function loadPeriods(storeId: string, unit: PeriodUnit, now: Date): Promise<MonthPoint[]> {
   const { year, month, day } = zonedParts(now);
-  const weekday = (new Date(Date.UTC(year, month - 1, day)).getUTCDay() + 6) % 7; // 0 = Monday
-  const since = zonedTimeToUtc(year, month, day - weekday - (EVOLUTION_WEEKS - 1) * 7);
+  const today = Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+  const since = zonedTimeToUtc(year, month, day + periodStart(unit, today) - today);
   const [orders, customers] = await Promise.all([
     // Internal (comped INTERNO) orders never reach the reports, same as the monthly summary.
     listOrders(storeId, { since, excludeInternal: true }),
@@ -146,5 +147,5 @@ export async function loadWeeks(storeId: string, now: Date): Promise<MonthPoint[
   ]);
   const firstOrderAt = new Map<string, Date>();
   for (const c of customers) if (c.firstOrderAt) firstOrderAt.set(c.id, new Date(c.firstOrderAt));
-  return weeklySeries({ orders, firstOrderAt, now });
+  return periodSeries({ unit, orders, firstOrderAt, now });
 }

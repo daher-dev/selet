@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { countRaffleParticipants, getEntryByToken, getPublicRaffle } from "@/data/raffles";
 import { getStore } from "@/data/stores";
 import { canSendWhatsApp } from "@/lib/whatsapp";
-import { abbreviateName, buildRegulamento, publicEntryView, totalNumbers } from "@/lib/raffles";
+import { abbreviateName, buildRegulamento, publicEntryView, ruleMax, totalNumbers } from "@/lib/raffles";
 import { PublicFlow, type PublicRaffleView } from "./public-flow";
 
 export async function generateMetadata({
@@ -58,7 +58,7 @@ export default async function PublicRafflePage({
     numberFrom: raffle.numberFrom,
     numberTo: raffle.numberTo,
     perPerson: raffle.perPerson,
-    rules: raffle.rules.map((r) => ({ text: r.text, type: r.type, link: r.link })),
+    rules: raffle.rules.map((r) => ({ text: r.text, type: r.type, link: r.link, max: ruleMax(r) })),
     fields: raffle.fields,
     winner: raffle.winner
       ? { number: raffle.winner.number, name: abbreviateName(raffle.winner.name) }

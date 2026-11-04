@@ -98,6 +98,14 @@ interface RecipeRow extends RecipeItem {
   _id: string;
   continuo: boolean;
 }
+/** An opcional row: its own stock consumption plus a flat price or tiers. */
+interface AddonRow extends Omit<ProductAddon, "qty" | "unit"> {
+  _id: string;
+  qty: number | null;
+  unit: string;
+  continuo: boolean;
+  tierRows: TierRowState[];
+}
 /** An editable price-tier row (string inputs; parsed to PriceTier on submit). */
 interface TierRowState {
   _id: string;
@@ -209,9 +217,16 @@ function ProductForm({
       continuo: resolveItem(r)?.consumptionMode === "continuo",
     })),
   );
-  // Opcionais are no longer edited here (add-ons live in Shakes/Pudim); existing
-  // ones on older products are kept untouched on save.
-  const storedAddons = (product?.sale?.adicionais ?? product?.adicionais ?? []) as (ProductAddon & { stockItemId: string })[];
+  const [adicionais, setAdicionais] = useState<AddonRow[]>(
+    (product?.sale?.adicionais ?? product?.adicionais ?? []).map((a) => ({
+      ...a,
+      _id: nextId(),
+      qty: a.qty ?? null,
+      unit: a.unit ?? "un",
+      continuo: resolveItem(a)?.consumptionMode === "continuo",
+      tierRows: tiersToRows(a.tiers),
+    })),
+  );
   // Unified tier list — the qty:1 row is the unit price and is removable, so a
   // product can be sold in lote (batch) only.
   const [tiers, setTiers] = useState<TierRowState[]>(() =>
@@ -254,6 +269,11 @@ function ProductForm({
     [recipe],
   );
 
+  const usedAdicionais = useMemo(
+    () => new Set(adicionais.map((a) => a.stockItemId).filter((x): x is string => Boolean(x))),
+    [adicionais],
+  );
+
   function addRecipeRow(item: StockItem) {
     const continuo = item.consumptionMode === "continuo";
     setRecipe((rs) => [
@@ -265,6 +285,22 @@ function ProductForm({
         qty: continuo ? null : 1,
         unit: item.unit,
         continuo,
+      },
+    ]);
+  }
+  function addAddonRow(item: StockItem) {
+    const continuo = item.consumptionMode === "continuo";
+    setAdicionais((rs) => [
+      ...rs,
+      {
+        _id: nextId(),
+        stockItemId: item.id,
+        name: item.name,
+        price: 0,
+        qty: continuo ? null : 1,
+        unit: item.unit,
+        continuo,
+        tierRows: [{ _id: nextId(), qty: "1", price: "" }],
       },
     ]);
   }
@@ -309,6 +345,25 @@ function ProductForm({
             qty: r.continuo ? null : r.qty,
             unit: r.unit.trim(),
           }));
+    const cleanAddons: ProductAddon[] = hasSale
+      ? adicionais
+          .filter((a) => a.name.trim())
+          .map((a) => {
+            const addonTiers = parseTierRows(a.tierRows);
+            const addonUnitTier = addonTiers.find((t) => t.qty === 1);
+            const price = addonTiers.length
+              ? (addonUnitTier?.price ?? Math.round(addonTiers[0].price / addonTiers[0].qty))
+              : a.price;
+            return {
+              ...(a.stockItemId ? { stockItemId: a.stockItemId } : {}),
+              name: a.name.trim(),
+              price,
+              qty: a.continuo ? null : a.qty,
+              unit: a.unit.trim() || undefined,
+              ...(addonTiers.length ? { tiers: addonTiers } : {}),
+            };
+          })
+      : [];
     // Every insumo/opcional must trace to a real Estoque item — no more
     // "topping, no stock link" catalog holes (see actions/products.ts's
     // productSchema, which enforces the same rule server-side).
@@ -321,6 +376,14 @@ function ProductForm({
       toast.error(`"${unlinkedRecipe.name}" precisa estar vinculado a um item do estoque.`);
       return;
     }
+    const unlinkedAddon = cleanAddons.find((a) => !a.stockItemId);
+    if (unlinkedAddon) {
+      toast.error(`Opcional "${unlinkedAddon.name}" precisa estar vinculado a um item do estoque.`);
+      return;
+    }
+    const linkedAddons = cleanAddons.filter(
+      (a): a is ProductAddon & { stockItemId: string } => Boolean(a.stockItemId),
+    );
     // Narrow to the action's required-stockItemId shape — a formality for TS,
     // since the checks above already guarantee every row has one.
     const linkedRecipe = cleanRecipe.filter(
@@ -338,7 +401,7 @@ function ProductForm({
         sale: hasSale
           ? {
               recipe: linkedRecipe,
-              adicionais: storedAddons,
+              adicionais: linkedAddons,
               tiers: saleTiers,
               ...(saleCommission > 0 ? { commissionPercent: saleCommission } : {}),
             }
@@ -582,6 +645,31 @@ function ProductForm({
           </OfferCard>
         )}
 
+        {hasSale && (
+          <InsumoSection
+            title="Opcionais"
+            rows={adicionais}
+            stockItems={stockItems}
+            usedStockIds={usedAdicionais}
+            addLabel="Adicionar opcional"
+            onAdd={addAddonRow}
+            onRemove={(id) => setAdicionais((rs) => rs.filter((r) => r._id !== id))}
+            renderRow={(row) => (
+              <AddonRowFields
+                row={row as AddonRow}
+                onQty={(qty) =>
+                  setAdicionais((rs) => rs.map((r) => (r._id === row._id ? { ...r, qty } : r)))
+                }
+                onTierRows={(updater) =>
+                  setAdicionais((rs) =>
+                    rs.map((r) => (r._id === row._id ? { ...r, tierRows: updater(r.tierRows) } : r)),
+                  )
+                }
+              />
+            )}
+          />
+        )}
+
         <div className="space-y-1.5">
           <Label htmlFor="product-description">Descrição</Label>
           <Textarea
@@ -811,6 +899,106 @@ function RecipeRowFields({
           {row.unit}
         </span>
       </div>
+    </div>
+  );
+}
+
+function AddonRowFields({
+  row,
+  onQty,
+  onTierRows,
+}: {
+  row: AddonRow;
+  onQty: (qty: number | null) => void;
+  onTierRows: (updater: (rows: TierRowState[]) => TierRowState[]) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        {row.continuo ? (
+          <SemMedicaoChip />
+        ) : (
+          <>
+            <span className="text-[11.5px] text-ink-faint">Consumo</span>
+            <div className="flex h-9 items-center rounded-lg border border-border bg-card px-2.5">
+              <Input
+                value={row.qty == null ? "" : String(row.qty)}
+                onChange={(e) => {
+                  const n = Number(e.target.value.replace(",", "."));
+                  onQty(Number.isFinite(n) ? n : 0);
+                }}
+                inputMode="decimal"
+                className="h-8 w-12 border-0 bg-transparent p-0 text-right tabular text-[13px] font-bold text-ink shadow-none focus-visible:ring-0"
+              />
+              <span className="ml-1 whitespace-nowrap text-[12px] text-ink-faint">{row.unit}</span>
+            </div>
+          </>
+        )}
+        <span className="flex-1" />
+      </div>
+
+      <div className="flex flex-col gap-1.5 border-t border-dashed border-border pt-2">
+        {row.tierRows.map((tier) => (
+          <AddonTierRow
+            key={tier._id}
+            qty={tier.qty}
+            price={tier.price}
+            onQty={(qty) => onTierRows((ts) => ts.map((t) => (t._id === tier._id ? { ...t, qty } : t)))}
+            onPrice={(price) => onTierRows((ts) => ts.map((t) => (t._id === tier._id ? { ...t, price } : t)))}
+            onRemove={() => onTierRows((ts) => ts.filter((t) => t._id !== tier._id))}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={() => onTierRows((ts) => [...ts, { _id: nextId(), qty: "", price: "" }])}
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-card py-1.5 text-[11.5px] font-semibold text-ink-faint transition-colors hover:border-primary/50 hover:text-primary"
+        >
+          <Plus className="size-3.5" />
+          Faixa de preço
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** One qty×price row inside an opcional's own price-tier list. */
+function AddonTierRow({
+  qty,
+  price,
+  onQty,
+  onPrice,
+  onRemove,
+}: {
+  qty: string;
+  price: string;
+  onQty: (v: string) => void;
+  onPrice: (v: string) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="flex h-9 w-[68px] shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-2.5">
+        <Input
+          value={qty}
+          onChange={(e) => onQty(e.target.value)}
+          inputMode="numeric"
+          placeholder="1"
+          className="h-8 w-full border-0 bg-transparent p-0 text-right tabular text-[13.5px] font-bold text-ink shadow-none focus-visible:ring-0"
+        />
+        <span className="text-[11px] text-ink-faint">un</span>
+      </div>
+      <span className="shrink-0 text-[11.5px] text-ink-faint">por</span>
+      <div className="flex h-9 flex-1 items-center rounded-lg border border-border bg-card px-2.5">
+        <span className="mr-1 text-[11.5px] font-semibold text-ink-faint">+ R$</span>
+        <Input
+          value={price}
+          onChange={(e) => onPrice(e.target.value)}
+          inputMode="decimal"
+          placeholder="0,00"
+          className="h-8 flex-1 border-0 bg-transparent p-0 text-right tabular text-[14px] font-extrabold text-primary shadow-none focus-visible:ring-0"
+        />
+      </div>
+      <IconRemove onClick={onRemove} />
     </div>
   );
 }

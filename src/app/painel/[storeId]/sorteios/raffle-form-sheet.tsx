@@ -18,9 +18,11 @@ import {
 import { slugify } from "@/lib/stock-settings";
 import {
   MAX_PER_PERSON,
+  MAX_RULE_POINTS,
   isoToLocalInput,
   localInputToIso,
   raffleSlug,
+  ruleMax,
   type Raffle,
   type RaffleFields,
   type RaffleRule,
@@ -389,9 +391,44 @@ function RaffleForm({
                     ))}
                   </div>
                   <span className={cn("flex-1 text-[11.5px]", bonus ? "text-[#8A6312]" : "text-ink-soft")}>
-                    {bonus ? "Vale +1 número quando conferida" : "Sem ela, não valida a participação"}
+                    {bonus ? "Vale +1 número por ponto" : "Sem ela, não valida a participação"}
                   </span>
                 </div>
+                {bonus && (
+                  <div className="flex items-center gap-2.5 border-t border-dashed border-[#E7CF8E] pt-[9px]">
+                    <span className="text-xs font-semibold text-[#3D4A42]">Pontos (até)</span>
+                    <span
+                      role="group"
+                      aria-label="Pontos máximos"
+                      className="inline-flex h-[34px] items-center overflow-hidden rounded-[10px] border border-[#E7CF8E] bg-white"
+                    >
+                      <button
+                        type="button"
+                        aria-label="Menos um ponto"
+                        disabled={ruleMax(r) <= 1}
+                        onClick={() => setRule(r.id, { max: ruleMax(r) - 1 })}
+                        className="h-full w-[30px] text-base text-[#8A6312] disabled:opacity-40"
+                      >
+                        −
+                      </button>
+                      <span className="tabular min-w-[30px] text-center text-[13px] font-bold text-[#6B4A0C]">{ruleMax(r)}</span>
+                      <button
+                        type="button"
+                        aria-label="Mais um ponto"
+                        disabled={ruleMax(r) >= MAX_RULE_POINTS}
+                        onClick={() => setRule(r.id, { max: ruleMax(r) + 1 })}
+                        className="h-full w-[30px] text-base text-[#8A6312] disabled:opacity-40"
+                      >
+                        +
+                      </button>
+                    </span>
+                    <span className="flex-1 text-[11.5px] leading-[1.4] text-[#8A6312]">
+                      {ruleMax(r) > 1
+                        ? `Cada ponto vale +1 número. A equipe dá de 0 a ${ruleMax(r)} na conferência.`
+                        : "Sim ou não: vale +1 número quando conferida."}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}

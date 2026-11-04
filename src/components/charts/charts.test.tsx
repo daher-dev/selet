@@ -122,6 +122,26 @@ describe("weekly unit", () => {
   });
 });
 
+describe("daily unit, 12 months", () => {
+  it("labels only the 1st of each month and drops the DoD row when bars are hairline", () => {
+    const days = Array.from({ length: 365 }, (_, i) => {
+      const d = new Date(Date.UTC(2025, 10, 1 + i));
+      return month(d.toISOString().slice(0, 10), {
+        label: `${d.getUTCDate()}/${d.getUTCMonth() + 1}`,
+        sales: 10_000,
+        mom: 5,
+        partial: i === 364,
+      });
+    });
+    render(<MonthlySalesChart months={days} unit="day" />);
+    expect(screen.queryByText(/DoD/)).toBeNull();
+    const labels = screen.getAllByText(/^\d+\/\d+$/).map((e) => e.textContent ?? "");
+    expect(labels.length).toBeGreaterThanOrEqual(3);
+    expect(labels.length).toBeLessThanOrEqual(12);
+    expect(labels.every((l) => l.startsWith("1/"))).toBe(true);
+  });
+});
+
 describe("legend toggles", () => {
   it("ChannelStackChart: hiding a channel removes it, renormalises the rest and drops it from the tooltip", async () => {
     const user = userEvent.setup();

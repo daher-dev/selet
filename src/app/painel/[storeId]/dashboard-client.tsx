@@ -22,10 +22,10 @@ import {
   ChannelStackChart,
   CustomerSplitChart,
   MonthlySalesChart,
+  type Unit,
 } from "@/components/charts/evolution-charts";
-import { Skeleton } from "@/components/ui/skeleton";
-import { loadWeeksAction } from "@/actions/dashboard";
-import type { MonthPoint, RankedItem } from "@/lib/dashboard-core";
+import { loadPeriodsAction } from "@/actions/dashboard";
+import type { MonthPoint, PeriodUnit, RankedItem } from "@/lib/dashboard-core";
 import type { DashboardView } from "./dashboard-data";
 
 export function DashboardClient({
@@ -48,22 +48,23 @@ export function DashboardClient({
 
   const { kpis, topProducts, topFlavors, months } = view;
 
-  // Mensal | Semanal toggle: same 12-month horizon, weeks loaded on first use.
-  const [view_, setView] = useState<"month" | "week">("month");
-  const [weeks, setWeeks] = useState<MonthPoint[] | null>(null);
-  const [weeksError, setWeeksError] = useState(false);
-  const loadWeeks = async () => {
-    setWeeksError(false);
-    const res = await loadWeeksAction(storeId);
-    if (res.ok) setWeeks(res.weeks);
-    else setWeeksError(true);
+  // Mensal | Semanal | Diário toggle: weeks/days are loaded on first use.
+  const [view_, setView] = useState<Unit>("month");
+  const [loaded, setLoaded] = useState<Partial<Record<PeriodUnit, MonthPoint[]>>>({});
+  const [loadError, setLoadError] = useState(false);
+  const loadPeriod = async (unit: PeriodUnit) => {
+    setLoadError(false);
+    const res = await loadPeriodsAction(storeId, unit);
+    if (res.ok) setLoaded((l) => ({ ...l, [unit]: res.points }));
+    else setLoadError(true);
   };
-  const pickView = (next: "month" | "week") => {
+  const pickView = (next: Unit) => {
     setView(next);
-    if (next === "week" && !weeks) void loadWeeks();
+    if (next !== "month" && !loaded[next]) void loadPeriod(next);
   };
-  const weekly = view_ === "week";
-  const series = weekly ? weeks : months;
+  const series = view_ === "month" ? months : loaded[view_];
+  const points = series ?? NO_POINTS;
+  const heading = VIEW_COPY[view_];
 
   const kpiCards: {
     key: string;
@@ -124,16 +125,17 @@ export function DashboardClient({
           <div className="mt-[34px] mb-7 h-px bg-[#E1EADC]" />
           <div className="mb-3.5 flex flex-wrap items-center gap-3">
             <h2 className="text-[16px] font-bold text-ink">
-              {weekly ? "Evolução semanal" : "Evolução mensal"}
+              {heading.title}
             </h2>
             <span className="rounded-full bg-[#E2F0DA] px-2.5 py-1 text-[12px] font-bold text-primary">
-              {weekly ? "Últimas 52 semanas" : "Últimos 12 meses"}
+              {heading.chip}
             </span>
             <div role="group" aria-label="Período" className="ml-auto flex rounded-full border border-border bg-card p-0.5">
               {(
                 [
                   ["month", "Mensal"],
                   ["week", "Semanal"],
+                  ["day", "Diário"],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -151,47 +153,72 @@ export function DashboardClient({
               ))}
             </div>
           </div>
-          {!series ? (
-            <WeeksPlaceholder error={weeksError} onRetry={loadWeeks} />
-          ) : (
-            <>
-              <TintedCard
-                tone="green"
-                icon={CircleDollarSign}
-                title="Vendas"
-                subtitle={weekly ? "Faturamento semanal em R$ mil" : "Faturamento mensal em R$ mil"}
-                className="mb-2.5 lg:mb-4"
-              >
-                <MonthlySalesChart months={series} unit={view_} />
-              </TintedCard>
-              <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-4">
-                <TintedCard tone="pink" icon={ChartPie} title="Canais de venda">
-                  <ChannelStackChart months={series} unit={view_} />
-                </TintedCard>
-                <TintedCard tone="blue" icon={Users} title="Acessos">
-                  <CustomerSplitChart months={series} unit={view_} />
-                </TintedCard>
-              </div>
-            </>
-          )}
+          <TintedCard
+            tone="green"
+            icon={CircleDollarSign}
+            title="Vendas"
+            subtitle={`Faturamento ${heading.adj} em R$ mil`}
+            className="mb-2.5 lg:mb-4"
+          >
+            <Pending on={!series} error={loadError} onRetry={() => void loadPeriod(view_ as PeriodUnit)}>
+              <MonthlySalesChart months={points} unit={view_} />
+            </Pending>
+          </TintedCard>
+          <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-4">
+            <TintedCard tone="pink" icon={ChartPie} title="Canais de venda">
+              <Pending on={!series}>
+                <ChannelStackChart months={points} unit={view_} />
+              </Pending>
+            </TintedCard>
+            <TintedCard tone="blue" icon={Users} title="Acessos">
+              <Pending on={!series}>
+                <CustomerSplitChart months={points} unit={view_} />
+              </Pending>
+            </TintedCard>
+          </div>
         </>
       )}
     </>
   );
 }
 
-function WeeksPlaceholder({ error, onRetry }: { error: boolean; onRetry: () => void }) {
-  if (error) {
-    return (
-      <div className="flex flex-col items-center gap-2 rounded-2xl border bg-card py-12 text-[13px] text-ink-soft">
-        Não foi possível carregar as semanas.
-        <button type="button" onClick={onRetry} className="font-bold text-primary underline">
-          Tentar de novo
-        </button>
-      </div>
-    );
-  }
-  return <Skeleton aria-label="Carregando semanas" className="h-[420px] w-full rounded-2xl" />;
+const VIEW_COPY: Record<Unit, { title: string; chip: string; adj: string }> = {
+  month: { title: "Evolução mensal", chip: "Últimos 12 meses", adj: "mensal" },
+  week: { title: "Evolução semanal", chip: "Últimos 12 meses", adj: "semanal" },
+  day: { title: "Evolução diária", chip: "Últimos 12 meses", adj: "diário (seg–sex)" },
+};
+
+const NO_POINTS: MonthPoint[] = [];
+
+/**
+ * While a view's data loads, the real chart renders empty and dimmed in its
+ * place, so the cards keep their exact height and the page doesn't jump.
+ */
+function Pending({
+  on,
+  error,
+  onRetry,
+  children,
+}: {
+  on: boolean;
+  error?: boolean;
+  onRetry?: () => void;
+  children: React.ReactNode;
+}) {
+  if (!on) return children;
+  return (
+    <div className="relative" aria-busy="true">
+      <div className={cn("pointer-events-none opacity-40", !error && "animate-pulse")}>{children}</div>
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[13px] text-ink-soft">
+          Não foi possível carregar o período.
+          <button type="button" onClick={onRetry} className="font-bold text-primary underline">
+            Tentar de novo
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function KpiCard({
