@@ -3,6 +3,10 @@
  * instead of distinct customers per month, so every store's summary doc is
  * recomputed from its orders.
  *
+ * Reads the collections outside a transaction, so run it when nobody is
+ * saving orders, payments or stock (a write landing mid-run is lost from the
+ * summary; re-running fixes it).
+ *
  * Defaults to a dry run; pass --apply to write.
  *
  *   npx tsx scripts/migrate-summary-acessos.ts           # dry run

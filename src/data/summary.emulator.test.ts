@@ -9,7 +9,7 @@ import {
 import { createManualTx, deleteManualTx, updateManualTx } from "./finance";
 import { createCustomer, setCustomerArchived } from "./customers";
 import { applyMovement, createStockItem } from "./stock";
-import { computeSummary, readSummary } from "./summary";
+import { computeSummary, customerDayKey, readSummary } from "./summary";
 import { loadDashboard } from "@/app/painel/[storeId]/dashboard-data";
 import { monthKey } from "@/lib/summary-core";
 
@@ -87,7 +87,9 @@ describe.skipIf(!hasEmulator)("summary aggregates (emulator)", () => {
     s = await expectConsistent(storeId);
     expect(s.months[mk].ticketSum).toBe(6000);
     expect(s.months[mk].in).toBe(6000); // paid mirror amount followed the edit
-    expect(Object.keys(s.months[mk].customers)).toEqual([`id_${custB}`]);
+    expect(Object.keys(s.months[mk].customers)).toEqual([
+      customerDayKey(custB, "Balcão B", new Date()),
+    ]);
     // sellers/channels re-stated by the edit (qty 2 → 3, still loja).
     expect(s.months[mk].sellers).toEqual({ p1: { name: "Shake", qty: 3 } });
     expect(s.months[mk].channels).toEqual({ instagram: 0, whatsapp: 0, loja: 1 });
