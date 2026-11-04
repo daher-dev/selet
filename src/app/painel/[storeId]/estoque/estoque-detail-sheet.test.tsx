@@ -3,6 +3,7 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { StockItem, StockMovement } from "@/lib/types";
+import { DepositoAccessProvider } from "./deposito-access";
 import { StockDetailSheet } from "./estoque-detail-sheet";
 
 const stockActions = vi.hoisted(() => ({
@@ -237,6 +238,50 @@ describe("StockDetailSheet", () => {
       expect(handlers.onTransfer).toHaveBeenCalledWith(expect.objectContaining({ id: "item-1" }));
       await user.click(screen.getByRole("button", { name: "Registrar compra" }));
       expect(handlers.onBuy).toHaveBeenCalled();
+    });
+
+    it("keeps ajustar estoque available there, opening on the depósito when the loja is empty", async () => {
+      const user = userEvent.setup();
+      stockActions.applyMovementAction.mockResolvedValue({ ok: true });
+      renderSheet(stockItem({ name: "CR7", pkgLabel: "caixa", sealed: 0, depSealed: 2, qty: 0, reorderAt: 2 }));
+
+      await user.click(await screen.findByRole("button", { name: "Ajustar estoque" }));
+      const onde = screen.getByRole("group", { name: "Onde" });
+      expect(within(onde).getByRole("button", { name: "Depósito" })).toHaveAttribute("aria-pressed", "true");
+      await user.click(screen.getByRole("button", { name: "Saída" }));
+      await user.click(screen.getByRole("button", { name: /PERDA/ }));
+      await user.type(screen.getByRole("textbox", { name: /Quantidade/ }), "1");
+      await user.click(screen.getByRole("button", { name: "Registrar saída" }));
+
+      await waitFor(() =>
+        expect(stockActions.applyMovementAction).toHaveBeenCalledWith(
+          expect.objectContaining({ type: "saida", reason: "PERDA", qty: 1, byPackage: true, loc: "deposito" }),
+        ),
+      );
+    });
+
+    it("without the Depósito permission ajustar estoque stays, Loja only", async () => {
+      const user = userEvent.setup();
+      const berry = stockItem({ sealed: 0, depSealed: 0, qty: 0, reorderAt: 2 });
+      stockActions.getStockItemAction.mockResolvedValue(berry);
+      render(
+        <DepositoAccessProvider value={false}>
+          <StockDetailSheet
+            storeId="s1"
+            item={berry}
+            orders={[]}
+            menuProducts={[]}
+            resaleNames={[]}
+            usedIn={[]}
+            open
+            onOpenChange={() => {}}
+            {...handlers}
+          />
+        </DepositoAccessProvider>,
+      );
+
+      await user.click(await screen.findByRole("button", { name: "Ajustar estoque" }));
+      expect(screen.queryByRole("group", { name: "Onde" })).not.toBeInTheDocument();
     });
 
     it("comprar hands the item to the purchase dialog", async () => {
