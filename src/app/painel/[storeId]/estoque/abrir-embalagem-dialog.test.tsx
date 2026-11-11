@@ -58,7 +58,7 @@ describe("AbrirEmbalagemDialog", () => {
 
   it("confirms the previous pote and how well it yielded against the forecast", () => {
     renderDialog(shake());
-    const dialog = screen.getByRole("dialog", { name: "Abrir embalagem" });
+    const dialog = screen.getByRole("dialog", { name: "Abrir pote" });
     // 550 g ÷ 30 g = 18 usos previstos → 14 is 78%
     expect(within(dialog).getByText("Pote anterior encerrado")).toBeInTheDocument();
     expect(within(dialog).getByText(/Rendeu 14 usos/)).toBeInTheDocument();

@@ -191,6 +191,29 @@ describe.skipIf(!hasEmulator)("stock depósito (emulator)", () => {
 
       expect(await getStockItem(storeId, id)).toMatchObject({ openPkg: false, lastUsos: 3 });
     });
+
+    it("a per-unit caixa from the Loja turns into loose units", async () => {
+      const storeId = `test-open-d-${stamp()}`;
+      const id = await createStockItem(storeId, BEBIDA, { sealed: 2, open: 0, depSealed: 3 });
+
+      await openNextPackage(storeId, id, mv.by);
+
+      expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 1, open: 12, qty: 24, depSealed: 3, openPkg: false });
+      const [m] = await listMovements(storeId, id);
+      expect(m).toMatchObject({ type: "abertura", loc: "loja", refItem: "Abriu caixa" });
+    });
+
+    it("a per-unit caixa from the depósito leaves the Loja's sealed count alone and survives a ledger replay", async () => {
+      const storeId = `test-open-e-${stamp()}`;
+      const id = await createStockItem(storeId, BEBIDA, { sealed: 1, open: 0, depSealed: 3 });
+
+      await openNextPackage(storeId, id, mv.by, { from: "deposito" });
+      expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 1, open: 12, qty: 24, depSealed: 2 });
+
+      // A backdated purchase replays the ledger: the opened caixa must survive it.
+      await applyMovement(storeId, id, { ...mv, type: "entrada", qty: 1, byPackage: true, price: 9000, at: days(5) });
+      expect(await getStockItem(storeId, id)).toMatchObject({ sealed: 2, open: 12, qty: 36, depSealed: 2 });
+    });
   });
 
   describe("dated entries replay the ledger in date order", () => {

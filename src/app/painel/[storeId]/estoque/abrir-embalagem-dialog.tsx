@@ -15,7 +15,7 @@ import { pkgCount } from "./stock-view";
 
 interface Props {
   storeId: string;
-  /** The contínuo item whose next package is opened; null keeps the dialog closed. */
+  /** The contínuo or per-unit item whose next package is opened; null keeps the dialog closed. */
   item: StockItem | null;
   usedIn: RecipeUsage[];
   onOpenChange: (open: boolean) => void;
@@ -78,7 +78,7 @@ function AbrirForm({
     <>
       <DialogHeader className="gap-0 border-b border-border/70 px-[22px] pb-4 pt-5">
         <span className="text-[11px] font-bold uppercase tracking-[.5px] text-violet">{item.name}</span>
-        <DialogTitle className="mt-[3px] text-[18px] font-bold leading-snug">Abrir embalagem</DialogTitle>
+        <DialogTitle className="mt-[3px] text-[18px] font-bold leading-snug">Abrir {label}</DialogTitle>
       </DialogHeader>
 
       <div className="flex flex-col gap-[18px] px-[22px] py-5">
@@ -108,7 +108,7 @@ function AbrirForm({
 
         <div>
           <span className="mb-2 block text-[11px] font-bold uppercase tracking-[.4px] text-ink-soft">
-            De onde sai o novo {label}
+            De onde sai {item.continuousUse ? `o novo ${label}` : "a embalagem"}
           </span>
           <div role="radiogroup" aria-label="Origem" className="flex flex-col gap-2">
             <Origin
