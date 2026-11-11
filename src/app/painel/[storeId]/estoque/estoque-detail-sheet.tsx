@@ -59,6 +59,7 @@ import { OpenMeter } from "./open-meter";
 import { UnitPicker } from "./unit-picker";
 import {
   buildStockCard,
+  isCountUnit,
   isFrac,
   minimumLabel,
   needsAttention,
@@ -541,14 +542,17 @@ function OpenPackagePanel({
     );
   }
 
-  if (item.continuousUse && !item.openPkg) {
+  // Per-unit item (Liftoff: caixa de 15 un) with nothing loose: a box can be opened by hand.
+  const perUnitClosed =
+    item.tracked && !item.continuousUse && (item.pkgSize ?? 1) > 1 && isCountUnit(item.unit, units) && item.open === 0;
+  if ((item.continuousUse && !item.openPkg) || perUnitClosed) {
     const available = item.sealed + item.depSealed;
     const expected = expectedUses(item.pkgSize, perUseQtys(usedIn));
     const pct = item.lastUsos != null ? yieldPercent(item.lastUsos, expected) : undefined;
     return (
       <div className="rounded-xl border border-dashed border-[#c9d3cb] bg-[#fafbf9] px-4 py-3.5">
         <span className="block text-[11px] font-bold uppercase tracking-[.5px] text-ink-soft">
-          Nenhum {label} em uso
+          {item.continuousUse ? `Nenhum ${label} em uso` : "Nenhuma embalagem aberta"}
         </span>
         {item.lastUsos != null && (
           <span className="mt-1.5 block text-[14px] font-semibold">
@@ -563,14 +567,18 @@ function OpenPackagePanel({
           className="mt-3 flex h-[42px] w-full items-center justify-center gap-[7px] rounded-[10px] bg-violet text-[13px] font-semibold text-white transition-colors hover:bg-violet/90 disabled:opacity-50"
         >
           <PackageOpen className="size-[15px]" strokeWidth={2} />
-          Abrir embalagem
+          {item.continuousUse ? "Abrir embalagem" : `Abrir ${label}`}
         </button>
         <span className="mt-[7px] block text-center text-[11.5px] text-ink-soft">
           {available < 1
             ? "Sem embalagens em estoque"
             : item.sealed > 0
-              ? `Usa 1 dos ${item.sealed} ${pkgCount(item, item.sealed)} lacrados da loja`
-              : `Usa 1 dos ${item.depSealed} ${pkgCount(item, item.depSealed)} lacrados do depósito`}
+              ? item.continuousUse
+                ? `Usa 1 dos ${item.sealed} ${pkgCount(item, item.sealed)} lacrados da loja`
+                : `Usa 1 de ${item.sealed} ${pkgCount(item, item.sealed)} da loja`
+              : item.continuousUse
+                ? `Usa 1 dos ${item.depSealed} ${pkgCount(item, item.depSealed)} lacrados do depósito`
+                : `Usa 1 de ${item.depSealed} ${pkgCount(item, item.depSealed)} do depósito`}
         </span>
       </div>
     );

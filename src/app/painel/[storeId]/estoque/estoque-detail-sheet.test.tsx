@@ -360,6 +360,17 @@ describe("StockDetailSheet", () => {
       await user.click(screen.getByRole("button", { name: "Ajustar" }));
       expect(handlers.onAdjustOpen).toHaveBeenCalledWith(expect.objectContaining({ id: "item-1" }));
     });
+
+    it("a per-unit item with nothing loose offers to open a caixa", async () => {
+      const user = userEvent.setup();
+      renderSheet(
+        stockItem({ name: "Liftoff Amora", unit: "un", pkgLabel: "caixa", pkgSize: 15, sealed: 2, depSealed: 8, open: 0, qty: 30 }),
+      );
+      expect(await screen.findByText("Nenhuma embalagem aberta")).toBeInTheDocument();
+      expect(screen.getByText("Usa 1 de 2 caixas da loja")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Abrir caixa" }));
+      expect(handlers.onOpenPackage).toHaveBeenCalledWith(expect.objectContaining({ id: "item-1" }));
+    });
   });
 
   describe("custo · rendimento · receitas", () => {

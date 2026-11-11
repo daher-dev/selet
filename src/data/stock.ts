@@ -816,9 +816,9 @@ export async function deleteMovement(
 }
 
 /**
- * contínuo: opens the next sealed package. Decrements sealed, marks a package
- * open, and resets the usos counter. Logs an abertura movement so the timeline
- * records when the package was opened.
+ * Opens the next sealed package. contínuo: marks a package open and resets the
+ * usos counter. Per-unit (caixa de N un): its units become loose units in the
+ * Loja. Logs an abertura movement so the timeline records when it was opened.
  */
 export async function openNextPackage(
   storeId: string,
@@ -835,15 +835,21 @@ export async function openNextPackage(
     if (!snap.exists) throw new Error("Item não encontrado.");
     const d = snap.data()!;
     name = d.name ?? "";
-    if (!d.continuousUse) throw new Error("Item não é de uso contínuo.");
-    if (d.openPkg) throw new Error("Já existe uma embalagem aberta.");
+    const continuo = d.continuousUse ?? false;
+    const pkgSize: number = d.pkgSize ?? 0;
+    if (!continuo && (!d.tracked || pkgSize <= 1)) throw new Error("Item não é controlado por embalagem.");
+    if (continuo && d.openPkg) throw new Error("Já existe uma embalagem aberta.");
     if (from === "deposito" ? (d.depSealed ?? 0) < 1 : (d.sealed ?? 0) < 1) {
       throw new Error(from === "deposito" ? "Nenhuma embalagem lacrada no depósito." : "Nenhuma embalagem lacrada em estoque.");
     }
     const summary = await readSummaryTx(tx, storeId);
     // Opening from the depósito never touches the Loja's sealed count (the package goes straight into use).
     const sealed = from === "deposito" ? (d.sealed ?? 0) : (d.sealed ?? 0) - 1;
-    const newLow = computeLowStock({ ...d, sealed, openPkg: true });
+    // Per-unit (caixa de 15 un): the package's units become loose units in the Loja.
+    const state = continuo
+      ? { sealed, openPkg: true, usos: 0 }
+      : derive(true, pkgSize, sealed, (d.open ?? 0) + pkgSize);
+    const newLow = computeLowStock({ ...d, ...state });
     const lowDelta =
       lowStockContribution(newLow, d.archived ?? false) -
       lowStockContribution(d.lowStock ?? false, d.archived ?? false);
@@ -852,10 +858,8 @@ export async function openNextPackage(
       writeSummaryTx(tx, storeId, summary);
     }
     tx.update(ref, {
-      sealed,
+      ...state,
       ...(from === "deposito" ? { depSealed: (d.depSealed ?? 0) - 1 } : {}),
-      openPkg: true,
-      usos: 0,
       movementSeq: nextMovementSeq(d),
       lowStock: newLow,
       updatedAt: Timestamp.now(),
@@ -870,7 +874,8 @@ export async function openNextPackage(
       price: null,
       reason: "AJUSTE",
       refOrder: null,
-      refItem: "Abriu embalagem",
+      // replay keys on this label: "Abriu embalagem" marks a contínuo package in use, anything else adds pkgSize units.
+      refItem: continuo ? "Abriu embalagem" : "Abriu caixa",
       note: opts.note ?? null,
       by,
       at: Timestamp.now(),
