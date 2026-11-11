@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { isStaleDeployError, reloadOnceForStaleDeploy } from "@/lib/stale-deploy";
 
 /**
  * Last-resort boundary: replaces the root layout when it crashes, so no
@@ -16,6 +17,7 @@ export default function GlobalError({
   useEffect(() => {
     fetch("/api/client-error", {
       method: "POST",
+      keepalive: true, // survives the stale-deploy reload below
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: error.message,
@@ -24,7 +26,11 @@ export default function GlobalError({
         url: window.location.href,
       }),
     }).catch(() => {});
+    // A new deploy invalidated this tab's Server Actions: reload instead of stranding the user.
+    if (isStaleDeployError(error)) reloadOnceForStaleDeploy();
   }, [error]);
+
+  const stale = isStaleDeployError(error);
 
   return (
     <html lang="pt-BR">
@@ -49,7 +55,7 @@ export default function GlobalError({
           </p>
           <button
             type="button"
-            onClick={reset}
+            onClick={stale ? () => window.location.reload() : reset}
             style={{
               marginTop: 16,
               padding: "10px 20px",

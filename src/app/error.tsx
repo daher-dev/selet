@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { isStaleDeployError, reloadOnceForStaleDeploy } from "@/lib/stale-deploy";
 import { RefreshCcw, TriangleAlert } from "lucide-react";
 
 export default function ErrorBoundary({
@@ -13,6 +14,7 @@ export default function ErrorBoundary({
   useEffect(() => {
     fetch("/api/client-error", {
       method: "POST",
+      keepalive: true, // survives the stale-deploy reload below
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: error.message,
@@ -21,7 +23,11 @@ export default function ErrorBoundary({
         url: window.location.href,
       }),
     }).catch(() => {});
+    // A new deploy invalidated this tab's Server Actions: reload instead of stranding the user.
+    if (isStaleDeployError(error)) reloadOnceForStaleDeploy();
   }, [error]);
+
+  const stale = isStaleDeployError(error);
 
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-16">
@@ -38,7 +44,7 @@ export default function ErrorBoundary({
         </p>
         <button
           type="button"
-          onClick={reset}
+          onClick={stale ? () => window.location.reload() : reset}
           className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[13.5px] font-semibold text-white transition-transform hover:-translate-y-px active:translate-y-0"
         >
           <RefreshCcw className="size-4" />

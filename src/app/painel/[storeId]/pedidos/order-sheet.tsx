@@ -1295,12 +1295,19 @@ function OrderForm({
               </button>
               <button
                 type="button"
-                disabled={!isZeroTotal}
+                aria-pressed={isZeroTotal}
+                // Comps the order via the existing "grátis" discount (removable in Valores).
+                onClick={() => {
+                  if (isZeroTotal || isInternal) return;
+                  setDiscountOpen(true);
+                  setDiscountKind("free");
+                  setDiscountValueInput("");
+                }}
                 className={cn(
                   "rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed",
                   isZeroTotal
                     ? "border-primary/50 bg-mist text-primary"
-                    : "border-dashed border-border bg-card text-ink-faint/70",
+                    : "border-border bg-card text-ink-soft",
                 )}
               >
                 Nada a cobrar
