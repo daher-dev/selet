@@ -2,7 +2,20 @@ import "server-only";
 
 import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebase-admin";
-import type { SessionUser, Store } from "@/lib/types";
+import type { SessionUser, Store, StoreReceipt } from "@/lib/types";
+
+const RECEIPT_KEYS = ["recipient", "institution", "pixKey", "wallet", "category"] as const;
+
+/** Firestore `receipt` map → StoreReceipt; undefined when nothing is filled in. */
+function readReceipt(raw: unknown): StoreReceipt | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const out: StoreReceipt = {};
+  for (const k of RECEIPT_KEYS) {
+    const v = (raw as Record<string, unknown>)[k];
+    if (typeof v === "string" && v.trim()) out[k] = v;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 
 export async function listStores(): Promise<Store[]> {
   const snap = await getDb().collection("stores").orderBy("name").get();
@@ -18,6 +31,7 @@ export async function listStores(): Promise<Store[]> {
       whatsapp: d.whatsapp ?? undefined,
       email: d.email ?? undefined,
       instagram: d.instagram ?? undefined,
+      receipt: readReceipt(d.receipt),
     };
   });
 }
@@ -35,6 +49,8 @@ export interface StoreProfileInput {
   whatsapp?: string;
   email?: string;
   instagram?: string;
+  /** Omitted: left as is. Every field empty: the receipt map is removed. */
+  receipt?: StoreReceipt;
 }
 
 /** Updates the store profile (Configurações → Loja). `initial` follows the name. */
@@ -50,7 +66,17 @@ export async function updateStoreProfile(storeId: string, input: StoreProfileInp
       whatsapp: input.whatsapp?.trim() || FieldValue.delete(),
       email: input.email?.trim() || FieldValue.delete(),
       instagram: input.instagram || FieldValue.delete(),
+      ...(input.receipt && { receipt: receiptUpdate(input.receipt) }),
     });
+}
+
+function receiptUpdate(input: StoreReceipt) {
+  const clean: StoreReceipt = {};
+  for (const k of RECEIPT_KEYS) {
+    const v = input[k]?.trim();
+    if (v) clean[k] = v;
+  }
+  return Object.keys(clean).length ? clean : FieldValue.delete();
 }
 
 export async function getStore(storeId: string): Promise<Store | null> {
@@ -67,5 +93,6 @@ export async function getStore(storeId: string): Promise<Store | null> {
     whatsapp: d.whatsapp ?? undefined,
     email: d.email ?? undefined,
     instagram: d.instagram ?? undefined,
+    receipt: readReceipt(d.receipt),
   };
 }

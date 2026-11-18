@@ -59,6 +59,15 @@ test("full flow: login → product → customer → order → paid → dashboard
   await expect(page.getByText("Cliente criado.")).toBeVisible();
   await expect(page.getByText("Carla Mendes").last()).toBeVisible();
 
+  // --- Pix receipt data (Configurações → Loja)
+  await page.goto("/painel/vila-velha/configuracoes/loja");
+  await page.getByLabel("Para (titular da conta)").fill("Priscilla de Oliveira Lima Teles");
+  await page.getByLabel("Instituição").fill("Nubank");
+  await page.getByLabel("Chave Pix").fill("27988119617");
+  await page.getByLabel("Categoria").fill("ALIMENTAÇÃO");
+  await page.getByRole("button", { name: "Salvar alterações" }).click();
+  await expect(page.getByText("Dados da loja atualizados.")).toBeVisible();
+
   // --- Order
   await page.goto("/painel/vila-velha/pedidos");
   await page.getByRole("button", { name: "Novo pedido" }).first().click();
@@ -87,6 +96,18 @@ test("full flow: login → product → customer → order → paid → dashboard
   // the Clientes list assertion above.
   await expect(page.getByText("Carla Mendes").last()).toBeVisible();
   await expect(page.getByText("R$ 39,90").last()).toBeVisible();
+
+  // --- Pix receipt from the paid order
+  await page.getByText("Carla Mendes").last().click();
+  await sheet.getByRole("button", { name: /Gerar recibo do Pix/ }).click();
+  const receipt = page.getByRole("dialog");
+  await expect(receipt.getByLabel("Valor")).toHaveValue("39,90");
+  await expect(receipt.getByText("Priscilla de Oliveira Lima Teles")).toBeVisible();
+  await receipt.getByLabel("Valor").fill("35,00");
+  const download = page.waitForEvent("download");
+  await receipt.getByRole("button", { name: /Baixar PDF/ }).click();
+  expect((await download).suggestedFilename()).toMatch(/^recibo-.+\.pdf$/);
+  await sheet.getByRole("button", { name: "Fechar" }).click();
 
   // --- Finance reflects the paid order
   await page.goto("/painel/vila-velha/financeiro");

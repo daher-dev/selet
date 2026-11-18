@@ -148,6 +148,19 @@ export interface Store {
   email?: string;
   /** Instagram handle without "@" (e.g. "selet.vv"); default profile of new sorteios. */
   instagram?: string;
+  /** Fixed data printed on the Pix receipt generated from paid orders. */
+  receipt?: StoreReceipt;
+}
+
+/** Configurações → Loja → Recibo do Pix. Absent fields are simply not printed. */
+export interface StoreReceipt {
+  /** Account holder that received the Pix ("Para"). */
+  recipient?: string;
+  institution?: string;
+  pixKey?: string;
+  /** "Carteira" line, e.g. "Alimentação/despesas hotel". */
+  wallet?: string;
+  category?: string;
 }
 
 export interface OrderItem {

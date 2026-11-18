@@ -103,3 +103,15 @@ export function zonedDateToInstant(date: string, now: Date = new Date()): Date |
   if (key(y, mo, d) === key(today.year, today.month, today.day)) return undefined;
   return zonedTimeToUtc(y, mo, d, 12);
 }
+
+/** "2026-08-05" (input[type=date] value) from an ISO datetime, in store-local (BRT) time. */
+export function isoToDateInput(iso: string): string {
+  const { year, month, day } = zonedParts(new Date(iso));
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** "15:12" (input[type=time] value) from an ISO datetime, in store-local (BRT) time. */
+export function isoToTimeInput(iso: string): string {
+  const { hour, minute } = zonedParts(new Date(iso));
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}

@@ -22,6 +22,11 @@ export function LojaClient({ store }: { store: Store }) {
     whatsapp: store.whatsapp ?? "",
     email: store.email ?? "",
     instagram: store.instagram ?? "",
+    recipient: store.receipt?.recipient ?? "",
+    institution: store.receipt?.institution ?? "",
+    pixKey: store.receipt?.pixKey ?? "",
+    wallet: store.receipt?.wallet ?? "",
+    category: store.receipt?.category ?? "",
   };
   const [form, setForm] = useState(initial);
   const [pending, startTransition] = useTransition();
@@ -29,7 +34,12 @@ export function LojaClient({ store }: { store: Store }) {
 
   function save() {
     startTransition(async () => {
-      const r = await updateStoreProfileAction({ storeId: store.id, ...form });
+      const { recipient, institution, pixKey, wallet, category, ...profile } = form;
+      const r = await updateStoreProfileAction({
+        storeId: store.id,
+        ...profile,
+        receipt: { recipient, institution, pixKey, wallet, category },
+      });
       if (r.ok) toast.success("Dados da loja atualizados.");
       else toast.error(r.error ?? "Algo deu errado.");
     });
@@ -117,6 +127,74 @@ export function LojaClient({ store }: { store: Store }) {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="mt-[18px] rounded-2xl border border-[#E7EEE6] bg-white p-[22px]">
+        <h2 className="text-[17px] font-bold text-ink">Recibo do Pix</h2>
+        <p className="mt-0.5 text-[13px] text-ink-faint">
+          Dados fixos do recibo gerado em pedidos pagos via Pix. Cliente, valor e data vêm de cada pedido.
+        </p>
+        <div className="mt-5 grid gap-4 min-[640px]:grid-cols-2">
+          <div className="min-[640px]:col-span-2">
+            <label className={LABEL} htmlFor="receipt-recipient">Para (titular da conta)</label>
+            <input
+              id="receipt-recipient"
+              value={form.recipient}
+              onChange={(e) => setForm({ ...form, recipient: e.target.value })}
+              placeholder="Nome de quem recebe o Pix"
+              maxLength={80}
+              className={`${FIELD} font-semibold`}
+            />
+          </div>
+          <div>
+            <label className={LABEL} htmlFor="receipt-institution">Instituição</label>
+            <input
+              id="receipt-institution"
+              value={form.institution}
+              onChange={(e) => setForm({ ...form, institution: e.target.value })}
+              placeholder="Ex: Nubank"
+              maxLength={60}
+              className={FIELD}
+            />
+          </div>
+          <div>
+            <label className={LABEL} htmlFor="receipt-pix-key">Chave Pix</label>
+            <input
+              id="receipt-pix-key"
+              value={form.pixKey}
+              onChange={(e) => setForm({ ...form, pixKey: e.target.value })}
+              placeholder="CPF, telefone, e-mail ou chave aleatória"
+              maxLength={80}
+              autoCapitalize="none"
+              className={FIELD}
+            />
+          </div>
+          <div>
+            <label className={LABEL} htmlFor="receipt-wallet">Carteira</label>
+            <input
+              id="receipt-wallet"
+              value={form.wallet}
+              onChange={(e) => setForm({ ...form, wallet: e.target.value })}
+              placeholder="Ex: Alimentação/despesas hotel"
+              maxLength={60}
+              className={FIELD}
+            />
+          </div>
+          <div>
+            <label className={LABEL} htmlFor="receipt-category">Categoria</label>
+            <input
+              id="receipt-category"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              placeholder="Ex: ALIMENTAÇÃO"
+              maxLength={60}
+              className={FIELD}
+            />
+          </div>
+          <p className="text-[12px] text-ink-faint min-[640px]:col-span-2">
+            Para, instituição e chave Pix são obrigatórios para gerar o recibo. Carteira e categoria são opcionais.
+          </p>
         </div>
       </section>
 
