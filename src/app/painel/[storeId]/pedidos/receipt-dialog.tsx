@@ -87,7 +87,7 @@ export function ReceiptDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[472px] gap-0 p-0">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[472px]">
         {open && (
           <ReceiptForm storeId={storeId} order={order} receipt={receipt} onClose={() => onOpenChange(false)} />
         )}
@@ -153,7 +153,7 @@ function ReceiptForm({
 
   return (
     <>
-      <DialogHeader className="px-[22px] pt-5 pb-3.5 text-left">
+      <DialogHeader className="shrink-0 px-[22px] pt-5 pb-3.5 text-left">
         <span className="block font-mono text-[11px] font-bold uppercase tracking-wide text-ink-faint">
           Pedido #{order.code} · Pix
         </span>
@@ -163,7 +163,7 @@ function ReceiptForm({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto px-[22px] pt-1.5 pb-5">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-[22px] pt-1.5 pb-5">
         {!configured && (
           <div role="alert" className="flex gap-3 rounded-xl border border-[#F0DCAE] bg-amber-wash p-[15px]">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-white text-amber">
@@ -274,7 +274,7 @@ function ReceiptForm({
         )}
       </div>
 
-      <DialogFooter className="flex-row gap-2.5 border-t border-border px-[22px] py-4">
+      <DialogFooter className="m-0 shrink-0 flex-row gap-2.5 rounded-none border-t border-border bg-card px-[22px] py-4">
         <Button variant="outline" onClick={onClose} className="h-11 shrink-0 rounded-xl px-[18px]">
           Cancelar
         </Button>
