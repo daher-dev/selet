@@ -24,7 +24,7 @@ import {
   updateStockCategory,
   updateStockUnit,
 } from "./settings";
-import { updateStoreProfile } from "./stores";
+import { getStore, updateStoreProfile } from "./stores";
 
 // Runs only against the Firestore emulator (locally or in CI via
 // `firebase emulators:exec`). Never against prod.
@@ -121,6 +121,26 @@ describe.skipIf(!hasEmulator)("settings repository (emulator)", () => {
     expect(d.email).toBeUndefined();
     await updateStoreProfile(storeId, { name: "Espaço Selet", instagram: "" });
     expect((await store().get()).data()!.instagram).toBeUndefined();
+  });
+
+  it("saves the Pix receipt data, trims it and clears it when emptied", async () => {
+    await store().set({ name: "Vila Velha/ES", sub: "Loja matriz", initial: "V" });
+    await updateStoreProfile(storeId, {
+      name: "Vila Velha/ES",
+      receipt: { recipient: " Priscilla ", institution: "Nubank", pixKey: "27988119617", wallet: "", category: "ALIMENTAÇÃO" },
+    });
+    expect((await getStore(storeId))?.receipt).toEqual({
+      recipient: "Priscilla",
+      institution: "Nubank",
+      pixKey: "27988119617",
+      category: "ALIMENTAÇÃO",
+    });
+    // Omitting `receipt` leaves it alone.
+    await updateStoreProfile(storeId, { name: "Vila Velha/ES" });
+    expect((await getStore(storeId))?.receipt?.pixKey).toBe("27988119617");
+    await updateStoreProfile(storeId, { name: "Vila Velha/ES", receipt: { recipient: "", pixKey: " " } });
+    expect((await store().get()).data()!.receipt).toBeUndefined();
+    expect((await getStore(storeId))?.receipt).toBeUndefined();
   });
 
   it("manages Cardápio categories: defaults, create/edit/reorder, move-before-delete", async () => {

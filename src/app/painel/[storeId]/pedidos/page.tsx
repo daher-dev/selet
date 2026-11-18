@@ -1,4 +1,5 @@
-import { requireAccess } from "@/lib/access";
+import { canAccessSection, requireAccess } from "@/lib/access";
+import { getStore } from "@/data/stores";
 import { getOrder, listOrders } from "@/data/orders";
 import { listSellers } from "@/data/commissions";
 import { listCustomers } from "@/data/customers";
@@ -52,6 +53,7 @@ export default async function PedidosPage({
     pudimUtensils,
     pudimBrindes,
     sellers,
+    store,
   ] = await Promise.all([
     listOrders(storeId, { limit: 200 }),
     listCustomers(storeId),
@@ -68,6 +70,7 @@ export default async function PedidosPage({
     listPudimUtensils(storeId),
     listPudimBrindes(storeId),
     listSellers(storeId),
+    getStore(storeId),
   ]);
 
   // A shared ?order=<id> link can point past the 200 most recent orders.
@@ -95,6 +98,11 @@ export default async function PedidosPage({
       pudimMixins={pudimMixins.filter((m) => !m.archived)}
       pudimUtensils={pudimUtensils.filter((u) => !u.archived)}
       pudimBrindes={pudimBrindes.filter((b) => !b.archived)}
+      receipt={{
+        storeName: store?.name ?? "",
+        settings: store?.receipt,
+        canEditSettings: canAccessSection(user, "configuracoes"),
+      }}
     />
   );
 }

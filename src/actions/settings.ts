@@ -73,6 +73,15 @@ const profileSchema = z.object({
     .transform((v) => v.replace(/^@/, "").toLowerCase())
     .refine((v) => v === "" || /^[a-z0-9._]{1,30}$/.test(v), "Instagram inválido. Use letras, números, ponto e _ (até 30).")
     .optional(),
+  receipt: z
+    .object({
+      recipient: z.string().trim().max(80, "Nome do titular muito longo.").optional(),
+      institution: z.string().trim().max(60, "Instituição muito longa.").optional(),
+      pixKey: z.string().trim().max(80, "Chave Pix muito longa.").optional(),
+      wallet: z.string().trim().max(60, "Carteira muito longa.").optional(),
+      category: z.string().trim().max(60, "Categoria muito longa.").optional(),
+    })
+    .optional(),
 });
 
 export async function updateStoreProfileAction(input: z.input<typeof profileSchema>): Promise<SettingsResult> {

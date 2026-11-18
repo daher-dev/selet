@@ -6,8 +6,10 @@ import {
   Calendar,
   Check,
   ChevronLeft,
+  ChevronRight,
   Clock,
   Dessert,
+  FileText,
   Loader2,
   Minus,
   Plus,
@@ -55,7 +57,7 @@ import {
   remainingUses,
 } from "@/lib/cartelas";
 import { commissionLines, commissionOf, orderMoney, type DiscountInput } from "@/lib/order-money";
-import { zonedParts, zonedTimeToUtc } from "@/lib/timezone";
+import { isoToDateInput, isoToTimeInput, zonedTimeToUtc } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import { CustomerPicker } from "@/components/customer-picker";
 import { InternalBadge } from "@/components/internal-badge";
@@ -71,6 +73,8 @@ import { listCartelasByCustomerAction } from "@/actions/cartelas";
 import { ShakeBuilder, type ShakeBrindeOption } from "./shake-builder";
 import { PudimBuilder, type PudimBrindeOption } from "./pudim-builder";
 import { CartelaBuilder } from "./cartela-builder";
+import { ReceiptDialog, type ReceiptContext } from "./receipt-dialog";
+import { canIssueReceipt } from "@/lib/receipt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -190,18 +194,6 @@ function pudimSignature(pudim?: OrderItem["pudim"]): string {
   return JSON.stringify({ f: flavorIds, b: pudim.baseId, mixins, overrides, brinde });
 }
 
-/** "2026-08-05" (input[type=date] value) from an ISO datetime, in store-local (BRT) time. */
-function isoToDateInput(iso: string): string {
-  const { year, month, day } = zonedParts(new Date(iso));
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-/** "15:12" (input[type=time] value) from an ISO datetime, in store-local (BRT) time. */
-function isoToTimeInput(iso: string): string {
-  const { hour, minute } = zonedParts(new Date(iso));
-  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
-
 /** Combines the date+time inputs (store-local/BRT) into an ISO datetime string,
  *  or null while either half is empty/invalid (the picker was cleared). */
 function saleDateTimeToISO(date: string, time: string): string | null {
@@ -257,6 +249,7 @@ interface OrderSheetProps {
   pudimMixins: PudimMixin[];
   pudimUtensils: PudimUtensil[];
   pudimBrindes: PudimBrinde[];
+  receipt: ReceiptContext;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -279,6 +272,7 @@ export function OrderSheet({
   pudimMixins,
   pudimUtensils,
   pudimBrindes,
+  receipt,
   open,
   onOpenChange,
 }: OrderSheetProps) {
@@ -315,6 +309,7 @@ export function OrderSheet({
           pudimMixins={pudimMixins}
           pudimUtensils={pudimUtensils}
           pudimBrindes={pudimBrindes}
+          receipt={receipt}
           onClose={() => onOpenChange(false)}
         />
       </SheetContent>
@@ -340,6 +335,7 @@ function OrderForm({
   pudimMixins,
   pudimUtensils,
   pudimBrindes,
+  receipt,
   onClose,
 }: {
   storeId: string;
@@ -359,6 +355,7 @@ function OrderForm({
   pudimMixins: PudimMixin[];
   pudimUtensils: PudimUtensil[];
   pudimBrindes: PudimBrinde[];
+  receipt: ReceiptContext;
   onClose: () => void;
 }) {
   const PRODUCT_CATEGORY_META = useProductCategoryMeta();
@@ -481,6 +478,7 @@ function OrderForm({
   // those changes go through a confirmation dialog carrying the warning.
   const affectsPast = Boolean(order && order.total > 0 && isPastMonth(orderMonth));
   const [pastConfirm, setPastConfirm] = useState<(() => void) | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   function guard(run: () => void) {
     if (affectsPast) setPastConfirm(() => run);
     else run();
@@ -1331,9 +1329,37 @@ function OrderForm({
                 })}
               </div>
             )}
+            {canIssueReceipt(order) && effectivePaid && payMethod === "pix" && (
+              <button
+                type="button"
+                onClick={() => setReceiptOpen(true)}
+                className="mt-1 flex w-full items-center gap-[11px] rounded-xl border border-[#DDEBD5] bg-card px-[13px] py-[11px] text-left transition-colors hover:border-primary/40"
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-mint-wash text-primary">
+                  <FileText className="size-4" strokeWidth={1.9} aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-bold text-primary">Gerar recibo do Pix</span>
+                  <span className="mt-0.5 block text-[11.5px] text-ink-soft">
+                    PDF para o cliente apresentar como comprovante
+                  </span>
+                </span>
+                <ChevronRight className="size-[15px] text-ink-faint" strokeWidth={2} aria-hidden />
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {canIssueReceipt(order) && (
+        <ReceiptDialog
+          storeId={storeId}
+          order={order}
+          receipt={receipt}
+          open={receiptOpen}
+          onOpenChange={setReceiptOpen}
+        />
+      )}
 
       <SheetFooter className="flex-row gap-2 border-t border-border">
         <Button

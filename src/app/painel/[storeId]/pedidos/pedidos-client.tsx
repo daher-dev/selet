@@ -71,6 +71,7 @@ import {
   type CategoryMeta,
 } from "@/components/category-meta";
 import { OrderSheet } from "./order-sheet";
+import type { ReceiptContext } from "./receipt-dialog";
 import type { SellerOption } from "@/lib/types";
 
 type ChannelFilter = "todos" | OrderChannel;
@@ -147,6 +148,7 @@ interface PedidosClientProps {
   pudimMixins: PudimMixin[];
   pudimUtensils: PudimUtensil[];
   pudimBrindes: PudimBrinde[];
+  receipt: ReceiptContext;
 }
 
 export function PedidosClient({
@@ -167,6 +169,7 @@ export function PedidosClient({
   pudimMixins,
   pudimUtensils,
   pudimBrindes,
+  receipt,
 }: PedidosClientProps) {
   const PRODUCT_CATEGORY_META = useProductCategoryMeta();
   const [query, setQuery] = useState("");
@@ -528,6 +531,7 @@ export function PedidosClient({
         pudimMixins={pudimMixins}
         pudimUtensils={pudimUtensils}
         pudimBrindes={pudimBrindes}
+        receipt={receipt}
         open={creating || (selectedId !== null && selected !== null)}
         onOpenChange={(open) => {
           if (!open) {
