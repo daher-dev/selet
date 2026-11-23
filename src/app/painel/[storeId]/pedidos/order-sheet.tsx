@@ -1558,7 +1558,7 @@ function DiscountRow({
           Remover
         </button>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <div className="flex shrink-0 items-center gap-0.5 rounded-[10px] bg-wash p-[3px]">
           {DISCOUNT_KIND_OPTIONS.map(({ value, label }) => (
             <button
@@ -1575,7 +1575,7 @@ function DiscountRow({
           ))}
         </div>
         {kind !== "free" && (
-          <div className="flex flex-1 items-center gap-2 rounded-[10px] border border-primary/40 px-3 py-1.5">
+          <div className="flex min-w-[200px] flex-1 items-center gap-2 rounded-[10px] border border-primary/40 px-3 py-1.5">
             <input
               type="number"
               inputMode="decimal"
