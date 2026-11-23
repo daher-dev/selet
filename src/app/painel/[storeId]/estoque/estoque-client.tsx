@@ -383,6 +383,12 @@ function StockCard({
         <span className="text-[11px] font-bold uppercase tracking-[.5px] text-primary">Loja</span>
         <span className="flex-1" />
         <span className={cn("tabular text-[13.5px] font-bold", view.lojaColor)}>{view.lojaMain}</span>
+        {view.canAdjust && (
+          // In the flow (space always reserved) so it never covers the value or the bar.
+          <span className="-my-1 flex size-[22px] shrink-0 items-center justify-center rounded-md border border-[#e0d5f3] bg-white text-violet opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+            <Pencil className="size-[11px]" strokeWidth={2.1} />
+          </span>
+        )}
       </span>
       {view.segs.length > 0 && <PackageBar segs={view.segs} className="mt-2" />}
     </>
@@ -429,11 +435,8 @@ function StockCard({
               onClick={onAdjust}
               title="Ajustar embalagem aberta"
               aria-label={`Ajustar saldo da embalagem aberta de ${item.name}`}
-              className="pointer-events-auto relative mx-2.5 block rounded-[10px] bg-[#f7faf5] px-[11px] pb-[11px] pt-2.5 text-left text-ink transition-colors hover:bg-[#eef5ea]"
+              className="pointer-events-auto mx-2.5 block rounded-[10px] bg-[#f7faf5] px-[11px] pb-[11px] pt-2.5 text-left text-ink transition-colors hover:bg-[#eef5ea]"
             >
-              <span className="absolute right-1.5 top-1.5 hidden size-[22px] items-center justify-center rounded-md border border-[#e0d5f3] bg-white text-violet group-hover:flex">
-                <Pencil className="size-[11px]" strokeWidth={2.1} />
-              </span>
               {lojaRow}
             </button>
           ) : (

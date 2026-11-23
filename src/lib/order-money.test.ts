@@ -158,10 +158,16 @@ describe("revendaShare", () => {
     expect(revendaShare(items, 10000)).toBe(6000);
   });
 
-  it("prorates an order-level discount across consumo and revenda", () => {
+  it("keeps revenda at full price while the discount fits inside consumo", () => {
     const items = [line(2000, 2, "menu"), line(6000, 1, "revenda")];
-    // 10% off 10000 → total 9000; revenda keeps its 60% share.
-    expect(revendaShare(items, 9000)).toBe(5400);
+    // 10% off 10000 → total 9000; the 1000 discount comes out of consumo (4000).
+    expect(revendaShare(items, 9000)).toBe(6000);
+  });
+
+  it("lets a discount bigger than consumo eat into revenda", () => {
+    const items = [line(2800, 1, "menu"), line(1300, 1, "revenda")];
+    expect(revendaShare(items, 1300)).toBe(1300); // prize Sunset, pays only the Golden
+    expect(revendaShare(items, 700)).toBe(700); // 1600 off: consumo 0, revenda capped at what was paid
   });
 
   it("treats legacy lines without a saleType as consumo", () => {

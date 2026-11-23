@@ -1293,12 +1293,19 @@ function OrderForm({
               </button>
               <button
                 type="button"
-                disabled={!isZeroTotal}
+                aria-pressed={isZeroTotal}
+                // Comps the order via the existing "grátis" discount (removable in Valores).
+                onClick={() => {
+                  if (isZeroTotal || isInternal) return;
+                  setDiscountOpen(true);
+                  setDiscountKind("free");
+                  setDiscountValueInput("");
+                }}
                 className={cn(
                   "rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed",
                   isZeroTotal
                     ? "border-primary/50 bg-mist text-primary"
-                    : "border-dashed border-border bg-card text-ink-faint/70",
+                    : "border-border bg-card text-ink-soft",
                 )}
               >
                 Nada a cobrar
@@ -1577,7 +1584,7 @@ function DiscountRow({
           Remover
         </button>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <div className="flex shrink-0 items-center gap-0.5 rounded-[10px] bg-wash p-[3px]">
           {DISCOUNT_KIND_OPTIONS.map(({ value, label }) => (
             <button
@@ -1594,7 +1601,7 @@ function DiscountRow({
           ))}
         </div>
         {kind !== "free" && (
-          <div className="flex flex-1 items-center gap-2 rounded-[10px] border border-primary/40 px-3 py-1.5">
+          <div className="flex min-w-[200px] flex-1 items-center gap-2 rounded-[10px] border border-primary/40 px-3 py-1.5">
             <input
               type="number"
               inputMode="decimal"
