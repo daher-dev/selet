@@ -62,6 +62,9 @@ function toCartela(id: string, d: FirebaseFirestore.DocumentData): Cartela {
     totalUses: d.totalUses ?? 0,
     unitValue: d.unitValue ?? 0,
     amount: d.amount ?? 0,
+    unitValueHistory: ((d.unitValueHistory ?? []) as Cartela["unitValueHistory"] & object[]).map(
+      (h) => ({ ...h }),
+    ),
     uses: ((d.uses ?? []) as CartelaUse[]).map(normalizeUse),
     status: (d.status ?? "ativa") as CartelaStatus,
     soldOnOrderId: d.soldOnOrderId,
@@ -237,6 +240,39 @@ export async function markManualCartelaUse(
   });
 }
 
+/**
+ * Re-prices the PENDING uses of a cartela (e.g. a menu increase 26 → 28 that
+ * the customer must not suffer). Past uses keep their own `covered` snapshot
+ * on the order line, so nothing already redeemed changes; `amount` stays what
+ * was charged. Logged in `unitValueHistory`.
+ */
+export async function repriceCartela(
+  storeId: string,
+  cartelaId: string,
+  input: { unitValue: number; by: string },
+): Promise<void> {
+  const ref = cartelasCol(storeId).doc(cartelaId);
+  await getDb().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new Error("Cartela não encontrada.");
+    const data = snap.data()!;
+    if ((data.status ?? "ativa") === "cancelada") {
+      throw new Error("Esta cartela foi cancelada e não pode ser reajustada.");
+    }
+    const from = (data.unitValue ?? 0) as number;
+    if (input.unitValue === from) throw new Error("O valor do uso já é esse.");
+    const history = [
+      ...((data.unitValueHistory ?? []) as unknown[]),
+      { at: new Date().toISOString(), by: input.by, from, to: input.unitValue },
+    ];
+    tx.update(ref, {
+      unitValue: input.unitValue,
+      unitValueHistory: history,
+      updatedAt: Timestamp.now(),
+    });
+  });
+}
+
 // ---------------------------------------------------------------------------
 // planCartelas — the order-transaction planner
 // ---------------------------------------------------------------------------
@@ -364,7 +400,12 @@ export async function planCartelas(
   for (const line of useLines) {
     const entry = cartelas.get(line.cartelaUse.cartelaId)!;
     const unitValue = (entry.data.unitValue ?? 0) as number;
-    if (coverageFor(line.cartelaUse.listPrice, unitValue) === null) {
+    // A line already redeemed at an older unitValue (before a reprice) keeps
+    // validating against its own `covered` snapshot when the order is re-saved.
+    if (
+      coverageFor(line.cartelaUse.listPrice, unitValue) === null &&
+      coverageFor(line.cartelaUse.listPrice, line.cartelaUse.covered) === null
+    ) {
       throw new Error(
         `O preço deste item é menor que o valor de um uso da cartela (${(unitValue / 100).toFixed(2)}).`,
       );

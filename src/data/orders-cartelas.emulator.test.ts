@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cancelCartela, getCartela } from "./cartelas";
+import { cancelCartela, getCartela, repriceCartela } from "./cartelas";
 import { createCustomer } from "./customers";
 import { createOrder, getOrder, setOrderStatus, updateOrder } from "./orders";
 
@@ -306,6 +306,42 @@ describe.skipIf(!hasEmulator)("orders repository · cartela lines (emulator)", (
     const cartela = await getCartela(storeId, cartelaId);
     expect(cartela?.purchasedAt).toBe(backdated);
     expect(cartela?.createdAt).toBe(backdated);
+  });
+
+  it("reprices pending uses only: old orders keep their value and can be re-saved", async () => {
+    const storeId = `test-orders-cartela-reprice-${Date.now()}`;
+    const customerId = await createCustomer(storeId, { name: "Gil", tags: [] });
+    const { cartelaId } = await sellCartela(storeId, customerId, "Gil", {
+      paidUses: 3,
+      unitValue: 2600,
+    });
+    const code = (await getCartela(storeId, cartelaId))!.code;
+    const oldOrder = {
+      customerId,
+      customerName: "Gil",
+      channel: "loja" as const,
+      items: [punchLine(cartelaId, code, 1, 2600, 2600)],
+    };
+    const oldId = await createOrder(storeId, oldOrder);
+
+    await repriceCartela(storeId, cartelaId, { unitValue: 2800, by: "Ana" });
+    const repriced = await getCartela(storeId, cartelaId);
+    expect(repriced?.unitValue).toBe(2800);
+    expect(repriced?.amount).toBe(7800);
+    expect(repriced?.unitValueHistory).toMatchObject([{ from: 2600, to: 2800, by: "Ana" }]);
+
+    // Re-saving the order redeemed at 26 must not be blocked by the new 28.
+    await updateOrder(storeId, oldId, oldOrder);
+    // A new shake at 28 is fully covered.
+    await createOrder(storeId, {
+      ...oldOrder,
+      items: [punchLine(cartelaId, code, 1, 2800, 2800)],
+    });
+    expect((await getCartela(storeId, cartelaId))?.uses).toHaveLength(2);
+
+    await expect(repriceCartela(storeId, cartelaId, { unitValue: 2800, by: "Ana" })).rejects.toThrow();
+    await cancelCartela(storeId, cartelaId, "x", "teste de cancelamento");
+    await expect(repriceCartela(storeId, cartelaId, { unitValue: 3000, by: "Ana" })).rejects.toThrow();
   });
 
   it("rejects a line priced below the cartela's fixed unit value (never forfeits the difference)", async () => {
