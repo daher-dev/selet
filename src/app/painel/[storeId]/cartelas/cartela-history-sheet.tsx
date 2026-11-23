@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Minus } from "lucide-react";
+import { Ban, Minus, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import type { Cartela } from "@/lib/types";
 import { formatBRL, formatDateShort, orderCode } from "@/lib/format";
@@ -213,33 +213,37 @@ export function CartelaHistorySheet({
                 )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-2.5 border-t border-muted p-4">
-                <button
-                  type="button"
-                  onClick={() => setRepriceOpen(true)}
-                  disabled={pending || cartela.status === "cancelada"}
-                  className="shrink-0 rounded-xl border border-border bg-card px-4 py-2.5 text-[13.5px] font-semibold text-ink-soft transition-colors hover:border-primary/40 disabled:opacity-50"
-                >
-                  Reajustar valor
-                </button>
+              <div className="flex shrink-0 flex-col gap-2.5 border-t border-muted p-4">
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setRepriceOpen(true)}
+                    disabled={pending || cartela.status === "cancelada"}
+                    className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-border bg-card px-4 py-2.5 text-[13.5px] font-semibold text-ink-soft transition-colors hover:border-primary/40 disabled:opacity-50"
+                  >
+                    <TrendingUp className="size-4 shrink-0" />
+                    Reajustar valor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setManualOpen(true)}
+                    disabled={pending}
+                    className="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#E0D8F0] bg-[#F1EDF8] py-2.5 text-[13.5px] font-semibold text-[#5A4A86] transition-colors hover:border-[#DCD2F0] disabled:opacity-50"
+                  >
+                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-[#B6A4D8] text-[#7A63B8]">
+                      <Minus className="size-2.5" strokeWidth={4} />
+                    </span>
+                    Marcar uso manual
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={() => setConfirmOpen(true)}
                   disabled={pending}
-                  className="shrink-0 rounded-xl border border-border bg-card px-4 py-2.5 text-[13.5px] font-semibold text-ink-soft transition-colors hover:border-destructive/40 hover:text-destructive disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13.5px] font-semibold text-ink-soft transition-colors hover:border-destructive/40 hover:text-destructive disabled:opacity-50"
                 >
+                  <Ban className="size-4 shrink-0" />
                   Cancelar cartela
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setManualOpen(true)}
-                  disabled={pending}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#E0D8F0] bg-[#F1EDF8] py-2.5 text-[13.5px] font-semibold text-[#5A4A86] transition-colors hover:border-[#DCD2F0] disabled:opacity-50"
-                >
-                  <span className="flex size-4 shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-[#B6A4D8] text-[#7A63B8]">
-                    <Minus className="size-2.5" strokeWidth={4} />
-                  </span>
-                  Marcar uso manual
                 </button>
               </div>
             </>
