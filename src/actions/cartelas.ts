@@ -8,6 +8,7 @@ import {
   listCartelasByCustomer,
   markManualCartelaUse,
   previewCartelaCancel,
+  repriceCartela,
   type CartelaCancelImpact,
 } from "@/data/cartelas";
 import { logActivity } from "@/data/activity";
@@ -97,6 +98,30 @@ export async function markManualCartelaUseAction(
     await logActivity(storeId, {
       icon: "minus",
       label: `Ajuste manual · ${count} uso${count === 1 ? "" : "s"} · Cartela #${cartelaCode(cartelaId)}`,
+      detail: "Cartelas",
+      by: user.email,
+      section: "cartelas",
+    });
+    revalidate(storeId);
+  });
+}
+
+const repriceSchema = z.object({
+  storeId: z.string().min(1),
+  cartelaId: z.string().min(1),
+  unitValue: z.number().int().positive("Informe um valor maior que zero."),
+});
+
+export async function repriceCartelaAction(
+  input: z.input<typeof repriceSchema>,
+): Promise<ActionResult> {
+  return run(async () => {
+    const { storeId, cartelaId, unitValue } = repriceSchema.parse(input);
+    const user = await requireAccess(storeId, "cartelas");
+    await repriceCartela(storeId, cartelaId, { unitValue, by: user.name });
+    await logActivity(storeId, {
+      icon: "minus",
+      label: `Valor do uso reajustado · Cartela #${cartelaCode(cartelaId)}`,
       detail: "Cartelas",
       by: user.email,
       section: "cartelas",

@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/sheet";
 import { CartelaPunchDots } from "@/components/cartela-punch-dots";
 import { CartelaManualUseSheet } from "./cartela-manual-use-sheet";
+import { CartelaRepriceSheet } from "./cartela-reprice-sheet";
 
 interface CartelaHistorySheetProps {
   storeId: string;
@@ -51,6 +52,7 @@ export function CartelaHistorySheet({
 }: CartelaHistorySheetProps) {
   const [pending, startTransition] = useTransition();
   const [manualOpen, setManualOpen] = useState(false);
+  const [repriceOpen, setRepriceOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [reason, setReason] = useState("");
   // The live orders (and money) this cancel would take out of Financeiro.
@@ -131,6 +133,16 @@ export function CartelaHistorySheet({
               </SheetHeader>
 
               <div className="flex-1 space-y-4 overflow-y-auto p-5">
+                {(cartela.unitValueHistory ?? []).length > 0 && (
+                  <div className="rounded-xl border border-border bg-wash p-3 text-[12px] text-ink-soft">
+                    {cartela.unitValueHistory!.map((h, i) => (
+                      <p key={i}>
+                        Reajuste {formatBRL(h.from)} → {formatBRL(h.to)} · {h.by} ·{" "}
+                        {formatDateShort(h.at)}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 {!hasHistory ? (
                   <p className="text-[13px] text-ink-faint">
                     Nenhum uso registrado ainda.
@@ -204,6 +216,14 @@ export function CartelaHistorySheet({
               <div className="flex shrink-0 items-center gap-2.5 border-t border-muted p-4">
                 <button
                   type="button"
+                  onClick={() => setRepriceOpen(true)}
+                  disabled={pending || cartela.status === "cancelada"}
+                  className="shrink-0 rounded-xl border border-border bg-card px-4 py-2.5 text-[13.5px] font-semibold text-ink-soft transition-colors hover:border-primary/40 disabled:opacity-50"
+                >
+                  Reajustar valor
+                </button>
+                <button
+                  type="button"
                   onClick={() => setConfirmOpen(true)}
                   disabled={pending}
                   className="shrink-0 rounded-xl border border-border bg-card px-4 py-2.5 text-[13.5px] font-semibold text-ink-soft transition-colors hover:border-destructive/40 hover:text-destructive disabled:opacity-50"
@@ -226,6 +246,13 @@ export function CartelaHistorySheet({
           )}
         </SheetContent>
       </Sheet>
+
+      <CartelaRepriceSheet
+        storeId={storeId}
+        cartela={cartela}
+        open={repriceOpen}
+        onOpenChange={setRepriceOpen}
+      />
 
       <CartelaManualUseSheet
         storeId={storeId}

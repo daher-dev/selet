@@ -600,6 +600,8 @@ export interface Cartela {
   totalUses: number; // paidUses + 1 (the brinde)
   unitValue: number; // centavos, the fixed value a single use is worth
   amount: number; // centavos, paidUses * unitValue — what was actually charged
+  /** Reajustes do valor do uso (só afetam usos pendentes; usos feitos guardam seu `covered`). */
+  unitValueHistory?: { at: string; by: string; from: number; to: number }[];
   uses: CartelaUse[];
   status: CartelaStatus;
   soldOnOrderId: string;
