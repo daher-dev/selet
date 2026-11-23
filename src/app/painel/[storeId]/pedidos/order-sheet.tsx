@@ -389,7 +389,7 @@ function OrderForm({
   const [discountValueInput, setDiscountValueInput] = useState<string>(
     order?.discount
       ? order.discount.kind === "flat"
-        ? String(order.discount.value / 100)
+        ? String(order.discount.value / 100).replace(".", ",")
         : order.discount.kind === "percent"
           ? String(order.discount.value)
           : ""
@@ -1603,13 +1603,17 @@ function DiscountRow({
         {kind !== "free" && (
           <div className="flex min-w-[200px] flex-1 items-center gap-2 rounded-[10px] border border-primary/40 px-3 py-1.5">
             <input
-              type="number"
+              type="text"
               inputMode="decimal"
-              min={kind === "percent" ? 1 : 0.01}
-              max={kind === "percent" ? 100 : undefined}
-              step={kind === "percent" ? 1 : 0.01}
               value={valueInput}
-              onChange={(e) => onValueChange(e.target.value)}
+              // Text, not type="number": a number input drops the decimal
+              // separator while typing ("2,00" showed as "200").
+              onChange={(e) => {
+                const v = e.target.value;
+                if (/^\d*$/.test(v) || (kind === "flat" && /^\d*[.,]\d{0,2}$/.test(v))) {
+                  onValueChange(v);
+                }
+              }}
               placeholder="0"
               className="w-full min-w-0 flex-1 bg-transparent text-[14.5px] font-bold text-ink outline-none tabular"
             />
